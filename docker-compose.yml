@@ -1,0 +1,171 @@
+services:
+  # ===========================================
+  # BASE DE DATOS PRINCIPAL (PostgreSQL + PostGIS)
+  # ===========================================
+  database:
+    image: postgis/postgis:17-3.5
+    container_name: plantilla-pern-database
+    environment:
+      POSTGRES_DB: ${DB_NAME:-db_plantilla}
+      POSTGRES_USER: ${DB_USERNAME:-user_plantilla}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password_plantilla}
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=es-ES --encoding=UTF8"
+    ports:
+      - "${EXTERNAL_DB_PORT:-5433}:5432"
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-user_plantilla} -d ${DB_NAME:-db_plantilla}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - network
+
+  # ===========================================
+  # BASE DE DATOS DE TESTING
+  # ===========================================
+  database_test:
+    image: postgis/postgis:17-3.5
+    container_name: plantilla-pern-database-test
+    environment:
+      POSTGRES_DB: ${DB_TEST_NAME:-db_test}
+      POSTGRES_USER: ${DB_TEST_USERNAME:-user_test}
+      POSTGRES_PASSWORD: ${DB_TEST_PASSWORD:-password_test}
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=es-ES --encoding=UTF8"
+    ports:
+      - "${EXTERNAL_DB_TEST_PORT:-5434}:5432"
+    volumes:
+      - database_test_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_TEST_USERNAME:-user_test} -d ${DB_TEST_NAME:-db_test}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - network
+
+  # ===========================================
+  # ALMACENAMIENTO DE ARCHIVOS (MinIO)
+  # ===========================================
+  minio:
+    image: minio/minio:latest
+    container_name: plantilla-pern-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin123}
+    ports:
+      - "${EXTERNAL_MINIO_PORT:-9000}:9000"
+      - "${EXTERNAL_MINIO_CONSOLE_PORT:-9002}:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+    networks:
+      - network
+
+  # ===========================================
+  # BACKEND API (Node.js + Express)
+  # ===========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: plantilla-pern-backend
+    environment:
+      # Configuración del servidor
+      NODE_ENV: ${NODE_ENV:-production}
+      HOST: ${B_HOST:-0.0.0.0}
+      PORT: ${B_PORT:-3000}
+      
+      # Seguridad
+      ACCESS_TOKEN_SECRET: ${B_ACCESS_TOKEN_SECRET}
+      COOKIE_KEY: ${B_COOKIE_KEY}
+      
+      # Base de datos principal (variables que espera configEnv.js)
+      DB_HOST: database
+      DATABASE: ${DB_NAME:-db_plantilla}
+      DB_USERNAME: ${DB_USERNAME:-user_plantilla}
+      PASSWORD: ${DB_PASSWORD:-password_plantilla}
+      
+      # MinIO
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
+      MINIO_PORT: ${MINIO_PORT:-9000}
+      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin123}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-uploads}
+    ports:
+      - "${EXTERNAL_BACKEND_PORT:-3000}:3000"
+    volumes:
+      - backend_logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - network
+
+  # ===========================================
+  # FRONTEND (React + Nginx)
+  # ===========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_BASE_URL: ${VITE_BASE_URL:-/api}
+    container_name: plantilla-pern-frontend
+    ports:
+      - "${EXTERNAL_FRONTEND_PORT:-80}:80"
+      - "${EXTERNAL_FRONTEND_SSL_PORT:-443}:443"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - network
+# ===========================================
+# VOLÚMENES PERSISTENTES
+# ===========================================
+volumes:
+  database_data:
+    driver: local
+  database_test_data:
+    driver: local
+  minio_data:
+    driver: local
+  backend_logs:
+    driver: local
+
+# ===========================================
+# REDES
+# ===========================================
+networks:
+  network:
+    driver: bridge
+    name: plantilla-pern-network
