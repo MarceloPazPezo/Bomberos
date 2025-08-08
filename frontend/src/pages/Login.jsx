@@ -5,6 +5,7 @@ import useLogin from '@hooks/auth/useLogin.jsx';
 import { showErrorAlert } from "../helpers/sweetAlert.js";
 import Form from '@components/Form';
 import { MdPerson, MdClose, MdSecurity, MdDashboard, MdTrendingUp, MdArrowForward } from 'react-icons/md';
+import { useRutFormatter, formatRutForAPI, formatRutForDisplay } from '@helpers/rutFormatter.js';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -14,10 +15,14 @@ const Login = () => {
         errorRut,
         errorPassword,
         errorData,
-        handleInputChange,
-        inputData,
-        setFieldValue
+        clearErrors
     } = useLogin();
+
+    // Hook para formateo de RUT
+    const rutFormatter = useRutFormatter(
+        (fieldName, value) => formRef.current?.setValue(fieldName, value),
+        'rut'
+    );
 
     // Usuarios base del initialSetup
     const baseUsers = [
@@ -49,7 +54,13 @@ const Login = () => {
 
     const loginSubmit = async (data) => {
         try {
-            const response = await login(data);
+            // Formatear RUT para API (sin puntos, solo guión)
+            const formattedData = {
+                ...data,
+                rut: formatRutForAPI(data.rut)
+            };
+            
+            const response = await login(formattedData);
             if (response.status === 'Success') {
                 navigate('/home');
             } else if (response.status === 'Client error') {
@@ -61,27 +72,16 @@ const Login = () => {
         }
     };
 
-    const formatRut = (rut) => {
-        if (!rut) return '';
-        let clean = rut.replace(/[^\dkK]/g, '');
-        if (clean.length < 2) return clean;
-        let body = clean.slice(0, -1);
-        let dv = clean.slice(-1).toUpperCase();
-        body = body.replace(/^0+/, '');
-        if (!/^\d+$/.test(body)) return '';
-        return `${body}-${dv}`;
-    };
 
-    const handleRutBlur = (e) => {
-        const formatted = formatRut(e.target.value);
-        setFieldValue('rut', formatted);
-    };
 
     const selectBaseUser = (user) => {
         if (formRef.current) {
-            formRef.current.setValue('rut', user.rut);
+            // Formatear RUT para visualización (con puntos y guión)
+            const formattedRut = formatRutForDisplay(user.rut);
+            formRef.current.setValue('rut', formattedRut);
             formRef.current.setValue('password', user.password);
         }
+        clearErrors(); // Limpiar errores al seleccionar un usuario
         setShowBaseUsers(false);
     };
 
@@ -111,22 +111,8 @@ const Login = () => {
                             title=""
                             fields={[
                                 {
-                                    label: "RUT",
-                                    name: "rut",
-                                    placeholder: "12345678-9",
-                                    fieldType: 'input',
-                                    type: "text",
-                                    required: true,
-                                    minLength: 8,
-                                    maxLength: 12,
+                                    ...rutFormatter.getFieldConfig(),
                                     errorMessageData: errorRut,
-                                    validate: {
-                                        rutFormat: (value) =>
-                                            /^\d{7,8}-[\dkK]$/.test(value) || 'El RUT debe tener el formato 12345678-9'
-                                    },
-                                    value: inputData.rut,
-                                    onChange: (e) => setFieldValue('rut', formatRut(e.target.value)),
-                                    onBlur: handleRutBlur,
                                     autoComplete: "username"
                                 },
                                 {
@@ -141,8 +127,6 @@ const Login = () => {
                                     pattern: /^[a-zA-Z0-9]+$/,
                                     patternMessage: "Debe contener solo letras y números",
                                     errorMessageData: errorPassword,
-                                    value: inputData.password,
-                                    onChange: (e) => setFieldValue('password', e.target.value),
                                     autoComplete: "current-password"
                                 },
                             ]}
@@ -296,7 +280,7 @@ const Login = () => {
                                                     <div className="flex items-center space-x-2">
                                                         <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
                                                         <span className="font-medium text-gray-700">RUT:</span>
-                                                        <span className="text-gray-600 font-mono">{user.rut}</span>
+                                                        <span className="text-gray-600 font-mono">{formatRutForDisplay(user.rut)}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 md:col-span-2">
                                                         <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
