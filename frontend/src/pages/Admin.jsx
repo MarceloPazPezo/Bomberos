@@ -3,9 +3,10 @@ import { useUsers } from '@hooks/users/useUsers';
 import { useAuth } from '@hooks/auth/useAuth';
 import UpdateUserPopup from '../components/UpdateUserPopup';
 import CreateUserPopup from '@components/CreateUserPopup.jsx';
+import UserDetailModal from '@components/UserDetailModal.jsx';
 import Table from '@components/Table.jsx';
 import Tooltip from '@components/Tooltip.jsx';
-import { MdEdit, MdDelete, MdPersonAddAlt1, MdAdminPanelSettings, MdPerson, MdPhone, MdSecurity, MdApi, MdLink, MdLinkOff, MdAdd, MdViewList, MdViewModule, MdRefresh } from 'react-icons/md';
+import { MdEdit, MdDelete, MdPersonAddAlt1, MdAdminPanelSettings, MdPerson, MdPhone, MdSecurity, MdApi, MdLink, MdLinkOff, MdAdd, MdViewList, MdViewModule, MdRefresh, MdVisibility } from 'react-icons/md';
 import PermissionsView from '@components/PermissionsView.jsx';
 import RolesView from '@components/RolesView.jsx';
 import CreateRolePopup from '@components/CreateRolePopup.jsx';
@@ -77,6 +78,8 @@ const Admin = () => {
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [dataUser, setDataUser] = useState(null);
   const [showCreateRole, setShowCreateRole] = useState(false);
+  const [showUserDetail, setShowUserDetail] = useState(false);
+  const [userDetailData, setUserDetailData] = useState(null);
   
   // Estados para la vista de roles
   const [viewMode, setViewMode] = useState('cards'); // 'list' o 'cards'
@@ -144,9 +147,9 @@ const Admin = () => {
     // Si es un array de usuarios, procesar cada uno
     if (Array.isArray(users)) {
       for (const user of users) {
-        const rut = user.rut;
-        if (rut) {
-          const result = await handleDeleteUser(rut);
+        const run = user.run;
+        if (run) {
+          const result = await handleDeleteUser(run);
           if (result.success) {
             setDataUser(null);
           }
@@ -257,7 +260,7 @@ const Admin = () => {
     
     return [
     {
-      accessorKey: 'rut',
+      accessorKey: 'run',
       header: 'RUT',
       size: 130,
       cell: info => {
@@ -292,6 +295,12 @@ const Admin = () => {
               <div className="text-xs text-gray-600 font-mono flex items-center gap-1">
                 <MdPhone className="w-3 h-3" />
                 {telefono}
+              </div>
+            )}
+            {user.fechaIngreso && (
+              <div className="text-xs text-gray-500 flex items-center gap-1">
+                <span>Ingreso:</span>
+                <span>{new Date(user.fechaIngreso).toLocaleDateString('es-CL')}</span>
               </div>
             )}
           </div>
@@ -421,6 +430,11 @@ const Admin = () => {
     setIsPopupOpen(true);
   };
 
+  const handleViewDetails = (user) => {
+    setUserDetailData(user);
+    setShowUserDetail(true);
+  };
+
   const handleDeleteSingle = (user) => {
     handleDelete([user]);
   };
@@ -434,13 +448,14 @@ const Admin = () => {
   };
 
   const renderActions = ({ row }) => {
-    const isCurrentUser = currentUser && (currentUser.rut === row.rut || currentUser.id === row.id);
+    const isCurrentUser = currentUser && (currentUser.run === row.run || currentUser.id === row.id);
     const canEdit = hasPermission('user:update_specific');
     const canDelete = hasPermission('user:delete');
     const canChangeStatus = hasPermission('user:change_status');
+    const canView = hasPermission('user:read_all');
     
     // Si no tiene permisos para ninguna acción, no mostrar nada
-    if (!canEdit && !canDelete && !canChangeStatus) {
+    if (!canEdit && !canDelete && !canChangeStatus && !canView) {
       return null;
     }
 
@@ -450,6 +465,21 @@ const Admin = () => {
     
     return (
       <div className="flex gap-2">
+        {canView && (
+          <Tooltip
+            id={`view-${row.id}`}
+            content="Ver detalles completos del usuario"
+            place="top"
+            variant="dark"
+          >
+            <button 
+              className="transition-all duration-200 p-2 rounded-lg hover:scale-105 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              onClick={() => handleViewDetails(row)}
+            >
+              <MdVisibility size={18} />
+            </button>
+          </Tooltip>
+        )}
         {canEdit && (
           <Tooltip
             id={`edit-${row.id}`}
@@ -839,6 +869,7 @@ const Admin = () => {
       {showCreateRole && (
         <CreateRolePopup show={showCreateRole} setShow={setShowCreateRole} onRoleCreated={() => fetchRoles(true)} />
       )}
+      <UserDetailModal show={showUserDetail} setShow={setShowUserDetail} userData={userDetailData} />
     </div>
   );
 };

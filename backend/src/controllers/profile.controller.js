@@ -71,7 +71,9 @@ export async function updateMyProfile(req, res) {
       return handleErrorClient(res, 400, "Error de validación", errorMessages);
     }
 
-    const [user, errorUser] = await updateUserService({ id }, body);
+    const updatedBy = req.user ? `${req.user.nombres?.join(' ')} ${req.user.apellidos?.join(' ')}`.trim() : 'Sistema';
+
+    const [user, errorUser] = await updateUserService({ id }, body, updatedBy);
 
     if (errorUser) return handleErrorClient(res, 404, errorUser);
 
@@ -110,9 +112,12 @@ export async function changeMyPassword(req, res) {
       return handleErrorClient(res, 400, "Error de validación", errorMessages);
     }
 
+    const updatedBy = req.user ? `${req.user.nombres?.join(' ')} ${req.user.apellidos?.join(' ')}`.trim() : 'Sistema';
+
     const [user, errorUser] = await updateUserService(
       { id },
       { currentPassword, newPassword },
+      updatedBy,
     );
 
     if (errorUser) return handleErrorClient(res, 400, errorUser);

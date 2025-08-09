@@ -16,7 +16,7 @@ passport.use(
       const userRepository = AppDataSource.getRepository(User);
       const user = await userRepository.findOne({
         where: {
-          rut: jwt_payload.rut,
+          run: jwt_payload.run,
         },
       });
 

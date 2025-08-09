@@ -1,44 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const useLogin = () => {
     const [errorRut, setErrorRut] = useState('');
     const [errorPassword, setErrorPassword] = useState('');
-    const [inputData, setInputData] = useState({ rut: '', password: '' });
-
-    useEffect(() => {
-        if (inputData.rut) setErrorRut('');
-        if (inputData.password) setErrorPassword('');
-    }, [inputData.rut, inputData.password]);
 
     const errorData = (dataMessage) => {
-        if (dataMessage.dataInfo === 'rut') {
+        if (dataMessage.dataInfo === 'run') {
             setErrorRut(dataMessage.message);
         } else if (dataMessage.dataInfo === 'password') {
             setErrorPassword(dataMessage.message);
         }
     };
 
-    const handleInputChange = (field, value) => {
-        setInputData(prevState => ({
-            ...prevState,
-            [field]: value
-        }));
-    };
-
-    const setFieldValue = (field, value) => {
-        setInputData(prevState => ({
-            ...prevState,
-            [field]: value
-        }));
+    const clearErrors = () => {
+        setErrorRut('');
+        setErrorPassword('');
     };
 
     return {
         errorRut,
         errorPassword,
-        inputData,
         errorData,
-        handleInputChange,
-        setFieldValue,
+        clearErrors,
     };
 };
 

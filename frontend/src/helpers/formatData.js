@@ -13,21 +13,21 @@ function startCase(str) {
     ).join(' ');
 }
 
-function formatRut(rut) {
-    if (!rut) return rut;
-    const cleanRut = rut.toString().replace(/[.-]/g, '');
+function formatRut(run) {
+    if (!run) return run;
+    const cleanRut = run.toString().replace(/[.-]/g, '');
     if (cleanRut.length >= 8) {
         const body = cleanRut.slice(0, -1);
         const dv = cleanRut.slice(-1);
         return body.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.') + '-' + dv;
     }
-    return rut;
+    return run;
 }
 
-function normalizeRutForBackend(rut) {
-    if (!rut) return rut;
+function normalizeRutForBackend(run) {
+    if (!run) return run;
     // Quitar puntos pero mantener el guión
-    return rut.toString().replace(/\./g, '');
+    return run.toString().replace(/\./g, '');
 }
 
 function formatTempo(date, format) {
@@ -84,14 +84,22 @@ export function formatUserData(user) {
         ...user,
         nombres: Array.isArray(user.nombres) ? user.nombres.map(nombre => startCase(nombre)) : startCase(user.nombres),
         apellidos: Array.isArray(user.apellidos) ? user.apellidos.map(apellido => startCase(apellido)) : startCase(user.apellidos),
-        rut: formatRut(user.rut),
+        run: formatRut(user.run),
         telefono: formatTelefono(user.telefono),
         fechaNacimiento: user.fechaNacimiento ? formatTempo(user.fechaNacimiento, "DD-MM-YYYY") : null,
+        fechaIngreso: user.fechaIngreso ? formatTempo(user.fechaIngreso, "DD-MM-YYYY") : null,
+        direccion: user.direccion || null,
+        tipoSangre: user.tipoSangre || null,
+        alergias: user.alergias || null,
+        medicamentos: user.medicamentos || null,
+        condiciones: user.condiciones || null,
         activo: user.activo,
         roles: Array.isArray(user.roles) ? user.roles.map(role => startCase(role)) : [],
         // Mantener las fechas originales sin formatear para conservar la información completa
         createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        updatedAt: user.updatedAt,
+        createdBy: user.createdBy,
+        updatedBy: user.updatedBy
     };
 }
 
@@ -108,13 +116,22 @@ export function formatPostUpdate(user) {
     return {
         nombres: Array.isArray(user.nombres) ? user.nombres.map(nombre => startCase(nombre)) : startCase(user.nombres),
         apellidos: Array.isArray(user.apellidos) ? user.apellidos.map(apellido => startCase(apellido)) : startCase(user.apellidos),
-        rut: formatRut(user.rut),
+        run: formatRut(user.run),
         email: user.email,
         telefono: formatTelefono(user.telefono),
         fechaNacimiento: user.fechaNacimiento ? formatTempo(user.fechaNacimiento, "DD-MM-YYYY") : null,
+        fechaIngreso: user.fechaIngreso ? formatTempo(user.fechaIngreso, "DD-MM-YYYY") : null,
+        direccion: user.direccion || null,
+        tipoSangre: user.tipoSangre || null,
+        alergias: user.alergias || null,
+        medicamentos: user.medicamentos || null,
+        condiciones: user.condiciones || null,
         activo: user.activo,
         roles: Array.isArray(user.roles) ? user.roles.map(role => startCase(role)) : [],
-        createdAt: formatTempo(user.createdAt, "DD-MM-YYYY")
+        createdAt: formatTempo(user.createdAt, "DD-MM-YYYY"),
+        updatedAt: formatTempo(user.updatedAt, "DD-MM-YYYY"),
+        createdBy: user.createdBy,
+        updatedBy: user.updatedBy
     };
 }
 

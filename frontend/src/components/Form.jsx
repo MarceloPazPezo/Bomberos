@@ -184,14 +184,26 @@ const Form = forwardRef(({
                               maxLength: field.maxLength ? { value: field.maxLength, message: `Debe tener máximo ${field.maxLength} caracteres` } : false,
                               pattern: field.pattern ? { value: field.pattern, message: field.patternMessage || 'Formato no válido' } : false,
                               validate: field.validate || {},
+                              onChange: (e) => {
+                                // Llamar al onChange personalizado si existe
+                                if (field.onChange) {
+                                  field.onChange(e);
+                                }
+                              }
                             })}
                             name={field.name}
                             placeholder={field.placeholder}
                             type={field.type === 'password' ? (showPassword[field.name] ? 'text' : 'password') : field.type}
                             defaultValue={field.defaultValue || ''}
                             disabled={field.disabled}
-                            onChange={field.onChange}
                             autoComplete={field.autoComplete || "off"}
+                            onKeyDown={(e) => {
+                              // Manejar Enter para enviar el formulario
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSubmit(onFormSubmit)();
+                              }
+                            }}
                           />
                           {field.type === 'password' && (
                             <button 

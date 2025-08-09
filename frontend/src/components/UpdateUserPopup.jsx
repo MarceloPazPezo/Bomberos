@@ -12,8 +12,8 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
         setLoading(true);
         try {
             // Los roles ya vienen del multiselect integrado en Form
-            if (onUserUpdated && userData.rut) {
-                const result = await onUserUpdated(formData, userData.rut);
+            if (onUserUpdated && userData.run) {
+                const result = await onUserUpdated(formData, userData.run);
                 if (result.success) {
                     setShow(false);
                 }
@@ -58,9 +58,15 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                         nombres: Array.isArray(userData.nombres) ? userData.nombres.join(' ') : userData.nombres || "",
                                         apellidos: Array.isArray(userData.apellidos) ? userData.apellidos.join(' ') : userData.apellidos || "",
                                         email: userData.email || "",
-                                        rut: userData.rut || "",
+                                        run: userData.run || "",
                                         telefono: userData.telefono || "",
                                         fechaNacimiento: userData.fechaNacimiento ? userData.fechaNacimiento.split('T')[0] : "",
+                                        fechaIngreso: userData.fechaIngreso ? userData.fechaIngreso.split('T')[0] : "",
+                                        direccion: userData.direccion || "",
+                                        tipoSangre: userData.tipoSangre || "",
+                                        alergias: userData.alergias || "",
+                                        medicamentos: userData.medicamentos || "",
+                                        condiciones: userData.condiciones || "",
                                         newPassword: "",
                                         roles: (() => {
                                             // Obtener roles del usuario para valores por defecto
@@ -110,12 +116,12 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                             type: "email",
                                             required: true,
                                             minLength: 15,
-                                            maxLength: 100,
+                                            maxLength: 255,
                                             autoComplete: "new-email"
                                         },
                                         {
                                             label: "Rut",
-                                            name: "rut",
+                                            name: "run",
                                             placeholder: '21.308.770-3',
                                             fieldType: 'input',
                                             type: "text",
@@ -142,8 +148,75 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                             name: "fechaNacimiento",
                                             fieldType: 'input',
                                             type: "date",
-                                            required: false,
+                                            required: true,
                                             autoComplete: "bday"
+                                        },
+                                        {
+                                            label: "Fecha de ingreso",
+                                            name: "fechaIngreso",
+                                            fieldType: 'input',
+                                            type: "date",
+                                            required: true,
+                                            autoComplete: "off"
+                                        },
+                                        {
+                                            label: "Dirección",
+                                            name: "direccion",
+                                            placeholder: 'Av. Principal 123, Santiago',
+                                            fieldType: 'input',
+                                            type: "text",
+                                            required: false,
+                                            minLength: 5,
+                                            maxLength: 255,
+                                            autoComplete: "street-address"
+                                        },
+                                        {
+                                            label: "Tipo de sangre",
+                                            name: "tipoSangre",
+                                            fieldType: 'select',
+                                            required: false,
+                                            placeholder: "Seleccionar tipo de sangre",
+                                            options: [
+                                                { value: '', label: 'No especificado' },
+                                                { value: 'A+', label: 'A+' },
+                                                { value: 'A-', label: 'A-' },
+                                                { value: 'B+', label: 'B+' },
+                                                { value: 'B-', label: 'B-' },
+                                                { value: 'AB+', label: 'AB+' },
+                                                { value: 'AB-', label: 'AB-' },
+                                                { value: 'O+', label: 'O+' },
+                                                { value: 'O-', label: 'O-' }
+                                            ]
+                                        },
+                                        {
+                                            label: "Alergias",
+                                            name: "alergias",
+                                            placeholder: 'Alergia a medicamentos, alimentos, etc.',
+                                            fieldType: 'textarea',
+                                            required: false,
+                                            maxLength: 500,
+                                            rows: 3,
+                                            autoComplete: "off"
+                                        },
+                                        {
+                                            label: "Medicamentos",
+                                            name: "medicamentos",
+                                            placeholder: 'Medicamentos que consume regularmente',
+                                            fieldType: 'textarea',
+                                            required: false,
+                                            maxLength: 500,
+                                            rows: 3,
+                                            autoComplete: "off"
+                                        },
+                                        {
+                                            label: "Condiciones médicas",
+                                            name: "condiciones",
+                                            placeholder: 'Condiciones médicas relevantes',
+                                            fieldType: 'textarea',
+                                            required: false,
+                                            maxLength: 500,
+                                            rows: 3,
+                                            autoComplete: "off"
                                         },
                                         {
                                             label: (

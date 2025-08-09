@@ -69,11 +69,11 @@ export const useUsers = () => {
   };
 
   // Función para actualizar un usuario
-  const handleUpdateUser = async (userData, rut) => {
+  const handleUpdateUser = async (userData, run) => {
     try {
-      const response = await updateUser(userData, rut);
+      const response = await updateUser(userData, run);
       
-      if (response.status === 'Success' || response.rut) {
+      if (response.status === 'Success' || response.run) {
         showSuccessAlert('¡Éxito!', 'Usuario actualizado correctamente');
         await fetchUsers(true); // Recargar la lista
         return { success: true, data: response };
@@ -90,9 +90,9 @@ export const useUsers = () => {
   };
 
   // Función para eliminar un usuario
-  const handleDeleteUser = async (rut) => {
+  const handleDeleteUser = async (run) => {
     try {
-      const response = await deleteUser(rut);
+      const response = await deleteUser(run);
       
       if (response.status === 'Success') {
         showSuccessAlert('¡Éxito!', 'Usuario eliminado correctamente');
