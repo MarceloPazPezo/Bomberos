@@ -17,14 +17,14 @@ const ExampleFormWithRut = () => {
     // Configurar el hook del formatter
     const rutFormatter = useRutFormatter(
         (fieldName, value) => formRef.current?.setValue(fieldName, value),
-        'rut'
+        'run'
     );
 
     const onSubmit = (data) => {
         // Formatear RUT para envío al API
         const apiData = {
             ...data,
-            rut: formatRutForAPI(data.rut) // Convierte "12.345.678-9" a "12345678-9"
+            run: formatRutForAPI(data.run) // Convierte "12.345.678-9" a "12345678-9"
         };
         
         console.log('Datos para API:', apiData);
@@ -147,7 +147,7 @@ const ExampleManualFormatting = () => {
 // ============================================================================
 
 const ExampleRealTimeValidation = () => {
-    const [rut, setRut] = useState('');
+    const [run, setRut] = useState('');
     const [isValid, setIsValid] = useState(false);
     const [validationMessage, setValidationMessage] = useState('');
 
@@ -173,7 +173,7 @@ const ExampleRealTimeValidation = () => {
         <div>
             <input
                 type="text"
-                value={rut}
+                value={run}
                 onChange={handleRutChange}
                 placeholder="12.345.678-9"
                 className={`border ${isValid ? 'border-green-500' : 'border-gray-300'}`}
@@ -194,9 +194,9 @@ const ExampleRealTimeValidation = () => {
 const ExampleFormatExistingData = () => {
     // Datos que vienen del backend (sin puntos)
     const usersFromAPI = [
-        { id: 1, name: 'Juan Pérez', rut: '12345678-9' },
-        { id: 2, name: 'María González', rut: '18765432-1' },
-        { id: 3, name: 'Carlos López', rut: '9876543-2' }
+        { id: 1, name: 'Juan Pérez', run: '12345678-9' },
+        { id: 2, name: 'María González', run: '18765432-1' },
+        { id: 3, name: 'Carlos López', run: '9876543-2' }
     ];
 
     return (
@@ -205,7 +205,7 @@ const ExampleFormatExistingData = () => {
             {usersFromAPI.map(user => (
                 <div key={user.id}>
                     <span>{user.name}</span>
-                    <span>{formatRutForDisplay(user.rut)}</span> {/* Mostrar con puntos */}
+                    <span>{formatRutForDisplay(user.run)}</span> {/* Mostrar con puntos */}
                 </div>
             ))}
         </div>
@@ -231,7 +231,7 @@ const ExampleRutSearch = () => {
         
         try {
             // Buscar en el backend
-            const response = await fetch(`/api/users/search?rut=${rutForAPI}`);
+            const response = await fetch(`/api/users/search?run=${rutForAPI}`);
             const data = await response.json();
             setResults(data);
         } catch (error) {
@@ -251,7 +251,7 @@ const ExampleRutSearch = () => {
             
             {results.map(user => (
                 <div key={user.id}>
-                    {user.name} - {formatRutForDisplay(user.rut)}
+                    {user.name} - {formatRutForDisplay(user.run)}
                 </div>
             ))}
         </div>

@@ -34,14 +34,12 @@ export async function updateMyProfile(profileData) {
  * @param {Object} passwordData - Datos de la contraseña (currentPassword, newPassword)
  * @returns {Promise} Respuesta del servidor
  */
-export const changePassword = async (currentPassword, newPassword) => {
+export const changePassword = async (passwordData) => {
   try {
-    const response = await axios.patch('/api/profile/change-password', {
-      currentPassword,
-      newPassword
-    });
+    const response = await axios.patch('/profile/change-password', passwordData);
     return response.data;
   } catch (error) {
-    throw error.response?.data || error;
+    console.error('Error al cambiar la contraseña:', error);
+    throw error;
   }
 };

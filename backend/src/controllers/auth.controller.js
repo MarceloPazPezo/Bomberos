@@ -65,7 +65,7 @@ export async function validateToken(req, res) {
       handleSuccess(res, 200, "Token válido", { 
         valid: true, 
         userId: decoded.id,
-        rut: decoded.rut 
+        run: decoded.run 
       });
     } catch (jwtError) {
       if (jwtError.name === 'TokenExpiredError') {

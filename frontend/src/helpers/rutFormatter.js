@@ -5,21 +5,21 @@
 
 /**
  * Limpia el RUT removiendo todos los caracteres no válidos
- * @param {string} rut - RUT a limpiar
+ * @param {string} run - RUT a limpiar
  * @returns {string} RUT limpio con solo números y K
  */
-export const cleanRut = (rut) => {
-  if (!rut) return '';
-  return rut.toString().replace(/[^\dkK]/g, '').toUpperCase();
+export const cleanRut = (run) => {
+  if (!run) return '';
+  return run.toString().replace(/[^\dkK]/g, '').toUpperCase();
 };
 
 /**
  * Formatea el RUT para visualización con puntos y guión (12.345.678-9)
- * @param {string} rut - RUT a formatear
+ * @param {string} run - RUT a formatear
  * @returns {string} RUT formateado para mostrar
  */
-export const formatRutForDisplay = (rut) => {
-  const clean = cleanRut(rut);
+export const formatRutForDisplay = (run) => {
+  const clean = cleanRut(run);
   
   if (clean.length === 0) return '';
   if (clean.length === 1) return clean;
@@ -29,7 +29,7 @@ export const formatRutForDisplay = (rut) => {
   const dv = clean.slice(-1);
   
   // Validar que el cuerpo sean solo números
-  if (!/^\d+$/.test(body)) return rut; // Retornar original si no es válido
+  if (!/^\d+$/.test(body)) return run; // Retornar original si no es válido
   
   // Remover ceros a la izquierda
   const cleanBody = body.replace(/^0+/, '') || '0';
@@ -42,11 +42,11 @@ export const formatRutForDisplay = (rut) => {
 
 /**
  * Formatea el RUT para envío al API (sin puntos, solo guión: 12345678-9)
- * @param {string} rut - RUT a formatear
+ * @param {string} run - RUT a formatear
  * @returns {string} RUT formateado para API
  */
-export const formatRutForAPI = (rut) => {
-  const clean = cleanRut(rut);
+export const formatRutForAPI = (run) => {
+  const clean = cleanRut(run);
   
   if (clean.length < 2) return clean;
   
@@ -64,11 +64,11 @@ export const formatRutForAPI = (rut) => {
 
 /**
  * Valida si un RUT tiene el formato correcto
- * @param {string} rut - RUT a validar
+ * @param {string} run - RUT a validar
  * @returns {boolean} true si el formato es válido
  */
-export const isValidRutFormat = (rut) => {
-  const apiFormat = formatRutForAPI(rut);
+export const isValidRutFormat = (run) => {
+  const apiFormat = formatRutForAPI(run);
   return /^\d{7,8}-[\dkK]$/.test(apiFormat);
 };
 
@@ -99,11 +99,11 @@ export const calculateRutDV = (rutBody) => {
 
 /**
  * Valida si un RUT es matemáticamente correcto
- * @param {string} rut - RUT a validar
+ * @param {string} run - RUT a validar
  * @returns {boolean} true si el RUT es válido
  */
-export const isValidRut = (rut) => {
-  const apiFormat = formatRutForAPI(rut);
+export const isValidRut = (run) => {
+  const apiFormat = formatRutForAPI(run);
   
   if (!isValidRutFormat(apiFormat)) return false;
   
@@ -123,7 +123,7 @@ export const isValidRut = (rut) => {
  * @param {string} fieldName - Nombre del campo
  * @returns {string} Valor formateado
  */
-export const handleRutInput = (event, setValue, fieldName = 'rut') => {
+export const handleRutInput = (event, setValue, fieldName = 'run') => {
   const inputValue = event.target.value;
   const cursorPosition = event.target.selectionStart;
   
@@ -151,10 +151,10 @@ export const handleRutInput = (event, setValue, fieldName = 'rut') => {
 /**
  * Configuración para campo de RUT en formularios
  * @param {Function} setValue - Función setValue de react-hook-form
- * @param {string} fieldName - Nombre del campo (default: 'rut')
+ * @param {string} fieldName - Nombre del campo (default: 'run')
  * @returns {Object} Configuración del campo
  */
-export const getRutFieldConfig = (setValue, fieldName = 'rut') => ({
+export const getRutFieldConfig = (setValue, fieldName = 'run') => ({
   label: "RUT",
   name: fieldName,
   placeholder: "12.345.678-9",
@@ -190,7 +190,7 @@ export const getRutFieldConfig = (setValue, fieldName = 'rut') => ({
  * @param {string} fieldName - Nombre del campo
  * @returns {Object} Funciones y configuraciones para RUT
  */
-export const useRutFormatter = (setValue, fieldName = 'rut') => {
+export const useRutFormatter = (setValue, fieldName = 'run') => {
   const handleInput = (event) => handleRutInput(event, setValue, fieldName);
   
   const getFieldConfig = () => getRutFieldConfig(setValue, fieldName);

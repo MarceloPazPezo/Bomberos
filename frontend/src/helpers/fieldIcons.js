@@ -5,6 +5,6 @@ export const fieldIcons = {
   email: MdEmail,
   password: MdLock,
   newPassword: MdLock,
-  rut: MdBadge,
+  run: MdBadge,
   search: MdSearch,
 };

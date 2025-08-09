@@ -20,20 +20,20 @@ export async function getUsers() {
     }
 }
 
-export async function updateUser(data, rut) {
+export async function updateUser(data, run) {
     try {
-        const normalizedRut = normalizeRutForBackend(rut);
-        const response = await axios.patch(`/user/detail/?rut=${normalizedRut}`, data);
+        const normalizedRut = normalizeRutForBackend(run);
+        const response = await axios.patch(`/user/detail/?run=${normalizedRut}`, data);
         return response.data.data;
     } catch (error) {
         return error.response.data;
     }
 }
 
-export async function deleteUser(rut) {
+export async function deleteUser(run) {
     try {
-        const normalizedRut = normalizeRutForBackend(rut);
-        const response = await axios.delete(`/user/detail/?rut=${normalizedRut}`);
+        const normalizedRut = normalizeRutForBackend(run);
+        const response = await axios.delete(`/user/detail/?run=${normalizedRut}`);
         return response.data;
     } catch (error) {
         return error.response.data;

@@ -112,14 +112,14 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         type: "email",
                                         required: true,
                                         minLength: 15,
-                                        maxLength: 100,
+                                        maxLength: 255,
                                         errorMessageData: errors.email,
                                         onChange: (e) => handleInputChange('email', e.target.value),
                                         autoComplete: "new-email"
                                     },
                                     {
                                         label: "Rut",
-                                        name: "rut",
+                                        name: "run",
                                         placeholder: '21.308.770-3',
                                         fieldType: 'input',
                                         type: "text",
@@ -128,8 +128,8 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         pattern: patternRut,
                                         patternMessage: "Debe ser xx.xxx.xxx-x o xxxxxxxx-x",
                                         required: true,
-                                        errorMessageData: errors.rut,
-                                        onChange: (e) => handleInputChange('rut', e.target.value),
+                                        errorMessageData: errors.run,
+                                        onChange: (e) => handleInputChange('run', e.target.value),
                                         autoComplete: "off"
                                     },
                                     {
@@ -149,9 +149,89 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         name: "fechaNacimiento",
                                         fieldType: 'input',
                                         type: "date",
-                                        required: false,
+                                        required: true,
+                                        errorMessageData: errors.fechaNacimiento,
                                         onChange: (e) => handleInputChange('fechaNacimiento', e.target.value),
                                         autoComplete: "bday"
+                                    },
+                                    {
+                                        label: "Fecha de ingreso",
+                                        name: "fechaIngreso",
+                                        fieldType: 'input',
+                                        type: "date",
+                                        required: true,
+                                        errorMessageData: errors.fechaIngreso,
+                                        onChange: (e) => handleInputChange('fechaIngreso', e.target.value),
+                                        autoComplete: "off"
+                                    },
+                                    {
+                                        label: "Dirección",
+                                        name: "direccion",
+                                        placeholder: 'Av. Principal 123, Santiago',
+                                        fieldType: 'input',
+                                        type: "text",
+                                        required: false,
+                                        minLength: 5,
+                                        maxLength: 255,
+                                        errorMessageData: errors.direccion,
+                                        onChange: (e) => handleInputChange('direccion', e.target.value),
+                                        autoComplete: "street-address"
+                                    },
+                                    {
+                                        label: "Tipo de sangre",
+                                        name: "tipoSangre",
+                                        fieldType: 'select',
+                                        required: false,
+                                        placeholder: "Seleccionar tipo de sangre",
+                                        options: [
+                                            { value: '', label: 'No especificado' },
+                                            { value: 'A+', label: 'A+' },
+                                            { value: 'A-', label: 'A-' },
+                                            { value: 'B+', label: 'B+' },
+                                            { value: 'B-', label: 'B-' },
+                                            { value: 'AB+', label: 'AB+' },
+                                            { value: 'AB-', label: 'AB-' },
+                                            { value: 'O+', label: 'O+' },
+                                            { value: 'O-', label: 'O-' }
+                                        ],
+                                        errorMessageData: errors.tipoSangre,
+                                        onChange: (e) => handleInputChange('tipoSangre', e.target.value)
+                                    },
+                                    {
+                                        label: "Alergias",
+                                        name: "alergias",
+                                        placeholder: 'Alergia a medicamentos, alimentos, etc.',
+                                        fieldType: 'textarea',
+                                        required: false,
+                                        maxLength: 500,
+                                        rows: 3,
+                                        errorMessageData: errors.alergias,
+                                        onChange: (e) => handleInputChange('alergias', e.target.value),
+                                        autoComplete: "off"
+                                    },
+                                    {
+                                        label: "Medicamentos",
+                                        name: "medicamentos",
+                                        placeholder: 'Medicamentos que consume regularmente',
+                                        fieldType: 'textarea',
+                                        required: false,
+                                        maxLength: 500,
+                                        rows: 3,
+                                        errorMessageData: errors.medicamentos,
+                                        onChange: (e) => handleInputChange('medicamentos', e.target.value),
+                                        autoComplete: "off"
+                                    },
+                                    {
+                                        label: "Condiciones médicas",
+                                        name: "condiciones",
+                                        placeholder: 'Condiciones médicas relevantes',
+                                        fieldType: 'textarea',
+                                        required: false,
+                                        maxLength: 500,
+                                        rows: 3,
+                                        errorMessageData: errors.condiciones,
+                                        onChange: (e) => handleInputChange('condiciones', e.target.value),
+                                        autoComplete: "off"
                                     },
                                     {
                                         label: (

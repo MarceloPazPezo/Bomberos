@@ -7,17 +7,17 @@ import { Brackets } from "typeorm";
 
 export async function getUserService(query) {
   try {
-    const { rut, id, email, telefono } = query;
+    const { id, run, email, telefono } = query;
 
     if (
       id === undefined &&
-      rut === undefined &&
+      run === undefined &&
       email === undefined &&
       telefono === undefined
     ) {
       return [
         null,
-        "Debes proporcionar al menos un criterio de búsqueda (id, rut, email o telefono).",
+        "Debes proporcionar al menos un criterio de búsqueda (id, run, email o telefono).",
       ];
     }
 
@@ -30,12 +30,20 @@ export async function getUserService(query) {
         "user.id",
         "user.nombres",
         "user.apellidos",
-        "user.rut",
+        "user.run",
+        "user.fechaNacimiento",
         "user.email",
         "user.telefono",
+        "user.fechaIngreso",
+        "user.direccion",
+        "user.tipoSangre",
+        "user.alergias",
+        "user.medicamentos",
+        "user.condiciones",
         "user.activo",
-        "user.fechaNacimiento",
+        "user.createdBy",
         "user.createdAt",
+        "user.updatedBy",
         "user.updatedAt",
         "role.id",
         "role.nombre",
@@ -50,11 +58,11 @@ export async function getUserService(query) {
           hasAppliedFirstCondition = true;
         }
 
-        if (rut !== undefined) {
+        if (run !== undefined) {
           if (hasAppliedFirstCondition) {
-            qb.orWhere("user.rut = :rut", { rut });
+            qb.orWhere("user.run = :run", { run });
           } else {
-            qb.where("user.rut = :rut", { rut });
+            qb.where("user.run = :run", { run });
             hasAppliedFirstCondition = true;
           }
         }
@@ -73,7 +81,6 @@ export async function getUserService(query) {
             qb.orWhere("user.telefono = :telefono", { telefono });
           } else {
             qb.where("user.telefono = :telefono", { telefono });
-            // hasAppliedFirstCondition = true; // No es crucial para la última
           }
         }
       }),
@@ -87,12 +94,20 @@ export async function getUserService(query) {
       id: userFound.id,
       nombres: userFound.nombres,
       apellidos: userFound.apellidos,
+      run: userFound.run,
       fechaNacimiento: userFound.fechaNacimiento,
-      rut: userFound.rut,
       email: userFound.email,
       telefono: userFound.telefono,
+      fechaIngreso: userFound.fechaIngreso,
+      direccion: userFound.direccion,
+      tipoSangre: userFound.tipoSangre,
+      alergias: userFound.alergias,
+      medicamentos: userFound.medicamentos,
+      condiciones: userFound.condiciones,
       activo: userFound.activo,
+      createdBy: userFound.createdBy,
       createdAt: userFound.createdAt,
+      updatedBy: userFound.updatedBy,
       updatedAt: userFound.updatedAt,
       roles: userFound.roles ? userFound.roles.map((r) => r.nombre) : [],
     };
@@ -115,12 +130,20 @@ export async function getUsersService(queryParams = {}) {
         "user.id",
         "user.nombres",
         "user.apellidos",
-        "user.rut",
+        "user.run",
         "user.email",
         "user.telefono",
         "user.fechaNacimiento",
+        "user.fechaIngreso",
+        "user.direccion",
+        "user.tipoSangre",
+        "user.alergias",
+        "user.medicamentos",
+        "user.condiciones",
         "user.activo",
+        "user.createdBy",
         "user.createdAt",
+        "user.updatedBy",
         "user.updatedAt",
         "role.id",
         "role.nombre",
@@ -142,10 +165,9 @@ export async function getUsersService(queryParams = {}) {
       id: user.id,
       nombres: user.nombres,
       apellidos: user.apellidos,
-      rut: user.rut,
+      run: user.run,
       email: user.email,
       telefono: user.telefono,
-      fechaNacimiento: user.fechaNacimiento,
       activo: user.activo,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -159,16 +181,16 @@ export async function getUsersService(queryParams = {}) {
   }
 }
 
-export async function updateUserService(query, body) {
+export async function updateUserService(query, body, updatedBy = null) {
   try {
-    const { id, rut, email, telefono } = query;
+    const { id, run, email, telefono } = query;
 
     const userRepository = AppDataSource.getRepository(User);
 
     const userFound = await userRepository.findOne({
       where: [
         { id: id },
-        { rut: rut },
+        { run: run },
         { email: email },
         { telefono: telefono },
       ],
@@ -208,12 +230,12 @@ export async function updateUserService(query, body) {
       }
       const matchPassword = await comparePassword(
         body.currentPassword,
-        userFound.hashedPassword,
+        userFound.passwordHash,
       );
       if (!matchPassword) {
         return [null, "La contraseña actual no coincide."];
       }
-      dataUserUpdate.hashedPassword = await encryptPassword(body.newPassword);
+      dataUserUpdate.passwordHash = await encryptPassword(body.newPassword);
     }
 
     // 4. Actualizar otras propiedades directas del usuario
@@ -221,9 +243,22 @@ export async function updateUserService(query, body) {
     if (body.apellidos !== undefined) dataUserUpdate.apellidos = body.apellidos;
     if (body.fechaNacimiento !== undefined)
       dataUserUpdate.fechaNacimiento = body.fechaNacimiento;
+    if (body.fechaIngreso !== undefined)
+      dataUserUpdate.fechaIngreso = body.fechaIngreso;
+    if (body.direccion !== undefined)
+      dataUserUpdate.direccion = body.direccion;
+    if (body.tipoSangre !== undefined)
+      dataUserUpdate.tipoSangre = body.tipoSangre;
+    if (body.alergias !== undefined)
+      dataUserUpdate.alergias = body.alergias;
+    if (body.medicamentos !== undefined)
+      dataUserUpdate.medicamentos = body.medicamentos;
+    if (body.condiciones !== undefined)
+      dataUserUpdate.condiciones = body.condiciones;
     if (body.activo !== undefined) dataUserUpdate.activo = body.activo;
 
     dataUserUpdate.updatedAt = new Date();
+    if (updatedBy) dataUserUpdate.updatedBy = updatedBy;
 
     await userRepository.update({ id: userFound.id }, dataUserUpdate);
 
@@ -236,7 +271,7 @@ export async function updateUserService(query, body) {
       return [null, "Usuario no encontrado después de actualizar"];
     }
 
-    const { hashedPassword, ...userUpdated } = userData;
+    const { passwordHash, ...userUpdated } = userData;
 
     // Formatear los roles para mantener consistencia con el login
     if (userUpdated.roles) {
@@ -281,12 +316,12 @@ export async function changeUserStatusService(userId, activo) {
 
 export async function deleteUserService(query) {
   try {
-    const { id, rut, email } = query;
+    const { id, run, email } = query;
 
     const userRepository = AppDataSource.getRepository(User);
 
     const userFound = await userRepository.findOne({
-      where: [{ id: id }, { rut: rut }, { email: email }],
+      where: [{ id: id }, { run: run }, { email: email }],
       relations: ["roles"],
     });
 
@@ -298,7 +333,7 @@ export async function deleteUserService(query) {
 
     const userDeleted = await userRepository.remove(userFound);
 
-    const { hashedPassword, roles, ...dataUser } = userDeleted;
+    const { passwordHash, roles, ...dataUser } = userDeleted;
 
     return [dataUser, null];
   } catch (error) {
@@ -307,21 +342,21 @@ export async function deleteUserService(query) {
   }
 }
 
-export async function createUserService(body) {
+export async function createUserService(body, createdBy = null) {
   try {
     const userRepository = AppDataSource.getRepository(User);
     const roleRepository = AppDataSource.getRepository(Role);
 
     const existingUser = await userRepository.findOne({
       where: [
-        { rut: body.rut },
+        { run: body.run },
         { email: body.email },
         { telefono: body.telefono },
       ],
     });
 
     if (existingUser) {
-      return [null, "Ya existe un usuario con el mismo rut o email o telefono"];
+      return [null, "Ya existe un usuario con el mismo run o email o telefono"];
     }
 
     const userRole = await roleRepository.findOneBy({ nombre: "Usuario" });
@@ -332,18 +367,25 @@ export async function createUserService(body) {
     const newUser = userRepository.create({
       nombres: body.nombres,
       apellidos: body.apellidos,
-      rut: body.rut,
+      run: body.run,
       fechaNacimiento: body.fechaNacimiento,
       email: body.email,
       telefono: body.telefono,
+      passwordHash: await encryptPassword(body.password),
+      fechaIngreso: body.fechaIngreso,
+      direccion: body.direccion,
+      tipoSangre: body.tipoSangre,
+      alergias: body.alergias,
+      medicamentos: body.medicamentos,
+      condiciones: body.condiciones,
+      activo: body.activo !== undefined ? body.activo : true,
+      createdBy: createdBy,
       roles: [userRole],
-      hashedPassword: await encryptPassword(body.password),
-      activo: true,
     });
 
     const savedUser = await userRepository.save(newUser);
 
-    const { hashedPassword, ...userData } = savedUser;
+    const { passwordHash, ...userData } = savedUser;
 
     return [userData, null];
   } catch (error) {

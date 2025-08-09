@@ -20,10 +20,10 @@ import {
 
 export async function getUser(req, res) {
   try {
-    const { rut, id, email, telefono } = req.query;
+    const { run, id, email, telefono } = req.query;
 
     const { error } = userQueryValidation.validate({
-      rut,
+      run,
       id,
       email,
       telefono,
@@ -32,7 +32,7 @@ export async function getUser(req, res) {
     if (error) return handleErrorClient(res, 400, error.message);
 
     const [user, errorUser] = await getUserService({
-      rut,
+      run,
       id,
       email,
       telefono,
@@ -62,11 +62,11 @@ export async function getUsers(req, res) {
 
 export async function updateUser(req, res) {
   try {
-    const { rut, id, email, telefono } = req.query;
+    const { run, id, email, telefono } = req.query;
     const { body } = req;
 
     const { error: queryError } = userQueryValidation.validate({
-      rut,
+      run,
       id,
       email,
       telefono,
@@ -89,7 +89,7 @@ export async function updateUser(req, res) {
 
         return {
           message: message,
-          path: detail.path.join("."), // 'path' es un array de segmentos de la ruta al error
+          path: detail.path.join("."), // 'path' es un array de segmentos de la runa al error
           type: detail.type, // El tipo de error (ej: 'object.unknown')
           key: detail.context?.key, // La clave específica si es un error de 'object.unknown'
         };
@@ -97,9 +97,12 @@ export async function updateUser(req, res) {
       return handleErrorClient(res, 400, "Error de validación", errorMessages);
     }
 
+    const updatedBy = req.user ? `${req.user.nombres?.join(' ')} ${req.user.apellidos?.join(' ')}`.trim() : 'Sistema';
+
     const [user, userError] = await updateUserService(
-      { rut, id, email, telefono },
+      { run, id, email, telefono },
       body,
+      updatedBy,
     );
 
     if (userError)
@@ -118,10 +121,10 @@ export async function updateUser(req, res) {
 
 export async function deleteUser(req, res) {
   try {
-    const { rut, id, email, telefono } = req.query;
+    const { run, id, email, telefono } = req.query;
 
     const { error: queryError } = userQueryValidation.validate({
-      rut,
+      run,
       id,
       email,
       telefono,
@@ -137,7 +140,7 @@ export async function deleteUser(req, res) {
     }
 
     const [userDelete, errorUserDelete] = await deleteUserService({
-      rut,
+      run,
       id,
       email,
       telefono,
@@ -160,12 +163,13 @@ export async function deleteUser(req, res) {
 export async function createUser(req, res) {
   try {
     const { body } = req;
+    const createdBy = req.user ? `${req.user.nombres?.join(' ')} ${req.user.apellidos?.join(' ')}`.trim() : 'Sistema';
 
     const { value, error } = userCreateValidation.validate(body);
 
     if (error) return handleErrorClient(res, 400, error.message);
 
-    const [user, errorUser] = await createUserService(value);
+    const [user, errorUser] = await createUserService(value, createdBy);
 
     if (errorUser) return handleErrorClient(res, 400, errorUser);
 

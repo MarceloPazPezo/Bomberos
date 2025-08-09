@@ -8,7 +8,7 @@ import { ACCESS_TOKEN_SECRET } from "../config/configEnv.js";
 export async function loginService(user) {
   try {
     const userRepository = AppDataSource.getRepository(User);
-    const { rut, password } = user;
+    const { run, password } = user;
     const createErrorMessage = (dataInfo, message) => ({
       dataInfo,
       message,
@@ -23,20 +23,28 @@ export async function loginService(user) {
         "user.nombres",
         "user.apellidos",
         "user.email",
-        "user.rut",
+        "user.run",
         "user.telefono",
         "user.fechaNacimiento",
+        "user.fechaIngreso",
+        "user.direccion",
+        "user.tipoSangre",
+        "user.alergias",
+        "user.medicamentos",
+        "user.condiciones",
         "user.activo",
-        "user.hashedPassword",
+        "user.createdAt",
+        "user.updatedAt",
         "role.id",
         "role.nombre",
         "permission.nombre",
       ])
-      .where("user.rut = :rut", { rut: rut })
+      .addSelect("user.passwordHash")
+      .where("user.run = :run", { run: run })
       .getOne();
 
     if (!userFound) {
-      return [null, createErrorMessage("rut", "El rut es incorrecto")];
+      return [null, createErrorMessage("run", "El run es incorrecto")];
     }
 
     if (!userFound.activo) {
@@ -49,7 +57,7 @@ export async function loginService(user) {
       ];
     }
 
-    const isMatch = await comparePassword(password, userFound.hashedPassword);
+    const isMatch = await comparePassword(password, userFound.passwordHash);
 
     if (!isMatch) {
       return [
@@ -63,10 +71,18 @@ export async function loginService(user) {
       nombres: userFound.nombres,
       apellidos: userFound.apellidos,
       email: userFound.email,
-      rut: userFound.rut,
+      run: userFound.run,
       telefono: userFound.telefono,
       fechaNacimiento: userFound.fechaNacimiento,
+      fechaIngreso: userFound.fechaIngreso,
+      direccion: userFound.direccion,
+      tipoSangre: userFound.tipoSangre,
+      alergias: userFound.alergias,
+      medicamentos: userFound.medicamentos,
+      condiciones: userFound.condiciones,
       activo: userFound.activo,
+      createdAt: userFound.createdAt,
+      updatedAt: userFound.updatedAt,
       roles: userFound.roles.map((r) => ({
         nombre: r.nombre,
         permisos: r.permisos ? r.permisos.map((p) => p.nombre) : [],

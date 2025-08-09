@@ -21,7 +21,7 @@ const Login = () => {
     // Hook para formateo de RUT
     const rutFormatter = useRutFormatter(
         (fieldName, value) => formRef.current?.setValue(fieldName, value),
-        'rut'
+        'run'
     );
 
     // Usuarios base del initialSetup
@@ -29,7 +29,7 @@ const Login = () => {
         {
             name: "Admin Principal",
             email: "admin@example.com",
-            rut: "1234567-4",
+            run: "1234567-4",
             password: "user1234",
             role: "Administrador",
             description: "Usuario administrador con acceso total al sistema"
@@ -37,7 +37,7 @@ const Login = () => {
         {
             name: "Juan Andrés Pérez",
             email: "editor.juan@example.com", 
-            rut: "12345678-5",
+            run: "12345678-5",
             password: "user1234",
             role: "Supervisor",
             description: "Usuario supervisor con permisos limitados"
@@ -45,7 +45,7 @@ const Login = () => {
         {
             name: "Ana Lucia López",
             email: "ana.lopez@example.com",
-            rut: "18765432-7", 
+            run: "18765432-7", 
             password: "user1234",
             role: "Usuario",
             description: "Usuario básico (Nota: Este usuario está inactivo)"
@@ -57,7 +57,7 @@ const Login = () => {
             // Formatear RUT para API (sin puntos, solo guión)
             const formattedData = {
                 ...data,
-                rut: formatRutForAPI(data.rut)
+                run: formatRutForAPI(data.run)
             };
             
             const response = await login(formattedData);
@@ -77,8 +77,8 @@ const Login = () => {
     const selectBaseUser = (user) => {
         if (formRef.current) {
             // Formatear RUT para visualización (con puntos y guión)
-            const formattedRut = formatRutForDisplay(user.rut);
-            formRef.current.setValue('rut', formattedRut);
+            const formattedRut = formatRutForDisplay(user.run);
+            formRef.current.setValue('run', formattedRut);
             formRef.current.setValue('password', user.password);
         }
         clearErrors(); // Limpiar errores al seleccionar un usuario
@@ -280,7 +280,7 @@ const Login = () => {
                                                     <div className="flex items-center space-x-2">
                                                         <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
                                                         <span className="font-medium text-gray-700">RUT:</span>
-                                                        <span className="text-gray-600 font-mono">{formatRutForDisplay(user.rut)}</span>
+                                                        <span className="text-gray-600 font-mono">{formatRutForDisplay(user.run)}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 md:col-span-2">
                                                         <div className="w-2 h-2 bg-purple-400 rounded-full"></div>

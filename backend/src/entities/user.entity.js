@@ -18,7 +18,7 @@ const UserSchema = new EntitySchema({
       type: "simple-array",
       nullable: true,
     },
-    rut: {
+    run: {
       type: "varchar",
       length: 10, // 8 digitos + "-" + 1 digito verificador
       nullable: false,
@@ -26,7 +26,7 @@ const UserSchema = new EntitySchema({
     },
     fechaNacimiento: {
       type: "date",
-      nullable: true,
+      nullable: false,
     },
     email: {
       type: "varchar",
@@ -40,18 +40,54 @@ const UserSchema = new EntitySchema({
       nullable: true,
       unique: true,
     },
-    hashedPassword: {
+    passwordHash: {
       type: "varchar",
       length: 255,
       nullable: false,
+    },
+    fechaIngreso: {
+      type: "date",
+      nullable: true,
+    },
+    direccion: {
+      type: "varchar",
+      length: 255,
+      nullable: true,
+    },
+    tipoSangre: {
+      type: "varchar",
+      length: 3,
+      nullable: true,
+    },
+    alergias: {
+      type: "simple-array",
+      nullable: true,
+    },
+    medicamentos: {
+      type: "simple-array",
+      nullable: true,
+    },
+    condiciones: {
+      type: "simple-array",
+      nullable: true,
     },
     activo: {
       type: "boolean",
       default: true,
     },
+    createdBy: {
+      type: "varchar",
+      length: 100,
+      nullable: true,
+    },
     createdAt: {
       type: "timestamp with time zone",
       createDate: true,
+    },
+    updatedBy: {
+      type: "varchar",
+      length: 100,
+      nullable: true,
     },
     updatedAt: {
       type: "timestamp with time zone",
@@ -60,14 +96,16 @@ const UserSchema = new EntitySchema({
   },
   indices: [
     {
-      name: "IDX_USUARIOS_RUT",
-      columns: ["rut"],
-      unique: true,
+      name: "IDX_USUARIOS_RUN",
+      columns: ["run"],
     },
     {
       name: "IDX_USUARIOS_EMAIL",
       columns: ["email"],
-      unique: true,
+    },
+    {
+      name: "IDX_USUARIOS_TELEFONO",
+      columns: ["telefono"],
     },
   ],
 

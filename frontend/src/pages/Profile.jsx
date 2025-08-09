@@ -43,7 +43,12 @@ const Profile = () => {
       email: profile?.email || '',
       telefono: profile?.telefono || '',
       fechaNacimiento: profile?.fechaNacimiento ? 
-        new Date(profile.fechaNacimiento).toISOString().split('T')[0] : ''
+        new Date(profile.fechaNacimiento).toISOString().split('T')[0] : '',
+      direccion: profile?.direccion || '',
+      tipoSangre: profile?.tipoSangre || '',
+      alergias: profile?.alergias || '',
+      medicamentos: profile?.medicamentos || '',
+      condiciones: profile?.condiciones || ''
     });
     setIsEditing(true);
     setError(null);
@@ -209,7 +214,22 @@ const Profile = () => {
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                     <MdShield className="h-5 w-5 text-gray-400 mr-3" />
                     <span className="text-gray-900">
-                      {formatRut(profile.rut) || 'No especificado'}
+                      {formatRut(profile.run) || 'No especificado'}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Este campo no se puede modificar</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de ingreso
+                  </label>
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <MdCalendarToday className="h-5 w-5 text-gray-400 mr-3" />
+                    <span className="text-gray-900">
+                      {profile.fechaIngreso ? 
+                        new Date(profile.fechaIngreso).toLocaleDateString('es-CL') : 
+                        'No especificado'
+                      }
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">Este campo no se puede modificar</p>
@@ -291,6 +311,117 @@ const Profile = () => {
                       </span>
                     </div>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Dirección
+                  </label>
+                  {isEditing ? (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={editForm.direccion}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, direccion: e.target.value }))}
+                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Av. Principal 123, Santiago"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
+                      <span className="text-gray-900">{profile.direccion || 'No especificado'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de Sangre
+                  </label>
+                  {isEditing ? (
+                    <select
+                      value={editForm.tipoSangre}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, tipoSangre: e.target.value }))}
+                      className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    >
+                      <option value="">No especificado</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                    </select>
+                  ) : (
+                    <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
+                      <span className="text-gray-900">{profile.tipoSangre || 'No especificado'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Información médica */}
+              <div className="mt-6">
+                <h4 className="text-md font-medium text-gray-900 mb-4">Información Médica</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Alergias
+                    </label>
+                    {isEditing ? (
+                      <textarea
+                        value={editForm.alergias}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, alergias: e.target.value }))}
+                        rows={3}
+                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Alergia a medicamentos, alimentos, etc."
+                      />
+                    ) : (
+                      <div className="p-3 bg-white border border-gray-300 rounded-lg">
+                        <span className="text-gray-900">{profile.alergias || 'No especificado'}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Medicamentos
+                    </label>
+                    {isEditing ? (
+                      <textarea
+                        value={editForm.medicamentos}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, medicamentos: e.target.value }))}
+                        rows={3}
+                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Medicamentos que consume regularmente"
+                      />
+                    ) : (
+                      <div className="p-3 bg-white border border-gray-300 rounded-lg">
+                        <span className="text-gray-900">{profile.medicamentos || 'No especificado'}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Condiciones médicas
+                    </label>
+                    {isEditing ? (
+                      <textarea
+                        value={editForm.condiciones}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, condiciones: e.target.value }))}
+                        rows={3}
+                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        placeholder="Condiciones médicas relevantes"
+                      />
+                    ) : (
+                      <div className="p-3 bg-white border border-gray-300 rounded-lg">
+                        <span className="text-gray-900">{profile.condiciones || 'No especificado'}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -421,9 +552,12 @@ const Profile = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-700">Miembro desde</p>
                     <p className="text-sm text-gray-900">
-                      {profile.createdAt ? 
-                        new Date(profile.createdAt).toLocaleDateString('es-CL') : 
-                        'No disponible'
+                      {profile.fechaIngreso ? 
+                        new Date(profile.fechaIngreso).toLocaleDateString('es-CL') : 
+                        (profile.createdAt ? 
+                          new Date(profile.createdAt).toLocaleDateString('es-CL') : 
+                          'No disponible'
+                        )
                       }
                     </p>
                   </div>

@@ -5,7 +5,7 @@ const useLogin = () => {
     const [errorPassword, setErrorPassword] = useState('');
 
     const errorData = (dataMessage) => {
-        if (dataMessage.dataInfo === 'rut') {
+        if (dataMessage.dataInfo === 'run') {
             setErrorRut(dataMessage.message);
         } else if (dataMessage.dataInfo === 'password') {
             setErrorPassword(dataMessage.message);
