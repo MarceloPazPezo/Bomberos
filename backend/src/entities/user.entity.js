@@ -90,6 +90,28 @@ const UserSchema = new EntitySchema({
       },
       eager: true,
     },
+    disponibilidades: {
+      type: "one-to-many",
+      target: "Disponibilidad",
+      inverseSide: "usuario",
+    },
+    existenciasAsignadas: {
+      type: "one-to-many",
+      target: "Existencia",
+      inverseSide: "asignado",
+    },
+    existenciasCreadas: {
+      type: "one-to-many",
+      target: "Existencia",
+      inverseSide: "creador",
+    },
+    existenciasActualizadas: {
+      type: "one-to-many",
+      target: "Existencia",
+      inverseSide: "actualizador",
+    },
+
+
   },
 });
 

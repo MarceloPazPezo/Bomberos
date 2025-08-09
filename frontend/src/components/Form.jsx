@@ -155,7 +155,7 @@ const Form = forwardRef(({
         // 3. `mx-auto` centra el formulario en el medio de la pantalla.
         // 4. Se ajustó el padding para ser más amigable en móviles (p-6).
         <form
-            className={`bg-blue backdrop-blur-lg border border-[#2C3E50]/20 shadow-xl p-4 sm:p-5 md:p-6 rounded-2xl w-full ${size} mx-auto`}
+            className={`bg-blue backdrop-blur-lg p-4 sm:p-5 md:p-6 rounded-2xl w-full ${size} mx-auto`}
             style={{ backgroundColor: backgroundColor }}
             onSubmit={handleSubmit(onFormSubmit)}
             autoComplete={autoComplete === undefined ? "on" : autoComplete}
