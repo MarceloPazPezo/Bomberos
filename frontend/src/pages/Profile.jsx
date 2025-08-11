@@ -554,8 +554,8 @@ const Profile = () => {
                     <p className="text-sm text-gray-900">
                       {profile.fechaIngreso ? 
                         new Date(profile.fechaIngreso).toLocaleDateString('es-CL') : 
-                        (profile.createdAt ? 
-                          new Date(profile.createdAt).toLocaleDateString('es-CL') : 
+                        (profile.fechaCreacion ? 
+                          new Date(profile.fechaCreacion).toLocaleDateString('es-CL') : 
                           'No disponible'
                         )
                       }
@@ -564,8 +564,8 @@ const Profile = () => {
                   <div>
                     <p className="text-sm font-medium text-gray-700">Última actualización</p>
                     <p className="text-sm text-gray-900">
-                      {profile.updatedAt ? 
-                        new Date(profile.updatedAt).toLocaleDateString('es-CL') : 
+                      {profile.fechaActualizacion ? 
+                        new Date(profile.fechaActualizacion).toLocaleDateString('es-CL') : 
                         'No disponible'
                       }
                     </p>

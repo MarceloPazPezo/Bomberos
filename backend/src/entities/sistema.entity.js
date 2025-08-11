@@ -1,63 +1,53 @@
 "use strict";
 import { EntitySchema } from "typeorm";
 
-const PermissionSchema = new EntitySchema({
-  name: "Permission",
-  tableName: "permisos",
+const SistemaSchema = new EntitySchema({
+  name: "Sistema",
+  tableName: "sistema",
   columns: {
     id: {
       type: "int",
       primary: true,
       generated: "increment",
     },
-    nombre: {
+    key: {
       type: "varchar",
       length: 100,
       nullable: false,
       unique: true,
     },
-    descripcion: {
+    value: {
       type: "text",
       nullable: true,
     },
-    categoria: {
-      type: "varchar",
-      length: 50,
-      nullable: true,
-    },
-    ruta: {
+    description: {
       type: "varchar",
       length: 255,
       nullable: true,
     },
-    metodo: {
+    category: {
       type: "varchar",
-      length: 10,
+      length: 50,
       nullable: true,
+      default: "general",
     },
-    createdAt: {
+    isEditable: {
+      type: "boolean",
+      default: true,
+    },
+    fechaCreacion: {
       type: "timestamp with time zone",
       createDate: true,
     },
-    updatedAt: {
+    fechaActualizacion: {
       type: "timestamp with time zone",
       updateDate: true,
     },
   },
-  relations: {
-    roles: {
-      type: "many-to-many",
-      target: "Role",
-      mappedBy: "permisos",
-    },
-  },
   indices: [
-    {
-      name: "IDX_PERMISOS_NOMBRE_PERMISO_UNICO",
-      columns: ["nombre"],
-      unique: true,
-    },
+    { name: "IDX_CONFIGURACION_SISTEMA_KEY", columns: ["key"] },
+    { name: "IDX_CONFIGURACION_SISTEMA_CATEGORY", columns: ["category"] },
   ],
 });
 
-export default PermissionSchema;
+export default SistemaSchema;

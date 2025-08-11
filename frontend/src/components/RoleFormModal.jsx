@@ -13,7 +13,7 @@ import usePermissions from '@hooks/permissions/usePermissions';
 
 const RoleFormModal = ({ show, setShow, editingRole, onSuccess }) => {
   const { handleCreateRole, handleUpdateRole } = useRoles();
-  const { permissions, permissionsByCategory } = usePermissions();
+  const { permissions, permissionsByCategory, refreshPermissionsByCategory } = usePermissions();
   
   const [formData, setFormData] = useState({
     nombre: '',
@@ -23,6 +23,13 @@ const RoleFormModal = ({ show, setShow, editingRole, onSuccess }) => {
   
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [loading, setLoading] = useState(false);
+
+  // Cargar permisos cuando se muestra el modal
+  useEffect(() => {
+    if (show) {
+      refreshPermissionsByCategory();
+    }
+  }, [show]); // Removido refreshPermissionsByCategory de las dependencias
 
   // Inicializar formulario cuando se abre el modal
   useEffect(() => {
@@ -40,10 +47,15 @@ const RoleFormModal = ({ show, setShow, editingRole, onSuccess }) => {
           permisos: []
         });
       }
-      // Expandir todas las categorías por defecto
+    }
+  }, [show, editingRole]);
+
+  // Expandir categorías cuando se cargan los permisos
+  useEffect(() => {
+    if (show && Object.keys(permissionsByCategory).length > 0) {
       setExpandedCategories(new Set(Object.keys(permissionsByCategory)));
     }
-  }, [show, editingRole, permissionsByCategory]);
+  }, [show, permissionsByCategory]);
 
   // Manejar cambios en los campos del formulario
   const handleInputChange = (e) => {

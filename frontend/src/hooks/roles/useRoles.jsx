@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getRoles, createRole, updateRole, deleteRole } from '@services/role.service.js';
+import { getRoles, createRole, updateRole, deleteRole } from '@services/rol.service.js';
 import { showErrorAlert, showSuccessAlert } from '@helpers/sweetAlert.js';
 
 export const useRoles = () => {
@@ -106,12 +106,7 @@ export const useRoles = () => {
     }
   };
 
-  // Cargar roles automáticamente al montar el componente
-  useEffect(() => {
-    if (roles.length === 0) {
-      fetchRoles();
-    }
-  }, []); // Solo se ejecuta al montar
+  // No cargar automáticamente - la carga se controla desde el componente padre
 
   return {
     roles,

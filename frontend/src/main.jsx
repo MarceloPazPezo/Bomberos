@@ -7,6 +7,7 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
+
 import ProtectedRoute from '@components/ProtectedRoute';
 import '@styles/styles.css';
 
@@ -35,7 +36,7 @@ const router = createBrowserRouter([
       {
         path: '/admin',
         element: (
-          <ProtectedRoute requiredPermissions={['user:read_all']}>
+          <ProtectedRoute requiredPermissions={['usuario:leer_todos']}>
             <Admin />
           </ProtectedRoute>
         ),
@@ -43,7 +44,7 @@ const router = createBrowserRouter([
       {
         path: "/perfil",
         element: (
-          <ProtectedRoute requiredPermissions={['user:read_profile']}>
+          <ProtectedRoute requiredPermissions={['usuario:leer_perfil']}>
             <Profile />
           </ProtectedRoute>
         ),
@@ -51,7 +52,8 @@ const router = createBrowserRouter([
       {
         path: '/test-roles',
         element: <TestRoles />
-      }
+      },
+
     ]
   },
   {

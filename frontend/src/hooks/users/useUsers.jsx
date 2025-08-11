@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, changeUserStatus } from '@services/user.service.js';
+import { getUsers, createUser, updateUser, deleteUser, changeUserStatus } from '@services/usuario.service.js';
 import { showErrorAlert, showSuccessAlert } from '@helpers/sweetAlert.js';
 
 export const useUsers = () => {

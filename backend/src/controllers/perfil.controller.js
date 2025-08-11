@@ -1,10 +1,10 @@
 "use strict";
-import { getUserService, updateUserService } from "../services/user.service.js";
+import { getUserService, updateUserService } from "../services/usuario.service.js";
 import {
   userBodyValidation,
   userQueryValidation,
   changePasswordValidation,
-} from "../validations/user.validation.js";
+} from "../validations/usuario.validation.js";
 import {
   handleErrorClient,
   handleErrorServer,

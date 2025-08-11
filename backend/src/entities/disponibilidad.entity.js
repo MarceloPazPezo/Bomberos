@@ -40,7 +40,7 @@ const DisponibilidadSchema = new EntitySchema({
   relations: {
     usuario: {
       type: "many-to-one",
-      target: "User",
+      target: "Usuario",
       joinColumn: {
         name: "usuario_id",
         referencedColumnName: "id",

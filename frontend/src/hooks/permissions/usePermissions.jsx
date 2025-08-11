@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPermissions, getPermissionsByCategory } from '@services/permission.service.js';
+import { getPermissions, getPermissionsByCategory } from '@services/permiso.service.js';
 import { showErrorAlert } from '@helpers/sweetAlert.js';
 
 const usePermissions = () => {
@@ -80,10 +80,15 @@ const usePermissions = () => {
     fetchPermissionsByCategory(force);
   };
 
-  // Cargar permisos automáticamente al montar el componente
-  useEffect(() => {
-    refreshPermissions();
-  }, []);
+  const refreshPermissionsByCategory = (force = false) => {
+    fetchPermissionsByCategory(force);
+  };
+
+  const refreshPermissionsList = (force = false) => {
+    fetchPermissions(force);
+  };
+
+  // No cargar automáticamente - la carga se controla desde el componente padre
 
   return {
     permissions,
@@ -91,6 +96,8 @@ const usePermissions = () => {
     loading,
     error,
     refreshPermissions,
+    refreshPermissionsByCategory,
+    refreshPermissionsList,
   };
 };
 

@@ -7,7 +7,7 @@ import axios from './root.service.js';
 export const getRoles = async () => {
   try {
     // Añadir un timeout para evitar que la petición se quede colgada indefinidamente
-    const response = await axios.get('/role/', { timeout: 10000 });
+    const response = await axios.get('/rol/', { timeout: 10000 });
     return response.data;
   } catch (error) {
     console.error('Error al obtener roles:', error);
@@ -40,7 +40,7 @@ export const getRoles = async () => {
  */
 export const getRole = async (id) => {
   try {
-    const response = await axios.get(`/role/detail/?id=${id}`);
+    const response = await axios.get(`/rol/detail/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error al obtener rol:', error);
@@ -58,7 +58,7 @@ export const getRole = async (id) => {
  */
 export const createRole = async (roleData) => {
   try {
-    const response = await axios.post('/role/', roleData);
+    const response = await axios.post('/rol/', roleData);
     return response.data;
   } catch (error) {
     console.error('Error al crear rol:', error);
@@ -77,7 +77,7 @@ export const createRole = async (roleData) => {
  */
 export const updateRole = async (id, roleData) => {
   try {
-    const response = await axios.patch(`/role/detail/?id=${id}`, roleData);
+    const response = await axios.patch(`/rol/detail/${id}`, roleData);
     return response.data;
   } catch (error) {
     console.error('Error al actualizar rol:', error);
@@ -92,7 +92,7 @@ export const updateRole = async (id, roleData) => {
  */
 export const deleteRole = async (id) => {
   try {
-    const response = await axios.delete(`/role/detail/?id=${id}`);
+    const response = await axios.delete(`/rol/detail/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error al eliminar rol:', error);

@@ -6,10 +6,12 @@ import CreateUserPopup from '@components/CreateUserPopup.jsx';
 import UserDetailModal from '@components/UserDetailModal.jsx';
 import Table from '@components/Table.jsx';
 import Tooltip from '@components/Tooltip.jsx';
-import { MdEdit, MdDelete, MdPersonAddAlt1, MdAdminPanelSettings, MdPerson, MdPhone, MdSecurity, MdApi, MdLink, MdLinkOff, MdAdd, MdViewList, MdViewModule, MdRefresh, MdVisibility } from 'react-icons/md';
+import { MdEdit, MdDelete, MdPersonAddAlt1, MdAdminPanelSettings, MdPerson, MdPhone, MdSecurity, MdApi, MdLink, MdLinkOff, MdAdd, MdViewList, MdViewModule, MdRefresh, MdVisibility, MdBusiness } from 'react-icons/md';
 import PermissionsView from '@components/PermissionsView.jsx';
 import RolesView from '@components/RolesView.jsx';
+import UsersView from '@components/UsersView.jsx';
 import CreateRolePopup from '@components/CreateRolePopup.jsx';
+import CompanyConfigManager from '@components/CompanyConfigManager.jsx';
 import DateDisplay from '@components/DateDisplay';
 import DateFilter from '../components/DateFilter';
 import { useRoles } from '@hooks/roles/useRoles';
@@ -53,16 +55,15 @@ const Admin = () => {
   } = useUsers();
   const [activeTab, setActiveTab] = useState('');
   const { roles, fetchRoles, loading: rolesLoading } = useRoles();
-  const { permissions, permissionsByCategory, refreshPermissions, loading: permissionsLoading } = usePermissions();
-  // Evitar cargas automáticas en los hooks
-  const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const { permissions, permissionsByCategory, refreshPermissionsByCategory, loading: permissionsLoading } = usePermissions();
 
   // Determinar pestañas disponibles basadas en permisos
   const availableTabs = useMemo(() => {
     const tabs = [];
-    if (hasPermission('user:read_all')) tabs.push('usuarios');
-    if (hasPermission('role:read')) tabs.push('roles');
-    if (hasPermission('permission:read')) tabs.push('permisos');
+    if (hasPermission('usuario:leer_todos')) tabs.push('usuarios');
+    if (hasPermission('rol:leer')) tabs.push('roles');
+    if (hasPermission('permiso:leer')) tabs.push('permisos');
+    if (hasPermission('configuracion:leer')) tabs.push('configuraciones');
     return tabs;
   }, [hasPermission]);
 
@@ -81,8 +82,19 @@ const Admin = () => {
   const [showUserDetail, setShowUserDetail] = useState(false);
   const [userDetailData, setUserDetailData] = useState(null);
   
-  // Estados para la vista de roles
-  const [viewMode, setViewMode] = useState('cards'); // 'list' o 'cards'
+  // Estados para la vista de roles y usuarios
+  const [viewMode, setViewMode] = useState('cards'); // 'list' o 'cards' para roles
+  const [refreshRolesTrigger, setRefreshRolesTrigger] = useState(0); // Trigger para refrescar roles
+  
+  // Detectar tamaño de pantalla para vista por defecto de usuarios
+  const getDefaultUsersView = () => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 960 ? 'cards' : 'list';
+    }
+    return 'list';
+  };
+  
+  const [usersViewMode, setUsersViewMode] = useState(getDefaultUsersView()); // 'list' o 'cards' para usuarios
   
   // Estado para el filtro de fechas
   const [dateFilter, setDateFilter] = useState(null);
@@ -96,8 +108,8 @@ const Admin = () => {
     const { type, startDate, endDate } = dateFilter;
     
     return users.filter(user => {
-      const createdAt = user.createdAt ? new Date(user.createdAt) : null;
-      const updatedAt = user.updatedAt ? new Date(user.updatedAt) : null;
+      const fechaCreacion = user.fechaCreacion ? new Date(user.fechaCreacion) : null;
+      const fechaActualizacion = user.fechaActualizacion ? new Date(user.fechaActualizacion) : null;
       
       const start = startDate ? new Date(startDate) : null;
       const end = endDate ? new Date(endDate + 'T23:59:59') : null; // Incluir todo el día final
@@ -106,19 +118,19 @@ const Admin = () => {
       
       switch (type) {
         case 'creation':
-          dateToCheck = createdAt;
+          dateToCheck = fechaCreacion;
           break;
         case 'update':
-          dateToCheck = updatedAt;
+          dateToCheck = fechaActualizacion;
           break;
         case 'both':
           // Para 'both', verificar si cualquiera de las fechas está en el rango
-          const creationInRange = createdAt && 
-            (!start || createdAt >= start) && 
-            (!end || createdAt <= end);
-          const updateInRange = updatedAt && 
-            (!start || updatedAt >= start) && 
-            (!end || updatedAt <= end);
+          const creationInRange = fechaCreacion && 
+            (!start || fechaCreacion >= start) && 
+            (!end || fechaCreacion <= end);
+          const updateInRange = fechaActualizacion && 
+            (!start || fechaActualizacion >= start) && 
+            (!end || fechaActualizacion <= end);
           return creationInRange || updateInRange;
         default:
           return true;
@@ -171,43 +183,36 @@ const Admin = () => {
 
   // Función para manejar la actualización de roles
   const handleRefreshRoles = () => {
-    if (!rolesLoading) {
-      fetchRoles(true);
-    }
+    setRefreshRolesTrigger(prev => prev + 1);
   };
   
   // Cargar datos según la pestaña activa, solo cuando sea necesario
   useEffect(() => {
-    // Función para verificar si necesitamos cargar datos
-    const loadDataIfNeeded = () => {
-      if (activeTab === 'usuarios' && (!users || users.length === 0) && !usersLoading) {
-        fetchUsers(true); // Forzar carga solo si es necesario
-      } else if (activeTab === 'roles' && (!roles || roles.length === 0) && !rolesLoading) {
-        fetchRoles(true); // Forzar carga solo si no hay datos y no está ya cargando
-      } else if (activeTab === 'permisos' && permissions.length === 0 && !permissionsLoading) {
-        refreshPermissions(true); // Forzar carga solo si es necesario
-      }
+    // Solo cargar usuarios desde aquí, los demás componentes manejan su propia carga
+    if (activeTab === 'usuarios' && (!users || users.length === 0) && !usersLoading) {
+      fetchUsers(true);
+    }
+    // Cargar permisos cuando se accede a la pestaña de permisos
+    if (activeTab === 'permisos' && Object.keys(permissionsByCategory).length === 0 && !permissionsLoading) {
+      refreshPermissionsByCategory(true);
+    }
+  }, [activeTab]); // Solo depender de activeTab
+  
+  // Manejar cambios de tamaño de ventana para vista responsiva
+  useEffect(() => {
+    const handleResize = () => {
+      const newViewMode = window.innerWidth < 960 ? 'cards' : 'list';
+      setUsersViewMode(newViewMode);
     };
 
-    // Usar un temporizador para evitar múltiples cargas en rápida sucesión
-    let timer;
+    // Agregar listener para cambios de tamaño
+    window.addEventListener('resize', handleResize);
     
-    if (!initialLoadDone) {
-      // Primera carga, solo cargar datos de la pestaña activa
-      loadDataIfNeeded();
-      setInitialLoadDone(true);
-    } else if (activeTab) {
-      // Solo cargar datos si cambia la pestaña y no tenemos datos
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        loadDataIfNeeded();
-      }, 300); // Pequeño retraso para evitar múltiples cargas
-    }
-    
+    // Cleanup
     return () => {
-      clearTimeout(timer);
+      window.removeEventListener('resize', handleResize);
     };
-  }, [activeTab, initialLoadDone]);
+  }, []);
   
   // Evitar incluir las funciones fetch en las dependencias del useEffect
   // para prevenir ciclos de renderizado
@@ -392,8 +397,8 @@ const Admin = () => {
         return (
           <div className="w-full h-full">
             <DateDisplay 
-              createdAt={user.createdAt} 
-              updatedAt={user.updatedAt}
+              fechaCreacion={user.fechaCreacion} 
+              fechaActualizacion={user.fechaActualizacion}
               compact={true}
             />
           </div>
@@ -449,10 +454,10 @@ const Admin = () => {
 
   const renderActions = ({ row }) => {
     const isCurrentUser = currentUser && (currentUser.run === row.run || currentUser.id === row.id);
-    const canEdit = hasPermission('user:update_specific');
-    const canDelete = hasPermission('user:delete');
-    const canChangeStatus = hasPermission('user:change_status');
-    const canView = hasPermission('user:read_all');
+    const canEdit = hasPermission('usuario:actualizar_especifico');
+    const canDelete = hasPermission('usuario:eliminar');
+    const canChangeStatus = hasPermission('usuario:cambiar_estado');
+    const canView = hasPermission('usuario:leer_todos');
     
     // Si no tiene permisos para ninguna acción, no mostrar nada
     if (!canEdit && !canDelete && !canChangeStatus && !canView) {
@@ -562,120 +567,12 @@ const Admin = () => {
 
   return (
     <div className="p-3 sm:p-4 lg:p-6">
-      {/* Header con título y estadísticas */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-6">
-        <div className="flex-shrink-0">
-          <h1 className="text-3xl font-bold text-[#2C3E50] mb-2">Administración</h1>
-          <p className="text-gray-600 text-sm">
-            Administra usuarios, roles y permisos del sistema
-          </p>
-        </div>
-        
-        {/* Panel de estadísticas */}
-        <div className={`flex-1 grid grid-cols-1 gap-4 ${activeTab === 'usuarios' ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} lg:max-w-2xl`}>
-        {activeTab === 'usuarios' && (
-          <>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-blue-100 mr-4">
-                <MdPerson size={24} className="text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Usuarios Activos</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {users?.filter(user => user.activo).length || 0}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-purple-100 mr-4">
-                <MdPhone size={24} className="text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Total Usuarios</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {users?.length || 0}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'roles' && (
-          <>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-blue-100 mr-4">
-                <MdSecurity size={24} className="text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Total Roles</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {roles?.length || 0}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-green-100 mr-4">
-                <MdPerson size={24} className="text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Usuarios con Roles</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {users?.filter(user => user.roles && user.roles.length > 0).length || 0}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-purple-100 mr-4">
-                <MdAdminPanelSettings size={24} className="text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Permisos Asignados</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {permissions?.length || 0}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-
-        {activeTab === 'permisos' && (
-          <>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-blue-100 mr-4">
-                <MdAdminPanelSettings size={24} className="text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Total Permisos</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {permissions?.length || 0}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-green-100 mr-4">
-                <MdSecurity size={24} className="text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Categorías</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {Object.keys(permissionsByCategory || {}).length || 0}
-                </p>
-              </div>
-            </div>
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-lg p-4 rounded-xl flex items-center">
-              <div className="p-3 rounded-full bg-purple-100 mr-4">
-                <MdApi size={24} className="text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Rutas Protegidas</h3>
-                <p className="text-2xl font-bold text-[#2C3E50]">
-                  {permissions?.filter(p => p?.ruta).length || 0}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-        </div>
+      {/* Header con título */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-[#2C3E50] mb-2">Administración</h1>
+        <p className="text-gray-600 text-sm">
+          Administra usuarios, roles y permisos del sistema
+        </p>
       </div>
 
 
@@ -685,7 +582,7 @@ const Admin = () => {
         <div className="mb-6">
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
-              {hasPermission('user:read_all') && (
+              {hasPermission('usuario:leer_todos') && (
                 <button
                   onClick={() => setActiveTab('usuarios')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
@@ -700,7 +597,7 @@ const Admin = () => {
                   </span>
                 </button>
               )}
-              {hasPermission('role:read') && (
+              {hasPermission('rol:leer') && (
                 <button
                   onClick={() => setActiveTab('roles')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
@@ -715,7 +612,7 @@ const Admin = () => {
                   </span>
                 </button>
               )}
-              {hasPermission('permission:read') && (
+              {hasPermission('permiso:leer') && (
                 <button
                   onClick={() => setActiveTab('permisos')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
@@ -727,6 +624,21 @@ const Admin = () => {
                   <span className="flex items-center gap-2">
                     <MdAdminPanelSettings size={18} />
                     Permisos
+                  </span>
+                </button>
+              )}
+              {hasPermission('configuracion:leer') && (
+                <button
+                  onClick={() => setActiveTab('configuraciones')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                    activeTab === 'configuraciones'
+                      ? 'border-[#4EB9FA] text-[#2C3E50]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MdBusiness size={18} />
+                    Configuraciones
                   </span>
                 </button>
               )}
@@ -751,41 +663,81 @@ const Admin = () => {
         <>
           {activeTab === 'usuarios' && (
             <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-3 sm:p-4 lg:p-6 rounded-2xl mb-4">
-              <Table
-                data={filteredUsers || []}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">Gestión de Usuarios</h2>
+                <div className="flex items-center gap-2">
+                  {/* Toggle de vista */}
+                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setUsersViewMode('list')}
+                      className={`px-3 py-2 transition-colors ${
+                        usersViewMode === 'list' 
+                          ? 'bg-[#4EB9FA] text-white' 
+                          : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-gray-50'
+                      }`}
+                      title="Vista de lista"
+                    >
+                      <MdViewList size={20} />
+                    </button>
+                    <button
+                      onClick={() => setUsersViewMode('cards')}
+                      className={`px-3 py-2 transition-colors ${
+                        usersViewMode === 'cards' 
+                          ? 'bg-[#4EB9FA] text-white' 
+                          : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-gray-50'
+                      }`}
+                      title="Vista de cards"
+                    >
+                      <MdViewModule size={20} />
+                    </button>
+                  </div>
+                  
+                  <button
+                    onClick={handleRefresh}
+                    className={`px-3 py-2 border rounded-lg transition-colors ${usersLoading ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'text-[#4EB9FA] hover:text-[#3DA8E9] border-[#4EB9FA] hover:bg-[#4EB9FA]/10'}`}
+                    title="Actualizar"
+                    disabled={usersLoading}
+                  >
+                    <MdRefresh size={20} className={usersLoading ? 'animate-spin' : ''} />
+                  </button>
+                  
+                  {hasPermission('usuario:crear') && (
+                    <Tooltip
+                      id="create-user-btn"
+                      content="Crear un nuevo usuario en el sistema"
+                      place="top"
+                      variant="dark"
+                    >
+                      <button
+                        className="bg-[#2C3E50] hover:bg-[#34495E] text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 border border-[#2C3E50] hover:-translate-y-0.5 hover:scale-105"
+                        onClick={() => setShowCreate(true)}
+                      >
+                        <span className="flex items-center gap-2">
+                          <MdPersonAddAlt1 size={18} />
+                          <span className="hidden sm:inline">Crear usuario</span>
+                        </span>
+                      </button>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+              <UsersView
+                viewMode={usersViewMode}
+                users={users}
+                loading={usersLoading}
+                error={null}
                 columns={columns}
                 badgeMap={badgeMap}
-                title="Lista de Usuarios"
-                enableSelection={true}
-                enableExport={true}
-                enableRefresh={true}
+                onEdit={handleEdit}
+                onDelete={handleBulkDelete}
+                onViewDetails={handleViewDetails}
+                onChangeStatus={handleChangeUserStatus}
                 onRefresh={handleRefresh}
-                onBulkDelete={handleBulkDelete}
+                filteredUsers={filteredUsers}
                 renderActions={renderActions}
-                emptyMessage="No hay usuarios registrados en el sistema"
-                searchPlaceholder="Buscar por nombre, email o RUT..."
-                pageSize={5}
                 customActions={
                   <div className="flex gap-2">
                     <DateFilter onFilterChange={handleDateFilterChange} />
-                    {hasPermission('user:create') && (
-                      <Tooltip
-                        id="create-user-btn"
-                        content="Crear un nuevo usuario en el sistema"
-                        place="top"
-                        variant="dark"
-                      >
-                        <button
-                          className="bg-[#2C3E50] hover:bg-[#34495E] text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 border border-[#2C3E50] hover:-translate-y-0.5 hover:scale-105"
-                          onClick={() => setShowCreate(true)}
-                        >
-                          <span className="flex items-center gap-2">
-                            <MdPersonAddAlt1 size={18} />
-                            <span className="hidden sm:inline">Crear usuario</span>
-                          </span>
-                        </button>
-                      </Tooltip>
-                    )}
                   </div>
                 }
               />
@@ -832,7 +784,7 @@ const Admin = () => {
                     <MdRefresh size={20} className={rolesLoading ? 'animate-spin' : ''} />
                   </button>
                   
-                  {hasPermission('role:create') && (
+                  {hasPermission('rol:crear') && (
                     <Tooltip
                       id="create-role-btn"
                       content="Crear un nuevo rol en el sistema"
@@ -852,12 +804,18 @@ const Admin = () => {
                   )}
                 </div>
               </div>
-              <RolesView viewMode={viewMode} />
+              <RolesView viewMode={viewMode} refreshTrigger={refreshRolesTrigger} />
             </div>
           )}
 
           {activeTab === 'permisos' && (
             <PermissionsView />
+          )}
+
+          {activeTab === 'configuraciones' && (
+            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-3 sm:p-4 lg:p-6 rounded-2xl mb-4">
+              <CompanyConfigManager />
+            </div>
           )}
         </>
       )}
@@ -867,7 +825,7 @@ const Admin = () => {
         <CreateUserPopup show={showCreate} setShow={setShowCreate} onUserCreated={handleCreateUser} />
       )}
       {showCreateRole && (
-        <CreateRolePopup show={showCreateRole} setShow={setShowCreateRole} onRoleCreated={() => fetchRoles(true)} />
+        <CreateRolePopup show={showCreateRole} setShow={setShowCreateRole} onRoleCreated={() => setRefreshRolesTrigger(prev => prev + 1)} />
       )}
       <UserDetailModal show={showUserDetail} setShow={setShowUserDetail} userData={userDetailData} />
     </div>

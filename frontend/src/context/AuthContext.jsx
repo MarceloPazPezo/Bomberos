@@ -1,4 +1,5 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
+import { io } from "socket.io-client";
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserPermissions, validateToken } from '@services/auth.service';
 import cookies from 'js-cookie';
@@ -79,8 +80,22 @@ export function AuthProvider({ children }) {
         setUserPermissions(userData.permissions || []);
     }, []);
 
-    // Función para hacer logout
-    const logout = useCallback(() => {
+    // Función para hacer logout (ahora asíncrona para asegurar limpieza antes de navegar)
+    const logout = useCallback(async () => {
+        try {
+            const user = JSON.parse(sessionStorage.getItem("usuario"));
+            if (user && user.id) {
+                // Crear una conexión temporal solo para emitir el logout
+                const tempSocket = io("http://localhost:3000", { withCredentials: true });
+                await new Promise((resolve) => {
+                    tempSocket.emit("userLogout", user.id);
+                    setTimeout(() => {
+                        tempSocket.disconnect();
+                        resolve();
+                    }, 400);
+                });
+            }
+        } catch {}
         sessionStorage.removeItem('usuario');
         sessionStorage.removeItem('token');
         setUser(null);
@@ -88,6 +103,7 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(false);
         setSessionExpired(false);
         setLoading(false);
+        // Navegar solo después de limpiar todo
         navigate('/auth');
     }, [navigate]);
 

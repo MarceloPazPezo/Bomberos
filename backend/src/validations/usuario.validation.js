@@ -192,29 +192,29 @@ export const userCreateValidation = Joi.object({
     "string.base": "El tipo de sangre debe ser de tipo string.",
     "any.only": "El tipo de sangre debe ser uno de los siguientes: A+, A-, B+, B-, AB+, AB-, O+, O-.",
   }),
-  alergias: Joi.array()
-    .items(Joi.string().max(100))
+  alergias: Joi.string()
+    .max(500)
     .optional()
     .allow(null, "")
     .messages({
-      "array.base": "El campo 'alergias' debe ser un array.",
-      "string.max": "Cada alergia debe tener como máximo {#limit} caracteres.",
+      "string.base": "El campo 'alergias' debe ser de tipo string.",
+      "string.max": "Las alergias deben tener como máximo {#limit} caracteres.",
     }),
-  medicamentos: Joi.array()
-    .items(Joi.string().max(100))
+  medicamentos: Joi.string()
+    .max(500)
     .optional()
     .allow(null, "")
     .messages({
-      "array.base": "El campo 'medicamentos' debe ser un array.",
-      "string.max": "Cada medicamento debe tener como máximo {#limit} caracteres.",
+      "string.base": "El campo 'medicamentos' debe ser de tipo string.",
+      "string.max": "Los medicamentos deben tener como máximo {#limit} caracteres.",
     }),
-  condiciones: Joi.array()
-    .items(Joi.string().max(100))
+  condiciones: Joi.string()
+    .max(500)
     .optional()
     .allow(null, "")
     .messages({
-      "array.base": "El campo 'condiciones' debe ser un array.",
-      "string.max": "Cada condición debe tener como máximo {#limit} caracteres.",
+      "string.base": "El campo 'condiciones' debe ser de tipo string.",
+      "string.max": "Las condiciones deben tener como máximo {#limit} caracteres.",
     }),
   roles: Joi.array()
     .items(

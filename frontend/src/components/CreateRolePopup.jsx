@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { MdClose, MdSecurity, MdCheck, MdExpandMore, MdExpandLess, MdSelectAll, MdClear } from 'react-icons/md';
 import Form from '@components/Form';
-import { getPermissions } from '@services/permission.service';
+import { getPermissions } from '@services/permiso.service';
 import { useRoles } from '@hooks/roles/useRoles';
 import usePermissions from '@hooks/permissions/usePermissions';
 
 export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
-    const { permissions, permissionsByCategory } = usePermissions();
+    const { permissions, permissionsByCategory, refreshPermissionsByCategory } = usePermissions();
     
     const [formData, setFormData] = useState({
         nombre: '',
@@ -21,6 +21,13 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
     
     const { handleCreateRole } = useRoles();
 
+    // Cargar permisos cuando se muestra el modal
+    useEffect(() => {
+        if (show) {
+            refreshPermissionsByCategory();
+        }
+    }, [show]); // Removido refreshPermissionsByCategory de las dependencias
+
     // Inicializar cuando se abre el modal
     useEffect(() => {
         if (show) {
@@ -30,7 +37,12 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                 permisos: []
             });
             setErrors({});
-            // Expandir todas las categorías por defecto
+        }
+    }, [show]);
+
+    // Expandir categorías cuando se cargan los permisos
+    useEffect(() => {
+        if (show && Object.keys(permissionsByCategory).length > 0) {
             setExpandedCategories(new Set(Object.keys(permissionsByCategory)));
         }
     }, [show, permissionsByCategory]);

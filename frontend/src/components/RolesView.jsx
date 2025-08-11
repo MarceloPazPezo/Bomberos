@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MdSecurity, 
   MdEdit, 
@@ -6,21 +6,37 @@ import {
   MdExpandMore,
   MdExpandLess,
   MdCheck,
-  MdClose
+  MdClose,
+  MdAdd
 } from 'react-icons/md';
 import { useRoles } from '@hooks/roles/useRoles';
 import usePermissions from '@hooks/permissions/usePermissions';
 import { useAuth } from '@hooks/auth/useAuth';
-import RoleFormModal from './RoleFormModal.jsx';
+import RoleFormModal from './RoleFormModal';
 import { showConfirmAlert } from '@helpers/sweetAlert.js';
 
-const RolesView = ({ viewMode = 'cards' }) => {
+const RolesView = ({ viewMode = 'cards', refreshTrigger }) => {
   const { roles, loading, error, fetchRoles, handleDeleteRole } = useRoles();
   const { permissions, permissionsByCategory, refreshPermissions } = usePermissions();
   const { hasPermission } = useAuth();
   const [expandedRoles, setExpandedRoles] = useState(new Set());
   const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState(null);
+
+  // Cargar solo roles cuando se monta el componente
+  useEffect(() => {
+    if ((!roles || roles.length === 0) && !loading) {
+      fetchRoles(true);
+    }
+    // Los permisos se cargarán bajo demanda cuando se necesiten para mostrar detalles
+  }, []);
+
+  // Refrescar roles cuando cambie refreshTrigger
+  useEffect(() => {
+    if (refreshTrigger) {
+      fetchRoles(true);
+    }
+  }, [refreshTrigger]);
 
 
 
@@ -31,6 +47,8 @@ const RolesView = ({ viewMode = 'cards' }) => {
       newExpanded.delete(roleId);
     } else {
       newExpanded.add(roleId);
+      // Cargar permisos cuando se expande un rol para mostrar detalles
+      ensurePermissionsLoaded();
     }
     setExpandedRoles(newExpanded);
   };
@@ -66,6 +84,13 @@ const RolesView = ({ viewMode = 'cards' }) => {
       return 'bg-blue-100 text-blue-800 border-blue-200';
     }
     return 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  // Función para cargar permisos si no están disponibles
+  const ensurePermissionsLoaded = () => {
+    if (permissions.length === 0 && Object.keys(permissionsByCategory).length === 0) {
+      refreshPermissions(true);
+    }
   };
 
   // Función para agrupar permisos por categoría
@@ -119,6 +144,11 @@ const RolesView = ({ viewMode = 'cards' }) => {
 
   // Función para renderizar la vista de cards
   const renderCardsView = () => {
+    // Cargar permisos si hay roles con permisos para mostrar categorías
+    if (roles.some(role => role.permisos && role.permisos.length > 0)) {
+      ensurePermissionsLoaded();
+    }
+    
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {roles.map((role) => {
@@ -144,7 +174,7 @@ const RolesView = ({ viewMode = 'cards' }) => {
                   
                   {/* Acciones */}
                   <div className="flex items-center gap-1">
-                    {hasPermission('role:update') && (
+                    {hasPermission('rol:actualizar') && (
                       <button
                         onClick={() => handleEditRole(role)}
                         className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
@@ -153,7 +183,7 @@ const RolesView = ({ viewMode = 'cards' }) => {
                         <MdEdit size={18} />
                       </button>
                     )}
-                    {hasPermission('role:delete') && (
+                    {hasPermission('rol:eliminar') && (
                       <button
                         onClick={() => handleDeleteConfirm(role)}
                         className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
@@ -248,7 +278,7 @@ const RolesView = ({ viewMode = 'cards' }) => {
 
                   {/* Acciones */}
                   <div className="flex items-center gap-2">
-                    {hasPermission('role:update') && (
+                    {hasPermission('rol:actualizar') && (
                       <button
                         onClick={() => handleEditRole(role)}
                         className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
@@ -257,7 +287,7 @@ const RolesView = ({ viewMode = 'cards' }) => {
                         <MdEdit size={18} />
                       </button>
                     )}
-                    {hasPermission('role:delete') && (
+                    {hasPermission('rol:eliminar') && (
                       <button
                         onClick={() => handleDeleteConfirm(role)}
                         className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"

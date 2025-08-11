@@ -1,15 +1,16 @@
 "use strict";
-import User from "../entities/user.entity.js";
-import Role from "../entities/role.entity.js";
-import Permission from "../entities/permission.entity.js";
+import Usuario from "../entities/usuario.entity.js";
+import Rol from "../entities/rol.entity.js";
+import Permiso from "../entities/permiso.entity.js";
+import Sistema from "../entities/sistema.entity.js";
 import { AppDataSource } from "./configDb.js";
 import { encryptPassword } from "../helpers/bcrypt.helper.js";
 import { In } from "typeorm";
 import logger from "./logger.js";
 
-async function createPermissions() {
+async function crearPermisos() {
   try {
-    const permissionRepository = AppDataSource.getRepository(Permission);
+    const permissionRepository = AppDataSource.getRepository(Permiso);
     const count = await permissionRepository.count();
     if (count > 0) {
       logger.info("[SERVER] Permisos ya existen, omitiendo creación.");
@@ -18,132 +19,153 @@ async function createPermissions() {
 
     const permissionsData = [
       {
-        nombre: "user:read_profile",
+        nombre: "usuario:leer_perfil",
         descripcion: "Permite leer el perfil del propio usuario",
         categoria: "Perfil",
-        ruta: "/api/profile",
+        ruta: "/api/perfil",
         metodo: "GET",
       },
       {
-        nombre: "user:update_profile",
+        nombre: "usuario:actualizar_perfil",
         descripcion: "Permite actualizar el perfil del propio usuario",
         categoria: "Perfil",
-        ruta: "/api/profile",
+        ruta: "/api/perfil",
         metodo: "PATCH",
       },
       {
-        nombre: "user:create",
+        nombre: "usuario:crear",
         descripcion: "Permite crear nuevos usuarios",
         categoria: "Usuarios",
-        ruta: "/api/user",
+        ruta: "/api/usuario",
         metodo: "POST",
       },
       {
-        nombre: "user:read_all",
+        nombre: "usuario:leer_todos",
         descripcion: "Permite leer información de todos los usuarios",
         categoria: "Usuarios",
-        ruta: "/api/user",
+        ruta: "/api/usuario",
         metodo: "GET",
       },
       {
-        nombre: "user:read_specific",
+        nombre: "usuario:leer_especifico",
         descripcion:
           "Permite leer información de un usuario especifico (ej. por ID)",
         categoria: "Usuarios",
-        ruta: "/api/user/detail/:id",
+        ruta: "/api/usuario/detalles/:id",
         metodo: "GET",
       },
       {
-        nombre: "user:update_specific",
+        nombre: "usuario:actualizar_especifico",
         descripcion: "Permite actualizar información de un usuario especifico",
         categoria: "Usuarios",
-        ruta: "/api/user/detail/:id",
+        ruta: "/api/usuario/detalles/:id",
         metodo: "PATCH",
       },
       {
-        nombre: "user:delete",
+        nombre: "usuario:eliminar",
         descripcion: "Permite eliminar usuarios",
         categoria: "Usuarios",
-        ruta: "/api/user/detail/:id",
+        ruta: "/api/usuario/detalles/:id",
         metodo: "DELETE",
       },
       {
-        nombre: "user:change_status",
+        nombre: "usuario:cambiar_estado",
         descripcion: "Permite activar/desactivar usuarios",
         categoria: "Usuarios",
-        ruta: "/api/user/status/:id",
+        ruta: "/api/usuario/estado/:id",
         metodo: "PATCH",
       },
       {
-        nombre: "user:assign_role",
+        nombre: "usuario:asignar_rol",
         descripcion: "Permite asignar/revocar roles a un usuario",
         categoria: "Usuarios",
-        ruta: "/api/user/roles/:id",
+        ruta: "/api/usuario/roles/:id",
         metodo: "PATCH",
       },
       {
-        nombre: "role:create",
+        nombre: "rol:crear",
         descripcion: "Permite crear nuevos roles",
         categoria: "Roles",
-        ruta: "/api/role",
+        ruta: "/api/rol",
         metodo: "POST",
       },
       {
-        nombre: "role:read",
+        nombre: "rol:leer",
         descripcion: "Permite leer la lista de roles y sus detalles",
         categoria: "Roles",
-        ruta: "/api/role",
+        ruta: "/api/rol",
         metodo: "GET",
       },
       {
-        nombre: "role:update",
+        nombre: "rol:actualizar",
         descripcion: "Permite actualizar roles (nombre, descripción)",
         categoria: "Roles",
-        ruta: "/api/role/detail/:id",
+        ruta: "/api/rol/detalles/:id",
         metodo: "PATCH",
       },
       {
-        nombre: "role:delete",
+        nombre: "rol:eliminar",
         descripcion: "Permite eliminar roles",
         categoria: "Roles",
-        ruta: "/api/role/detail/:id",
+        ruta: "/api/rol/detalles/:id",
         metodo: "DELETE",
       },
       {
-        nombre: "role:assign_permission",
+        nombre: "rol:asignar_permiso",
         descripcion: "Permite asignar/revocar permisos a un rol",
         categoria: "Roles",
-        ruta: "/api/role/permissions/:id",
+        ruta: "/api/rol/permisos/:id",
         metodo: "PATCH",
       },
       {
-        nombre: "permission:read",
+        nombre: "permiso:leer",
         descripcion:
           "Permite leer la lista de todos los permisos disponibles en el sistema",
         categoria: "Permisos",
-        ruta: "/api/permission",
+        ruta: "/api/permiso",
         metodo: "GET",
       },
       {
-        nombre: "permission:read_categories",
+        nombre: "permiso:leer_categorias",
         descripcion: "Permite leer los permisos agrupados por categorías",
         categoria: "Permisos",
-        ruta: "/api/permission/categories",
+        ruta: "/api/permiso/categorias",
         metodo: "GET",
       },
       {
-        nombre: "permission:read_stats",
+        nombre: "permiso:leer_estadisticas",
         descripcion: "Permite leer las estadísticas de permisos del sistema",
         categoria: "Permisos",
-        ruta: "/api/permission/stats",
+        ruta: "/api/permiso/estadisticas",
         metodo: "GET",
       },
       {
-        nombre: "permission:update",
+        nombre: "permiso:actualizar",
         descripcion: "Permite actualizar la descripción de permisos existentes",
         categoria: "Permisos",
-        ruta: "/api/permission/:id",
+        ruta: "/api/permiso/:id",
         metodo: "PUT",
+      },
+      {
+        nombre: "configuracion:leer",
+        descripcion: "Permite leer las configuraciones del sistema",
+        categoria: "Configuraciones",
+        ruta: "/api/configuracion",
+        metodo: "GET",
+      },
+      {
+        nombre: "configuracion:actualizar",
+        descripcion: "Permite actualizar las configuraciones del sistema",
+        categoria: "Configuraciones",
+        ruta: "/api/configuracion/:key",
+        metodo: "PUT",
+      },
+      {
+        nombre: "configuracion:crear",
+        descripcion: "Permite crear nuevas configuraciones del sistema",
+        categoria: "Configuraciones",
+        ruta: "/api/configuracion",
+        metodo: "POST",
       },
     ];
 
@@ -153,15 +175,15 @@ async function createPermissions() {
     await permissionRepository.save(permissions);
     logger.info("[SERVER] Permisos creados exitosamente");
   } catch (error) {
-    logger.errorWithContext(error, { function: "createPermissions" });
+    logger.errorWithContext(error, { function: "crearPermisos" });
     throw error;
   }
 }
 
-async function createRoles() {
+async function crearRoles() {
   try {
-    const roleRepository = AppDataSource.getRepository(Role);
-    const permissionRepository = AppDataSource.getRepository(Permission);
+    const roleRepository = AppDataSource.getRepository(Rol);
+    const permissionRepository = AppDataSource.getRepository(Permiso);
 
     const count = await roleRepository.count();
     if (count > 0) {
@@ -173,41 +195,44 @@ async function createRoles() {
       {
         nombre: "Usuario",
         descripcion: "Rol básico para usuarios con perfil.",
-        permissionNames: ["user:read_profile", "user:update_profile"],
+        permissionNames: ["usuario:leer_perfil", "usuario:actualizar_perfil"],
       },
       {
         nombre: "Supervisor",
         descripcion: "Rol intermedio con permisos limitados.",
         permissionNames: [
-          "user:read_all",
-          "user:change_status",
-          "role:read",
-          "role:update",
-          "permission:read",
-          "permission:read_categories",
-          "permission:read_stats",
+          "usuario:leer_todos",
+          "usuario:cambiar_estado",
+          "rol:leer",
+          "rol:actualizar",
+          "permiso:leer",
+          "permiso:leer_categorias",
+          "permiso:leer_estadisticas",
         ],
       },
       {
         nombre: "Administrador",
         descripcion: "Rol con acceso total al sistema.",
         permissionNames: [
-          "user:create",
-          "user:read_all",
-          "user:read_specific",
-          "user:update_specific",
-          "user:delete",
-          "user:change_status",
-          "user:assign_role",
-          "role:create",
-          "role:read",
-          "role:update",
-          "role:delete",
-          "role:assign_permission",
-          "permission:read",
-          "permission:read_categories",
-          "permission:read_stats",
-          "permission:update",
+          "usuario:crear",
+          "usuario:leer_todos",
+          "usuario:leer_especifico",
+          "usuario:actualizar_especifico",
+          "usuario:eliminar",
+          "usuario:cambiar_estado",
+          "usuario:asignar_rol",
+          "rol:crear",
+          "rol:leer",
+          "rol:actualizar",
+          "rol:eliminar",
+          "rol:asignar_permiso",
+          "permiso:leer",
+          "permiso:leer_categorias",
+          "permiso:leer_estadisticas",
+          "permiso:actualizar",
+          "configuracion:leer",
+          "configuracion:actualizar",
+          "configuracion:crear",
         ],
       },
     ];
@@ -248,15 +273,15 @@ async function createRoles() {
     await roleRepository.save(rolesToSave);
     logger.info("[SERVER] Roles creados exitosamente");
   } catch (error) {
-    logger.errorWithContext(error, { function: "createRoles" });
+    logger.errorWithContext(error, { function: "crearRoles" });
     throw error;
   }
 }
 
-async function createUsers() {
+async function crearUsuarios() {
   try {
-    const userRepository = AppDataSource.getRepository(User);
-    const roleRepository = AppDataSource.getRepository(Role);
+    const userRepository = AppDataSource.getRepository(Usuario);
+    const roleRepository = AppDataSource.getRepository(Rol);
 
     const count = await userRepository.count();
     if (count > 0) {
@@ -294,7 +319,7 @@ async function createUsers() {
         alergias: ["Polvo", "Ácaros"],
         medicamentos: ["Losartán 50mg"],
         condiciones: ["Diabetes tipo 2 controlada"],
-        createdBy: "Sistema",
+        creadoPor: "Sistema",
         activo: true,
         roles: [adminRole, userRole],
       },
@@ -312,7 +337,7 @@ async function createUsers() {
         alergias: ["Maní", "Nueces"],
         medicamentos: ["Ibuprofeno 600mg"],
         condiciones: ["Asma leve"],
-        createdBy: "Sistema",
+        creadoPor: "Sistema",
         activo: true,
         roles: [supervisorRole, userRole],
       },
@@ -330,7 +355,7 @@ async function createUsers() {
         alergias: [],
         medicamentos: ["Vitamina C 1000mg", "Omega 3"],
         condiciones: ["Miopia"],
-        createdBy: "Sistema",
+        creadoPor: "Sistema",
         activo: false,
         roles: [userRole],
       },
@@ -340,9 +365,104 @@ async function createUsers() {
     await userRepository.save(users);
     logger.info("[SERVER] Usuarios creados exitosamente");
   } catch (error) {
-    logger.errorWithContext(error, { function: "createUsers" });
+    logger.errorWithContext(error, { function: "crearUsuarios" });
     throw error;
   }
 }
 
-export { createPermissions, createRoles, createUsers };
+async function crearConfiguracionesSistema() {
+  try {
+    const systemConfigRepository = AppDataSource.getRepository(Sistema);
+    
+    const count = await systemConfigRepository.count();
+    if (count > 0) {
+      logger.info("[SERVER] Configuraciones del sistema ya existen, omitiendo creación.");
+      return;
+    }
+
+    const configsData = [
+      {
+        key: "company_name",
+        value: "Primera Compañía de Bomberos de Cabrero",
+        description: "Nombre de la compañía de bomberos",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "company_address",
+        value: "Av. Principal 123, Cabrero, Chile",
+        description: "Dirección de la compañía de bomberos",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "company_phone",
+        value: "+56 9 1234 5678",
+        description: "Teléfono de contacto de la compañía",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "company_email",
+        value: "contacto@bomberoscabrero.cl",
+        description: "Email de contacto de la compañía",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "company_logo_url",
+        value: "",
+        description: "URL del logo de la compañía",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "company_founded_year",
+        value: "1920",
+        description: "Año de fundación de la compañía",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "company_region",
+        value: "Región del Biobío",
+        description: "Región donde opera la compañía",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "company_city",
+        value: "Cabrero",
+        description: "Ciudad donde opera la compañía",
+        category: "company",
+        isEditable: true,
+      },
+      {
+        key: "system_version",
+        value: "1.0.0",
+        description: "Versión del sistema",
+        category: "system",
+        isEditable: false,
+      },
+      {
+        key: "maintenance_mode",
+        value: "false",
+        description: "Modo de mantenimiento del sistema",
+        category: "system",
+        isEditable: true,
+      },
+    ];
+
+    const configs = configsData.map((configData) =>
+      systemConfigRepository.create(configData)
+    );
+    await systemConfigRepository.save(configs);
+    logger.info("[SERVER] Configuraciones del sistema creadas exitosamente");
+  } catch (error) {
+    logger.errorWithContext(error, { function: "crearConfiguracionesSistema" });
+    throw error;
+  }
+}
+
+export { crearPermisos, crearRoles, crearUsuarios, crearConfiguracionesSistema };
+

@@ -60,17 +60,17 @@ const ExistenciaSchema = new EntitySchema({
       nullable: true,
     },
 
-    createdBy: {
+    creadoPor: {
       type: "int",
       nullable: true, // FK -> usuarios.id
     },
 
-    updatedBy: {
+    actualizadoPor: {
       type: "int",
       nullable: true, // FK -> usuarios.id
     },
 
-    updatedAt: {
+    fechaActualizacion: {
       type: "timestamp with time zone",
       updateDate: true,
     },
@@ -78,14 +78,14 @@ const ExistenciaSchema = new EntitySchema({
 
   indices: [
     { name: "IDX_EXISTENCIA_ASIGNADO_ID", columns: ["asignado_id"] },
-    { name: "IDX_EXISTENCIA_CREATEDBY", columns: ["createdBy"] },
-    { name: "IDX_EXISTENCIA_UPDATEDBY", columns: ["updatedBy"] },
+    { name: "IDX_EXISTENCIA_CREATEDBY", columns: ["creadoPor"] },
+    { name: "IDX_EXISTENCIA_UPDATEDBY", columns: ["actualizadoPor"] },
   ],
 
   relations: {
     asignado: {
       type: "many-to-one",
-      target: "User",
+      target: "Usuario",
       joinColumn: {
         name: "asignado_id",
         referencedColumnName: "id",
@@ -94,18 +94,18 @@ const ExistenciaSchema = new EntitySchema({
     },
     creador: {
       type: "many-to-one",
-      target: "User",
+      target: "Usuario",
       joinColumn: {
-        name: "createdBy",
+        name: "creadoPor",
         referencedColumnName: "id",
         onDelete: "SET NULL",
       },
     },
     actualizador: {
       type: "many-to-one",
-      target: "User",
+      target: "Usuario",
       joinColumn: {
-        name: "updatedBy",
+        name: "actualizadoPor",
         referencedColumnName: "id",
         onDelete: "SET NULL",
       },

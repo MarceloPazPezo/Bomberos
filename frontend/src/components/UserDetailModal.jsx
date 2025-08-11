@@ -8,28 +8,85 @@ const UserDetailModal = ({ show, setShow, userData }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificado';
-    return new Date(dateString).toLocaleDateString('es-CL', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    
+    try {
+      let date;
+      
+      // Verificar si la fecha está en formato DD-MM-YYYY
+      if (typeof dateString === 'string' && dateString.match(/^\d{2}-\d{2}-\d{4}$/)) {
+        const [day, month, year] = dateString.split('-');
+        date = new Date(year, month - 1, day); // month - 1 porque los meses en JS van de 0-11
+      } else {
+        date = new Date(dateString);
+      }
+      
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return 'Fecha inválida';
+    }
   };
 
   const formatDateTime = (dateString) => {
     if (!dateString) return 'No especificado';
-    return new Date(dateString).toLocaleString('es-CL', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    
+    try {
+      let date;
+      
+      // Verificar si la fecha está en formato DD-MM-YYYY
+      if (typeof dateString === 'string' && dateString.match(/^\d{2}-\d{2}-\d{4}$/)) {
+        const [day, month, year] = dateString.split('-');
+        date = new Date(year, month - 1, day); // month - 1 porque los meses en JS van de 0-11
+      } else {
+        date = new Date(dateString);
+      }
+      
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) {
+        return 'Fecha inválida';
+      }
+      
+      return date.toLocaleString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error al formatear fecha y hora:', error);
+      return 'Fecha inválida';
+    }
   };
 
   const getFullName = () => {
     const nombres = Array.isArray(userData.nombres) ? userData.nombres.join(' ') : userData.nombres || '';
     const apellidos = Array.isArray(userData.apellidos) ? userData.apellidos.join(' ') : userData.apellidos || '';
     return `${nombres} ${apellidos}`.trim() || 'Sin nombre';
+  };
+
+  // Función para separar elementos médicos en etiquetas
+  const formatMedicalTags = (text) => {
+    if (!text || text === 'No especificado') return [];
+    
+    // Convertir a string si no lo es
+    const textString = String(text);
+    
+    // Separar por comas, puntos y comas, saltos de línea, o múltiples espacios
+    const items = textString.split(/[,;\n]|(?:\s{2,})/)
+      .map(item => item.trim())
+      .filter(item => item.length > 0);
+    
+    return items;
   };
 
   const handleClose = () => {
@@ -146,14 +203,15 @@ const UserDetailModal = ({ show, setShow, userData }) => {
                       <MdHealthAndSafety className="w-4 h-4" />
                       Tipo de Sangre
                     </label>
-                    <p className="text-gray-900 mt-1">
-                      {userData.tipoSangre || 'No especificado'}
-                      {userData.tipoSangre && (
-                        <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+                    <div className="mt-2">
+                      {userData.tipoSangre ? (
+                        <span className="inline-flex items-center px-3 py-1 text-sm font-medium bg-red-100 text-red-800 rounded-full">
                           {userData.tipoSangre}
                         </span>
+                      ) : (
+                        <p className="text-gray-500 text-sm">No especificado</p>
                       )}
-                    </p>
+                    </div>
                   </div>
 
                   <div>
@@ -161,10 +219,21 @@ const UserDetailModal = ({ show, setShow, userData }) => {
                       <MdWarning className="w-4 h-4" />
                       Alergias
                     </label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-gray-900 text-sm whitespace-pre-wrap">
-                        {userData.alergias || 'No especificado'}
-                      </p>
+                    <div className="mt-2">
+                      {formatMedicalTags(userData.alergias).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {formatMedicalTags(userData.alergias).map((alergia, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1 text-sm font-medium bg-red-100 text-red-800 rounded-full"
+                            >
+                              {alergia}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">No especificado</p>
+                      )}
                     </div>
                   </div>
 
@@ -173,10 +242,21 @@ const UserDetailModal = ({ show, setShow, userData }) => {
                       <MdMedication className="w-4 h-4" />
                       Medicamentos
                     </label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-gray-900 text-sm whitespace-pre-wrap">
-                        {userData.medicamentos || 'No especificado'}
-                      </p>
+                    <div className="mt-2">
+                      {formatMedicalTags(userData.medicamentos).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {formatMedicalTags(userData.medicamentos).map((medicamento, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1 text-sm font-medium bg-orange-100 text-orange-800 rounded-full"
+                            >
+                              {medicamento}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">No especificado</p>
+                      )}
                     </div>
                   </div>
 
@@ -185,10 +265,21 @@ const UserDetailModal = ({ show, setShow, userData }) => {
                       <MdLocalHospital className="w-4 h-4" />
                       Condiciones Médicas
                     </label>
-                    <div className="mt-1 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-gray-900 text-sm whitespace-pre-wrap">
-                        {userData.condiciones || 'No especificado'}
-                      </p>
+                    <div className="mt-2">
+                      {formatMedicalTags(userData.condiciones).length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {formatMedicalTags(userData.condiciones).map((condicion, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-3 py-1 text-sm font-medium bg-purple-100 text-purple-800 rounded-full"
+                            >
+                              {condicion}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">No especificado</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -241,26 +332,26 @@ const UserDetailModal = ({ show, setShow, userData }) => {
                       <MdPersonAdd className="w-4 h-4" />
                       Creado por:
                     </span>
-                    <span className="text-gray-900">{userData.createdBy || 'Sistema'}</span>
+                    <span className="text-gray-900">{userData.creadoPor || 'Sistema'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 flex items-center gap-1">
                       <MdSchedule className="w-4 h-4" />
                       Fecha de creación:
                     </span>
-                    <span className="text-gray-900">{formatDateTime(userData.createdAt)}</span>
+                    <span className="text-gray-900">{formatDateTime(userData.fechaCreacion)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 flex items-center gap-1">
                       <MdUpdate className="w-4 h-4" />
                       Última actualización:
                     </span>
-                    <span className="text-gray-900">{formatDateTime(userData.updatedAt)}</span>
+                    <span className="text-gray-900">{formatDateTime(userData.fechaActualizacion)}</span>
                   </div>
-                  {userData.updatedBy && (
+                  {userData.actualizadoPor && (
                     <div className="flex justify-between">
                       <span className="text-gray-600">Actualizado por:</span>
-                      <span className="text-gray-900">{userData.updatedBy}</span>
+                      <span className="text-gray-900">{userData.actualizadoPor}</span>
                     </div>
                   )}
                 </div>

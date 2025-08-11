@@ -7,7 +7,7 @@ import {
   updatePermission,
   deletePermission,
   getPermissionStats,
-} from "../services/permission.service.js";
+} from "../services/permiso.service.js";
 import {
   handleSuccess,
   handleErrorClient,

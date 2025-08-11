@@ -4,7 +4,7 @@ import { login } from '@services/auth.service.js';
 import useLogin from '@hooks/auth/useLogin.jsx';
 import { showErrorAlert } from "../helpers/sweetAlert.js";
 import Form from '@components/Form';
-import { MdPerson, MdClose, MdSecurity, MdDashboard, MdTrendingUp, MdArrowForward } from 'react-icons/md';
+import { MdPerson, MdClose, MdSecurity, MdDashboard, MdTrendingUp, MdArrowForward, MdLocalFireDepartment, MdEmergency, MdGroup } from 'react-icons/md';
 import { useRutFormatter, formatRutForAPI, formatRutForDisplay } from '@helpers/rutFormatter.js';
 
 const Login = () => {
@@ -99,11 +99,11 @@ const Login = () => {
                 <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white/95 backdrop-blur-sm px-6 py-8">
                     <div className="w-full max-w-sm">
                         <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full mb-3">
-                                <MdSecurity className="w-6 h-6 text-white" />
+                            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-red-500 to-orange-600 rounded-full mb-3">
+                                <MdLocalFireDepartment className="w-6 h-6 text-white" />
                             </div>
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">Bienvenido</h1>
-                            <p className="text-gray-600 text-base">Accede a tu panel de control</p>
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-1">Sistema Bomberos</h1>
+                            <p className="text-gray-600 text-base">Accede al sistema de gestión de emergencias</p>
                         </div>
                         
                         <Form
@@ -137,7 +137,7 @@ const Login = () => {
                                     <p className="leading-tight">
                                         ¿No tienes cuenta o se te olvidaron tus credenciales? 
                                         <span className="block sm:inline sm:ml-1">
-                                            Contacta al administrador: <a href="mailto:example@gmail.com" className="underline text-indigo-500 hover:text-indigo-600">example@gmail.com</a>
+                                            Contacta al administrador: <a href="mailto:admin@bomberos.cl" className="underline text-red-500 hover:text-red-600">admin@bomberos.cl</a>
                                         </span>
                                     </p>
                                 </div>
@@ -158,7 +158,7 @@ const Login = () => {
                     </div>
                 </div>
                 {/* Lado derecho: Diseño moderno con iconos y gradientes */}
-                <div className="hidden md:flex flex-1 items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 relative overflow-hidden">
+                <div className="hidden md:flex flex-1 items-center justify-center bg-gradient-to-br from-red-500 to-orange-600 relative overflow-hidden">
                     {/* Efectos de fondo sutiles */}
                     <div className="absolute inset-0">
                         <div className="absolute top-20 left-20 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
@@ -171,38 +171,42 @@ const Login = () => {
                         <div className="relative mb-8">
                             <div className="flex items-center justify-center space-x-4 mb-6">
                                 <div className="p-4 bg-white/15 backdrop-blur-sm rounded-2xl transform rotate-12 hover:rotate-0 transition-transform duration-500">
-                                    <MdDashboard className="w-8 h-8" />
+                                    <MdLocalFireDepartment className="w-8 h-8" />
                                 </div>
                                 <div className="p-4 bg-white/15 backdrop-blur-sm rounded-2xl transform -rotate-12 hover:rotate-0 transition-transform duration-500">
-                                    <MdSecurity className="w-8 h-8" />
+                                    <MdEmergency className="w-8 h-8" />
                                 </div>
                                 <div className="p-4 bg-white/15 backdrop-blur-sm rounded-2xl transform rotate-6 hover:rotate-0 transition-transform duration-500">
-                                    <MdTrendingUp className="w-8 h-8" />
+                                    <MdGroup className="w-8 h-8" />
                                 </div>
                             </div>
                         </div>
                         
                         {/* Contenido principal */}
                         <h2 className="text-4xl font-bold mb-4 text-white">
-                            Sistema de Gestión
+                            Sistema de Gestión de Bomberos
                         </h2>
                         <p className="text-xl text-white/80 mb-6 max-w-md leading-relaxed">
-                            Plataforma integral para la administración y control de tu organización
+                            Plataforma integral para la gestión de emergencias, personal y recursos de la compañía de bomberos
                         </p>
                         
                         {/* Características */}
                         <div className="space-y-3 text-left">
                             <div className="flex items-center space-x-3">
                                 <div className="w-2 h-2 bg-white rounded-full"></div>
-                                <span className="text-white/90">Panel de control intuitivo</span>
+                                <span className="text-white/90">Gestión de personal y voluntarios</span>
                             </div>
                             <div className="flex items-center space-x-3">
                                 <div className="w-2 h-2 bg-white rounded-full"></div>
-                                <span className="text-white/90">Seguridad avanzada</span>
+                                <span className="text-white/90">Control de emergencias y servicios</span>
                             </div>
                             <div className="flex items-center space-x-3">
                                 <div className="w-2 h-2 bg-white rounded-full"></div>
-                                <span className="text-white/90">Reportes en tiempo real</span>
+                                <span className="text-white/90">Administración de recursos y equipos</span>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                                <span className="text-white/90">Reportes y estadísticas operacionales</span>
                             </div>
                         </div>
                     </div>

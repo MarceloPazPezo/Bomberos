@@ -1,6 +1,6 @@
 "use strict";
 import { AppDataSource } from "../config/configDb.js";
-import Permission from "../entities/permission.entity.js";
+import Permission from "../entities/permiso.entity.js";
 
 /**
  * Obtiene todos los permisos con filtros opcionales

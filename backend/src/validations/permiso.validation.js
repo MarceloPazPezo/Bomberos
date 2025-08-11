@@ -2,38 +2,6 @@
 import Joi from "joi";
 
 /**
- * Esquema de validación para crear un permiso
- */
-const createPermissionSchema = Joi.object({
-  name: Joi.string()
-    .min(3)
-    .max(100)
-    .pattern(/^[a-z_:]+$/)
-    .required()
-    .messages({
-      "string.pattern.base":
-        "El nombre debe contener solo letras minúsculas, guiones bajos y dos puntos",
-      "string.min": "El nombre debe tener al menos 3 caracteres",
-      "string.max": "El nombre no puede exceder 100 caracteres",
-    }),
-
-  description: Joi.string().min(10).max(500).required().messages({
-    "string.min": "La descripción debe tener al menos 10 caracteres",
-    "string.max": "La descripción no puede exceder 500 caracteres",
-  }),
-
-  category: Joi.string()
-    .valid("users", "roles", "permissions", "system", "auth", "locations")
-    .required()
-    .messages({
-      "any.only":
-        "La categoría debe ser una de: users, roles, permissions, system, auth, locations",
-    }),
-
-  isActive: Joi.boolean().default(true),
-});
-
-/**
  * Esquema de validación para actualizar un permiso
  */
 const updatePermissionSchema = Joi.object({
