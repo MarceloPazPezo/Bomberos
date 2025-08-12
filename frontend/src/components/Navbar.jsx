@@ -55,10 +55,10 @@ const Navbar = () => {
                     {/* Logo o Nombre de la App */}
                     <div className="flex items-center space-x-4">
                         <NavLink to="/home" className="flex items-center space-x-2">
-                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">P</span>
+                            <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                                <span className="text-white font-bold text-sm">🚒</span>
                             </div>
-                            <span className="text-xl font-bold text-gray-900">PERN App</span>
+                            <span className="text-xl font-bold text-gray-900">Sistema Bomberos</span>
                         </NavLink>
                     </div>
 
@@ -185,15 +185,6 @@ const Navbar = () => {
                             className="w-full text-left text-gray-700 hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
                         >
                             Ver perfil
-                        </button>
-                        <button
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                // TODO: Implementar configuración de perfil
-                            }}
-                            className="w-full text-left text-gray-700 hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
-                        >
-                            Configurar perfil
                         </button>
                         <button
                             onClick={handleLogout}

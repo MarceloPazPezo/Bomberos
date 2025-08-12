@@ -26,10 +26,10 @@ const Layout = ({
       {/* Sidebar (si está habilitado) */}
       {showSidebar && (
         <>
-          {/* Overlay para móvil */}
+          {/* Overlay para móvil - transparente pero funcional */}
           {isSidebarOpen && (
             <div 
-              className="fixed inset-0 bg-black bg-opacity-50 z-30 lg:hidden"
+              className="fixed inset-0 bg-transparent z-30 lg:hidden"
               onClick={() => setIsSidebarOpen(false)}
             />
           )}
@@ -43,7 +43,7 @@ const Layout = ({
       )}
 
       {/* Contenido principal */}
-      <main className={`pt-16 transition-all duration-300 ${showSidebar && isSidebarOpen ? 'ml-56' : 'ml-0'}`}>
+      <main className={`pt-16 transition-all duration-300 ${showSidebar && isSidebarOpen ? 'lg:ml-56' : 'ml-0'}`}>
         <div className={`w-full ${padding}`}>
           {children || <Outlet />}
         </div>

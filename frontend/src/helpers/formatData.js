@@ -96,10 +96,10 @@ export function formatUserData(user) {
         activo: user.activo,
         roles: Array.isArray(user.roles) ? user.roles.map(role => startCase(role)) : [],
         // Mantener las fechas originales sin formatear para conservar la información completa
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
-        createdBy: user.createdBy,
-        updatedBy: user.updatedBy
+        fechaCreacion: user.fechaCreacion,
+        fechaActualizacion: user.fechaActualizacion,
+        creadoPor: user.creadoPor,
+        actualizadoPor: user.actualizadoPor
     };
 }
 
@@ -128,10 +128,10 @@ export function formatPostUpdate(user) {
         condiciones: user.condiciones || null,
         activo: user.activo,
         roles: Array.isArray(user.roles) ? user.roles.map(role => startCase(role)) : [],
-        createdAt: formatTempo(user.createdAt, "DD-MM-YYYY"),
-        updatedAt: formatTempo(user.updatedAt, "DD-MM-YYYY"),
-        createdBy: user.createdBy,
-        updatedBy: user.updatedBy
+        fechaCreacion: formatTempo(user.fechaCreacion, "DD-MM-YYYY"),
+        fechaActualizacion: formatTempo(user.fechaActualizacion, "DD-MM-YYYY"),
+        creadoPor: user.creadoPor,
+        actualizadoPor: user.actualizadoPor
     };
 }
 

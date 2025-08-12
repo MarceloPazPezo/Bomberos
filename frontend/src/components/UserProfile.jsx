@@ -3,7 +3,6 @@ import { useAuth } from '@hooks/auth/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { 
   MdPerson, 
-  MdSettings, 
   MdLogout,
   MdKeyboardArrowDown 
 } from 'react-icons/md';
@@ -22,10 +21,7 @@ const UserProfile = () => {
     }
   };
 
-  const handleProfileSettings = () => {
-    setIsOpen(false);
-    navigate('/perfil');
-  };
+
 
   // Función para obtener el nombre completo del usuario
   const getFullName = () => {
@@ -151,14 +147,6 @@ const UserProfile = () => {
 
             {/* Opciones del menú */}
             <div className="py-2">
-              <button
-                onClick={handleProfileSettings}
-                className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
-              >
-                <MdSettings className="h-5 w-5 mr-3 text-gray-400" />
-                Configurar perfil
-              </button>
-              
               <button
                 onClick={() => {
                   setIsOpen(false);

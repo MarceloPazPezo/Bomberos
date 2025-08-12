@@ -6,7 +6,7 @@ import axios from './root.service.js';
  */
 export async function getMyProfile() {
   try {
-    const response = await axios.get('/profile/');
+    const response = await axios.get('/perfil/');
     return response.data;
   } catch (error) {
     console.error('Error al obtener el perfil:', error);
@@ -21,7 +21,7 @@ export async function getMyProfile() {
  */
 export async function updateMyProfile(profileData) {
   try {
-    const response = await axios.patch('/profile/', profileData);
+    const response = await axios.patch('/perfil/', profileData);
     return response.data;
   } catch (error) {
     console.error('Error al actualizar el perfil:', error);
@@ -36,7 +36,7 @@ export async function updateMyProfile(profileData) {
  */
 export const changePassword = async (passwordData) => {
   try {
-    const response = await axios.patch('/profile/change-password', passwordData);
+    const response = await axios.patch('/perfil/change-password', passwordData);
     return response.data;
   } catch (error) {
     console.error('Error al cambiar la contraseña:', error);

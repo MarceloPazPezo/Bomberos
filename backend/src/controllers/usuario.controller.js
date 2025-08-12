@@ -6,12 +6,12 @@ import {
   updateUserService,
   createUserService,
   changeUserStatusService,
-} from "../services/user.service.js";
+} from "../services/usuario.service.js";
 import {
   userBodyValidation,
   userQueryValidation,
   userCreateValidation,
-} from "../validations/user.validation.js";
+} from "../validations/usuario.validation.js";
 import {
   handleErrorClient,
   handleErrorServer,

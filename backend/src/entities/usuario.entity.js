@@ -1,8 +1,8 @@
 "use strict";
 import { EntitySchema } from "typeorm";
 
-const UserSchema = new EntitySchema({
-  name: "User",
+const UsuarioSchema = new EntitySchema({
+  name: "Usuario",
   tableName: "usuarios",
   columns: {
     id: {
@@ -75,21 +75,21 @@ const UserSchema = new EntitySchema({
       type: "boolean",
       default: true,
     },
-    createdBy: {
+    creadoPor: {
       type: "varchar",
       length: 100,
       nullable: true,
     },
-    createdAt: {
+    fechaCreacion: {
       type: "timestamp with time zone",
       createDate: true,
     },
-    updatedBy: {
+    actualizadoPor: {
       type: "varchar",
       length: 100,
       nullable: true,
     },
-    updatedAt: {
+    fechaActualizacion: {
       type: "timestamp with time zone",
       updateDate: true,
     },
@@ -112,7 +112,7 @@ const UserSchema = new EntitySchema({
   relations: {
     roles: {
       type: "many-to-many",
-      target: "Role",
+      target: "Rol",
       joinTable: {
         name: "usuario_roles",
         joinColumn: {
@@ -153,4 +153,4 @@ const UserSchema = new EntitySchema({
   },
 });
 
-export default UserSchema;
+export default UsuarioSchema;

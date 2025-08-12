@@ -5,12 +5,12 @@ import {
   getRolesService,
   updateRoleService,
   createRoleService,
-} from "../services/role.service.js";
+} from "../services/rol.service.js";
 import {
   roleBodyValidation,
   roleQueryValidation,
   roleCreateValidation,
-} from "../validations/role.validation.js";
+} from "../validations/rol.validation.js";
 import {
   handleErrorClient,
   handleErrorServer,
@@ -19,12 +19,18 @@ import {
 
 export async function getRole(req, res) {
   try {
-    const { id, nombre } = req.query;
-    const { error } = roleQueryValidation.validate({ id, nombre });
+    const { id } = req.params;
+    
+    // Convertir id a número
+    const queryParams = {
+      id: parseInt(id, 10),
+    };
+    
+    const { error } = roleQueryValidation.validate(queryParams);
 
     if (error) return handleErrorClient(res, 400, error.message);
 
-    const [role, errorRole] = await getRoleService({ id, nombre });
+    const [role, errorRole] = await getRoleService(queryParams);
 
     if (errorRole) return handleErrorClient(res, 404, errorRole);
 
@@ -36,7 +42,8 @@ export async function getRole(req, res) {
 
 export async function getRoles(req, res) {
   try {
-    const [roles, errorRoles] = await getRolesService();
+    const { page, limit } = req.query;
+    const [roles, errorRoles] = await getRolesService({ page, limit });
 
     if (errorRoles) return handleErrorClient(res, 404, errorRoles);
 
@@ -50,13 +57,15 @@ export async function getRoles(req, res) {
 
 export async function updateRole(req, res) {
   try {
-    const { id, nombre } = req.query;
+    const { id } = req.params;
     const { body } = req;
 
-    const { error: queryError } = roleQueryValidation.validate({
-      id,
-      nombre,
-    });
+    // Convertir id a número
+    const queryParams = {
+      id: parseInt(id, 10),
+    };
+
+    const { error: queryError } = roleQueryValidation.validate(queryParams);
 
     if (queryError) {
       return handleErrorClient(
@@ -77,7 +86,7 @@ export async function updateRole(req, res) {
         bodyError.message,
       );
 
-    const [role, roleError] = await updateRoleService({ id, nombre }, value);
+    const [role, roleError] = await updateRoleService(queryParams, value);
 
     if (roleError)
       return handleErrorClient(res, 400, "Error modificando al rol", roleError);
@@ -90,12 +99,14 @@ export async function updateRole(req, res) {
 
 export async function deleteRole(req, res) {
   try {
-    const { id, nombre } = req.query;
+    const { id } = req.params;
 
-    const { error: queryError } = roleQueryValidation.validate({
-      id,
-      nombre,
-    });
+    // Convertir id a número
+    const queryParams = {
+      id: parseInt(id, 10),
+    };
+
+    const { error: queryError } = roleQueryValidation.validate(queryParams);
 
     if (queryError) {
       return handleErrorClient(
@@ -106,10 +117,7 @@ export async function deleteRole(req, res) {
       );
     }
 
-    const [roleDelete, errorRoleDelete] = await deleteRoleService({
-      id,
-      nombre,
-    });
+    const [roleDelete, errorRoleDelete] = await deleteRoleService(queryParams);
 
     if (errorRoleDelete)
       return handleErrorClient(

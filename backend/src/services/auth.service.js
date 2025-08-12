@@ -1,5 +1,5 @@
 "use strict";
-import User from "../entities/user.entity.js";
+import Usuario from "../entities/usuario.entity.js";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../config/configDb.js";
 import { comparePassword, encryptPassword } from "../helpers/bcrypt.helper.js";
@@ -7,7 +7,7 @@ import { ACCESS_TOKEN_SECRET } from "../config/configEnv.js";
 
 export async function loginService(user) {
   try {
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(Usuario);
     const { run, password } = user;
     const createErrorMessage = (dataInfo, message) => ({
       dataInfo,
@@ -33,8 +33,8 @@ export async function loginService(user) {
         "user.medicamentos",
         "user.condiciones",
         "user.activo",
-        "user.createdAt",
-        "user.updatedAt",
+        "user.fechaCreacion",
+        "user.fechaActualizacion",
         "role.id",
         "role.nombre",
         "permission.nombre",
@@ -81,8 +81,8 @@ export async function loginService(user) {
       medicamentos: userFound.medicamentos,
       condiciones: userFound.condiciones,
       activo: userFound.activo,
-      createdAt: userFound.createdAt,
-      updatedAt: userFound.updatedAt,
+      fechaCreacion: userFound.fechaCreacion,
+      fechaActualizacion: userFound.fechaActualizacion,
       roles: userFound.roles.map((r) => ({
         nombre: r.nombre,
         permisos: r.permisos ? r.permisos.map((p) => p.nombre) : [],

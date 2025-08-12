@@ -1,7 +1,8 @@
 "use strict";
-import Role from "../entities/role.entity.js";
-import Permission from "../entities/permission.entity.js";
+import Role from "../entities/rol.entity.js";
+import Permission from "../entities/permiso.entity.js";
 import { AppDataSource } from "../config/configDb.js";
+import { In } from "typeorm";
 
 export async function getRoleService(query) {
   try {
@@ -20,8 +21,8 @@ export async function getRoleService(query) {
       id: roleFound.id,
       nombre: roleFound.nombre,
       descripcion: roleFound.descripcion,
-      createdAt: roleFound.createdAt,
-      updatedAt: roleFound.updatedAt,
+      fechaCreacion: roleFound.fechaCreacion,
+      fechaActualizacion: roleFound.fechaActualizacion,
       permisos: roleFound.permisos
         ? roleFound.permisos.map((r) => r.nombre)
         : [],
@@ -44,17 +45,20 @@ export async function getRolesService(queryParams = {}) {
         "role.id",
         "role.nombre",
         "role.descripcion",
-        "role.createdAt",
-        "role.updatedAt",
+        "role.fechaCreacion",
+        "role.fechaActualizacion",
         "permission.id",
         "permission.nombre",
       ])
       .orderBy("role.id", "ASC")
       .addOrderBy("permission.id", "ASC");
 
-    const { page = 1, limit = 10 } = queryParams;
-    const offset = (page - 1) * limit;
-    queryBuilder.skip(offset).take(limit);
+    // Solo aplicar paginación si se especifican parámetros
+    if (queryParams.page || queryParams.limit) {
+      const { page = 1, limit = 10 } = queryParams;
+      const offset = (page - 1) * limit;
+      queryBuilder.skip(offset).take(limit);
+    }
 
     const [roles, total] = await queryBuilder.getManyAndCount();
 
@@ -66,8 +70,8 @@ export async function getRolesService(queryParams = {}) {
       id: role.id,
       nombre: role.nombre,
       descripcion: role.descripcion,
-      createdAt: role.createdAt,
-      updatedAt: role.updatedAt,
+      fechaCreacion: role.fechaCreacion,
+      fechaActualizacion: role.fechaActualizacion,
       permisos: role.permisos ? role.permisos.map((r) => r.nombre) : [],
     }));
 
@@ -106,7 +110,7 @@ export async function updateRoleService(query, body) {
       if (body.permisos.length > 0) {
         permissionsEntities = await permissionRepository.find({
           where: {
-            nombre: body.permisos,
+            nombre: In(body.permisos),
           },
         });
 
@@ -131,11 +135,23 @@ export async function updateRoleService(query, body) {
     roleFound.nombre = body.nombre;
     roleFound.descripcion = body.descripcion;
     roleFound.permisos = permissionsEntities;
-    roleFound.updatedAt = new Date();
+    roleFound.fechaActualizacion = new Date();
 
     const savedRole = await roleRepository.save(roleFound);
 
-    return [savedRole, null];
+    // Formatear la respuesta de manera consistente
+    const roleData = {
+      id: savedRole.id,
+      nombre: savedRole.nombre,
+      descripcion: savedRole.descripcion,
+      fechaCreacion: savedRole.fechaCreacion,
+      fechaActualizacion: savedRole.fechaActualizacion,
+      permisos: savedRole.permisos
+        ? savedRole.permisos.map((p) => p.nombre)
+        : [],
+    };
+
+    return [roleData, null];
   } catch (error) {
     console.error("Error al modificar un rol:", error);
     return [null, "Error interno del servidor"];
@@ -154,9 +170,30 @@ export async function deleteRoleService(query) {
 
     if (!roleFound) return [null, "Rol no encontrado"];
 
-    const roleDeleted = await roleRepository.remove(roleFound);
+    // Verificar si el rol está siendo usado por algún usuario consultando la tabla de unión
+    const usersWithRole = await AppDataSource.query(
+      `SELECT COUNT(*) as count FROM usuario_roles WHERE rol_id = $1`,
+      [roleFound.id]
+    );
 
-    return [roleDeleted, null];
+    const userCount = parseInt(usersWithRole[0].count);
+    if (userCount > 0) {
+      return [null, `No se puede eliminar el rol "${roleFound.nombre}" porque está asignado a ${userCount} usuario(s)`];
+    }
+
+    // Primero eliminar las relaciones con permisos
+    await AppDataSource.query(
+      `DELETE FROM rol_permisos WHERE rol_id = $1`,
+      [roleFound.id]
+    );
+    
+    // Ahora eliminar el rol usando SQL directo
+    await AppDataSource.query(
+      `DELETE FROM roles WHERE id = $1`,
+      [roleFound.id]
+    );
+
+    return [{ id: roleFound.id, nombre: roleFound.nombre }, null];
   } catch (error) {
     console.error("Error al eliminar un rol:", error);
     return [null, "Error interno del servidor"];
@@ -180,7 +217,7 @@ export async function createRoleService(body) {
     if (body.permisos && body.permisos.length > 0) {
       permissionsEntities = await permissionRepository.find({
         where: {
-          nombre: body.permisos,
+          nombre: In(body.permisos),
         },
       });
 
@@ -205,7 +242,24 @@ export async function createRoleService(body) {
 
     const savedRol = await roleRepository.save(newRol);
 
-    return [savedRol, null];
+    // Obtener el rol guardado con sus relaciones para devolverlo formateado
+    const roleWithPermissions = await roleRepository.findOne({
+      where: { id: savedRol.id },
+      relations: ["permisos"],
+    });
+
+    const roleData = {
+      id: roleWithPermissions.id,
+      nombre: roleWithPermissions.nombre,
+      descripcion: roleWithPermissions.descripcion,
+      fechaCreacion: roleWithPermissions.fechaCreacion,
+      fechaActualizacion: roleWithPermissions.fechaActualizacion,
+      permisos: roleWithPermissions.permisos
+        ? roleWithPermissions.permisos.map((p) => p.nombre)
+        : [],
+    };
+
+    return [roleData, null];
   } catch (error) {
     console.error("Error al crear un rol:", error);
     return [null, "Error interno del servidor"];

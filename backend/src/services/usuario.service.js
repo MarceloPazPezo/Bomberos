@@ -1,6 +1,6 @@
 "use strict";
-import User from "../entities/user.entity.js";
-import Role from "../entities/role.entity.js";
+import Usuario from "../entities/usuario.entity.js";
+import Rol from "../entities/rol.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 import { comparePassword, encryptPassword } from "../helpers/bcrypt.helper.js";
 import { Brackets } from "typeorm";
@@ -21,7 +21,7 @@ export async function getUserService(query) {
       ];
     }
 
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(Usuario);
 
     const queryBuilder = userRepository
       .createQueryBuilder("user")
@@ -41,10 +41,10 @@ export async function getUserService(query) {
         "user.medicamentos",
         "user.condiciones",
         "user.activo",
-        "user.createdBy",
-        "user.createdAt",
-        "user.updatedBy",
-        "user.updatedAt",
+        "user.creadoPor",
+        "user.fechaCreacion",
+        "user.actualizadoPor",
+        "user.fechaActualizacion",
         "role.id",
         "role.nombre",
       ]);
@@ -105,10 +105,10 @@ export async function getUserService(query) {
       medicamentos: userFound.medicamentos,
       condiciones: userFound.condiciones,
       activo: userFound.activo,
-      createdBy: userFound.createdBy,
-      createdAt: userFound.createdAt,
-      updatedBy: userFound.updatedBy,
-      updatedAt: userFound.updatedAt,
+      creadoPor: userFound.creadoPor,
+      fechaCreacion: userFound.fechaCreacion,
+      actualizadoPor: userFound.actualizadoPor,
+      fechaActualizacion: userFound.fechaActualizacion,
       roles: userFound.roles ? userFound.roles.map((r) => r.nombre) : [],
     };
 
@@ -121,7 +121,7 @@ export async function getUserService(query) {
 
 export async function getUsersService(queryParams = {}) {
   try {
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(Usuario);
 
     const queryBuilder = userRepository
       .createQueryBuilder("user")
@@ -141,10 +141,10 @@ export async function getUsersService(queryParams = {}) {
         "user.medicamentos",
         "user.condiciones",
         "user.activo",
-        "user.createdBy",
-        "user.createdAt",
-        "user.updatedBy",
-        "user.updatedAt",
+        "user.creadoPor",
+        "user.fechaCreacion",
+        "user.actualizadoPor",
+        "user.fechaActualizacion",
         "role.id",
         "role.nombre",
       ])
@@ -166,11 +166,20 @@ export async function getUsersService(queryParams = {}) {
       nombres: user.nombres,
       apellidos: user.apellidos,
       run: user.run,
+      fechaNacimiento: user.fechaNacimiento,
       email: user.email,
       telefono: user.telefono,
+      fechaIngreso: user.fechaIngreso,
+      direccion: user.direccion,
+      tipoSangre: user.tipoSangre,
+      alergias: user.alergias,
+      medicamentos: user.medicamentos,
+      condiciones: user.condiciones,
       activo: user.activo,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      creadoPor: user.creadoPor,
+      fechaCreacion: user.fechaCreacion,
+      actualizadoPor: user.actualizadoPor,
+      fechaActualizacion: user.fechaActualizacion,
       roles: user.roles ? user.roles.map((r) => r.nombre) : [],
     }));
 
@@ -185,7 +194,7 @@ export async function updateUserService(query, body, updatedBy = null) {
   try {
     const { id, run, email, telefono } = query;
 
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(Usuario);
 
     const userFound = await userRepository.findOne({
       where: [
@@ -257,8 +266,8 @@ export async function updateUserService(query, body, updatedBy = null) {
       dataUserUpdate.condiciones = body.condiciones;
     if (body.activo !== undefined) dataUserUpdate.activo = body.activo;
 
-    dataUserUpdate.updatedAt = new Date();
-    if (updatedBy) dataUserUpdate.updatedBy = updatedBy;
+    dataUserUpdate.fechaActualizacion = new Date();
+    if (updatedBy) dataUserUpdate.actualizadoPor = updatedBy;
 
     await userRepository.update({ id: userFound.id }, dataUserUpdate);
 
@@ -291,7 +300,7 @@ export async function updateUserService(query, body, updatedBy = null) {
 
 export async function changeUserStatusService(userId, activo) {
   try {
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(Usuario);
 
     // Buscar el usuario por ID
     const userFound = await userRepository.findOne({
@@ -318,7 +327,7 @@ export async function deleteUserService(query) {
   try {
     const { id, run, email } = query;
 
-    const userRepository = AppDataSource.getRepository(User);
+    const userRepository = AppDataSource.getRepository(Usuario);
 
     const userFound = await userRepository.findOne({
       where: [{ id: id }, { run: run }, { email: email }],
@@ -344,8 +353,8 @@ export async function deleteUserService(query) {
 
 export async function createUserService(body, createdBy = null) {
   try {
-    const userRepository = AppDataSource.getRepository(User);
-    const roleRepository = AppDataSource.getRepository(Role);
+    const userRepository = AppDataSource.getRepository(Usuario);
+    const roleRepository = AppDataSource.getRepository(Rol);
 
     const existingUser = await userRepository.findOne({
       where: [
@@ -379,7 +388,7 @@ export async function createUserService(body, createdBy = null) {
       medicamentos: body.medicamentos,
       condiciones: body.condiciones,
       activo: body.activo !== undefined ? body.activo : true,
-      createdBy: createdBy,
+      creadoPor: createdBy,
       roles: [userRole],
     });
 

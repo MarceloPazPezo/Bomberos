@@ -82,15 +82,15 @@ const ParteEmergenciaSchema = new EntitySchema({
             length: 50,
             nullable: true,
         },
-        createdAt: {
+        fechaCreacion: {
             type: "timestamp with time zone",
             createDate: true,
         },
-        updatedBy: {
+        actualizadoPor: {
             type: "int",
             nullable: true,
         },
-        updatedAt: {
+        fechaActualizacion: {
             type: "timestamp with time zone",
             updateDate: true,
         },
@@ -98,7 +98,7 @@ const ParteEmergenciaSchema = new EntitySchema({
     relations: {
         redactor: {
             type: "many-to-one",
-            target: "User",
+            target: "Usuario",
             joinColumn: {
                 name: "redactor_id",
                 referencedColumnName: "id",
@@ -134,9 +134,9 @@ const ParteEmergenciaSchema = new EntitySchema({
 
         updatedByUser: {
             type: "many-to-one",
-            target: "User",
+            target: "Usuario",
             joinColumn: {
-                name: "updatedBy",
+                name: "actualizadoPor",
                 referencedColumnName: "id",
                 onDelete: "SET NULL",
             },

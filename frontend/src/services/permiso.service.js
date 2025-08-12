@@ -6,7 +6,7 @@ import axios from './root.service.js';
  */
 export const getPermissions = async () => {
   try {
-    const response = await axios.get('/permission', { timeout: 10000 });
+    const response = await axios.get('/permiso', { timeout: 10000 });
     return response.data;
   } catch (error) {
     console.error('Error al obtener permisos:', error);
@@ -35,7 +35,7 @@ export const getPermissions = async () => {
  */
 export const getPermissionsByCategory = async () => {
   try {
-    const response = await axios.get('/permission/categories', { timeout: 10000 });
+    const response = await axios.get('/permiso/categories', { timeout: 10000 });
     return response.data;
   } catch (error) {
     console.error('Error al obtener permisos por categoría:', error);
@@ -65,7 +65,7 @@ export const getPermissionsByCategory = async () => {
  */
 export const getPermission = async (id) => {
   try {
-    const response = await axios.get(`/permission/detail/?id=${id}`, { timeout: 10000 });
+    const response = await axios.get(`/permiso/detail/?id=${id}`, { timeout: 10000 });
     return response.data;
   } catch (error) {
     console.error('Error al obtener permiso:', error);

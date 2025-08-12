@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getMyProfile, updateMyProfile, changePassword } from '@services/profile.service';
+import { getMyProfile, updateMyProfile, changePassword } from '@services/perfil.service';
 import { useAuth } from '@hooks/auth/useAuth';
 
 export const useProfile = () => {

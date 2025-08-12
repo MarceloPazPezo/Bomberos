@@ -16,7 +16,7 @@ const usePermissions = () => {
     setError(null);
     try {
       const token = cookies.get('jwt-auth');
-      const response = await fetch(`${API_URL}/permission`, {
+      const response = await fetch(`${API_URL}/permiso`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ const usePermissions = () => {
     setError(null);
     try {
       const token = cookies.get('jwt-auth');
-      const response = await fetch(`${API_URL}/permission/categories`, {
+      const response = await fetch(`${API_URL}/permiso/categories`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

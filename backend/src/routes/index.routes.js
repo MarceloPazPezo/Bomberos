@@ -1,22 +1,26 @@
 "use strict";
 import { Router } from "express";
-import userRoutes from "./user.routes.js";
+import usuarioRoutes from "./usuario.routes.js";
 import authRoutes from "./auth.routes.js";
-import profileRoutes from "./profile.routes.js";
-import roleRoutes from "./role.routes.js";
+import perfilRoutes from "./perfil.routes.js";
+import rolRoutes from "./rol.routes.js";
 import locationRoutes from "./location.routes.js";
-import permissionRoutes from "./permission.routes.js";
+import permisoRoutes from "./permiso.routes.js";
 import healthRoutes from "./health.routes.js";
+import sistemaRoutes from "./sistema.routes.js";
+// import disponibilidadRoutes from "./disponibilidad.routes.js";
 
 const router = Router();
 
 router
   .use("/auth", authRoutes)
-  .use("/user", userRoutes)
-  .use("/profile", profileRoutes)
-  .use("/role", roleRoutes)
+  .use("/usuario", usuarioRoutes)
+  .use("/perfil", perfilRoutes)
+  .use("/rol", rolRoutes)
   .use("/locations", locationRoutes)
-  .use("/permission", permissionRoutes)
+  .use("/permiso", permisoRoutes)
+  .use("/sistema", sistemaRoutes)
+  // .use("/disponibilidad", disponibilidadRoutes)
   .use("/health", healthRoutes);
 
 export default router;

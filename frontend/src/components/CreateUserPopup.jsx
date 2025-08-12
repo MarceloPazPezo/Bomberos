@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Form from './Form';
 import { MdClose, MdHelpOutline } from 'react-icons/md';
 import PropTypes from 'prop-types';
+import { useRoles } from '@hooks/roles/useRoles';
 
 export default function CreateUserPopup({ show, setShow, onUserCreated }) {
     const [errors, setErrors] = useState({});
@@ -13,6 +14,27 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
             setErrors(prev => ({ ...prev, [field]: null }));
         }
     };
+
+    // Hook para obtener roles
+    const { roles, loading: rolesLoading, fetchRoles } = useRoles();
+    
+    // Cargar roles cuando se abre el modal
+    useEffect(() => {
+        if (show && (!roles || roles.length === 0) && !rolesLoading) {
+            fetchRoles(true);
+        }
+    }, [show]);
+    
+    // Transformar roles para el multiselect - solo si hay roles disponibles
+    const rolesOptions = roles && roles.length > 0 ? roles
+        .filter(role => {
+            // Filtrar roles que tengan los campos necesarios
+            return role.id && role.nombre;
+        })
+        .map((role) => ({
+            value: role.id,
+            label: role.nombre,
+        })) : [];
 
     const errorData = (errorDetails) => {
         setErrors(errorDetails || {});
@@ -30,8 +52,17 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                     // Convertir nombres y apellidos de string a array
                     nombres: createdUserData.nombres ? createdUserData.nombres.split(' ').filter(name => name.trim() !== '') : [],
                     apellidos: createdUserData.apellidos ? createdUserData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
-                    // Los roles ya vienen del multiselect integrado en Form
-                    roles: createdUserData.roles || []
+                    // Transformar roles del multiselect al formato esperado por el backend
+                    roles: createdUserData.roles ? createdUserData.roles.map(role => role.value) : [],
+                    // Convertir alergias de string a array separando por comas o espacios
+                    alergias: createdUserData.alergias ? 
+                        createdUserData.alergias.split(/[,\s]+/).filter(alergia => alergia.trim() !== '') : [],
+                    // Convertir medicamentos de string a array separando por comas o espacios
+                    medicamentos: createdUserData.medicamentos ? 
+                        createdUserData.medicamentos.split(/[,\s]+/).filter(medicamento => medicamento.trim() !== '') : [],
+                    // Convertir condiciones de string a array separando por comas o espacios
+                    condiciones: createdUserData.condiciones ? 
+                        createdUserData.condiciones.split(/[,\s]+/).filter(condicion => condicion.trim() !== '') : []
                 };
                 
                 const result = await onUserCreated(transformedData);
@@ -200,7 +231,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Alergias",
                                         name: "alergias",
-                                        placeholder: 'Alergia a medicamentos, alimentos, etc.',
+                                        placeholder: 'Penicilina, mariscos, polen (separar con comas o espacios)',
                                         fieldType: 'textarea',
                                         required: false,
                                         maxLength: 500,
@@ -212,7 +243,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Medicamentos",
                                         name: "medicamentos",
-                                        placeholder: 'Medicamentos que consume regularmente',
+                                        placeholder: 'Aspirina, Losartán, Metformina (separar con comas o espacios)',
                                         fieldType: 'textarea',
                                         required: false,
                                         maxLength: 500,
@@ -224,7 +255,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Condiciones médicas",
                                         name: "condiciones",
-                                        placeholder: 'Condiciones médicas relevantes',
+                                        placeholder: 'Diabetes, Hipertensión, Asma (separar con comas o espacios)',
                                         fieldType: 'textarea',
                                         required: false,
                                         maxLength: 500,
@@ -262,11 +293,13 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         label: "Roles",
                                         name: "roles",
                                         fieldType: 'multiselect',
-                                        dataSource: 'roles',
+                                        options: rolesOptions,
+                                        defaultValue: [],
                                         required: true,
-                                        placeholder: "Seleccionar roles...",
+                                        placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles...",
                                         searchPlaceholder: "Buscar roles...",
-                                        errorMessageData: errors.roles
+                                        errorMessageData: errors.roles,
+                                        isLoading: rolesLoading
                                     }
                                 ]}
                                 onSubmit={handleSubmit}

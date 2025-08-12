@@ -3,20 +3,19 @@ import { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { fieldIcons } from '@helpers/fieldIcons';
 import { MdVisibility, MdVisibilityOff, MdAdd, MdRemove } from 'react-icons/md';
 import MultiSelect from '@components/MultiSelect';
-import { useRoles } from '@hooks/roles/useRoles';
 
-const Form = forwardRef(({ 
-    title, 
-    fields, 
-    buttonText, 
-    onSubmit, 
-    footerContent, 
-    backgroundColor, 
-    autoComplete, 
+const Form = forwardRef(({
+    title,
+    fields,
+    buttonText,
+    onSubmit,
+    footerContent,
+    backgroundColor,
+    autoComplete,
     size = 'max-w-2xl',
     defaultValues = {},
     loading = false,
-    submitButtonVariant = 'primary'
+    submitButtonVariant = 'primary',
 }, ref) => {
     const { register, handleSubmit, formState: { errors }, watch, setValue, getValues } = useForm({
         defaultValues
@@ -30,35 +29,18 @@ const Form = forwardRef(({
     }));
     const [showPassword, setShowPassword] = useState({});
     const [dynamicFields, setDynamicFields] = useState({});
-    const [multiSelectFields, setMultiSelectFields] = useState({});
-    
-    // Hook para obtener roles
-    const { roles, loading: rolesLoading, fetchRoles } = useRoles();
+    const [selectedOptions, setSelectedOptions] = useState({});
 
-    // Efecto para cargar roles cuando hay campos multiselect de tipo roles
     useEffect(() => {
-        const hasRoleMultiSelect = fields.some(field => field.fieldType === 'multiselect' && field.dataSource === 'roles');
-        if (hasRoleMultiSelect && roles.length === 0 && !rolesLoading) {
-            fetchRoles();
-        }
-    }, [fields, roles.length, fetchRoles, rolesLoading]);
-
-    // Efecto para inicializar campos MultiSelect con valores por defecto
-    useEffect(() => {
-        const multiSelectFieldsToInit = {};
-        fields.forEach(field => {
+        const initialOptions = {};
+        fields.forEach((field) => {
             if (field.fieldType === 'multiselect' && field.defaultValue) {
-                multiSelectFieldsToInit[field.name] = getMultiSelectDefaultValue(field);
+                initialOptions[field.name] = field.defaultValue;
+                setValue(field.name, field.defaultValue); // Sincroniza con react-hook-form
             }
         });
-        
-        if (Object.keys(multiSelectFieldsToInit).length > 0) {
-            setMultiSelectFields(prev => ({
-                ...prev,
-                ...multiSelectFieldsToInit
-            }));
-        }
-    }, [fields, roles]); // Incluir roles para reinicializar cuando se cargan
+        setSelectedOptions(initialOptions);
+    }, [fields, setValue]);
 
     const togglePasswordVisibility = (fieldName) => {
         setShowPassword(prev => ({
@@ -88,54 +70,31 @@ const Form = forwardRef(({
         }));
     };
 
-    const updateMultiSelectField = (fieldName, selectedOptions) => {
-        setMultiSelectFields(prev => ({
-            ...prev,
-            [fieldName]: selectedOptions
+    const handleMultiSelectChange = (name, selected) => {
+        setSelectedOptions((prevState) => ({
+            ...prevState,
+            [name]: selected,
         }));
-    };
-
-    const getMultiSelectOptions = (field) => {
-        if (field.dataSource === 'roles') {
-            const options = roles.map(role => ({
-                value: role.nombre,
-                label: role.nombre.charAt(0).toUpperCase() + role.nombre.slice(1)
-            }));
-            return options;
-        }
-        return field.options || [];
-    };
-
-    const getMultiSelectDefaultValue = (field) => {
-        if (field.defaultValue) {
-            if (Array.isArray(field.defaultValue)) {
-                return field.defaultValue.map(value => ({
-                    value: value,
-                    label: typeof value === 'string' ? value.charAt(0).toUpperCase() + value.slice(1) : value
-                }));
-            }
-        }
-        return [];
+        setValue(name, selected);
     };
 
     const onFormSubmit = (data) => {
         // Incluir campos dinámicos y multiselect en los datos del formulario
-        const multiSelectData = {};
-        Object.keys(multiSelectFields).forEach(fieldName => {
-            multiSelectData[fieldName] = multiSelectFields[fieldName].map(option => option.value);
-        });
-        
         const formData = {
             ...data,
             ...dynamicFields,
-            ...multiSelectData
+            // Los datos del multiselect ya están incluidos en selectedOptions y se pasan a través de setValue
+            ...Object.keys(selectedOptions).reduce((acc, fieldName) => {
+                acc[fieldName] = selectedOptions[fieldName];
+                return acc;
+            }, {})
         };
         onSubmit(formData);
     };
 
     const getButtonVariantClasses = () => {
         const baseClasses = "w-full font-bold py-3 rounded-lg mt-4 transition-all duration-300 ease-in-out hover:-translate-y-0.5 focus:outline-none focus:ring-2";
-        
+
         switch (submitButtonVariant) {
             case 'secondary':
                 return `${baseClasses} bg-gray-500/10 border border-gray-500/20 text-gray-700 hover:bg-gray-500/20 focus:ring-gray-400/50`;
@@ -168,54 +127,54 @@ const Form = forwardRef(({
             {fields.map((field, index) => (
                 <div className="w-full mb-3" key={index}>
                     {field.label && <label className="block text-sm font-semibold text-[#2C3E50] mb-1.5" htmlFor={field.name}>{field.label}</label>}
-                    
+
                     {field.fieldType === 'input' && (
                         <div className="relative flex items-center">
-                          {fieldIcons[field.name] && (
-                            <span className="absolute left-3 text-[#2C3E50] opacity-70 pointer-events-none">
-                              {fieldIcons[field.name]({ size: 22 })}
-                            </span>
-                          )}
-                          <input
-                            className={`w-full p-3 ${fieldIcons[field.name] ? 'pl-11' : ''} ${field.type === 'password' ? 'pr-11' : ''} bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] placeholder-[#2C3E50]/60 focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition`}
-                            {...register(field.name, {
-                              required: field.required ? 'Este campo es obligatorio' : false,
-                              minLength: field.minLength ? { value: field.minLength, message: `Debe tener al menos ${field.minLength} caracteres` } : false,
-                              maxLength: field.maxLength ? { value: field.maxLength, message: `Debe tener máximo ${field.maxLength} caracteres` } : false,
-                              pattern: field.pattern ? { value: field.pattern, message: field.patternMessage || 'Formato no válido' } : false,
-                              validate: field.validate || {},
-                              onChange: (e) => {
-                                // Llamar al onChange personalizado si existe
-                                if (field.onChange) {
-                                  field.onChange(e);
-                                }
-                              }
-                            })}
-                            name={field.name}
-                            placeholder={field.placeholder}
-                            type={field.type === 'password' ? (showPassword[field.name] ? 'text' : 'password') : field.type}
-                            defaultValue={field.defaultValue || ''}
-                            disabled={field.disabled}
-                            autoComplete={field.autoComplete || "off"}
-                            onKeyDown={(e) => {
-                              // Manejar Enter para enviar el formulario
-                              if (e.key === 'Enter' && !e.shiftKey) {
-                                e.preventDefault();
-                                handleSubmit(onFormSubmit)();
-                              }
-                            }}
-                          />
-                          {field.type === 'password' && (
-                            <button 
-                                type="button" 
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2C3E50] opacity-70" 
-                                onClick={() => togglePasswordVisibility(field.name)} 
-                                tabIndex={0} 
-                                aria-label="Mostrar/ocultar contraseña"
-                            >
-                                {showPassword[field.name] ? <MdVisibility size={22} /> : <MdVisibilityOff size={22} />}
-                            </button>
-                          )}
+                            {fieldIcons[field.name] && (
+                                <span className="absolute left-3 text-[#2C3E50] opacity-70 pointer-events-none">
+                                    {fieldIcons[field.name]({ size: 22 })}
+                                </span>
+                            )}
+                            <input
+                                className={`w-full p-3 ${fieldIcons[field.name] ? 'pl-11' : ''} ${field.type === 'password' ? 'pr-11' : ''} bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] placeholder-[#2C3E50]/60 focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition`}
+                                {...register(field.name, {
+                                    required: field.required ? 'Este campo es obligatorio' : false,
+                                    minLength: field.minLength ? { value: field.minLength, message: `Debe tener al menos ${field.minLength} caracteres` } : false,
+                                    maxLength: field.maxLength ? { value: field.maxLength, message: `Debe tener máximo ${field.maxLength} caracteres` } : false,
+                                    pattern: field.pattern ? { value: field.pattern, message: field.patternMessage || 'Formato no válido' } : false,
+                                    validate: field.validate || {},
+                                    onChange: (e) => {
+                                        // Llamar al onChange personalizado si existe
+                                        if (field.onChange) {
+                                            field.onChange(e);
+                                        }
+                                    }
+                                })}
+                                name={field.name}
+                                placeholder={field.placeholder}
+                                type={field.type === 'password' ? (showPassword[field.name] ? 'text' : 'password') : field.type}
+                                defaultValue={field.defaultValue || ''}
+                                disabled={field.disabled}
+                                autoComplete={field.autoComplete || "off"}
+                                onKeyDown={(e) => {
+                                    // Manejar Enter para enviar el formulario
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSubmit(onFormSubmit)();
+                                    }
+                                }}
+                            />
+                            {field.type === 'password' && (
+                                <button
+                                    type="button"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2C3E50] opacity-70"
+                                    onClick={() => togglePasswordVisibility(field.name)}
+                                    tabIndex={0}
+                                    aria-label="Mostrar/ocultar contraseña"
+                                >
+                                    {showPassword[field.name] ? <MdVisibility size={22} /> : <MdVisibilityOff size={22} />}
+                                </button>
+                            )}
                         </div>
                     )}
 
@@ -239,7 +198,7 @@ const Form = forwardRef(({
                     )}
 
                     {field.fieldType === 'select' && (
-                        <select 
+                        <select
                             className="w-full p-3 bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition appearance-none"
                             {...register(field.name, {
                                 required: field.required ? 'Este campo es obligatorio' : false,
@@ -332,13 +291,12 @@ const Form = forwardRef(({
 
                     {field.fieldType === 'multiselect' && (
                         <MultiSelect
-                            options={getMultiSelectOptions(field)}
-                            selectedValues={multiSelectFields[field.name] || []}
-                            onChange={(values) => updateMultiSelectField(field.name, values)}
-                            placeholder={field.placeholder || `Seleccionar ${field.label}`}
-                            searchPlaceholder={field.searchPlaceholder || "Buscar..."}
-                            disabled={field.disabled}
-                            loading={field.dataSource === 'roles' ? rolesLoading : false}
+                            options={field.options}
+                            selectedOptions={selectedOptions[field.name] || []}
+                            onChange={handleMultiSelectChange}
+                            name={field.name}
+                            required={field.required}
+                            isLoading={field.isLoading}
                         />
                     )}
 
@@ -377,14 +335,14 @@ const Form = forwardRef(({
                     )}
 
                     {/* --- MENSAJE DE ERROR MEJORADO --- */}
-                    <div className={`error-message text-red-600 font-semibold mt-1 min-h-[1.25em] text-sm`}> 
+                    <div className={`error-message text-red-600 font-semibold mt-1 min-h-[1.25em] text-sm`}>
                         {errors[field.name]?.message || field.errorMessageData || ''}
                     </div>
                 </div>
             ))}
 
             {buttonText && (
-                <button 
+                <button
                     className={`${getButtonVariantClasses()} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     type="submit"
                     disabled={loading}
@@ -404,5 +362,21 @@ const Form = forwardRef(({
         </form>
     );
 });
+
+import PropTypes from 'prop-types';
+
+Form.propTypes = {
+    title: PropTypes.string,
+    fields: PropTypes.arrayOf(PropTypes.object).isRequired,
+    buttonText: PropTypes.string,
+    onSubmit: PropTypes.func.isRequired,
+    footerContent: PropTypes.node,
+    backgroundColor: PropTypes.string,
+    autoComplete: PropTypes.string,
+    size: PropTypes.string,
+    defaultValues: PropTypes.object,
+    loading: PropTypes.bool,
+    submitButtonVariant: PropTypes.oneOf(['primary', 'secondary', 'danger', 'success']),
+};
 
 export default Form;

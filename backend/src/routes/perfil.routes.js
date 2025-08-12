@@ -6,7 +6,7 @@ import {
   getMyProfile,
   updateMyProfile,
   changeMyPassword,
-} from "../controllers/profile.controller.js";
+} from "../controllers/perfil.controller.js";
 
 const router = Router();
 
@@ -15,21 +15,21 @@ router.use(authenticateJwt);
 // GET /api/profile/detail/ -> Obtener el perfil del usuario autenticado
 router.get(
   "/",
-  authorizePermissions(["user:read_profile"]), // Permiso para leer el propio perfil
+  authorizePermissions(["usuario:leer_perfil"]), // Permiso para leer el propio perfil
   getMyProfile
 );
 
 // PATCH /api/profile/ -> Actualizar el perfil del usuario autenticado
 router.patch(
   "/",
-  authorizePermissions(["user:update_profile"]), // Permiso para actualizar el propio perfil
+  authorizePermissions(["usuario:actualizar_perfil"]), // Permiso para actualizar el propio perfil
   updateMyProfile
 );
 
 // PATCH /api/profile/change-password -> Cambiar contraseña del usuario autenticado
 router.patch(
   "/change-password",
-  authorizePermissions(["user:update_profile"]), // Permiso para actualizar el propio perfil
+  authorizePermissions(["usuario:actualizar_perfil"]), // Permiso para actualizar el propio perfil
   changeMyPassword
 );
 

@@ -73,7 +73,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center">{link.icon}{link.label}</span>
                         </NavLink>
                     ))}
-                    {hasPermission('user:read_all') && (
+                    {hasPermission('usuario:leer_todos') && (
                         <NavLink
                             to="/admin"
                             onClick={() => setSidebarOpen(false)}

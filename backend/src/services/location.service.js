@@ -2,7 +2,7 @@
 import Location from "../models/Location.js";
 import { spatialSequelize } from "../config/spatialDb.js";
 import { AppDataSource } from "../config/configDb.js";
-import User from "../entities/user.entity.js";
+import Usuario from "../entities/usuario.entity.js";
 
 export const locationService = {
   // Crear nueva ubicación
@@ -206,7 +206,7 @@ export const locationService = {
         location.created_by_user_id !== userId
       ) {
         // Aquí podrías verificar permisos con TypeORM
-        const userRepository = AppDataSource.getRepository(User);
+        const userRepository = AppDataSource.getRepository(Usuario);
         const user = await userRepository.findOne({
           where: { id: userId },
           relations: ["roles", "roles.permissions"],
@@ -271,7 +271,7 @@ export const locationService = {
         location.created_by_user_id &&
         location.created_by_user_id !== userId
       ) {
-        const userRepository = AppDataSource.getRepository(User);
+        const userRepository = AppDataSource.getRepository(Usuario);
         const user = await userRepository.findOne({
           where: { id: userId },
           relations: ["roles", "roles.permissions"],

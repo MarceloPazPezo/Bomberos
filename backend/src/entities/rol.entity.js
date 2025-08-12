@@ -1,8 +1,8 @@
 "use strict";
 import { EntitySchema } from "typeorm";
 
-const RoleSchema = new EntitySchema({
-  name: "Role",
+const RolSchema = new EntitySchema({
+  name: "Rol",
   tableName: "roles",
   columns: {
     id: {
@@ -20,24 +20,24 @@ const RoleSchema = new EntitySchema({
       type: "text",
       nullable: true,
     },
-    createdAt: {
+    fechaCreacion: {
       type: "timestamp with time zone",
       createDate: true,
     },
-    updatedAt: {
+    fechaActualizacion: {
       type: "timestamp with time zone",
       updateDate: true,
     },
   },
   relations: {
-    users: {
+    usuarios: {
       type: "many-to-many",
-      target: "User",
+      target: "Usuario",
       mappedBy: "roles",
     },
     permisos: {
       type: "many-to-many",
-      target: "Permission",
+      target: "Permiso",
       joinTable: {
         name: "rol_permisos",
         joinColumn: {
@@ -62,4 +62,4 @@ const RoleSchema = new EntitySchema({
   ],
 });
 
-export default RoleSchema;
+export default RolSchema;

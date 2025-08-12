@@ -19,10 +19,14 @@ import { connectDB } from "./config/configDb.js";
 import { connectSpatialDB, syncSpatialModels } from "./config/spatialDb.js";
 import { passportJwtSetup } from "./auth/passport.auth.js";
 import {
-  createPermissions,
-  createRoles,
-  createUsers,
+  crearPermisos,
+  crearRoles,
+  crearUsuarios,
+  crearConfiguracionesSistema,
 } from "./config/initialSetup.js";
+import http from "http";
+import { Server as SocketIOServer } from "socket.io";
+import { handleSocketConnection } from "./sockets/activeUsers.socket.js";
 async function setupServer() {
   try {
     const app = express();
@@ -78,9 +82,19 @@ async function setupServer() {
     // Error logging middleware (debe ir después de las rutas)
     app.use(errorLogger);
 
-    app.listen(PORT, () => {
+    // --- INICIO Socket.IO ---
+    const server = http.createServer(app);
+    const io = new SocketIOServer(server, {
+      cors: {
+        origin: true,
+        credentials: true,
+      },
+    });
+    handleSocketConnection(io);
+    server.listen(PORT, () => {
       logger.info(`[SERVER] Servidor corriendo en http://${HOST}:${PORT}/api`);
     });
+    // --- FIN Socket.IO ---
   } catch (error) {
     logger.errorWithContext(error, { function: "setupServer" });
   }
@@ -100,9 +114,10 @@ async function setupAPI() {
     logger.database("Sequelize/PostGIS conectado exitosamente");
 
     await setupServer();
-    await createPermissions();
-    await createRoles();
-    await createUsers();
+    await crearPermisos();
+    await crearRoles();
+    await crearUsuarios();
+    await crearConfiguracionesSistema();
 
     logger.info("[CONFIG] Configuración inicial completada");
   } catch (error) {
@@ -119,3 +134,4 @@ setupAPI()
     logger.errorWithContext(error, { function: "setupAPI" });
     process.exit(1);
   });
+

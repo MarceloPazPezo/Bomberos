@@ -1,7 +1,7 @@
 import React from 'react';
 import { MdSchedule, MdUpdate, MdCalendarToday } from 'react-icons/md';
 
-const DateDisplay = ({ createdAt, updatedAt, compact = false }) => {
+const DateDisplay = ({ fechaCreacion, fechaActualizacion, compact = false }) => {
   const formatDate = (dateValue) => {
     if (!dateValue) return null;
     const date = new Date(dateValue);
@@ -37,9 +37,9 @@ const DateDisplay = ({ createdAt, updatedAt, compact = false }) => {
     return `Hace ${Math.floor(diffInSeconds / 31536000)} años`;
   };
 
-  const created = formatDate(createdAt);
-  const updated = formatDate(updatedAt);
-  const hasBeenUpdated = updated && updatedAt !== createdAt;
+  const created = formatDate(fechaCreacion);
+  const updated = formatDate(fechaActualizacion);
+  const hasBeenUpdated = updated && fechaActualizacion !== fechaCreacion;
 
   if (compact) {
     return (
