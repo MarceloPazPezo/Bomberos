@@ -20,6 +20,12 @@ const RolSchema = new EntitySchema({
       type: "text",
       nullable: true,
     },
+    nivel: {
+      type: "int",
+      nullable: false,
+      default: 1,
+      comment: "Nivel jerárquico del rol (1=Usuario, 2=Supervisor, 3=Administrador, etc.)"
+    },
     fechaCreacion: {
       type: "timestamp with time zone",
       createDate: true,

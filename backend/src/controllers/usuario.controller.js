@@ -167,7 +167,19 @@ export async function createUser(req, res) {
 
     const { value, error } = userCreateValidation.validate(body);
 
-    if (error) return handleErrorClient(res, 400, error.message);
+    if (error) {
+      const errorMessages = error.details.map((detail) => {
+        let message = detail.message;
+
+        return {
+          message: message,
+          path: detail.path.join("."), // 'path' es un array de segmentos de la ruta al error
+          type: detail.type, // El tipo de error (ej: 'object.unknown')
+          key: detail.context?.key, // La clave específica si es un error de 'object.unknown'
+        };
+      });
+      return handleErrorClient(res, 400, "Error de validación", errorMessages);
+    }
 
     const [user, errorUser] = await createUserService(value, createdBy);
 
@@ -199,6 +211,7 @@ export async function changeUserStatus(req, res) {
     const [user, errorUser] = await changeUserStatusService(
       parseInt(id),
       activo,
+      req.user?.id, // Pasar el ID del usuario actual para validación de jerarquía
     );
 
     if (errorUser) return handleErrorClient(res, 404, errorUser);

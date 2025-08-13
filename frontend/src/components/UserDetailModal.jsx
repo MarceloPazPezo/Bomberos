@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MdClose, MdPerson, MdEmail, MdPhone, MdCalendarToday, MdLocationOn, MdLocalHospital, MdWarning, MdMedication, MdHealthAndSafety, MdSchedule, MdUpdate, MdPersonAdd } from 'react-icons/md';
 import { formatRut, formatTelefono } from '@helpers/formatData';
 import PropTypes from 'prop-types';
 
 const UserDetailModal = ({ show, setShow, userData }) => {
-  if (!show || !userData) return null;
+  if (!show) return null;
+  if (!userData) return null;
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificado';
@@ -93,9 +94,25 @@ const UserDetailModal = ({ show, setShow, userData }) => {
     setShow(false);
   };
 
+  // useEffect para manejar scroll lock
+  useEffect(() => {
+    if (show) {
+      // Bloquear scroll del body cuando el modal está abierto
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restaurar scroll del body cuando el modal se cierra
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      // Limpiar al desmontar el componente
+      document.body.style.overflow = 'unset';
+    };
+  }, [show]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative w-full max-w-4xl max-h-[90vh] p-0 animate-fade-in flex flex-col rounded-2xl bg-white/90 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl mx-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" key="user-detail-modal">
+      <div className="relative w-full max-w-4xl max-h-[90vh] p-0 animate-fade-in flex flex-col rounded-2xl bg-white/90 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl mx-4" key={`modal-${userData?.id || userData?.run || 'default'}`}>
         {/* Header */}
         <div className="flex items-center px-6 py-4 border-b border-[#4EB9FA]/20 bg-gradient-to-r from-[#4EB9FA]/10 to-transparent">
           <div className="flex-1">

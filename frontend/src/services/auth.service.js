@@ -25,13 +25,6 @@ export async function login(dataUser) {
                 telefono: decoded.telefono,
                 fechaNacimiento: decoded.fechaNacimiento,
                 activo: decoded.activo,
-                nombreCompleto: decoded.nombreCompleto || (() => {
-                    const nombres = decoded.nombres || decoded.firstName;
-                    const apellidos = decoded.apellidos || decoded.lastName;
-                    const nombresStr = Array.isArray(nombres) ? nombres.join(' ') : nombres;
-                    const apellidosStr = Array.isArray(apellidos) ? apellidos.join(' ') : apellidos;
-                    return `${nombresStr} ${apellidosStr}`;
-                })(),
                 roles: decoded.roles,
                 permissions: allPermissions
             };

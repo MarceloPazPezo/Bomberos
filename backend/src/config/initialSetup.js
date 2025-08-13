@@ -167,6 +167,48 @@ async function crearPermisos() {
         ruta: "/api/configuracion",
         metodo: "POST",
       },
+      {
+        nombre: "disponibilidad:read_all",
+        descripcion: "Permite leer la disponibilidad de todos los voluntarios",
+        categoria: "Disponibilidad",
+        ruta: "/api/disponibilidad",
+        metodo: "GET",
+      },
+      {
+        nombre: "disponibilidad:read_specific",
+        descripcion: "Permite leer una disponibilidad específica",
+        categoria: "Disponibilidad",
+        ruta: "/api/disponibilidad/detail/:id",
+        metodo: "GET",
+      },
+      {
+        nombre: "disponibilidad:create",
+        descripcion: "Permite crear registros de disponibilidad",
+        categoria: "Disponibilidad",
+        ruta: "/api/disponibilidad",
+        metodo: "POST",
+      },
+      {
+        nombre: "disponibilidad:update_specific",
+        descripcion: "Permite actualizar registros de disponibilidad específicos",
+        categoria: "Disponibilidad",
+        ruta: "/api/disponibilidad/detail/:id",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "disponibilidad:delete",
+        descripcion: "Permite eliminar registros de disponibilidad",
+        categoria: "Disponibilidad",
+        ruta: "/api/disponibilidad/detail/:id",
+        metodo: "DELETE",
+      },
+      {
+        nombre: "disponibilidad:change_status",
+        descripcion: "Permite cambiar el estado de disponibilidad de voluntarios",
+        categoria: "Disponibilidad",
+        ruta: "/api/disponibilidad/status/:id",
+        metodo: "PATCH",
+      },
     ];
 
     const permissions = permissionsData.map((p) =>
@@ -195,11 +237,13 @@ async function crearRoles() {
       {
         nombre: "Usuario",
         descripcion: "Rol básico para usuarios con perfil.",
+        nivel: 1,
         permissionNames: ["usuario:leer_perfil", "usuario:actualizar_perfil"],
       },
       {
         nombre: "Supervisor",
         descripcion: "Rol intermedio con permisos limitados.",
+        nivel: 2,
         permissionNames: [
           "usuario:leer_todos",
           "usuario:cambiar_estado",
@@ -208,11 +252,14 @@ async function crearRoles() {
           "permiso:leer",
           "permiso:leer_categorias",
           "permiso:leer_estadisticas",
+          "disponibilidad:read_all",
+          "disponibilidad:change_status",
         ],
       },
       {
         nombre: "Administrador",
         descripcion: "Rol con acceso total al sistema.",
+        nivel: 3,
         permissionNames: [
           "usuario:crear",
           "usuario:leer_todos",
@@ -233,6 +280,12 @@ async function crearRoles() {
           "configuracion:leer",
           "configuracion:actualizar",
           "configuracion:crear",
+          "disponibilidad:read_all",
+          "disponibilidad:read_specific",
+          "disponibilidad:create",
+          "disponibilidad:update_specific",
+          "disponibilidad:delete",
+          "disponibilidad:change_status",
         ],
       },
     ];
@@ -266,6 +319,7 @@ async function crearRoles() {
       return roleRepository.create({
         nombre: roleDef.nombre,
         descripcion: roleDef.descripcion,
+        nivel: roleDef.nivel,
         permisos: permissionsForRole,
       });
     });

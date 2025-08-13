@@ -2,6 +2,7 @@
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermissions } from "../middlewares/authorization.middleware.js";
+import { cleanEmptyStrings } from "../middlewares/cleanEmptyStrings.middleware.js";
 import {
   deleteUser,
   getUser,
@@ -24,6 +25,7 @@ router.get("/detail/", authorizePermissions(["usuario:leer_especifico"]), getUse
 // PATCH /api/user/detail/:id -> Actualizar un usuario específico por su ID o RUT
 router.patch(
   "/detail/",
+  cleanEmptyStrings,
   authorizePermissions(["usuario:actualizar_especifico"]),
   updateUser,
 );
@@ -32,7 +34,7 @@ router.patch(
 router.delete("/detail/", authorizePermissions(["usuario:eliminar"]), deleteUser);
 
 // POST /api/user/-> Creamos un usuario
-router.post("/", authorizePermissions(["usuario:crear"]), createUser);
+router.post("/", cleanEmptyStrings, authorizePermissions(["usuario:crear"]), createUser);
 
 // PATCH /api/user/status/:id -> Cambiar estado activo/inactivo de un usuario
 router.patch("/status/:id", authorizePermissions(["usuario:cambiar_estado"]), changeUserStatus);

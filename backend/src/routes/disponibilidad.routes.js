@@ -9,6 +9,7 @@ import {
   updateDisponibilidad,
   createDisponibilidad,
   changeDisponibilidadStatus,
+  getDisponibilidadActiva,
 } from "../controllers/disponibilidad.controller.js";
 
 const router = Router();
@@ -24,21 +25,21 @@ router.get(
 
 // GET /api/disponibilidad/detail/:id -> Obtener una disponibilidad específica por su ID
 router.get(
-  "/detail/",
+  "/detail/:id",
   authorizePermissions(["disponibilidad:read_specific"]),
   getDisponibilidad,
 );
 
 // PATCH /api/disponibilidad/detail/:id -> Actualizar una disponibilidad específica por su ID
 router.patch(
-  "/detail/",
+  "/detail/:id",
   authorizePermissions(["disponibilidad:update_specific"]),
   updateDisponibilidad,
 );
 
 // DELETE /api/disponibilidad/detail/:id -> Eliminar una disponibilidad específica por su ID
 router.delete(
-  "/detail/",
+  "/detail/:id",
   authorizePermissions(["disponibilidad:delete"]),
   deleteDisponibilidad,
 );
@@ -50,9 +51,16 @@ router.post(
   createDisponibilidad,
 );
 
-// PATCH /api/disponibilidad/status/:id -> Cambiar estado activo/inactivo de una disponibilidad
+// GET /api/disponibilidad/activa/:usuario_id -> Obtener disponibilidad activa de un usuario
+router.get(
+  "/activa/:usuario_id",
+  authorizePermissions(["disponibilidad:read_specific"]),
+  getDisponibilidadActiva,
+);
+
+// PATCH /api/disponibilidad/status -> Cambiar estado de disponibilidad
 router.patch(
-  "/status/:id",
+  "/status",
   authorizePermissions(["disponibilidad:change_status"]),
   changeDisponibilidadStatus,
 );

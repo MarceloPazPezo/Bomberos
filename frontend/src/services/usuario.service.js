@@ -16,7 +16,8 @@ export async function getUsers() {
         const formattedData = data.data.map(formatUserData);
         return formattedData;
     } catch (error) {
-        return error.response.data;
+        console.error('Error in getUsers:', error);
+        return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
     }
 }
 
@@ -26,7 +27,8 @@ export async function updateUser(data, run) {
         const response = await axios.patch(`/usuario/detail/?run=${normalizedRut}`, data);
         return response.data.data;
     } catch (error) {
-        return error.response.data;
+        console.error('Error in updateUser:', error);
+        return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
     }
 }
 
@@ -36,7 +38,8 @@ export async function deleteUser(run) {
         const response = await axios.delete(`/usuario/detail/?run=${normalizedRut}`);
         return response.data;
     } catch (error) {
-        return error.response.data;
+        console.error('Error in deleteUser:', error);
+        return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
     }
 }
 

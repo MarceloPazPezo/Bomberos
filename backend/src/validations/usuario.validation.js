@@ -90,15 +90,13 @@ export const userCreateValidation = Joi.object({
           "Un nombre solo puede contener letras, espacios, apóstrofes o guiones.",
       }),
     )
-    .min(1)
     .max(3)
-    .required()
+    .optional()
+    .allow(null, "")
     .messages({
       "array.base": "El campo 'nombres' debe ser un array.",
-      "array.min": "Debes proporcionar al menos un nombre.",
       "array.max":
         "El campo 'nombres' no puede tener más de {#limit} elementos.",
-      "any.required": "El campo 'nombres' es obligatorio.",
     }),
   apellidos: Joi.array()
     .items(
@@ -111,15 +109,13 @@ export const userCreateValidation = Joi.object({
           "Un apellido solo puede contener letras, espacios, apóstrofes o guiones.",
       }),
     )
-    .min(1)
     .max(2)
-    .required()
+    .optional()
+    .allow(null, "")
     .messages({
       "array.base": "El campo 'apellidos' debe ser un array.",
-      "array.min": "Debes proporcionar al menos un apellido.",
       "array.max":
         "El campo 'apellidos' no puede tener más de {#limit} elementos.",
-      "any.required": "El campo 'apellidos' es obligatorio.",
     }),
   run: Joi.string()
     .custom(joiRUNValidator, "Validación completa de RUN")
@@ -176,12 +172,11 @@ export const userCreateValidation = Joi.object({
         "La contraseña debe tener al menos 8 caracteres, incluyendo una mayúscula, una minúscula y un número.",
       "any.required": "La contraseña es obligatoria.",
     }),
-  fechaIngreso: Joi.date().iso().less("now").required().messages({
+  fechaIngreso: Joi.date().iso().max("now").optional().allow(null).messages({
     "date.base": "La fecha de ingreso debe ser una fecha válida.",
     "date.format":
       "La fecha de ingreso debe estar en formato ISO (YYYY-MM-DD).",
-    "date.less": "La fecha de ingreso debe ser anterior a la fecha actual.",
-    "any.required": "La fecha de ingreso es obligatoria.",
+    "date.max": "La fecha de ingreso no puede ser posterior a la fecha actual.",
   }),
   direccion: Joi.string().min(5).max(255).optional().allow(null, "").messages({
     "string.base": "La dirección debe ser de tipo string.",
@@ -192,29 +187,29 @@ export const userCreateValidation = Joi.object({
     "string.base": "El tipo de sangre debe ser de tipo string.",
     "any.only": "El tipo de sangre debe ser uno de los siguientes: A+, A-, B+, B-, AB+, AB-, O+, O-.",
   }),
-  alergias: Joi.string()
-    .max(500)
+  alergias: Joi.array()
+    .items(Joi.string().max(100))
     .optional()
     .allow(null, "")
     .messages({
-      "string.base": "El campo 'alergias' debe ser de tipo string.",
-      "string.max": "Las alergias deben tener como máximo {#limit} caracteres.",
+      "array.base": "El campo 'alergias' debe ser un array.",
+      "string.max": "Cada alergia debe tener como máximo {#limit} caracteres.",
     }),
-  medicamentos: Joi.string()
-    .max(500)
+  medicamentos: Joi.array()
+    .items(Joi.string().max(100))
     .optional()
     .allow(null, "")
     .messages({
-      "string.base": "El campo 'medicamentos' debe ser de tipo string.",
-      "string.max": "Los medicamentos deben tener como máximo {#limit} caracteres.",
+      "array.base": "El campo 'medicamentos' debe ser un array.",
+      "string.max": "Cada medicamento debe tener como máximo {#limit} caracteres.",
     }),
-  condiciones: Joi.string()
-    .max(500)
+  condiciones: Joi.array()
+    .items(Joi.string().max(100))
     .optional()
     .allow(null, "")
     .messages({
-      "string.base": "El campo 'condiciones' debe ser de tipo string.",
-      "string.max": "Las condiciones deben tener como máximo {#limit} caracteres.",
+      "array.base": "El campo 'condiciones' debe ser un array.",
+      "string.max": "Cada condición debe tener como máximo {#limit} caracteres.",
     }),
   roles: Joi.array()
     .items(
@@ -283,7 +278,7 @@ export const userBodyValidation = Joi.object({
       "array.max":
         "El campo 'apellidos' no puede tener más de {#limit} elementos.",
     }),
-  fechaNacimiento: Joi.date().iso().less("now").optional().messages({
+  fechaNacimiento: Joi.date().iso().less("now").optional().allow(null).messages({
     "date.base": "La fecha de nacimiento debe ser una fecha válida.",
     "date.format":
       "La fecha de nacimiento debe estar en formato ISO (YYYY-MM-DD).",
@@ -336,11 +331,11 @@ export const userBodyValidation = Joi.object({
       "any.required":
         "La contraseña actual es requerida para cambiar la contraseña.",
     }),
-  fechaIngreso: Joi.date().iso().less("now").optional().messages({
+  fechaIngreso: Joi.date().iso().max("now").optional().allow(null).messages({
     "date.base": "La fecha de ingreso debe ser una fecha válida.",
     "date.format":
       "La fecha de ingreso debe estar en formato ISO (YYYY-MM-DD).",
-    "date.less": "La fecha de ingreso debe ser anterior a la fecha actual.",
+    "date.max": "La fecha de ingreso no puede ser posterior a la fecha actual.",
   }),
   direccion: Joi.string().min(5).max(255).optional().allow(null, "").messages({
     "string.base": "La dirección debe ser de tipo string.",

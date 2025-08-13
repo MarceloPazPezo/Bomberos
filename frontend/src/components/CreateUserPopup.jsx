@@ -1,17 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Form from './Form';
-import { MdClose, MdHelpOutline } from 'react-icons/md';
+import { MdClose, MdPersonAdd, MdSave, MdCalendarToday } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useRoles } from '@hooks/roles/useRoles';
+import { useRutFormatter, formatRutForAPI } from '@helpers/rutFormatter.js';
+import DatePicker, { registerLocale } from 'react-datepicker';
+import { es } from 'date-fns/locale';
+import 'react-datepicker/dist/react-datepicker.css';
+
+// Registrar el locale español
+registerLocale('es', es);
 
 export default function CreateUserPopup({ show, setShow, onUserCreated }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const formRef = useRef(null);
+    
+    // Hook para formateo de RUT
+    const rutFormatter = useRutFormatter(
+        (fieldName, value) => formRef.current?.setValue(fieldName, value),
+        'run'
+    );
 
+    // Función para enfocar el primer campo con error
+    const focusFirstErrorField = () => {
+        const errorFields = Object.keys(errors);
+        if (errorFields.length > 0) {
+            const firstErrorField = errorFields[0];
+            
+            // Buscar el elemento del campo con error
+            const fieldElement = document.querySelector(`[name="${firstErrorField}"]`);
+            if (fieldElement) {
+                // Hacer scroll hasta el elemento
+                fieldElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                
+                // Enfocar el elemento después de un pequeño delay para que el scroll termine
+                setTimeout(() => {
+                    fieldElement.focus();
+                }, 300);
+            }
+        }
+    };
+
+    // useEffect para enfocar automáticamente cuando hay errores
+    useEffect(() => {
+        if (Object.keys(errors).length > 0) {
+            focusFirstErrorField();
+        }
+    }, [errors]);
+
+    // useEffect para manejar tecla Escape y scroll lock
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape' && show) {
+                handleClose();
+            }
+        };
+
+        if (show) {
+            // Bloquear scroll del body cuando el popup está abierto
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', handleEscape);
+        } else {
+            // Restaurar scroll del body cuando el popup se cierra
+            document.body.style.overflow = 'unset';
+        }
+
+        return () => {
+            // Limpiar al desmontar el componente
+            document.body.style.overflow = 'unset';
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [show]);
+
+    // Función para manejar click fuera del modal
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+            handleClose();
+        }
+    };
+    
     const handleInputChange = (field, value) => {
         // Limpiar error del campo cuando el usuario empiece a escribir
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: null }));
+        }
+        
+        // Para campos de fecha, convertir Date a formato ISO si es necesario
+        if ((field === 'fechaNacimiento' || field === 'fechaIngreso') && value instanceof Date) {
+            // El DatePicker ya maneja la conversión a ISO en Form.jsx
+            // Solo necesitamos limpiar errores aquí
+            return;
         }
     };
 
@@ -49,28 +131,47 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                 // Transformar los datos para que coincidan con el formato esperado por el backend
                 const transformedData = {
                     ...createdUserData,
+                    // Formatear RUT para API (sin puntos, solo guión)
+                    run: formatRutForAPI(createdUserData.run),
                     // Convertir nombres y apellidos de string a array
                     nombres: createdUserData.nombres ? createdUserData.nombres.split(' ').filter(name => name.trim() !== '') : [],
                     apellidos: createdUserData.apellidos ? createdUserData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
                     // Transformar roles del multiselect al formato esperado por el backend
                     roles: createdUserData.roles ? createdUserData.roles.map(role => role.value) : [],
-                    // Convertir alergias de string a array separando por comas o espacios
+                    // Convertir alergias de string a array separando solo por comas
                     alergias: createdUserData.alergias ? 
-                        createdUserData.alergias.split(/[,\s]+/).filter(alergia => alergia.trim() !== '') : [],
-                    // Convertir medicamentos de string a array separando por comas o espacios
+                        createdUserData.alergias.split(',').map(alergia => alergia.trim()).filter(alergia => alergia !== '') : [],
+                    // Convertir medicamentos de string a array separando solo por comas
                     medicamentos: createdUserData.medicamentos ? 
-                        createdUserData.medicamentos.split(/[,\s]+/).filter(medicamento => medicamento.trim() !== '') : [],
-                    // Convertir condiciones de string a array separando por comas o espacios
+                        createdUserData.medicamentos.split(',').map(medicamento => medicamento.trim()).filter(medicamento => medicamento !== '') : [],
+                    // Convertir condiciones de string a array separando solo por comas
                     condiciones: createdUserData.condiciones ? 
-                        createdUserData.condiciones.split(/[,\s]+/).filter(condicion => condicion.trim() !== '') : []
+                        createdUserData.condiciones.split(',').map(condicion => condicion.trim()).filter(condicion => condicion !== '') : []
                 };
+
+                // Si el tipo de sangre está vacío o es "No especificado", no lo incluir en los datos
+                if (!transformedData.tipoSangre || transformedData.tipoSangre === '') {
+                    delete transformedData.tipoSangre;
+                }
+
+                // Si las fechas están vacías, no las incluir en los datos
+                if (!transformedData.fechaNacimiento || transformedData.fechaNacimiento === '') {
+                    delete transformedData.fechaNacimiento;
+                }
+                if (!transformedData.fechaIngreso || transformedData.fechaIngreso === '') {
+                    delete transformedData.fechaIngreso;
+                }
                 
                 const result = await onUserCreated(transformedData);
                 if (result.success) {
                     setShow(false);
                     setErrors({});
                 } else if (result.error && typeof result.error === 'object') {
+                    // Si el error es un objeto, son errores específicos por campo
                     errorData(result.error);
+                } else if (result.error) {
+                    // Si el error es un string, es un error general
+                    console.error('Error general:', result.error);
                 }
             } catch (error) {
                 console.error('Error creating user:', error);
@@ -86,23 +187,32 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
     return (
         <div>
             {show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="relative w-full max-w-xs sm:max-w-2xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl">
-                        {/* Header */}
-                        <div className="flex items-center px-4 sm:px-10 pt-6 pb-4 border-b border-[#4EB9FA]/20 relative">
-                            <h2 className="text-2xl font-bold text-[#2C3E50] flex-1">Crear usuario</h2>
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                    onClick={handleBackdropClick}
+                >
+                    <div className="relative w-full max-w-xs sm:max-w-2xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white shadow-2xl border border-gray-200">
+                        {/* Header mejorado */}
+                        <div className="flex items-center px-4 sm:px-6 py-4 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
+                            <div className="flex items-center space-x-3 flex-1">
+                                <div className="p-2 bg-white/20 rounded-lg">
+                                    <MdPersonAdd className="w-6 h-6 text-white" />
+                                </div>
+                                <h2 className="text-xl font-bold text-white">Crear Nuevo Usuario</h2>
+                            </div>
                             <button
-                                className="p-2 rounded-full bg-white border border-[#4EB9FA]/30 hover:bg-[#4EB9FA]/10 transition ml-2"
+                                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group"
                                 onClick={handleClose}
-                                aria-label="Cerrar"
-                                style={{ lineHeight: 0 }}
+                                aria-label="Cerrar (Esc)"
+                                title="Cerrar (Esc)"
                             >
-                                <MdClose className="w-5 h-5" />
+                                <MdClose className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
                             </button>
                         </div>
-                        {/* Body con scroll interno si es necesario */}
-                        <div className="px-4 sm:px-10 py-6 sm:py-10 pr-2 sm:pr-6 flex flex-col items-center flex-1 min-h-0 w-full overflow-y-auto scrollbar-thin" style={{ maxHeight: 'calc(90vh - 90px)' }}>
+                        {/* Contenido mejorado */}
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-h-[70vh] bg-gray-50/50">
                             <Form
+                                ref={formRef}
                                 title={null}
                                 autoComplete="off"
                                 size="max-w-xs sm:max-w-2xl"
@@ -113,7 +223,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         placeholder: 'Diego Alexis',
                                         fieldType: 'input',
                                         type: "text",
-                                        required: true,
+                                        required: false,
                                         minLength: 2,
                                         maxLength: 50,
                                         pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑàèìòùÀÈÌÒÙ\s]+$/,
@@ -127,7 +237,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         placeholder: 'Salazar Jara',
                                         fieldType: 'input',
                                         type: "text",
-                                        required: true,
+                                        required: false,
                                         minLength: 2,
                                         maxLength: 50,
                                         pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑàèìòùÀÈÌÒÙ\s]+$/,
@@ -149,19 +259,14 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         autoComplete: "new-email"
                                     },
                                     {
-                                        label: "Rut",
-                                        name: "run",
-                                        placeholder: '21.308.770-3',
-                                        fieldType: 'input',
-                                        type: "text",
-                                        minLength: 9,
-                                        maxLength: 12,
-                                        pattern: patternRut,
-                                        patternMessage: "Debe ser xx.xxx.xxx-x o xxxxxxxx-x",
-                                        required: true,
+                                        ...rutFormatter.getFieldConfig(),
                                         errorMessageData: errors.run,
-                                        onChange: (e) => handleInputChange('run', e.target.value),
-                                        autoComplete: "off"
+                                        onChange: (e) => {
+                                            // Primero ejecutar el formateo del RUT
+                                            rutFormatter.getFieldConfig().onChange(e);
+                                            // Luego limpiar errores
+                                            handleInputChange('run', e.target.value);
+                                        }
                                     },
                                     {
                                         label: "Teléfono",
@@ -172,27 +277,27 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         required: false,
                                         minLength: 8,
                                         maxLength: 20,
+                                        errorMessageData: errors.telefono,
                                         onChange: (e) => handleInputChange('telefono', e.target.value),
                                         autoComplete: "tel"
                                     },
                                     {
                                         label: "Fecha de nacimiento",
                                         name: "fechaNacimiento",
-                                        fieldType: 'input',
-                                        type: "date",
+                                        fieldType: 'datepicker',
                                         required: true,
                                         errorMessageData: errors.fechaNacimiento,
-                                        onChange: (e) => handleInputChange('fechaNacimiento', e.target.value),
+                                        onChange: (date) => handleInputChange('fechaNacimiento', date),
+                                        maxDate: new Date(), // No permitir fechas futuras
                                         autoComplete: "bday"
                                     },
                                     {
                                         label: "Fecha de ingreso",
                                         name: "fechaIngreso",
-                                        fieldType: 'input',
-                                        type: "date",
-                                        required: true,
+                                        fieldType: 'datepicker',
+                                        required: false,
                                         errorMessageData: errors.fechaIngreso,
-                                        onChange: (e) => handleInputChange('fechaIngreso', e.target.value),
+                                        onChange: (date) => handleInputChange('fechaIngreso', date),
                                         autoComplete: "off"
                                     },
                                     {
@@ -231,7 +336,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Alergias",
                                         name: "alergias",
-                                        placeholder: 'Penicilina, mariscos, polen (separar con comas o espacios)',
+                                        placeholder: 'Penicilina, mariscos, polen de abedul (separar con comas)',
                                         fieldType: 'textarea',
                                         required: false,
                                         maxLength: 500,
@@ -243,7 +348,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Medicamentos",
                                         name: "medicamentos",
-                                        placeholder: 'Aspirina, Losartán, Metformina (separar con comas o espacios)',
+                                        placeholder: 'Aspirina, Losartán 50mg, Metformina XR (separar con comas)',
                                         fieldType: 'textarea',
                                         required: false,
                                         maxLength: 500,
@@ -255,7 +360,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Condiciones médicas",
                                         name: "condiciones",
-                                        placeholder: 'Diabetes, Hipertensión, Asma (separar con comas o espacios)',
+                                        placeholder: 'Diabetes tipo 2, Hipertensión arterial, Asma bronquial (separar con comas)',
                                         fieldType: 'textarea',
                                         required: false,
                                         maxLength: 500,
@@ -263,31 +368,6 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         errorMessageData: errors.condiciones,
                                         onChange: (e) => handleInputChange('condiciones', e.target.value),
                                         autoComplete: "off"
-                                    },
-                                    {
-                                        label: (
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-semibold text-[#2C3E50]">Contraseña</span>
-                                                <span className="relative group">
-                                                    <MdHelpOutline className="w-4 h-4 cursor-pointer" />
-                                                    <span className="absolute left-6 top-1 z-10 hidden group-hover:block bg-white text-xs text-[#2C3E50] border border-[#4EB9FA]/30 rounded px-2 py-1 shadow-lg min-w-max">
-                                                        Este campo es obligatorio
-                                                    </span>
-                                                </span>
-                                            </div>
-                                        ),
-                                        name: "password",
-                                        placeholder: "**********",
-                                        fieldType: 'input',
-                                        type: "password",
-                                        required: true,
-                                        minLength: 8,
-                                        maxLength: 26,
-                                        pattern: /^[a-zA-Z0-9]+$/,
-                                        patternMessage: "Debe contener solo letras y números",
-                                        errorMessageData: errors.password,
-                                        onChange: (e) => handleInputChange('password', e.target.value),
-                                        autoComplete: "new-password"
                                     },
                                     {
                                         label: "Roles",
@@ -300,45 +380,64 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         searchPlaceholder: "Buscar roles...",
                                         errorMessageData: errors.roles,
                                         isLoading: rolesLoading
+                                    },
+                                    {
+                                        label: "Contraseña",
+                                        name: "password",
+                                        placeholder: "**********",
+                                        fieldType: 'input',
+                                        type: "password",
+                                        required: true,
+                                        minLength: 8,
+                                        maxLength: 26,
+                                        pattern: /^[a-zA-Z0-9]+$/,
+                                        patternMessage: "Debe contener solo letras y números",
+                                        errorMessageData: errors.password,
+                                        onChange: (e) => handleInputChange('password', e.target.value),
+                                        autoComplete: "new-password"
                                     }
                                 ]}
                                 onSubmit={handleSubmit}
                                 backgroundColor={'#fff'}
                             />
+                        </div>
 
-                            {/* Botones personalizados */}
-                            <div className="flex justify-end space-x-3 mt-6 w-full">
-                                <button
-                                    type="button"
-                                    onClick={handleClose}
-                                    className="px-4 py-2 text-[#2C3E50] bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
-                                    disabled={loading}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        // Activar el submit del formulario
-                                        const form = document.querySelector('form');
-                                        if (form) {
-                                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                                            form.dispatchEvent(submitEvent);
-                                        }
-                                    }}
-                                    className={`px-4 py-2 bg-[#4EB9FA] text-white rounded-lg hover:bg-[#3A9BD9] transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                    disabled={loading}
-                                >
-                                    {loading ? (
-                                        <div className="flex items-center space-x-2">
-                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            <span>Creando...</span>
-                                        </div>
-                                    ) : (
-                                        'Crear Usuario'
-                                    )}
-                                </button>
-                            </div>
+                        {/* Botones mejorados */}
+                        <div className="flex justify-end space-x-3 px-4 sm:px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
+                            <button
+                                type="button"
+                                onClick={handleClose}
+                                className="flex items-center space-x-2 px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
+                                disabled={loading}
+                            >
+                                <MdClose className="w-4 h-4" />
+                                <span>Cancelar</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Activar el submit del formulario
+                                    const form = document.querySelector('form');
+                                    if (form) {
+                                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                                        form.dispatchEvent(submitEvent);
+                                    }
+                                }}
+                                className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Creando...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <MdSave className="w-4 h-4" />
+                                        <span>Crear Usuario</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
