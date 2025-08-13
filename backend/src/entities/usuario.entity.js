@@ -148,6 +148,12 @@ const UsuarioSchema = new EntitySchema({
       target: "Existencia",
       inverseSide: "actualizador",
     },
+    contactosEmergencia: {
+      type: "one-to-many",
+      target: "ContactoEmergencia",
+      inverseSide: "usuario",
+    },
+
 
 
   },

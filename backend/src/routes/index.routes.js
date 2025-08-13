@@ -9,6 +9,7 @@ import permisoRoutes from "./permiso.routes.js";
 import healthRoutes from "./health.routes.js";
 import sistemaRoutes from "./sistema.routes.js";
 // import disponibilidadRoutes from "./disponibilidad.routes.js";
+import contactoEmergenciaRoutes from "./contactoEmergencia.routes.js";
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router
   .use("/permiso", permisoRoutes)
   .use("/sistema", sistemaRoutes)
   // .use("/disponibilidad", disponibilidadRoutes)
-  .use("/health", healthRoutes);
+  .use("/health", healthRoutes)
+  .use("/contactoEmergencia", contactoEmergenciaRoutes);
 
 export default router;
