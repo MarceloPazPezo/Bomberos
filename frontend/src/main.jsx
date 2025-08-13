@@ -8,6 +8,7 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
+import Profilev2 from '@pages/perfilV2';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import '@styles/styles.css';
@@ -58,6 +59,16 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      {
+        path: "/perfilv2",
+        element: (
+          <ProtectedRoute requiredPermissions={['usuario:leer_perfil']}>
+            <Profilev2 />
+          </ProtectedRoute>
+        ),
+      },
+
+
       {
         path: '/test-roles',
         element: <TestRoles />

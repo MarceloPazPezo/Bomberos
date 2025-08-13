@@ -43,3 +43,43 @@ export const changePassword = async (passwordData) => {
     throw error;
   }
 };
+
+export const getContactosEmergencia = async (id) => {
+  try {
+    const response = await axios.get('/contactoEmergencia/' + id);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener los contactos de emergencia:', error);
+    throw error;
+  }
+};
+
+export const addContactoEmergencia = async (contactoData) => {
+  try {
+    const response = await axios.post('/contactoEmergencia/', contactoData);
+    return response.data;
+  } catch (error) {
+    console.error('Error al agregar contacto de emergencia:', error);
+    throw error;
+  }
+};
+
+export const updateContactoEmergencia = async (id, contactoData) => {
+  try {
+    const response = await axios.patch('/contactoEmergencia/'+ id, contactoData);
+    return response.data;
+  }
+  catch (error) {
+    console.error('Error al actualizar contacto de emergencia:', error);
+    throw error;
+  }
+}
+export const deleteContactoEmergencia = async (id) => {
+  try {
+    const response = await axios.delete('/contactoEmergencia/' + id);
+    return response.data;
+  } catch (error) {
+    console.error('Error al eliminar contacto de emergencia:', error);
+    throw error;
+  }
+}

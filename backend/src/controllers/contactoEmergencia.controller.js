@@ -40,6 +40,7 @@ const createContactoEmergencia = async (req, res) => {
         const data = req.body;
         const { error } = validationCreateContactoEmergenciaBody.validate(data);
         if (error) {
+            console.error("Error en createContactoEmergencia:", error);
             return handleErrorClient(res, 400, error.message);
         }
         const newContactoEmergencia = await createContactoEmergenciaService(data);

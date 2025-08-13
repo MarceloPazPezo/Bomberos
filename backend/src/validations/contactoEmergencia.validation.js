@@ -2,7 +2,7 @@
 import Joi from "joi";
 
 export const validationCreateContactoEmergenciaBody = Joi.object({
-    usuarioId: Joi.number()
+    usuario_id: Joi.number()
         .integer()
         .positive()
         .required()
