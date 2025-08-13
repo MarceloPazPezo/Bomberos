@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
 import { MdMenu, MdClose, MdHome, MdAdminPanelSettings } from 'react-icons/md';
+import { FaUserCheck } from 'react-icons/fa';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const { hasPermission } = useAuth();
@@ -73,6 +74,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center">{link.icon}{link.label}</span>
                         </NavLink>
                     ))}
+                    {hasPermission('disponibilidad:read_all') && (
+                        <NavLink
+                            to="/disponibilidad"
+                            onClick={() => setSidebarOpen(false)}
+                            className={getNavLinkClass}
+                        >
+                            <span className="flex items-center"><FaUserCheck size={20} className="mr-2" />Disponibilidad</span>
+                        </NavLink>
+                    )}
                     {hasPermission('usuario:leer_todos') && (
                         <NavLink
                             to="/admin"

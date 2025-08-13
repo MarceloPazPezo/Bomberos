@@ -32,6 +32,7 @@ const DisponibilidadSchema = new EntitySchema({
       length: 100,
       nullable: true,
     },
+
   },
   indices: [
     { name: "IDX_DISPONIBILIDAD_USUARIO_ID", columns: ["usuario_id"] },

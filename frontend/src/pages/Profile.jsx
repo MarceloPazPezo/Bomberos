@@ -8,16 +8,26 @@ import {
   MdCalendarToday, 
   MdEdit, 
   MdSave, 
-  MdCancel,
-  MdLock,
-  MdVisibility,
+  MdCancel, 
+  MdLock, 
+  MdVisibility, 
   MdVisibilityOff,
-  MdShield,
-  MdInfo
+  MdShield
 } from 'react-icons/md';
 
 const Profile = () => {
-  const { profile, loading, error, updating, updateProfile, updatePassword, setError } = useProfile();
+  const { 
+    profile, 
+    loading, 
+    error, 
+    fieldErrors, 
+    updating, 
+    updateProfile, 
+    updatePassword, 
+    setError, 
+    clearFieldError 
+  } = useProfile();
+  
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswords, setShowPasswords] = useState({
@@ -25,6 +35,7 @@ const Profile = () => {
     new: false,
     confirm: false
   });
+  const [successMessage, setSuccessMessage] = useState('');
 
   // Estados para formularios
   const [editForm, setEditForm] = useState({});
@@ -34,8 +45,23 @@ const Profile = () => {
     confirmPassword: ''
   });
 
-  // Mensajes de éxito
-  const [successMessage, setSuccessMessage] = useState('');
+  // Función para manejar cambios en los campos y limpiar errores
+  const handleFieldChange = (fieldName, value) => {
+    // Limpiar error del campo cuando el usuario empiece a escribir
+    clearFieldError(fieldName);
+    
+    if (isEditing) {
+      setEditForm(prev => ({ ...prev, [fieldName]: value }));
+    }
+  };
+
+  // Función para manejar cambios en los campos de contraseña
+  const handlePasswordFieldChange = (fieldName, value) => {
+    // Limpiar error del campo cuando el usuario empiece a escribir
+    clearFieldError(fieldName);
+    
+    setPasswordForm(prev => ({ ...prev, [fieldName]: value }));
+  };
 
   // Inicializar formulario de edición
   const handleEditStart = () => {
@@ -46,9 +72,9 @@ const Profile = () => {
         new Date(profile.fechaNacimiento).toISOString().split('T')[0] : '',
       direccion: profile?.direccion || '',
       tipoSangre: profile?.tipoSangre || '',
-      alergias: profile?.alergias || '',
-      medicamentos: profile?.medicamentos || '',
-      condiciones: profile?.condiciones || ''
+      alergias: Array.isArray(profile?.alergias) ? profile.alergias.join(', ') : profile?.alergias || '',
+      medicamentos: Array.isArray(profile?.medicamentos) ? profile.medicamentos.join(', ') : profile?.medicamentos || '',
+      condiciones: Array.isArray(profile?.condiciones) ? profile.condiciones.join(', ') : profile?.condiciones || ''
     });
     setIsEditing(true);
     setError(null);
@@ -64,16 +90,36 @@ const Profile = () => {
 
   // Guardar cambios del perfil
   const handleEditSave = async () => {
-    const result = await updateProfile(editForm);
+    // Crear una copia del formulario para modificar
+    const formData = { ...editForm };
+    
+    // Transformar alergias, medicamentos y condiciones en arrays separados solo por comas
+    formData.alergias = formData.alergias.split(',').map(item => item.trim()).filter(item => item !== '');
+    formData.medicamentos = formData.medicamentos.split(',').map(item => item.trim()).filter(item => item !== '');
+    formData.condiciones = formData.condiciones.split(',').map(item => item.trim()).filter(item => item !== '');
+    
+    // Si el tipo de sangre está vacío o es "No especificado", no lo incluir en los datos
+    if (!formData.tipoSangre || formData.tipoSangre === '') {
+      delete formData.tipoSangre;
+    }
+
+    // Si las fechas están vacías, no las incluir en los datos
+    if (!formData.fechaNacimiento || formData.fechaNacimiento === '') {
+      delete formData.fechaNacimiento;
+    }
+
+    const result = await updateProfile(formData);
     if (result.success) {
       setIsEditing(false);
       setSuccessMessage('Perfil actualizado correctamente');
       setTimeout(() => setSuccessMessage(''), 5000);
     }
+    // Los errores por campo se manejan automáticamente en el hook
   };
 
   // Manejar cambio de contraseña
   const handlePasswordChange = async () => {
+    // Validaciones locales
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
@@ -95,9 +141,10 @@ const Profile = () => {
       setSuccessMessage('Contraseña actualizada correctamente');
       setTimeout(() => setSuccessMessage(''), 5000);
     }
+    // Los errores por campo se manejan automáticamente en el hook
   };
 
-  // Toggle visibilidad de contraseñas
+  // Función para alternar visibilidad de contraseñas
   const togglePasswordVisibility = (field) => {
     setShowPasswords(prev => ({
       ...prev,
@@ -105,23 +152,40 @@ const Profile = () => {
     }));
   };
 
+  // Función para renderizar errores de campo
+  const renderFieldError = (fieldName) => {
+    if (fieldErrors[fieldName]) {
+      return (
+        <p className="mt-1 text-sm text-red-600">
+          {fieldErrors[fieldName]}
+        </p>
+      );
+    }
+    return null;
+  };
+
+  // Función para obtener clases CSS del campo con error
+  const getFieldClasses = (fieldName, baseClasses) => {
+    if (fieldErrors[fieldName]) {
+      return `${baseClasses} border-red-300 focus:border-red-500 focus:ring-red-500`;
+    }
+    return `${baseClasses} border-gray-300 focus:border-blue-500 focus:ring-blue-500`;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando perfil...</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
-          <MdPerson className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No se pudo cargar el perfil</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">No se pudo cargar el perfil</h2>
+          <p className="text-gray-600">Por favor, intenta recargar la página.</p>
         </div>
       </div>
     );
@@ -131,56 +195,45 @@ const Profile = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
-          <p className="mt-2 text-gray-600">Gestiona tu información personal y configuración de cuenta</p>
-        </div>
-
-        {/* Mensajes */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex">
-              <MdInfo className="h-5 w-5 text-red-400 mt-0.5" />
-              <div className="ml-3">
-                <p className="text-sm text-red-800">{error}</p>
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Mi Perfil</h1>
+                <p className="text-gray-600">Gestiona tu información personal y configuración de cuenta</p>
               </div>
+              {!isEditing && !isChangingPassword && (
+                <button
+                  onClick={handleEditStart}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <MdEdit className="h-4 w-4 mr-2" />
+                  Editar Perfil
+                </button>
+              )}
             </div>
           </div>
-        )}
 
-        {successMessage && (
-          <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex">
-              <MdInfo className="h-5 w-5 text-green-400 mt-0.5" />
-              <div className="ml-3">
-                <p className="text-sm text-green-800">{successMessage}</p>
-              </div>
+          {/* Mensajes de estado */}
+          {error && (
+            <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-600">{error}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Formulario Principal */}
-        <div className="bg-white shadow-lg rounded-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Mi Perfil</h2>
-            {!isEditing && !isChangingPassword && (
-              <button
-                onClick={handleEditStart}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <MdEdit className="h-4 w-4 mr-2" />
-                Editar
-              </button>
-            )}
-          </div>
+          {successMessage && (
+            <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+              <p className="text-sm text-green-600">{successMessage}</p>
+            </div>
+          )}
 
           <div className="px-6 py-6 space-y-8">
             {/* Información Personal */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4">Información Personal</h3>
-               
+              
               {/* Campos no editables */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nombres
@@ -243,15 +296,18 @@ const Profile = () => {
                     Email
                   </label>
                   {isEditing ? (
-                    <div className="relative">
-                      <MdEmail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                      <input
-                        type="email"
-                        value={editForm.email}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                        className="pl-10 pr-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        placeholder="correo@ejemplo.com"
-                      />
+                    <div>
+                      <div className="relative">
+                        <MdEmail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <input
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) => handleFieldChange('email', e.target.value)}
+                          className={getFieldClasses('email', "pl-10 pr-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="correo@ejemplo.com"
+                        />
+                      </div>
+                      {renderFieldError('email')}
                     </div>
                   ) : (
                     <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
@@ -266,15 +322,18 @@ const Profile = () => {
                     Teléfono
                   </label>
                   {isEditing ? (
-                    <div className="relative">
-                      <MdPhone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                      <input
-                        type="tel"
-                        value={editForm.telefono}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, telefono: e.target.value }))}
-                        className="pl-10 pr-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        placeholder="+56 9 1234 5678"
-                      />
+                    <div>
+                      <div className="relative">
+                        <MdPhone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <input
+                          type="tel"
+                          value={editForm.telefono}
+                          onChange={(e) => handleFieldChange('telefono', e.target.value)}
+                          className={getFieldClasses('telefono', "pl-10 pr-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="+56 9 1234 5678"
+                        />
+                      </div>
+                      {renderFieldError('telefono')}
                     </div>
                   ) : (
                     <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
@@ -291,14 +350,17 @@ const Profile = () => {
                     Fecha de Nacimiento
                   </label>
                   {isEditing ? (
-                    <div className="relative">
-                      <MdCalendarToday className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                      <input
-                        type="date"
-                        value={editForm.fechaNacimiento}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, fechaNacimiento: e.target.value }))}
-                        className="pl-10 pr-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                      />
+                    <div>
+                      <div className="relative">
+                        <MdCalendarToday className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                        <input
+                          type="date"
+                          value={editForm.fechaNacimiento}
+                          onChange={(e) => handleFieldChange('fechaNacimiento', e.target.value)}
+                          className={getFieldClasses('fechaNacimiento', "pl-10 pr-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                        />
+                      </div>
+                      {renderFieldError('fechaNacimiento')}
                     </div>
                   ) : (
                     <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
@@ -318,14 +380,15 @@ const Profile = () => {
                     Dirección
                   </label>
                   {isEditing ? (
-                    <div className="relative">
+                    <div>
                       <input
                         type="text"
                         value={editForm.direccion}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, direccion: e.target.value }))}
-                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        onChange={(e) => handleFieldChange('direccion', e.target.value)}
+                        className={getFieldClasses('direccion', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
                         placeholder="Av. Principal 123, Santiago"
                       />
+                      {renderFieldError('direccion')}
                     </div>
                   ) : (
                     <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
@@ -339,21 +402,24 @@ const Profile = () => {
                     Tipo de Sangre
                   </label>
                   {isEditing ? (
-                    <select
-                      value={editForm.tipoSangre}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, tipoSangre: e.target.value }))}
-                      className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                    >
-                      <option value="">No especificado</option>
-                      <option value="A+">A+</option>
-                      <option value="A-">A-</option>
-                      <option value="B+">B+</option>
-                      <option value="B-">B-</option>
-                      <option value="AB+">AB+</option>
-                      <option value="AB-">AB-</option>
-                      <option value="O+">O+</option>
-                      <option value="O-">O-</option>
-                    </select>
+                    <div>
+                      <select
+                        value={editForm.tipoSangre}
+                        onChange={(e) => handleFieldChange('tipoSangre', e.target.value)}
+                        className={getFieldClasses('tipoSangre', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                      >
+                        <option value="">No especificado</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                      </select>
+                      {renderFieldError('tipoSangre')}
+                    </div>
                   ) : (
                     <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
                       <span className="text-gray-900">{profile.tipoSangre || 'No especificado'}</span>
@@ -371,13 +437,16 @@ const Profile = () => {
                       Alergias
                     </label>
                     {isEditing ? (
-                      <textarea
-                        value={editForm.alergias}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, alergias: e.target.value }))}
-                        rows={3}
-                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        placeholder="Alergia a medicamentos, alimentos, etc."
-                      />
+                      <div>
+                        <textarea
+                          value={editForm.alergias}
+                          onChange={(e) => handleFieldChange('alergias', e.target.value)}
+                          rows={3}
+                          className={getFieldClasses('alergias', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="Polen de abedul, frutos secos, mariscos (separar por comas)"
+                        />
+                        {renderFieldError('alergias')}
+                      </div>
                     ) : (
                       <div className="p-3 bg-white border border-gray-300 rounded-lg">
                         <span className="text-gray-900">{profile.alergias || 'No especificado'}</span>
@@ -390,13 +459,16 @@ const Profile = () => {
                       Medicamentos
                     </label>
                     {isEditing ? (
-                      <textarea
-                        value={editForm.medicamentos}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, medicamentos: e.target.value }))}
-                        rows={3}
-                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        placeholder="Medicamentos que consume regularmente"
-                      />
+                      <div>
+                        <textarea
+                          value={editForm.medicamentos}
+                          onChange={(e) => handleFieldChange('medicamentos', e.target.value)}
+                          rows={3}
+                          className={getFieldClasses('medicamentos', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="Aspirina 100mg, Losartán 50mg, Vitamina D (separar por comas)"
+                        />
+                        {renderFieldError('medicamentos')}
+                      </div>
                     ) : (
                       <div className="p-3 bg-white border border-gray-300 rounded-lg">
                         <span className="text-gray-900">{profile.medicamentos || 'No especificado'}</span>
@@ -409,13 +481,16 @@ const Profile = () => {
                       Condiciones médicas
                     </label>
                     {isEditing ? (
-                      <textarea
-                        value={editForm.condiciones}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, condiciones: e.target.value }))}
-                        rows={3}
-                        className="px-3 py-3 block w-full border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        placeholder="Condiciones médicas relevantes"
-                      />
+                      <div>
+                        <textarea
+                          value={editForm.condiciones}
+                          onChange={(e) => handleFieldChange('condiciones', e.target.value)}
+                          rows={3}
+                          className={getFieldClasses('condiciones', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="Hipertensión arterial, Diabetes tipo 2, Asma bronquial (separar por comas)"
+                        />
+                        {renderFieldError('condiciones')}
+                      </div>
                     ) : (
                       <div className="p-3 bg-white border border-gray-300 rounded-lg">
                         <span className="text-gray-900">{profile.condiciones || 'No especificado'}</span>
@@ -462,24 +537,27 @@ const Profile = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Contraseña Actual
                     </label>
-                    <div className="relative">
-                      <input
-                        type={showPasswords.current ? "text" : "password"}
-                        value={passwordForm.currentPassword}
-                        onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
-                        className="block w-full pr-10 pl-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('current')}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        {showPasswords.current ? 
-                          <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
-                          <MdVisibility className="h-5 w-5 text-gray-400" />
-                        }
-                      </button>
+                    <div>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.current ? "text" : "password"}
+                          value={passwordForm.currentPassword}
+                          onChange={(e) => handlePasswordFieldChange('currentPassword', e.target.value)}
+                          className={getFieldClasses('currentPassword', "block w-full pr-10 pl-3 py-3 rounded-lg shadow-sm text-gray-900")}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('current')}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        >
+                          {showPasswords.current ? 
+                            <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
+                            <MdVisibility className="h-5 w-5 text-gray-400" />
+                          }
+                        </button>
+                      </div>
+                      {renderFieldError('currentPassword')}
                     </div>
                   </div>
 
@@ -487,25 +565,28 @@ const Profile = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Nueva Contraseña
                     </label>
-                    <div className="relative">
-                      <input
-                        type={showPasswords.new ? "text" : "password"}
-                        value={passwordForm.newPassword}
-                        onChange={(e) => setPasswordForm(prev => ({ ...prev, newPassword: e.target.value }))}
-                        className="block w-full pr-10 pl-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        required
-                        minLength={8}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('new')}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        {showPasswords.new ? 
-                          <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
-                          <MdVisibility className="h-5 w-5 text-gray-400" />
-                        }
-                      </button>
+                    <div>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.new ? "text" : "password"}
+                          value={passwordForm.newPassword}
+                          onChange={(e) => handlePasswordFieldChange('newPassword', e.target.value)}
+                          className={getFieldClasses('newPassword', "block w-full pr-10 pl-3 py-3 rounded-lg shadow-sm text-gray-900")}
+                          required
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('new')}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        >
+                          {showPasswords.new ? 
+                            <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
+                            <MdVisibility className="h-5 w-5 text-gray-400" />
+                          }
+                        </button>
+                      </div>
+                      {renderFieldError('newPassword')}
                     </div>
                   </div>
 
@@ -513,24 +594,27 @@ const Profile = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Confirmar Nueva Contraseña
                     </label>
-                    <div className="relative">
-                      <input
-                        type={showPasswords.confirm ? "text" : "password"}
-                        value={passwordForm.confirmPassword}
-                        onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                        className="block w-full pr-10 pl-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePasswordVisibility('confirm')}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      >
-                        {showPasswords.confirm ? 
-                          <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
-                          <MdVisibility className="h-5 w-5 text-gray-400" />
-                        }
-                      </button>
+                    <div>
+                      <div className="relative">
+                        <input
+                          type={showPasswords.confirm ? "text" : "password"}
+                          value={passwordForm.confirmPassword}
+                          onChange={(e) => handlePasswordFieldChange('confirmPassword', e.target.value)}
+                          className={getFieldClasses('confirmPassword', "block w-full pr-10 pl-3 py-3 rounded-lg shadow-sm text-gray-900")}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility('confirm')}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        >
+                          {showPasswords.confirm ? 
+                            <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
+                            <MdVisibility className="h-5 w-5 text-gray-400" />
+                          }
+                        </button>
+                      </div>
+                      {renderFieldError('confirmPassword')}
                     </div>
                   </div>
                 </div>

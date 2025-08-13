@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Form from '@components/Form';
 import { MdClose, MdHelpOutline } from 'react-icons/md';
 import '@styles/popup.css';
@@ -8,9 +8,47 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
     const userData = data || {};
     const [loading, setLoading] = useState(false);
 
+    // useEffect para manejar scroll lock
+    useEffect(() => {
+        if (show) {
+            // Bloquear scroll del body cuando el popup está abierto
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Restaurar scroll del body cuando el popup se cierra
+            document.body.style.overflow = 'unset';
+        }
+
+        return () => {
+            // Limpiar al desmontar el componente
+            document.body.style.overflow = 'unset';
+        };
+    }, [show]);
+
     const handleSubmit = async (formData) => {
         setLoading(true);
         try {
+            // Transformar nombres y apellidos en arrays
+            formData.nombres = formData.nombres.split(' ').filter(nombre => nombre.trim() !== '');
+            formData.apellidos = formData.apellidos.split(' ').filter(apellido => apellido.trim() !== '');
+
+            // Transformar alergias, medicamentos y condiciones en arrays separados solo por comas
+            formData.alergias = formData.alergias.split(',').map(item => item.trim()).filter(item => item !== '');
+            formData.medicamentos = formData.medicamentos.split(',').map(item => item.trim()).filter(item => item !== '');
+            formData.condiciones = formData.condiciones.split(',').map(item => item.trim()).filter(item => item !== '');
+
+            // Si el tipo de sangre está vacío o es "No especificado", no lo incluir en los datos
+            if (!formData.tipoSangre || formData.tipoSangre === '') {
+                delete formData.tipoSangre;
+            }
+
+            // Si las fechas están vacías, no las incluir en los datos
+            if (!formData.fechaNacimiento || formData.fechaNacimiento === '') {
+                delete formData.fechaNacimiento;
+            }
+            if (!formData.fechaIngreso || formData.fechaIngreso === '') {
+                delete formData.fechaIngreso;
+            }
+
             // Los roles ya vienen del multiselect integrado en Form
             if (onUserUpdated && userData.run) {
                 const result = await onUserUpdated(formData, userData.run);
@@ -64,9 +102,9 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                         fechaIngreso: userData.fechaIngreso ? userData.fechaIngreso.split('T')[0] : "",
                                         direccion: userData.direccion || "",
                                         tipoSangre: userData.tipoSangre || "",
-                                        alergias: userData.alergias || "",
-                                        medicamentos: userData.medicamentos || "",
-                                        condiciones: userData.condiciones || "",
+                                        alergias: Array.isArray(userData.alergias) ? userData.alergias.join(', ') : userData.alergias || "",
+                                        medicamentos: Array.isArray(userData.medicamentos) ? userData.medicamentos.join(', ') : userData.medicamentos || "",
+                                        condiciones: Array.isArray(userData.condiciones) ? userData.condiciones.join(', ') : userData.condiciones || "",
                                         newPassword: "",
                                         roles: (() => {
                                             // Obtener roles del usuario para valores por defecto
@@ -191,7 +229,7 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                         {
                                             label: "Alergias",
                                             name: "alergias",
-                                            placeholder: 'Alergia a medicamentos, alimentos, etc.',
+                                            placeholder: 'Polen de abedul, frutos secos, mariscos (separar por comas)',
                                             fieldType: 'textarea',
                                             required: false,
                                             maxLength: 500,
@@ -201,7 +239,7 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                         {
                                             label: "Medicamentos",
                                             name: "medicamentos",
-                                            placeholder: 'Medicamentos que consume regularmente',
+                                            placeholder: 'Aspirina 100mg, Losartán 50mg, Vitamina D (separar por comas)',
                                             fieldType: 'textarea',
                                             required: false,
                                             maxLength: 500,
@@ -211,7 +249,7 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                         {
                                             label: "Condiciones médicas",
                                             name: "condiciones",
-                                            placeholder: 'Condiciones médicas relevantes',
+                                            placeholder: 'Hipertensión arterial, Diabetes tipo 2, Asma bronquial (separar por comas)',
                                             fieldType: 'textarea',
                                             required: false,
                                             maxLength: 500,

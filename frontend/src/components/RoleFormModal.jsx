@@ -31,6 +31,22 @@ const RoleFormModal = ({ show, setShow, editingRole, onSuccess }) => {
     }
   }, [show]); // Removido refreshPermissionsByCategory de las dependencias
 
+  // useEffect para manejar scroll lock
+  useEffect(() => {
+    if (show) {
+      // Bloquear scroll del body cuando el modal está abierto
+      document.body.style.overflow = 'hidden';
+    } else {
+      // Restaurar scroll del body cuando el modal se cierra
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      // Limpiar al desmontar el componente
+      document.body.style.overflow = 'unset';
+    };
+  }, [show]);
+
   // Inicializar formulario cuando se abre el modal
   useEffect(() => {
     if (show) {

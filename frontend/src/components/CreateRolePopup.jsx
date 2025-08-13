@@ -28,6 +28,22 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
         }
     }, [show]); // Removido refreshPermissionsByCategory de las dependencias
 
+    // useEffect para manejar scroll lock
+    useEffect(() => {
+        if (show) {
+            // Bloquear scroll del body cuando el popup está abierto
+            document.body.style.overflow = 'hidden';
+        } else {
+            // Restaurar scroll del body cuando el popup se cierra
+            document.body.style.overflow = 'unset';
+        }
+
+        return () => {
+            // Limpiar al desmontar el componente
+            document.body.style.overflow = 'unset';
+        };
+    }, [show]);
+
     // Inicializar cuando se abre el modal
     useEffect(() => {
         if (show) {

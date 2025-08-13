@@ -3,6 +3,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import Login from '@pages/Login';
 import Home from '@pages/Home';
 import Admin from '@pages/Admin';
+import Disponibilidad from '@pages/Disponibilidad';
 import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
@@ -38,6 +39,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute requiredPermissions={['usuario:leer_todos']}>
             <Admin />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/disponibilidad',
+        element: (
+          <ProtectedRoute requiredPermissions={['disponibilidad:read_all']}>
+            <Disponibilidad />
           </ProtectedRoute>
         ),
       },

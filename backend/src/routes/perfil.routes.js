@@ -2,6 +2,7 @@
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermissions } from "../middlewares/authorization.middleware.js";
+import { cleanEmptyStrings } from "../middlewares/cleanEmptyStrings.middleware.js";
 import {
   getMyProfile,
   updateMyProfile,
@@ -22,6 +23,7 @@ router.get(
 // PATCH /api/profile/ -> Actualizar el perfil del usuario autenticado
 router.patch(
   "/",
+  cleanEmptyStrings,
   authorizePermissions(["usuario:actualizar_perfil"]), // Permiso para actualizar el propio perfil
   updateMyProfile
 );
@@ -29,6 +31,7 @@ router.patch(
 // PATCH /api/profile/change-password -> Cambiar contraseña del usuario autenticado
 router.patch(
   "/change-password",
+  cleanEmptyStrings,
   authorizePermissions(["usuario:actualizar_perfil"]), // Permiso para actualizar el propio perfil
   changeMyPassword
 );

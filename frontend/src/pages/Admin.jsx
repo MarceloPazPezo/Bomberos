@@ -6,7 +6,7 @@ import CreateUserPopup from '@components/CreateUserPopup.jsx';
 import UserDetailModal from '@components/UserDetailModal.jsx';
 import Table from '@components/Table.jsx';
 import Tooltip from '@components/Tooltip.jsx';
-import { MdEdit, MdDelete, MdPersonAddAlt1, MdAdminPanelSettings, MdPerson, MdPhone, MdSecurity, MdApi, MdLink, MdLinkOff, MdAdd, MdViewList, MdViewModule, MdRefresh, MdVisibility, MdBusiness } from 'react-icons/md';
+import { MdEdit, MdDelete, MdPersonAddAlt1, MdAdminPanelSettings, MdPerson, MdPhone, MdSecurity, MdApi, MdLink, MdLinkOff, MdAdd, MdViewList, MdViewModule, MdRefresh, MdVisibility, MdBusiness, MdMoreVert } from 'react-icons/md';
 import PermissionsView from '@components/PermissionsView.jsx';
 import RolesView from '@components/RolesView.jsx';
 import UsersView from '@components/UsersView.jsx';
@@ -436,8 +436,10 @@ const Admin = () => {
   };
 
   const handleViewDetails = (user) => {
-    setUserDetailData(user);
-    setShowUserDetail(true);
+    if (user && typeof user === 'object') {
+      setUserDetailData(user);
+      setShowUserDetail(true);
+    }
   };
 
   const handleDeleteSingle = (user) => {
@@ -453,6 +455,7 @@ const Admin = () => {
   };
 
   const renderActions = ({ row }) => {
+    const [showDropdown, setShowDropdown] = useState(false);
     const isCurrentUser = currentUser && (currentUser.run === row.run || currentUser.id === row.id);
     const canEdit = hasPermission('usuario:actualizar_especifico');
     const canDelete = hasPermission('usuario:eliminar');
@@ -467,99 +470,185 @@ const Admin = () => {
     const handleStatusChange = async (userId, newStatus) => {
       await handleChangeUserStatus(userId, newStatus);
     };
+
+    // Definir las acciones disponibles
+    const actions = [];
+    
+    if (canView) {
+      actions.push({
+        key: 'view',
+        icon: <MdVisibility size={18} />,
+        label: 'Ver detalles',
+        onClick: () => handleViewDetails(row),
+        className: "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
+        tooltip: "Ver detalles completos del usuario",
+        disabled: false,
+        priority: 1
+      });
+    }
+
+    if (canEdit) {
+      actions.push({
+        key: 'edit',
+        icon: <MdEdit size={18} />,
+        label: 'Editar',
+        onClick: () => !isCurrentUser && handleEdit(row),
+        className: isCurrentUser 
+          ? "text-gray-400 cursor-not-allowed bg-gray-50" 
+          : "text-blue-600 hover:text-blue-900 hover:bg-blue-50",
+        tooltip: isCurrentUser 
+          ? "No puedes editarte a ti mismo" 
+          : "Editar información del usuario",
+        disabled: isCurrentUser,
+        priority: 2
+      });
+    }
+
+    if (canChangeStatus) {
+      actions.push({
+        key: 'status',
+        icon: row.activo ? <MdLinkOff size={18} /> : <MdLink size={18} />,
+        label: row.activo ? 'Desactivar' : 'Activar',
+        onClick: () => !isCurrentUser && handleStatusChange(row.id, !row.activo),
+        className: isCurrentUser 
+          ? "text-gray-400 cursor-not-allowed bg-gray-50" 
+          : row.activo 
+            ? "text-orange-600 hover:text-orange-900 hover:bg-orange-50" 
+            : "text-green-600 hover:text-green-900 hover:bg-green-50",
+        tooltip: isCurrentUser 
+          ? "No puedes cambiar tu propio estado" 
+          : row.activo 
+            ? "Desactivar usuario - El usuario no podrá acceder al sistema" 
+            : "Activar usuario - El usuario podrá acceder al sistema",
+        disabled: isCurrentUser,
+        priority: 3
+      });
+    }
+
+    if (canDelete) {
+      actions.push({
+        key: 'delete',
+        icon: <MdDelete size={18} />,
+        label: 'Eliminar',
+        onClick: () => !isCurrentUser && handleDeleteSingle(row),
+        className: isCurrentUser 
+          ? "text-gray-400 cursor-not-allowed bg-gray-50" 
+          : "text-red-600 hover:text-red-900 hover:bg-red-50",
+        tooltip: isCurrentUser 
+          ? "No puedes eliminarte a ti mismo" 
+          : "Eliminar usuario permanentemente - Esta acción no se puede deshacer",
+        disabled: isCurrentUser,
+        priority: 4
+      });
+    }
+
+    // Ordenar por prioridad y separar acciones principales de secundarias
+    const sortedActions = actions.sort((a, b) => a.priority - b.priority);
+    const primaryActions = sortedActions.slice(0, 2);
+    const secondaryActions = sortedActions.slice(2);
     
     return (
-      <div className="flex gap-2">
-        {canView && (
+      <div className="flex items-center gap-1">
+        {/* Acciones principales (máximo 2) */}
+        {primaryActions.map((action) => (
           <Tooltip
-            id={`view-${row.id}`}
-            content="Ver detalles completos del usuario"
+            key={action.key}
+            id={`${action.key}-${row.id}`}
+            content={action.tooltip}
             place="top"
-            variant="dark"
+            variant={action.disabled ? "light" : "dark"}
           >
             <button 
-              className="transition-all duration-200 p-2 rounded-lg hover:scale-105 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-              onClick={() => handleViewDetails(row)}
+              className={`transition-all duration-200 p-2 rounded-lg hover:scale-105 ${action.className}`}
+              onClick={action.onClick}
+              disabled={action.disabled}
             >
-              <MdVisibility size={18} />
+              {action.icon}
             </button>
           </Tooltip>
-        )}
-        {canEdit && (
-          <Tooltip
-            id={`edit-${row.id}`}
-            content={
-              isCurrentUser 
-                ? "No puedes editarte a ti mismo" 
-                : "Editar información del usuario"
-            }
-            place="top"
-            variant={isCurrentUser ? "light" : "dark"}
-          >
-            <button 
-              className={`transition-all duration-200 p-2 rounded-lg hover:scale-105 ${
-                isCurrentUser 
-                  ? "text-gray-400 cursor-not-allowed bg-gray-50" 
-                  : "text-blue-600 hover:text-blue-900 hover:bg-blue-50"
-              }`}
-              onClick={() => !isCurrentUser && handleEdit(row)}
-              disabled={isCurrentUser}
+        ))}
+
+        {/* Menú desplegable para acciones secundarias */}
+        {secondaryActions.length > 0 && (
+          <div className="relative">
+            <Tooltip
+              id={`more-${row.id}`}
+              content="Más opciones"
+              place="top"
+              variant="dark"
             >
-              <MdEdit size={18} />
-            </button>
-          </Tooltip>
-        )}
-        {canChangeStatus && (
-          <Tooltip
-            id={`status-${row.id}`}
-            content={
-              isCurrentUser 
-                ? "No puedes cambiar tu propio estado" 
-                : row.activo 
-                  ? "Desactivar usuario - El usuario no podrá acceder al sistema" 
-                  : "Activar usuario - El usuario podrá acceder al sistema"
-            }
-            place="top"
-            variant={isCurrentUser ? "light" : "dark"}
-          >
-            <button 
-              className={`transition-all duration-200 p-2 rounded-lg hover:scale-105 ${
-                isCurrentUser 
-                  ? "text-gray-400 cursor-not-allowed bg-gray-50" 
-                  : row.activo 
-                    ? "text-orange-600 hover:text-orange-900 hover:bg-orange-50" 
-                    : "text-green-600 hover:text-green-900 hover:bg-green-50"
-              }`}
-              onClick={() => !isCurrentUser && handleStatusChange(row.id, !row.activo)}
-              disabled={isCurrentUser}
-            >
-              {row.activo ? <MdLinkOff size={18} /> : <MdLink size={18} />}
-            </button>
-          </Tooltip>
-        )}
-        {canDelete && (
-          <Tooltip
-            id={`delete-${row.id}`}
-            content={
-              isCurrentUser 
-                ? "No puedes eliminarte a ti mismo" 
-                : "Eliminar usuario permanentemente - Esta acción no se puede deshacer"
-            }
-            place="top"
-            variant={isCurrentUser ? "light" : "dark"}
-          >
-            <button 
-              className={`transition-all duration-200 p-2 rounded-lg hover:scale-105 ${
-                isCurrentUser 
-                  ? "text-gray-400 cursor-not-allowed bg-gray-50" 
-                  : "text-red-600 hover:text-red-900 hover:bg-red-50"
-              }`}
-              onClick={() => !isCurrentUser && handleDeleteSingle(row)}
-              disabled={isCurrentUser}
-            >
-              <MdDelete size={18} />
-            </button>
-          </Tooltip>
+              <button 
+                className="transition-all duration-200 p-2 rounded-lg hover:scale-105 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                onClick={() => setShowDropdown(!showDropdown)}
+              >
+                <MdMoreVert size={18} />
+              </button>
+            </Tooltip>
+
+            {/* Dropdown menu */}
+            {showDropdown && (
+              <>
+                {/* Overlay para cerrar al hacer click fuera */}
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowDropdown(false)}
+                />
+                
+                {/* Menu desplegable */}
+                 <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                   <div className="py-1">
+                     {secondaryActions.map((action) => (
+                       <Tooltip
+                         key={action.key}
+                         id={`dropdown-${action.key}-${row.id}`}
+                         content={action.tooltip}
+                         place="left"
+                         variant={action.disabled ? "light" : "dark"}
+                       >
+                         <button
+                           onClick={() => {
+                             action.onClick();
+                             setShowDropdown(false);
+                           }}
+                           disabled={action.disabled}
+                           className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
+                             action.disabled
+                               ? 'text-gray-400 cursor-not-allowed bg-gray-50'
+                               : action.key === 'status'
+                                 ? row.activo
+                                   ? 'text-orange-600 hover:bg-orange-50'
+                                   : 'text-green-600 hover:bg-green-50'
+                                 : action.key === 'delete'
+                                   ? 'text-red-600 hover:bg-red-50'
+                                   : action.key === 'edit'
+                                     ? 'text-blue-600 hover:bg-blue-50'
+                                     : 'text-gray-700 hover:bg-gray-50'
+                           }`}
+                         >
+                           <span className={`${
+                             action.disabled
+                               ? 'text-gray-400'
+                               : action.key === 'status'
+                                 ? row.activo
+                                   ? 'text-orange-600'
+                                   : 'text-green-600'
+                                 : action.key === 'delete'
+                                   ? 'text-red-600'
+                                   : action.key === 'edit'
+                                     ? 'text-blue-600'
+                                     : 'text-gray-700'
+                           }`}>
+                             {action.icon}
+                           </span>
+                           <span>{action.label}</span>
+                         </button>
+                       </Tooltip>
+                     ))}
+                   </div>
+                 </div>
+              </>
+            )}
+          </div>
         )}
       </div>
     );
@@ -827,7 +916,9 @@ const Admin = () => {
       {showCreateRole && (
         <CreateRolePopup show={showCreateRole} setShow={setShowCreateRole} onRoleCreated={() => setRefreshRolesTrigger(prev => prev + 1)} />
       )}
-      <UserDetailModal show={showUserDetail} setShow={setShowUserDetail} userData={userDetailData} />
+      {showUserDetail && userDetailData && (
+        <UserDetailModal show={showUserDetail} setShow={setShowUserDetail} userData={userDetailData} />
+      )}
     </div>
   );
 };
