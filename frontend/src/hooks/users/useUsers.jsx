@@ -57,6 +57,30 @@ export const useUsers = () => {
         await fetchUsers(true); // Recargar la lista
         return { success: true, data: response.data };
       } else {
+        // Verificar si hay errores específicos por campo
+        if (response.details && Array.isArray(response.details)) {
+          // Convertir los errores del backend al formato esperado por el frontend
+          const fieldErrors = {};
+          response.details.forEach(detail => {
+            const fieldName = detail.path || detail.key;
+            if (fieldName) {
+              fieldErrors[fieldName] = detail.message;
+            }
+          });
+          
+          // Si hay errores específicos por campo, no mostrar SweetAlert
+          if (Object.keys(fieldErrors).length > 0) {
+            return { success: false, error: fieldErrors };
+          }
+        }
+        
+        // Verificar si el mensaje es un objeto con errores específicos por campo (duplicados)
+        if (response.message && typeof response.message === 'object') {
+          // Si hay errores específicos por campo, no mostrar SweetAlert
+          return { success: false, error: response.message };
+        }
+        
+        // Si no hay errores específicos por campo, mostrar SweetAlert
         showErrorAlert('Error', response.message || 'Error al crear el usuario');
         return { success: false, error: response.message };
       }

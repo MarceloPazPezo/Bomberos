@@ -250,13 +250,13 @@ export async function updateUserService(query, body, updatedBy = null) {
     // 4. Actualizar otras propiedades directas del usuario
     if (body.nombres !== undefined) dataUserUpdate.nombres = body.nombres;
     if (body.apellidos !== undefined) dataUserUpdate.apellidos = body.apellidos;
-    if (body.fechaNacimiento !== undefined)
+    if (body.fechaNacimiento !== undefined && body.fechaNacimiento !== '' && body.fechaNacimiento !== null)
       dataUserUpdate.fechaNacimiento = body.fechaNacimiento;
-    if (body.fechaIngreso !== undefined)
+    if (body.fechaIngreso !== undefined && body.fechaIngreso !== '' && body.fechaIngreso !== null)
       dataUserUpdate.fechaIngreso = body.fechaIngreso;
     if (body.direccion !== undefined)
       dataUserUpdate.direccion = body.direccion;
-    if (body.tipoSangre !== undefined)
+    if (body.tipoSangre !== undefined && body.tipoSangre !== '' && body.tipoSangre !== null)
       dataUserUpdate.tipoSangre = body.tipoSangre;
     if (body.alergias !== undefined)
       dataUserUpdate.alergias = body.alergias;
@@ -298,11 +298,11 @@ export async function updateUserService(query, body, updatedBy = null) {
   }
 }
 
-export async function changeUserStatusService(userId, activo) {
+export async function changeUserStatusService(userId, activo, currentUserId = null) {
   try {
     const userRepository = AppDataSource.getRepository(Usuario);
 
-    // Buscar el usuario por ID
+    // Buscar el usuario objetivo por ID
     const userFound = await userRepository.findOne({
       where: { id: userId },
       relations: ["roles"],
@@ -310,6 +310,29 @@ export async function changeUserStatusService(userId, activo) {
 
     if (!userFound) {
       return [null, "Usuario no encontrado"];
+    }
+
+    // Si se proporciona currentUserId, validar jerarquía
+    if (currentUserId) {
+      const currentUser = await userRepository.findOne({
+        where: { id: currentUserId },
+        relations: ["roles"],
+      });
+
+      if (!currentUser) {
+        return [null, "Usuario actual no encontrado"];
+      }
+
+      // Obtener el nivel máximo del usuario actual
+      const currentUserMaxLevel = Math.max(...currentUser.roles.map(role => role.nivel || 1));
+      
+      // Obtener el nivel máximo del usuario objetivo
+      const targetUserMaxLevel = Math.max(...userFound.roles.map(role => role.nivel || 1));
+
+      // Validar que el usuario actual tenga un nivel superior al usuario objetivo
+      if (currentUserMaxLevel <= targetUserMaxLevel) {
+        return [null, "No tienes permisos para cambiar el estado de este usuario. Solo puedes cambiar el estado de usuarios con roles de nivel inferior al tuyo."];
+      }
     }
 
     // Actualizar el estado
@@ -356,16 +379,36 @@ export async function createUserService(body, createdBy = null) {
     const userRepository = AppDataSource.getRepository(Usuario);
     const roleRepository = AppDataSource.getRepository(Rol);
 
-    const existingUser = await userRepository.findOne({
-      where: [
-        { run: body.run },
-        { email: body.email },
-        { telefono: body.telefono },
-      ],
+    // Verificar duplicados específicos por campo
+    const existingByRun = await userRepository.findOne({
+      where: { run: body.run },
     });
 
-    if (existingUser) {
-      return [null, "Ya existe un usuario con el mismo run o email o telefono"];
+    const existingByEmail = await userRepository.findOne({
+      where: { email: body.email },
+    });
+
+    const existingByTelefono = body.telefono ? await userRepository.findOne({
+      where: { telefono: body.telefono },
+    }) : null;
+
+    // Si hay duplicados, retornar errores específicos por campo
+    if (existingByRun || existingByEmail || existingByTelefono) {
+      const fieldErrors = {};
+      
+      if (existingByRun) {
+        fieldErrors.run = "Ya existe un usuario con este RUT";
+      }
+      
+      if (existingByEmail) {
+        fieldErrors.email = "Ya existe un usuario con este email";
+      }
+      
+      if (existingByTelefono) {
+        fieldErrors.telefono = "Ya existe un usuario con este teléfono";
+      }
+      
+      return [null, fieldErrors];
     }
 
     const userRole = await roleRepository.findOneBy({ nombre: "Usuario" });
@@ -373,30 +416,44 @@ export async function createUserService(body, createdBy = null) {
       return [null, "Rol de usuario no encontrado"];
     }
 
-    const newUser = userRepository.create({
+    const userData = {
       nombres: body.nombres,
       apellidos: body.apellidos,
       run: body.run,
-      fechaNacimiento: body.fechaNacimiento,
       email: body.email,
-      telefono: body.telefono,
       passwordHash: await encryptPassword(body.password),
-      fechaIngreso: body.fechaIngreso,
-      direccion: body.direccion,
-      tipoSangre: body.tipoSangre,
       alergias: body.alergias,
       medicamentos: body.medicamentos,
       condiciones: body.condiciones,
       activo: body.activo !== undefined ? body.activo : true,
       creadoPor: createdBy,
       roles: [userRole],
-    });
+    };
+
+    // Solo agregar campos opcionales si no están vacíos o null
+    if (body.telefono && body.telefono !== '' && body.telefono !== null) {
+      userData.telefono = body.telefono;
+    }
+    if (body.direccion && body.direccion !== '' && body.direccion !== null) {
+      userData.direccion = body.direccion;
+    }
+    if (body.fechaNacimiento && body.fechaNacimiento !== '' && body.fechaNacimiento !== null) {
+      userData.fechaNacimiento = body.fechaNacimiento;
+    }
+    if (body.fechaIngreso && body.fechaIngreso !== '' && body.fechaIngreso !== null) {
+      userData.fechaIngreso = body.fechaIngreso;
+    }
+    if (body.tipoSangre && body.tipoSangre !== '' && body.tipoSangre !== null) {
+      userData.tipoSangre = body.tipoSangre;
+    }
+
+    const newUser = userRepository.create(userData);
 
     const savedUser = await userRepository.save(newUser);
 
-    const { passwordHash, ...userData } = savedUser;
+    const { passwordHash, ...userDataResult } = savedUser;
 
-    return [userData, null];
+    return [userDataResult, null];
   } catch (error) {
     console.error("Error al crear un usuario:", error);
     return [null, "Error interno del servidor"];

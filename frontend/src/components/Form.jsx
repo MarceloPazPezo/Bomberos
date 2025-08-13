@@ -1,8 +1,17 @@
 import { useForm } from 'react-hook-form';
-import { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
+import { useState, forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
 import { fieldIcons } from '@helpers/fieldIcons';
 import { MdVisibility, MdVisibilityOff, MdAdd, MdRemove } from 'react-icons/md';
+import { FaAsterisk } from "react-icons/fa";
 import MultiSelect from '@components/MultiSelect';
+import Select from '@components/Select';
+import CustomDatePicker from './CustomDatePicker';
+import { registerLocale } from 'react-datepicker';
+import { es } from 'date-fns/locale';
+import 'react-datepicker/dist/react-datepicker.css';
+
+// Registrar el locale español
+registerLocale('es', es);
 
 const Form = forwardRef(({
     title,
@@ -17,7 +26,7 @@ const Form = forwardRef(({
     loading = false,
     submitButtonVariant = 'primary',
 }, ref) => {
-    const { register, handleSubmit, formState: { errors }, watch, setValue, getValues } = useForm({
+    const { register, handleSubmit, formState: { errors }, watch, setValue, getValues, clearErrors } = useForm({
         defaultValues
     });
 
@@ -30,17 +39,70 @@ const Form = forwardRef(({
     const [showPassword, setShowPassword] = useState({});
     const [dynamicFields, setDynamicFields] = useState({});
     const [selectedOptions, setSelectedOptions] = useState({});
+    const [fieldErrors, setFieldErrors] = useState({});
+    const fieldRefs = useRef({});
 
     useEffect(() => {
         const initialOptions = {};
         fields.forEach((field) => {
-            if (field.fieldType === 'multiselect' && field.defaultValue) {
-                initialOptions[field.name] = field.defaultValue;
-                setValue(field.name, field.defaultValue); // Sincroniza con react-hook-form
+            if (field.fieldType === 'multiselect') {
+                // Asegurar que defaultValue siempre sea un array
+                const defaultValue = Array.isArray(field.defaultValue) ? field.defaultValue : [];
+                initialOptions[field.name] = defaultValue;
+                setValue(field.name, defaultValue); // Sincroniza con react-hook-form
+            }
+            
+            // Configurar validaciones para el Select personalizado
+            if (field.fieldType === 'select') {
+                register(field.name, {
+                    required: field.required ? 'Este campo es obligatorio' : false,
+                    validate: field.validate || {},
+                });
             }
         });
         setSelectedOptions(initialOptions);
-    }, [fields, setValue]);
+    }, [fields, setValue, register]);
+
+    // Detectar errores específicos por campo y hacer auto-focus
+    useEffect(() => {
+        const currentFieldErrors = {};
+        
+        // Detectar errores de react-hook-form
+        Object.keys(errors).forEach(fieldName => {
+            if (errors[fieldName]) {
+                currentFieldErrors[fieldName] = true;
+            }
+        });
+
+        // Detectar errores específicos del backend (errorMessageData)
+        fields.forEach(field => {
+            if (field.errorMessageData) {
+                currentFieldErrors[field.name] = true;
+            }
+        });
+
+        setFieldErrors(currentFieldErrors);
+
+        // Auto-focus en el primer campo con error
+        const firstErrorField = fields.find(field => 
+            currentFieldErrors[field.name] && fieldRefs.current[field.name]
+        );
+
+        if (firstErrorField && fieldRefs.current[firstErrorField.name]) {
+            const fieldElement = fieldRefs.current[firstErrorField.name];
+            
+            // Hacer scroll suave al campo
+            fieldElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Hacer focus después de un pequeño delay para que el scroll termine
+            setTimeout(() => {
+                fieldElement.focus();
+            }, 300);
+        }
+    }, [errors, fields]);
 
     const togglePasswordVisibility = (fieldName) => {
         setShowPassword(prev => ({
@@ -76,6 +138,11 @@ const Form = forwardRef(({
             [name]: selected,
         }));
         setValue(name, selected);
+        
+        // Limpiar errores cuando se selecciona algo
+        if (selected && selected.length > 0 && clearErrors) {
+            clearErrors(name);
+        }
     };
 
     const onFormSubmit = (data) => {
@@ -107,6 +174,14 @@ const Form = forwardRef(({
         }
     };
 
+    const getFieldClasses = (fieldName, baseClasses) => {
+        const hasError = fieldErrors[fieldName] || errors[fieldName];
+        if (hasError) {
+            return `${baseClasses} border-red-500 focus:ring-red-500/40 bg-red-50`;
+        }
+        return baseClasses;
+    };
+
     return (
         // --- CAMBIOS PRINCIPALES AQUÍ ---
         // 1. Se usa `w-full` para que ocupe el 100% del ancho en móviles.
@@ -126,7 +201,28 @@ const Form = forwardRef(({
 
             {fields.map((field, index) => (
                 <div className="w-full mb-3" key={index}>
-                    {field.label && <label className="block text-sm font-semibold text-[#2C3E50] mb-1.5" htmlFor={field.name}>{field.label}</label>}
+                    {field.label && (
+                        <label className="block text-sm font-semibold text-[#2C3E50] mb-1.5" htmlFor={field.name}>
+                            <div className="flex items-center gap-1">
+                                {typeof field.label === 'string' ? (
+                                    <>
+                                        <span>{field.label}</span>
+                                        {field.required && (
+                                            <span className="relative group">
+                                                <FaAsterisk className="w-2 h-2 text-red-500" />
+                                                <span className="absolute left-4 top-0 z-10 hidden group-hover:block bg-white text-xs text-[#2C3E50] border border-[#4EB9FA]/30 rounded px-2 py-1 shadow-lg min-w-max">
+                                                    Este campo es obligatorio
+                                                </span>
+                                            </span>
+                                        )}
+                                    </>
+                                ) : (
+                                    // Para labels complejos como el de contraseña que ya tiene su propio JSX
+                                    field.label
+                                )}
+                            </div>
+                        </label>
+                    )}
 
                     {field.fieldType === 'input' && (
                         <div className="relative flex items-center">
@@ -136,7 +232,8 @@ const Form = forwardRef(({
                                 </span>
                             )}
                             <input
-                                className={`w-full p-3 ${fieldIcons[field.name] ? 'pl-11' : ''} ${field.type === 'password' ? 'pr-11' : ''} bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] placeholder-[#2C3E50]/60 focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition`}
+                                ref={(el) => fieldRefs.current[field.name] = el}
+                                className={getFieldClasses(field.name, `w-full p-3 ${fieldIcons[field.name] ? 'pl-11' : ''} ${field.type === 'password' ? 'pr-11' : ''} bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] placeholder-[#2C3E50]/60 focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition`)}
                                 {...register(field.name, {
                                     required: field.required ? 'Este campo es obligatorio' : false,
                                     minLength: field.minLength ? { value: field.minLength, message: `Debe tener al menos ${field.minLength} caracteres` } : false,
@@ -179,43 +276,52 @@ const Form = forwardRef(({
                     )}
 
                     {field.fieldType === 'textarea' && (
-                        <textarea
-                            className="w-full p-3 bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] placeholder-[#2C3E50]/60 focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition"
-                            {...register(field.name, {
-                                required: field.required ? 'Este campo es obligatorio' : false,
-                                minLength: field.minLength ? { value: field.minLength, message: `Debe tener al menos ${field.minLength} caracteres` } : false,
-                                maxLength: field.maxLength ? { value: field.maxLength, message: `Debe tener máximo ${field.maxLength} caracteres` } : false,
-                                pattern: field.pattern ? { value: field.pattern, message: field.patternMessage || 'Formato no válido' } : false,
-                                validate: field.validate || {},
-                            })}
-                            name={field.name}
-                            placeholder={field.placeholder}
-                            defaultValue={field.defaultValue || ''}
-                            disabled={field.disabled}
-                            onChange={field.onChange}
-                            rows="4" // Añadido para un tamaño por defecto razonable
-                        />
+                        <div className="relative flex items-start">
+                            {fieldIcons[field.name] && (
+                                <span className="absolute left-3 top-3 text-[#2C3E50] opacity-70 pointer-events-none">
+                                    {fieldIcons[field.name]({ size: 22 })}
+                                </span>
+                            )}
+                            <textarea
+                                ref={(el) => fieldRefs.current[field.name] = el}
+                                className={getFieldClasses(field.name, `w-full p-3 ${fieldIcons[field.name] ? 'pl-11' : ''} bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] placeholder-[#2C3E50]/60 focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition`)}
+                                {...register(field.name, {
+                                    required: field.required ? 'Este campo es obligatorio' : false,
+                                    minLength: field.minLength ? { value: field.minLength, message: `Debe tener al menos ${field.minLength} caracteres` } : false,
+                                    maxLength: field.maxLength ? { value: field.maxLength, message: `Debe tener máximo ${field.maxLength} caracteres` } : false,
+                                    pattern: field.pattern ? { value: field.pattern, message: field.patternMessage || 'Formato no válido' } : false,
+                                    validate: field.validate || {},
+                                })}
+                                name={field.name}
+                                placeholder={field.placeholder}
+                                defaultValue={field.defaultValue || ''}
+                                disabled={field.disabled}
+                                onChange={field.onChange}
+                                rows="4" // Añadido para un tamaño por defecto razonable
+                            />
+                        </div>
                     )}
 
                     {field.fieldType === 'select' && (
-                        <select
-                            className="w-full p-3 bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition appearance-none"
-                            {...register(field.name, {
-                                required: field.required ? 'Este campo es obligatorio' : false,
-                                validate: field.validate || {},
-                            })}
-                            name={field.name}
-                            defaultValue={field.defaultValue || ''}
+                        <Select
+                            ref={(el) => fieldRefs.current[field.name] = el}
+                            options={field.options || []}
+                            value={watch(field.name) || field.defaultValue || ''}
+                            onChange={(e) => {
+                                setValue(field.name, e.target.value);
+                                if (field.onChange) field.onChange(e);
+                                // Limpiar errores cuando se selecciona algo
+                                if (e.target.value) {
+                                    clearErrors(field.name);
+                                }
+                            }}
+                            placeholder={field.placeholder || "Seleccionar opción"}
                             disabled={field.disabled}
-                            onChange={field.onChange}
-                        >
-                            <option value="">Seleccionar opción</option>
-                            {field.options && field.options.map((option, optIndex) => (
-                                <option className="text-black bg-white" key={optIndex} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
+                            icon={fieldIcons[field.name] ? fieldIcons[field.name]({ size: 22 }) : null}
+                            name={field.name}
+                            required={field.required}
+                            error={!!errors[field.name]}
+                        />
                     )}
 
                     {field.fieldType === 'checkbox' && (
@@ -291,12 +397,21 @@ const Form = forwardRef(({
 
                     {field.fieldType === 'multiselect' && (
                         <MultiSelect
-                            options={field.options}
-                            selectedOptions={selectedOptions[field.name] || []}
-                            onChange={handleMultiSelectChange}
+                            options={field.options || []}
+                            selectedOptions={Array.isArray(selectedOptions[field.name]) ? selectedOptions[field.name] : []}
+                            onChange={(name, selectedOptions) => {
+                                handleMultiSelectChange(name, selectedOptions);
+                                // Limpiar errores cuando se selecciona algo
+                                if (selectedOptions && selectedOptions.length > 0) {
+                                    clearErrors(name);
+                                }
+                            }}
                             name={field.name}
                             required={field.required}
                             isLoading={field.isLoading}
+                            icon={fieldIcons[field.name] ? fieldIcons[field.name]({ size: 22 }) : null}
+                            placeholder={field.placeholder || "Seleccionar opciones..."}
+                            searchPlaceholder={field.searchPlaceholder || "Buscar..."}
                         />
                     )}
 
@@ -334,8 +449,38 @@ const Form = forwardRef(({
                         </div>
                     )}
 
+                    {field.fieldType === 'datepicker' && (
+                        <div className="relative w-full">
+                            <CustomDatePicker
+                                selected={watch(field.name) ? new Date(watch(field.name)) : null}
+                                onChange={(date) => {
+                                    const isoDate = date ? date.toISOString().split('T')[0] : '';
+                                    setValue(field.name, isoDate);
+                                    if (field.onChange) {
+                                        field.onChange(date);
+                                    }
+                                    if (date) {
+                                        clearErrors(field.name);
+                                    }
+                                }}
+                                placeholder={field.placeholder || "dd/mm/yyyy"}
+                                className="w-full"
+                                disabled={field.disabled}
+                                maxDate={field.maxDate}
+                                minDate={field.minDate}
+                            />
+                            <input
+                                type="hidden"
+                                {...register(field.name, {
+                                    required: field.required ? 'Este campo es obligatorio' : false,
+                                    validate: field.validate || {},
+                                })}
+                            />
+                        </div>
+                    )}
+
                     {/* --- MENSAJE DE ERROR MEJORADO --- */}
-                    <div className={`error-message text-red-600 font-semibold mt-1 min-h-[1.25em] text-sm`}>
+                    <div className={`error-message text-red-600 font-semibold mt-1 min-h-[1.25em] text-sm transition-all duration-300 ${(errors[field.name]?.message || field.errorMessageData) ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform -translate-y-1'}`}>
                         {errors[field.name]?.message || field.errorMessageData || ''}
                     </div>
                 </div>
