@@ -12,6 +12,7 @@ import contactoEmergenciaRoutes from "./contactoEmergencia.routes.js";
 import disponibilidadRoutes from "./disponibilidad.routes.js";
 
 
+
 const router = Router();
 
 router
@@ -24,6 +25,8 @@ router
   .use("/sistema", sistemaRoutes)
   .use("/contactoEmergencia", contactoEmergenciaRoutes)
   .use("/disponibilidad", disponibilidadRoutes)
-  .use("/health", healthRoutes);
+  .use("/health", healthRoutes)
+  //.use("/parteEmergencia", parteEmergencia);
+
 
 export default router;

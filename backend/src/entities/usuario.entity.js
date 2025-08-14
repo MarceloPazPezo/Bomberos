@@ -153,6 +153,28 @@ const UsuarioSchema = new EntitySchema({
       target: "ContactoEmergencia",
       inverseSide: "usuario",
     },
+    asistenciasPartes: {
+      type: "one-to-many",
+      target: "AsistenciaParte",
+      inverseSide: "usuario",
+    },
+    unidadesConducidas: { 
+      type: "one-to-many", 
+      target: "UnidadParte", 
+      inverseSide: "conductor" 
+    },
+    unidadesOficial: { 
+      type: "one-to-many", 
+      target: "UnidadParte", 
+      inverseSide: "oficial" 
+    },
+    pasajerosDeUnidades: { 
+      type: "one-to-many", 
+      target: "PasajeroUnidad", 
+      inverseSide: "usuario" 
+    },
+
+
 
 
 

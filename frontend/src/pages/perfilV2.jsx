@@ -3,7 +3,8 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   MdEmail, MdPhone, MdCalendarToday, MdEdit, MdSave, MdCancel, MdPerson,
   MdShield, MdLocationOn, MdLocalHospital, MdPeopleAlt,
-  MdHistory, MdSchool, MdCheckCircle, MdErrorOutline, MdAdd, MdDelete
+  MdHistory, MdSchool, MdCheckCircle, MdErrorOutline, MdAdd, MdDelete,
+  MdSettings, MdLock, MdVisibility, MdVisibilityOff
 } from 'react-icons/md';
 import { useProfile } from '@hooks/useProfile';
 import { formatRut, formatTelefono } from '@helpers/formatData';
@@ -115,11 +116,12 @@ const Profile = () => {
     fieldErrors,
     updating,
     updateProfile,
+    updatePassword,
     setError,
     clearFieldError,
   } = useProfile();
 
-  const [activeTab, setActiveTab] = useState('personal'); // personal | emergencia | capacitacion | medica | historial
+  const [activeTab, setActiveTab] = useState('personal'); // personal | emergencia | capacitacion | medica | historial | cuenta
   const [success, setSuccess] = useState('');
 
   // ====== Estado de edición POR ÁREA ======
@@ -135,9 +137,14 @@ const Profile = () => {
   // --- Contactos de Emergencia (tarjetas + CRUD con services) ---
   const [editEmerg, setEditEmerg] = useState(false);
   const [dirtyEmerg, setDirtyEmerg] = useState(false);
-  const [contactos, setContactos] = useState([]);         // estado actual (con _dbId / _tempId)
-  const [originales, setOriginales] = useState([]);       // para diff
+  const [contactos, setContactos] = useState([]);
+  const [originales, setOriginales] = useState([]);
   const [errorEmerg, setErrorEmerg] = useState('');
+
+  // --- Seguridad / cambio contraseña (en pestaña Cuenta) ---
+  const [showPwdForm, setShowPwdForm] = useState(false);
+  const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [showPwd, setShowPwd] = useState({ cur: false, new: false, conf: false });
 
   // ====== Derivados del perfil ======
   const nombreCompleto = useMemo(
@@ -161,7 +168,6 @@ const Profile = () => {
     setDirtyContacto(false);
   }, [profile]);
 
-  // cargar contactos desde API
   const fetchContactos = useCallback(async () => {
     if (!userId) return;
     try {
@@ -169,8 +175,8 @@ const Profile = () => {
       const resp = await getContactosEmergencia(userId);
       const list = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp) ? resp : []);
       const normalized = list.map((c) => ({
-        _dbId: c.id,                 // id real en BD
-        _tempId: `${c.id}`,          // key estable
+        _dbId: c.id,
+        _tempId: `${c.id}`,
         usuario_id: c.usuario_id ?? userId,
         nombres: c.nombres || '',
         apellidos: c.apellidos || '',
@@ -193,7 +199,6 @@ const Profile = () => {
 
   // ====== Cambio de pestaña con confirmación si hay cambios pendientes ======
   const requestTabChange = useCallback(async (nextTab) => {
-    // Cambios en Información de Contacto (dentro de pestaña personal)
     if (activeTab === 'personal' && editContacto && dirtyContacto) {
       const wantSave = window.confirm(
         'Tienes cambios sin guardar en "Información de Contacto". ¿Deseas GUARDAR antes de salir?\nAceptar: Guardar · Cancelar: Descartar'
@@ -205,7 +210,6 @@ const Profile = () => {
         onCancelContacto(true);
       }
     }
-    // Cambios en Contactos de Emergencia
     if (activeTab === 'emergencia' && editEmerg && dirtyEmerg) {
       const wantSave = window.confirm(
         'Tienes cambios sin guardar en "Contactos de Emergencia". ¿Deseas GUARDAR antes de salir?\nAceptar: Guardar · Cancelar: Descartar'
@@ -293,20 +297,16 @@ const Profile = () => {
     if (!silent) setErrorEmerg('');
   };
 
-  // Diff y guardado usando tus services
   const onSaveEmerg = async () => {
     try {
       setErrorEmerg('');
-      // crear índices
       const origById = new Map(originales.filter(c => c._dbId != null).map(c => [c._dbId, c]));
       const currentById = new Map(contactos.filter(c => c._dbId != null).map(c => [c._dbId, c]));
 
-      // Borrados: presentes en originales y NO presentes ahora
       const toDeleteIds = originales
         .filter(c => c._dbId != null && !currentById.has(c._dbId))
         .map(c => c._dbId);
 
-      // Nuevos: sin _dbId
       const toCreate = contactos.filter(c => !c._dbId).map(c => ({
         usuario_id: userId,
         nombres: c.nombres?.trim() || '',
@@ -316,7 +316,6 @@ const Profile = () => {
         email: c.email?.trim() || '',
       }));
 
-      // Actualizados: con _dbId y con cambios respecto a originales
       const toUpdate = contactos
         .filter(c => c._dbId != null)
         .filter(c => {
@@ -342,12 +341,10 @@ const Profile = () => {
           }
         }));
 
-      // Ejecutar operaciones (primero borrados para evitar conflictos únicos)
       await Promise.all(toDeleteIds.map(id => deleteContactoEmergencia(id)));
       await Promise.all(toUpdate.map(u => updateContactoEmergencia(u.id, u.data)));
       await Promise.all(toCreate.map(c => addContactoEmergencia(c)));
 
-      // refrescar
       await fetchContactos();
       setEditEmerg(false);
       setDirtyEmerg(false);
@@ -357,6 +354,25 @@ const Profile = () => {
     } catch (e) {
       setErrorEmerg('No se pudo actualizar los contactos de emergencia.');
       return false;
+    }
+  };
+
+  // ====== Handlers: Cambio de contraseña (pestaña Cuenta) ======
+  const doChangePassword = async () => {
+    if (pwdForm.newPassword.length < 8) {
+      setError('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (pwdForm.newPassword !== pwdForm.confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    const res = await updatePassword({ currentPassword: pwdForm.currentPassword, newPassword: pwdForm.newPassword });
+    if (res?.success) {
+      setSuccess('Contraseña actualizada correctamente.');
+      setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setShowPwdForm(false);
+      setTimeout(() => setSuccess(''), 3500);
     }
   };
 
@@ -449,6 +465,9 @@ const Profile = () => {
             </TabButton>
             <TabButton active={activeTab === 'historial'} onClick={() => requestTabChange('historial')} icon={MdHistory}>
               Historial
+            </TabButton>
+            <TabButton active={activeTab === 'cuenta'} onClick={() => requestTabChange('cuenta')} icon={MdSettings}>
+              Configuración de la cuenta
             </TabButton>
           </div>
         </div>
@@ -807,6 +826,166 @@ const Profile = () => {
                 <Empty>No hay eventos en el historial.</Empty>
               )}
             </SectionCard>
+          )}
+
+          {/* ========= CUENTA ========= */}
+          {activeTab === 'cuenta' && (
+            <div className="space-y-6">
+              {/* Roles */}
+              <SectionCard title="Roles Asignados">
+                {profile.roles && profile.roles.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {profile.roles.map((r, i) => (
+                      <Chip key={i} color="blue">
+                        {r?.nombre || r?.name || String(r)}
+                      </Chip>
+                    ))}
+                  </div>
+                ) : (
+                  <Empty>Sin roles asignados.</Empty>
+                )}
+              </SectionCard>
+
+              {/* Seguridad */}
+              <SectionCard
+                title="Seguridad"
+                right={
+                  <button
+                    onClick={() => setShowPwdForm(v => !v)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <MdLock className="h-4 w-4" />
+                    Cambiar Contraseña
+                  </button>
+                }
+              >
+                {showPwdForm ? (
+                  <div className="grid max-w-xl grid-cols-1 gap-4">
+                    {/* Actual */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">Contraseña actual</label>
+                      <div className="relative">
+                        <Field
+                          type={showPwd.cur ? 'text' : 'password'}
+                          name="currentPassword"
+                          value={pwdForm.currentPassword}
+                          onChange={(e) => setPwdForm({ ...pwdForm, currentPassword: e.target.value })}
+                          error={fieldErrors?.currentPassword}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPwd((s) => ({ ...s, cur: !s.cur }))}
+                          className="absolute inset-y-0 right-2 flex items-center"
+                          title="Mostrar/ocultar"
+                        >
+                          {showPwd.cur ? <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : <MdVisibility className="h-5 w-5 text-gray-400" />}
+                        </button>
+                      </div>
+                      {fieldErrors?.currentPassword && <p className="text-xs text-red-600">{fieldErrors.currentPassword}</p>}
+                    </div>
+
+                    {/* Nueva */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">Nueva contraseña</label>
+                      <div className="relative">
+                        <Field
+                          type={showPwd.new ? 'text' : 'password'}
+                          name="newPassword"
+                          value={pwdForm.newPassword}
+                          onChange={(e) => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
+                          error={fieldErrors?.newPassword}
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPwd((s) => ({ ...s, new: !s.new }))}
+                          className="absolute inset-y-0 right-2 flex items-center"
+                        >
+                          {showPwd.new ? <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : <MdVisibility className="h-5 w-5 text-gray-400" />}
+                        </button>
+                      </div>
+                      {fieldErrors?.newPassword && <p className="text-xs text-red-600">{fieldErrors.newPassword}</p>}
+                      <p className="mt-1 text-xs text-gray-500">Mínimo 8 caracteres.</p>
+                    </div>
+
+                    {/* Confirmación */}
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-gray-700">Confirmar nueva contraseña</label>
+                      <div className="relative">
+                        <Field
+                          type={showPwd.conf ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={pwdForm.confirmPassword}
+                          onChange={(e) => setPwdForm({ ...pwdForm, confirmPassword: e.target.value })}
+                          error={fieldErrors?.confirmPassword}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPwd((s) => ({ ...s, conf: !s.conf }))}
+                          className="absolute inset-y-0 right-2 flex items-center"
+                        >
+                          {showPwd.conf ? <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : <MdVisibility className="h-5 w-5 text-gray-400" />}
+                        </button>
+                      </div>
+                      {fieldErrors?.confirmPassword && <p className="text-xs text-red-600">{fieldErrors.confirmPassword}</p>}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={doChangePassword}
+                        disabled={updating}
+                        className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+                      >
+                        <MdSave className="h-4 w-4" />
+                        {updating ? 'Cambiando…' : 'Guardar contraseña'}
+                      </button>
+                      <button
+                        onClick={() => { setShowPwdForm(false); setPwdForm({ currentPassword: '', newPassword: '', confirmPassword: '' }); setError(null); }}
+                        disabled={updating}
+                        className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                      >
+                        <MdCancel className="h-4 w-4" />
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600">Utiliza el botón “Cambiar Contraseña” para actualizar tu clave.</p>
+                )}
+              </SectionCard>
+
+              {/* Información de Cuenta */}
+              <SectionCard title="Información de Cuenta">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Estado</p>
+                    <div className="mt-2">
+                      <Chip color={profile.activo ? 'green' : 'red'}>
+                        {profile.activo ? 'Activo' : 'Inactivo'}
+                      </Chip>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Miembro desde</p>
+                    <p className="mt-2 text-sm text-gray-900">
+                      {profile.fechaIngreso
+                        ? toCLDate(profile.fechaIngreso, { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : (profile.fechaCreacion
+                            ? toCLDate(profile.fechaCreacion, { day: '2-digit', month: '2-digit', year: 'numeric' })
+                            : 'No disponible')}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Última actualización</p>
+                    <p className="mt-2 text-sm text-gray-900">
+                      {profile.fechaActualizacion
+                        ? toCLDate(profile.fechaActualizacion, { day: '2-digit', month: '2-digit', year: 'numeric' })
+                        : 'No disponible'}
+                    </p>
+                  </div>
+                </div>
+              </SectionCard>
+            </div>
           )}
         </div>
       </div>

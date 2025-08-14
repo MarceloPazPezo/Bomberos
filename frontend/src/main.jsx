@@ -8,7 +8,9 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
+
 import Profilev2 from '@pages/perfilV2';
+import ParteEmergenciaCreate from '@pages/ParteEmergenciaCreate';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import '@styles/styles.css';
@@ -74,6 +76,13 @@ const router = createBrowserRouter([
         element: <TestRoles />
       },
 
+      {
+        path: '/partes/nuevo',
+        element: (
+          <ParteEmergenciaCreate />
+        ),
+      },
+
     ]
   },
   {
@@ -83,7 +92,10 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />
-  }
+  },
+
+
+
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(

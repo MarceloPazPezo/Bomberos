@@ -6,12 +6,11 @@ import {
     handleErrorServer,
 } from "../handlers/responseHandlers.js";
 import { idValidation } from "../validations/generico.validation.js";
-import {validationCreateContactoEmergenciaBody} from "../validations/contactoEmergencia.validation.js";
+import {validationCreateContactoEmergenciaBody, validationUpdateContactoEmergenciaBody} from "../validations/contactoEmergencia.validation.js";
 import { getContactoEmergenciaService,
         createContactoEmergenciaService,
         deleteContactoEmergenciaService,
         updateContactoEmergenciaService,
-
  } from "../services/contactoEmergencia.service.js";
 
 const getContactoEmergencia = async (req, res) => {
@@ -38,6 +37,17 @@ const getContactoEmergencia = async (req, res) => {
 const createContactoEmergencia = async (req, res) => {
     try {
         const data = req.body;
+        // Remove empty fields from body: "", '', null, or undefined (also trims whitespace-only strings)
+        if (data && typeof data === "object" && !Array.isArray(data)) {
+            for (const [key, value] of Object.entries(data)) {
+                if (value == null) {
+                    delete data[key];
+                } else if (typeof value === "string" && value.trim() === "") {
+                    delete data[key];
+                }
+            }
+        }
+
         const { error } = validationCreateContactoEmergenciaBody.validate(data);
         if (error) {
             console.error("Error en createContactoEmergencia:", error);
@@ -71,16 +81,17 @@ const deleteContactoEmergencia = async (req, res) => {
 const updateContactoEmergencia = async (req, res) => {
     try {
         const { id } = req.params;
-        const { error } = idValidation.validate(id);
+        const { error2 } = idValidation.validate(id);
+        if (error2) {
+            return handleErrorClient(res, 400, error2.message);
+        }
+         const data = req.body;
+        const { error } = validationUpdateContactoEmergenciaBody.validate(data);
         if (error) {
+            console.error("Error en createContactoEmergencia:", error);
             return handleErrorClient(res, 400, error.message);
         }
 
-        const data = req.body;
-         const { errorbody } = validationCreateContactoEmergenciaBody.validate(data);
-        if (errorbody) {
-            return handleErrorClient(res, 400, errorbody.message);
-        }
         const updatedContactoEmergencia = await updateContactoEmergenciaService(parseInt(id), data);
         handleSuccess(res, 200, "Contacto de emergencia actualizado correctamente", updatedContactoEmergencia);
 

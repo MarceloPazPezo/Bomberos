@@ -130,6 +130,18 @@ const ParteEmergenciaSchema = new EntitySchema({
             target: "VehiculoAfectado",
             inverseSide: "parte", // ← coincide con la propiedad many-to-one en vehiculo_afectado.js
         },
+        asistentes: {
+            type: "one-to-many",
+            target: "AsistenciaParte",
+            inverseSide: "parte",
+        },
+        unidades: { 
+            type: "one-to-many", 
+            target: "UnidadParte", 
+            inverseSide: "parte" 
+        },
+
+
 
 
         updatedByUser: {
