@@ -12,7 +12,7 @@ import {
   CheckCircle, Flame, Layers, LayoutGrid, Zap, TrendingUp,
   TrendingDown, PauseCircle
 } from "lucide-react";
-import { MdAdd, MdClose, MdPersonAdd, MdDelete, MdSearch } from "react-icons/md";
+import { MdAdd, MdClose, MdPersonAdd, MdDelete, MdSearch, MdSave, MdSend } from "react-icons/md";
 
 /* ----------------- HELPERS: RUN (formato + módulo 11) ----------------- */
 const onlyDigitsK = (v="") => v.replace(/[^0-9kK]/g, "");
@@ -59,33 +59,33 @@ const yearGT1900 = (v) => {
 const defaultValues = {
   general: {
     fecha: new Date().toISOString().split("T")[0],
-    compania: "",
-    tipoServicio: "",
-    horaDespacho: "",
-    hora6_0: "",
-    hora6_3: "",
-    hora6_9: "",
-    hora6_10: "",
-    kmSalida: "",
-    kmLlegada: "",
+    compañia: "",
+    tipo_servicio: "",
+    hora_despacho: "",
+    hora_6_0: "",
+    hora_6_3: "",
+    hora_6_9: "",
+    hora_6_10: "",
+    km_salida: "",
+    km_llegada: "",
     comuna: "",
     direccion: "",
-    villaPoblacion: "",
-    propietario: { rut: "", nombres: "", apellidos: "", telefono: "" },
-    tipoIncendio: "",
-    faseAlcanzada: "",
-    descripcionPreliminar: "",
+    villa_poblacion: "",
+    propietario: { run: "", nombres: "", apellidos: "", telefono: "" },
+    tipo_incendio: "",
+    fase_alcanzada: "",
+    descripcion_preliminar: "",
     tipoConstruccion: "",
     danosVivienda: "",
     m2Construccion: "",
     nPisos: "",
     danosEnseres: "",
     m2Afectado: "",
-    redactorId: null,
-    oficialACargoId: null,
+    redactor_id: null,
+    // oficialACargoId: null,
   },
   afectados: {
-    otrosInmuebles: [{ direccion: "", nombre: "", rut: "", edad: "", estadoCivil: "" }],
+    otrosInmuebles: [{ direccion: "", nombre: "", run: "", edad: "", estadoCivil: "" }],
     vehiculos: [
       {
         tipoVehiculo: "",
@@ -94,14 +94,14 @@ const defaultValues = {
         color: "",
         patente: "",
         conductor: "",
-        rut: "",
-        ocupantes: [{ nombre: "", edad: "", rut: "", ocupantes: "", vinculo: "", gravedad: "" }],
+        run: "",
+        ocupantes: [{ nombre: "", edad: "", run: "", ocupantes: "", vinculo: "", gravedad: "" }],
       },
     ],
   },
-  compania: {
+  compañia: {
     unidades: [{ unidad: "", conductorId: null, oficialAlMandoId: null, nVoluntarios: "" }],
-    accidentados: [{ compania: "", bomberoId: null, rut: "", lesiones: "", constancia: "", comisaria: "", acciones: "" }],
+    accidentados: [{ compañia: "", bomberoId: null, run: "", lesiones: "", constancia: "", comisaria: "", acciones: "" }],
     otrosServicios: [{ servicio: "", unidad: "", aCargo: "", nPersonal: "" , observaciones: ""}],
   },
   asistencia: {
@@ -114,6 +114,12 @@ export default function ParteEmergenciaCreate() {
   const nav = useNavigate();
   const [step, setStep] = React.useState(1);
 
+  // ids persistentes devueltos por el backend al guardar Paso 1
+  const [parteId, setParteId] = React.useState(null);
+  const [afectadoId, setAfectadoId] = React.useState(null);
+  const [inmuebleAfectadoId, setInmuebleAfectadoId] = React.useState(null);
+  const [savingPaso1, setSavingPaso1] = React.useState(false);
+
   const { register, handleSubmit, control, watch, setValue, formState: { errors } } = useForm({
     defaultValues,
     mode: "onChange",
@@ -122,43 +128,160 @@ export default function ParteEmergenciaCreate() {
   // field arrays
   const otrosInmueblesFA = useFieldArray({ control, name: "afectados.otrosInmuebles" });
   const vehiculosFA = useFieldArray({ control, name: "afectados.vehiculos" });
-  const unidadesFA = useFieldArray({ control, name: "compania.unidades" });
-  const accidentadosFA = useFieldArray({ control, name: "compania.accidentados" });
-  const otrosServiciosFA = useFieldArray({ control, name: "compania.otrosServicios" });
+  const unidadesFA = useFieldArray({ control, name: "compañia.unidades" });
+  const accidentadosFA = useFieldArray({ control, name: "compañia.accidentados" });
+  const otrosServiciosFA = useFieldArray({ control, name: "compañia.otrosServicios" });
 
-  const onSubmit = async (payload) => {
-    const clean = (v) => (v === "" || v === null ? null : v);
-    // números opcionales -> entero
-    const toIntOrNull = (v) => {
-      const n = parseInt(v, 10);
-      return Number.isNaN(n) ? null : n;
+  /* ----------------- Helpers de casteo ----------------- */
+  const toIntOrNull = (v) => {
+    const n = parseInt(v, 10);
+    return Number.isNaN(n) ? null : n;
+  };
+  const emptyToNull = (v) => (v === "" || v === undefined ? null : v);
+
+  /* ----------------- Guardar Paso 1 usando tu SERVICE ----------------- */
+  const savePaso1 = async () => {
+    const g = watch("general");
+
+    // construir payload esperado por el backend (3 tablas)
+    const payload = {
+      parteEmergencia: {
+        id: parteId ?? null, // si ya existe, actualiza; si no, crea
+        fecha: g.fecha || null,
+        compañia: emptyToNull(g.compañia),
+        tipo_servicio: emptyToNull(g.tipo_servicio),
+        hora_despacho: emptyToNull(g.hora_despacho),
+        hora_6_0: emptyToNull(g.hora_6_0),
+        hora_6_3: emptyToNull(g.hora_6_3),
+        hora_6_9: emptyToNull(g.hora_6_9),
+        hora_6_10: emptyToNull(g.hora_6_10),
+        km_salida: g.km_salida === "" ? null : toIntOrNull(g.km_salida),
+        km_llegada: g.km_llegada === "" ? null : toIntOrNull(g.km_llegada),
+        comuna: emptyToNull(g.comuna),
+        direccion: emptyToNull(g.direccion),
+        villa_poblacion: emptyToNull(g.villa_poblacion),
+        tipo_incendio: emptyToNull(g.tipo_incendio),
+        fase_alcanzada: emptyToNull(g.fase_alcanzada),
+        descripcion_preliminar: emptyToNull(g.descripcion_preliminar),
+        redactor_id: g.redactorId ?? null,
+      },
+      afectado: {
+        id: afectadoId ?? null, // usualmente null en la primera vez
+        parte_id: parteId ?? null, // el backend puede completar luego con el nuevo id
+        run: emptyToNull(g.propietario?.run),
+        nombres: emptyToNull(g.propietario?.nombres),
+        apellidos: emptyToNull(g.propietario?.apellidos),
+        telefono: emptyToNull(g.propietario?.telefono),
+      },
+      inmuebleAfectado: {
+        id: inmuebleAfectadoId ?? null,
+        parte_id: parteId ?? null,
+        // del bloque "Datos del lugar"
+        comuna: emptyToNull(g.comuna),
+        direccion: emptyToNull(g.direccion),
+        villa_poblacion: emptyToNull(g.villa_poblacion),
+        // del bloque "Construcción y daños"
+        tipoConstruccion: emptyToNull(g.tipoConstruccion),
+        danosVivienda: emptyToNull(g.danosVivienda),
+        m2Construccion: g.m2Construccion === "" ? null : toIntOrNull(g.m2Construccion),
+        nPisos: g.nPisos === "" ? null : toIntOrNull(g.nPisos),
+        danosEnseres: emptyToNull(g.danosEnseres),
+        m2Afectado: g.m2Afectado === "" ? null : toIntOrNull(g.m2Afectado),
+      },
     };
-    payload.general.kmSalida = toIntOrNull(payload.general.kmSalida);
-    payload.general.kmLlegada = toIntOrNull(payload.general.kmLlegada);
+
+    setSavingPaso1(true);
+    try {
+      const res = await crearParteEmergencia(payload);
+      // el controlador usa handleSuccess(..., { parteEmergenciaId, afectadoId, inmuebleAfectadoId })
+      // según tu handler, a veces viene como res.data / a veces plano: cubrimos ambos
+      const dataIds = res?.data ?? res;
+      if (dataIds) {
+        if (dataIds.parteEmergenciaId) setParteId(dataIds.parteEmergenciaId);
+        if (dataIds.afectadoId) setAfectadoId(dataIds.afectadoId);
+        if (dataIds.inmuebleAfectadoId) setInmuebleAfectadoId(dataIds.inmuebleAfectadoId);
+      }
+      // feedback mínimo
+      console.log("Paso 1 guardado OK:", dataIds);
+    } catch (err) {
+      console.error("Error al guardar Paso 1:", err);
+      // feedback sencillo
+      alert("No se pudo guardar el Paso 1. Revisa los datos obligatorios o vuelve a intentar.");
+      throw err; // para frenar el avance si falla
+    } finally {
+      setSavingPaso1(false);
+    }
+  };
+
+  /* ----------------- Submit final (guardado completo) ----------------- */
+  const onSubmit = async (payload) => {
+    // Normalizamos algunos números del resto de pasos
+    payload.general.km_salida = toIntOrNull(payload.general.km_salida);
+    payload.general.km_llegada = toIntOrNull(payload.general.km_llegada);
     payload.general.m2Construccion = toIntOrNull(payload.general.m2Construccion);
     payload.general.m2Afectado = toIntOrNull(payload.general.m2Afectado);
     payload.general.nPisos = toIntOrNull(payload.general.nPisos);
-    payload.compania.unidades = payload.compania.unidades.map((u) => ({
+    payload.compañia.unidades = payload.compañia.unidades.map((u) => ({
       ...u,
       nVoluntarios: toIntOrNull(u.nVoluntarios),
     }));
-    payload.compania.otrosServicios = payload.compania.otrosServicios.map((o) => ({
+    payload.compañia.otrosServicios = payload.compañia.otrosServicios.map((o) => ({
       ...o,
       nPersonal: toIntOrNull(o.nPersonal),
     }));
 
-    await crearParteEmergencia(payload);
+    // Este submit final podría hacer otro endpoint (no provisto).
+    // Por ahora, solo navegamos al listado tras un hipotético éxito.
     nav("/partes-emergencia");
+  };
+
+  /* ----------------- Manejo de navegación entre pasos ----------------- */
+  const handleNext = async () => {
+    if (step === 1) {
+      await savePaso1(); // si falla, no avanza
+    }
+    setStep((s) => Math.min(4, s + 1));
   };
 
   return (
     <div className="p-4 md:p-6">
-      {/* Encabezado + Stepper (lucide) */}
-      <div className="bg-white rounded-3xl shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <ClipboardList className="text-blue-600" />
-          <h1 className="text-xl font-semibold">Nuevo Parte de Emergencia</h1>
+      {/* Encabezado + Acciones (arriba derecha) + Stepper — SOLO GRÁFICO */}
+      <div className="bg-white rounded-3xl shadow-sm p-6 mb-6 sticky top-0 z-40">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <ClipboardList className="text-blue-600" />
+            <h1 className="text-xl font-semibold">Nuevo Parte de Emergencia</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Guardar (borrador) — SOLO UI */}
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50"
+              title="Guardar borrador"
+              onClick={async () => { if (step === 1) { await savePaso1(); } }}
+              disabled={savingPaso1 && step === 1}
+            >
+              <MdSave size={18} /> {savingPaso1 && step === 1 ? "Guardando..." : "Guardar"}
+            </button>
+            {/* Enviar (finalizar) — SOLO UI */}
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+              title="Enviar parte"
+              onClick={async () => {
+                if (step === 1) {
+                  try { await savePaso1(); } catch { return; }
+                }
+                // aquí podrías llamar a un endpoint de "finalizar"
+                nav("/partes-emergencia");
+              }}
+              disabled={savingPaso1 && step === 1}
+            >
+              <MdSend size={18} /> Enviar
+            </button>
+          </div>
         </div>
+
         <PasoIndicator step={step} setStep={setStep} />
       </div>
 
@@ -176,13 +299,19 @@ export default function ParteEmergenciaCreate() {
         {step === 3 && <Paso3 {...{ register, unidadesFA, accidentadosFA, otrosServiciosFA, watch, setValue, errors }} />}
         {step === 4 && <Paso4 {...{ watch, setValue }} />}
 
+        {/* Navegación inferior: Atrás / Siguiente / Guardar Parte (submit) */}
         <div className="flex justify-between pt-4">
           <button type="button" onClick={() => setStep(Math.max(1, step - 1))} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50">
             <ChevronLeft size={18} /> Atrás
           </button>
           {step < 4 ? (
-            <button type="button" onClick={() => setStep(step + 1)} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
-              Siguiente <ChevronRight size={18} />
+            <button
+              type="button"
+              onClick={handleNext}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
+              disabled={savingPaso1 && step === 1}
+            >
+              {step === 1 && savingPaso1 ? "Guardando..." : "Siguiente"} <ChevronRight size={18} />
             </button>
           ) : (
             <button type="submit" className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700">
@@ -231,17 +360,17 @@ function PasoIndicator({ step, setStep }) {
 function Paso1({ register, watch, setValue, errors }) {
   const g = watch("general");
 
-  const tipoIncendioOptions = [
-    { value: "Compartimental", label: "Compartimental", icon: LayoutGrid },
-    { value: "Multicompartimental", label: "Multicompartimental", icon: Layers },
-    { value: "Estructural", label: "Estructural", icon: Home },
+  const tipo_incendioOptions = [
+    { value: "COMPARTIMENTAL", label: "compartimental", icon: LayoutGrid },
+    { value: "MULTICOMPARTIMENTAL", label: "Multicompartimental", icon: Layers },
+    { value: "ESTRUCTURAL", label: "Estructural", icon: Home },
   ];
   const faseOptions = [
-    { value: "Ignición", label: "Ignición", icon: Flame },
-    { value: "Incremento", label: "Incremento", icon: TrendingUp },
-    { value: "Libre combustión", label: "Libre combustión", icon: Zap },
-    { value: "Decaimiento", label: "Decaimiento", icon: TrendingDown },
-    { value: "Latente", label: "Latente", icon: PauseCircle },
+    { value: "IGNICION", label: "Ignición", icon: Flame },
+    { value: "INCREMENTO", label: "Incremento", icon: TrendingUp },
+    { value: "LIBRE COMBUSTIÓN", label: "Libre combustión", icon: Zap },
+    { value: "DECAIMIENTO", label: "Decaimiento", icon: TrendingDown },
+    { value: "LATENTE", label: "Latente", icon: PauseCircle },
   ];
 
   return (
@@ -249,19 +378,19 @@ function Paso1({ register, watch, setValue, errors }) {
       <Card title="1. Datos generales" titleIcon={<ClipboardList className="text-blue-600" />}>
         <div className="grid md:grid-cols-4 gap-3">
           <Input label="Fecha" type="date" {...register("general.fecha", { validate: (v) => yearGT1900(v) || "El año debe ser mayor a 1900" })} error={errors?.general?.fecha?.message} />
-          <Input label="Compañía" {...register("general.compania")} />
-          <Input label="Tipo de servicio" {...register("general.tipoServicio")} />
-          <Input label="Hora despacho" type="time" {...register("general.horaDespacho")} />
-          <Input label="Hora 6-0" type="time" {...register("general.hora6_0")} />
-          <Input label="Hora 6-3" type="time" {...register("general.hora6_3")} />
-          <Input label="Hora 6-9" type="time" {...register("general.hora6_9")} />
-          <Input label="Hora 6-10" type="time" {...register("general.hora6_10")} />
-          <Input label="Km salida" type="number" step="1" {...register("general.kmSalida", {
+          <Input label="Compañía" {...register("general.compañia")} />
+          <Input label="Tipo de servicio" {...register("general.tipo_servicio")} />
+          <Input label="Hora despacho" type="time" {...register("general.hora_despacho")} />
+          <Input label="Hora 6-0" type="time" {...register("general.hora_6_0")} />
+          <Input label="Hora 6-3" type="time" {...register("general.hora_6_3")} />
+          <Input label="Hora 6-9" type="time" {...register("general.hora_6_9")} />
+          <Input label="Hora 6-10" type="time" {...register("general.hora_6_10")} />
+          <Input label="Km salida" type="number" step="1" {...register("general.km_salida", {
             validate: (v) => (v === "" || isPosInt(v)) || "Debe ser entero positivo (> 0)"
-          })} error={errors?.general?.kmSalida?.message} />
-          <Input label="Km llegada" type="number" step="1" {...register("general.kmLlegada", {
+          })} error={errors?.general?.km_salida?.message} />
+          <Input label="Km llegada" type="number" step="1" {...register("general.km_llegada", {
             validate: (v) => (v === "" || isPosInt(v)) || "Debe ser entero positivo (> 0)"
-          })} error={errors?.general?.kmLlegada?.message} />
+          })} error={errors?.general?.km_llegada?.message} />
         </div>
       </Card>
 
@@ -269,13 +398,13 @@ function Paso1({ register, watch, setValue, errors }) {
         <div className="grid md:grid-cols-3 gap-3">
           <Input label="Comuna" {...register("general.comuna")} />
           <Input label="Dirección" {...register("general.direccion")} />
-          <Input label="Villa/Población" {...register("general.villaPoblacion")} />
+          <Input label="Villa/Población" {...register("general.villa_poblacion")} />
         </div>
       </Card>
 
       <Card title="3. Propietario" titleIcon={<Users className="text-blue-600" />}>
         <div className="grid md:grid-cols-4 gap-3">
-          <RunInput label="RUN" name="general.propietario.rut" register={register} setValue={setValue} error={errors?.general?.propietario?.rut?.message} />
+          <RunInput label="RUN" name="general.propietario.run" register={register} setValue={setValue} error={errors?.general?.propietario?.run?.message} />
           <Input label="Nombres" {...register("general.propietario.nombres")} />
           <Input label="Apellidos" {...register("general.propietario.apellidos")} />
           <Input label="Teléfono" {...register("general.propietario.telefono")} />
@@ -285,11 +414,11 @@ function Paso1({ register, watch, setValue, errors }) {
       <Card title="4. Características" titleIcon={<Flame className="text-blue-600" />}>
         <Label>Tipo de incendio</Label>
         <div className="grid sm:grid-cols-3 gap-3 mb-3">
-          {tipoIncendioOptions.map((op) => (
+          {tipo_incendioOptions.map((op) => (
             <SelectableCard
               key={op.value}
-              selected={g.tipoIncendio === op.value}
-              onClick={() => setValue("general.tipoIncendio", op.value, { shouldDirty: true })}
+              selected={g.tipo_incendio === op.value}
+              onClick={() => setValue("general.tipo_incendio", op.value, { shouldDirty: true })}
               icon={op.icon}
               label={op.label}
             />
@@ -301,8 +430,8 @@ function Paso1({ register, watch, setValue, errors }) {
           {faseOptions.map((op) => (
             <SelectableCard
               key={op.value}
-              selected={g.faseAlcanzada === op.value}
-              onClick={() => setValue("general.faseAlcanzada", op.value, { shouldDirty: true })}
+              selected={g.fase_alcanzada === op.value}
+              onClick={() => setValue("general.fase_alcanzada", op.value, { shouldDirty: true })}
               icon={op.icon}
               label={op.label}
             />
@@ -310,7 +439,7 @@ function Paso1({ register, watch, setValue, errors }) {
         </div>
 
         <div className="mt-4">
-          <Textarea label="Descripción preliminar" rows={3} {...register("general.descripcionPreliminar")} />
+          <Textarea label="Descripción preliminar" rows={3} {...register("general.descripcion_preliminar")} />
         </div>
       </Card>
 
@@ -331,13 +460,10 @@ function Paso1({ register, watch, setValue, errors }) {
         </div>
       </Card>
 
-      <Card title="Responsables" titleIcon={<Users className="text-blue-600" />}>
+      <Card title="Redactor" titleIcon={<Users className="text-blue-600" />}>
         <div className="grid md:grid-cols-2 gap-3">
-          <Field label="Redactor">
+          <Field label="">
             <UserSelect value={g.redactorId ?? null} onChange={(id) => setValue("general.redactorId", id)} />
-          </Field>
-          <Field label="Oficial a cargo">
-            <UserSelect value={g.oficialACargoId ?? null} onChange={(id) => setValue("general.oficialACargoId", id)} />
           </Field>
         </div>
       </Card>
@@ -357,7 +483,7 @@ function Paso2({ register, otrosInmueblesFA, vehiculosFA, control, setValue, err
             <div className="grid md:grid-cols-5 gap-3">
               <Input label="Dirección" {...register(`afectados.otrosInmuebles.${i}.direccion`)} />
               <Input label="Nombre" {...register(`afectados.otrosInmuebles.${i}.nombre`)} />
-              <RunInput label="RUN" name={`afectados.otrosInmuebles.${i}.rut`} register={register} setValue={setValue} error={errors?.afectados?.otrosInmuebles?.[i]?.rut?.message} />
+              <RunInput label="RUN" name={`afectados.otrosInmuebles.${i}.run`} register={register} setValue={setValue} error={errors?.afectados?.otrosInmuebles?.[i]?.run?.message} />
               <Input label="Edad"  type="number" step="1" {...register(`afectados.otrosInmuebles.${i}.edad`, {
                 validate: (v) => (v === "" || isAge(v)) || "Debe ser entero entre 1 y 129"
               })} error={errors?.afectados?.otrosInmuebles?.[i]?.edad?.message} />
@@ -380,8 +506,8 @@ function Paso2({ register, otrosInmueblesFA, vehiculosFA, control, setValue, err
                 color: "",
                 patente: "",
                 conductor: "",
-                rut: "",
-                ocupantes: [{ nombre: "", edad: "", rut: "", ocupantes: "", vinculo: "", gravedad: "" }],
+                run: "",
+                ocupantes: [{ nombre: "", edad: "", run: "", ocupantes: "", vinculo: "", gravedad: "" }],
               })
             }
           />
@@ -396,7 +522,7 @@ function Paso2({ register, otrosInmueblesFA, vehiculosFA, control, setValue, err
               <Input label="Color" {...register(`afectados.vehiculos.${i}.color`)} />
               <Input label="Patente" {...register(`afectados.vehiculos.${i}.patente`)} />
               <Input label="Conductor" {...register(`afectados.vehiculos.${i}.conductor`)} />
-              <RunInput label="RUN (conductor)" name={`afectados.vehiculos.${i}.rut`} register={register} setValue={setValue} error={errors?.afectados?.vehiculos?.[i]?.rut?.message} />
+              <RunInput label="RUN (conductor)" name={`afectados.vehiculos.${i}.run`} register={register} setValue={setValue} error={errors?.afectados?.vehiculos?.[i]?.run?.message} />
             </div>
 
             <div className="mt-4">
@@ -411,10 +537,7 @@ function Paso2({ register, otrosInmueblesFA, vehiculosFA, control, setValue, err
 }
 
 function OcupantesSubform({ prefix, register, setValue, errors }) {
-  // NOTA: este subform debe usarse dentro de un FieldArray padre (vehículos)
-  // Aquí mapeamos por indices existentes en el objeto con un truco: contamos cuántos hay mirando el propio form.
-  // Para mantener simple y estable, pedimos al usuario que agregue ocupantes desde el padre (ya está).
-  // Para eliminar/añadir, puedes gestionar desde el padre si lo prefieres. Aquí hacemos una gestión local mínima:
+  // NOTA: subform simple para visualizar UI. Agregar/Eliminar se hace desde el padre.
   const [rows, setRows] = React.useState([0]);
   return (
     <div className="space-y-3">
@@ -424,7 +547,7 @@ function OcupantesSubform({ prefix, register, setValue, errors }) {
           <Input label="Edad" type="number" step="1" {...register(`${prefix}.${idx}.edad`, {
             validate: (v) => (v === "" || isAge(v)) || "Debe ser entero entre 1 y 129"
           })} error={errors?.[prefix]?.[idx]?.edad?.message} />
-          <RunInput label="RUN" name={`${prefix}.${idx}.rut`} register={register} setValue={setValue} error={errors?.[prefix]?.[idx]?.rut?.message} />
+          <RunInput label="RUN" name={`${prefix}.${idx}.run`} register={register} setValue={setValue} error={errors?.[prefix]?.[idx]?.run?.message} />
           <Input label="Ocupantes" {...register(`${prefix}.${idx}.ocupantes`)} />
           <Input label="Vínculo" {...register(`${prefix}.${idx}.vinculo`)} />
           <div>
@@ -448,7 +571,7 @@ function OcupantesSubform({ prefix, register, setValue, errors }) {
    Paso 3: Información compañía (con validaciones)
    ========================= */
 function Paso3({ register, unidadesFA, accidentadosFA, otrosServiciosFA, watch, setValue, errors }) {
-  const unidades = watch("compania.unidades");
+  const unidades = watch("compañia.unidades");
   return (
     <div className="space-y-6">
       <Card
@@ -459,16 +582,16 @@ function Paso3({ register, unidadesFA, accidentadosFA, otrosServiciosFA, watch, 
         {unidadesFA.fields.map((f, i) => (
           <Row key={f.id} title={`Unidad #${i + 1}`} onRemove={() => unidadesFA.remove(i)}>
             <div className="grid md:grid-cols-4 gap-3">
-              <Input label="Unidad" {...register(`compania.unidades.${i}.unidad`)} />
+              <Input label="Unidad" {...register(`compañia.unidades.${i}.unidad`)} />
               <Field label="Conductor">
-                <UserSelect value={unidades?.[i]?.conductorId ?? null} onChange={(id) => setValue(`compania.unidades.${i}.conductorId`, id)} />
+                <UserSelect value={unidades?.[i]?.conductorId ?? null} onChange={(id) => setValue(`compañia.unidades.${i}.conductorId`, id)} />
               </Field>
               <Field label="Oficial al mando">
-                <UserSelect value={unidades?.[i]?.oficialAlMandoId ?? null} onChange={(id) => setValue(`compania.unidades.${i}.oficialAlMandoId`, id)} />
+                <UserSelect value={unidades?.[i]?.oficialAlMandoId ?? null} onChange={(id) => setValue(`compañia.unidades.${i}.oficialAlMandoId`, id)} />
               </Field>
-              <Input label="N° voluntarios" type="number" step="1" {...register(`compania.unidades.${i}.nVoluntarios`, {
+              <Input label="N° voluntarios" type="number" step="1" {...register(`compañia.unidades.${i}.nVoluntarios`, {
                 validate: (v) => (v === "" || isPosInt(v)) || "Debe ser entero positivo (> 0)"
-              })} error={errors?.compania?.unidades?.[i]?.nVoluntarios?.message} />
+              })} error={errors?.compañia?.unidades?.[i]?.nVoluntarios?.message} />
             </div>
           </Row>
         ))}
@@ -478,17 +601,17 @@ function Paso3({ register, unidadesFA, accidentadosFA, otrosServiciosFA, watch, 
         {accidentadosFA.fields.map((f, i) => (
           <Row key={f.id} title={`Accidentado #${i + 1}`} onRemove={() => accidentadosFA.remove(i)}>
             <div className="grid md:grid-cols-6 gap-3">
-              <Input label="Compañía" {...register(`compania.accidentados.${i}.compania`)} />
+              <Input label="Compañía" {...register(`compañia.accidentados.${i}.compañia`)} />
               <Field label="Bombero accidentado">
-                <UserSelect value={watch(`compania.accidentados.${i}.bomberoId`) ?? null} onChange={(id) => setValue(`compania.accidentados.${i}.bomberoId`, id)} />
+                <UserSelect value={watch(`compañia.accidentados.${i}.bomberoId`) ?? null} onChange={(id) => setValue(`compañia.accidentados.${i}.bomberoId`, id)} />
               </Field>
-              <RunInput label="RUN" name={`compania.accidentados.${i}.rut`} register={register} setValue={setValue} error={errors?.compania?.accidentados?.[i]?.rut?.message} />
-              <Input label="Lesiones" {...register(`compania.accidentados.${i}.lesiones`)} />
-              <Input label="Constancia" {...register(`compania.accidentados.${i}.constancia`)} />
-              <Input label="Comisaría" {...register(`compania.accidentados.${i}.comisaria`)} />
+              <RunInput label="RUN" name={`compañia.accidentados.${i}.run`} register={register} setValue={setValue} error={errors?.compañia?.accidentados?.[i]?.run?.message} />
+              <Input label="Lesiones" {...register(`compañia.accidentados.${i}.lesiones`)} />
+              <Input label="Constancia" {...register(`compañia.accidentados.${i}.constancia`)} />
+              <Input label="Comisaría" {...register(`compañia.accidentados.${i}.comisaria`)} />
             </div>
             <div className="grid md:grid-cols-1 gap-3 mt-3">
-              <Textarea label="Acciones" rows={2} {...register(`compania.accidentados.${i}.acciones`)} />
+              <Textarea label="Acciones" rows={2} {...register(`compañia.accidentados.${i}.acciones`)} />
             </div>
           </Row>
         ))}
@@ -498,13 +621,13 @@ function Paso3({ register, unidadesFA, accidentadosFA, otrosServiciosFA, watch, 
         {otrosServiciosFA.fields.map((f, i) => (
           <Row key={f.id} title={`Servicio #${i + 1}`} onRemove={() => otrosServiciosFA.remove(i)}>
             <div className="grid md:grid-cols-5 gap-3">
-              <Input label="Servicio (Samu, Carabineros, etc.)" {...register(`compania.otrosServicios.${i}.servicio`)} />
-              <Input label="Unidad" {...register(`compania.otrosServicios.${i}.unidad`)} />
-              <Input label="A cargo" {...register(`compania.otrosServicios.${i}.aCargo`)} />
-              <Input label="N° personal" type="number" step="1" {...register(`compania.otrosServicios.${i}.nPersonal`, {
+              <Input label="Servicio (Samu, Carabineros, etc.)" {...register(`compañia.otrosServicios.${i}.servicio`)} />
+              <Input label="Unidad" {...register(`compañia.otrosServicios.${i}.unidad`)} />
+              <Input label="A cargo" {...register(`compañia.otrosServicios.${i}.aCargo`)} />
+              <Input label="N° personal" type="number" step="1" {...register(`compañia.otrosServicios.${i}.nPersonal`, {
                 validate: (v) => (v === "" || isPosInt(v)) || "Debe ser entero positivo (> 0)"
-              })} error={errors?.compania?.otrosServicios?.[i]?.nPersonal?.message} />
-              <Input label="Observaciones" {...register(`compania.otrosServicios.${i}.observaciones`)} />
+              })} error={errors?.compañia?.otrosServicios?.[i]?.nPersonal?.message} />
+              <Input label="Observaciones" {...register(`compañia.otrosServicios.${i}.observaciones`)} />
             </div>
           </Row>
         ))}

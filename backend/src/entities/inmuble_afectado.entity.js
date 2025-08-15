@@ -33,6 +33,10 @@ const InmuebleAfectadoSchema = new EntitySchema({
       type: "text",
       nullable: true,
     },
+    daños_enseres: {
+      type: "text",
+      nullable: true,
+    },
 
     // metros cuadrados construidos
     m_2_construccion: {

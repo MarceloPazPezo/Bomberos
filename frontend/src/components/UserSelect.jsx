@@ -9,7 +9,7 @@ function useUserOptions() {
     let alive = true;
     (async () => {
       try {
-        const list = await getUsers(); // ya viene formateado con formatUserData
+        const list = await getUsers(); // ya viene formateado
         const opts = (list || []).map(u => ({
           label: `${u.nombres ?? ''} ${u.apellidos ?? ''}`.trim() || u.email || `Usuario ${u.id}`,
           value: Number(u.id)

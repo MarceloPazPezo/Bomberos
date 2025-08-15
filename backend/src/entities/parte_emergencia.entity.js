@@ -77,6 +77,15 @@ const ParteEmergenciaSchema = new EntitySchema({
             type: "text",
             nullable: true,
         },
+        km_salida: {
+            type: "int",
+            nullable: true
+        },
+        km_llegada: {
+            type: "int",
+            nullable: true
+        },
+
         estado: {
             type: "varchar",
             length: 50,
@@ -135,10 +144,10 @@ const ParteEmergenciaSchema = new EntitySchema({
             target: "AsistenciaParte",
             inverseSide: "parte",
         },
-        unidades: { 
-            type: "one-to-many", 
-            target: "UnidadParte", 
-            inverseSide: "parte" 
+        unidades: {
+            type: "one-to-many",
+            target: "UnidadParte",
+            inverseSide: "parte"
         },
 
 

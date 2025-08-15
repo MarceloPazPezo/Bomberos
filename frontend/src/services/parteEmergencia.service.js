@@ -2,7 +2,8 @@ import axios from './root.service';
 
 export async function crearParteEmergencia(payload) {
   // payload = { general, afectados, compania, asistencia }
-  const { data } = await axios.post('/parteEmergencia/', payload);
+  console.log("Servicio crearParteEmergencia llamado con payload:", payload);
+  const { data } = await axios.post('/parteEmergencia/paso1', payload);
   return data;
 }
 

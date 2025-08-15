@@ -17,8 +17,7 @@ const UnidadParteSchema = new EntitySchema({
     oficial_id:   { type: "int", nullable: true }, // oficial (Usuario.id)
 
     n_voluntarios: { type: "int", nullable: true },
-    km_salida:     { type: "int", nullable: true },
-    km_llegada:    { type: "int", nullable: true },
+ 
   },
   indices: [
     { name: "IDX_UNIDAD_PARTE_PARTE_ID", columns: ["parte_id"] },
