@@ -1,0 +1,498 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #dc2626;
+  --ifm-color-primary-dark: #b91c1c;
+  --ifm-color-primary-darker: #991b1b;
+  --ifm-color-primary-darkest: #7f1d1d;
+  --ifm-color-primary-light: #ef4444;
+  --ifm-color-primary-lighter: #f87171;
+  --ifm-color-primary-lightest: #fca5a5;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(220, 38, 38, 0.1);
+}
+
+/* Light mode specific styles */
+[data-theme='light'] {
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-color-content: #1c1e21;
+  --ifm-color-content-secondary: #525860;
+  --ifm-heading-color: #1c1e21;
+  --ifm-link-color: #dc2626;
+  --ifm-link-hover-color: #b91c1c;
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-footer-background-color: #f7f8fa;
+  --ifm-card-background-color: #ffffff;
+  --ifm-toc-border-color: #dadde1;
+  --ifm-menu-color: #1c1e21;
+  --ifm-menu-color-background-active: rgba(220, 38, 38, 0.1);
+  --ifm-menu-color-background-hover: rgba(220, 38, 38, 0.05);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #f87171;
+  --ifm-color-primary-dark: #ef4444;
+  --ifm-color-primary-darker: #dc2626;
+  --ifm-color-primary-darkest: #b91c1c;
+  --ifm-color-primary-light: #fca5a5;
+  --ifm-color-primary-lighter: #fecaca;
+  --ifm-color-primary-lightest: #fee2e2;
+  --docusaurus-highlighted-code-line-bg: rgba(248, 113, 113, 0.3);
+  
+  /* Dark mode specific improvements */
+  --ifm-background-color: #1b1b1d;
+  --ifm-background-surface-color: #242526;
+  --ifm-color-content: #e3e3e3;
+  --ifm-color-content-secondary: #b0b3b8;
+  --ifm-heading-color: #ffffff;
+  --ifm-link-color: #f87171;
+  --ifm-link-hover-color: #fca5a5;
+  --ifm-navbar-background-color: #242526;
+  --ifm-footer-background-color: #242526;
+  --ifm-card-background-color: #242526;
+  --ifm-toc-border-color: #3a3a3c;
+  --ifm-menu-color: #e3e3e3;
+  --ifm-menu-color-background-active: rgba(248, 113, 113, 0.1);
+  --ifm-menu-color-background-hover: rgba(248, 113, 113, 0.05);
+}
+
+/* Custom styles for the hero section */
+.heroBanner {
+  background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+  color: white;
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroBanner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+}
+
+.heroIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.heroBanner .hero__title {
+  color: white;
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.heroBanner .hero__subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.buttons .button {
+  margin: 0;
+}
+
+/* Light mode specific styles */
+[data-theme='light'] .heroBanner {
+  background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+}
+
+[data-theme='light'] .heroBanner .hero__title {
+  color: #ffffff;
+}
+
+[data-theme='light'] .heroBanner .hero__subtitle {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme='light'] .navbar__item {
+  color: #1c1e21;
+}
+
+[data-theme='light'] .navbar__link {
+  color: #1c1e21;
+}
+
+[data-theme='light'] .navbar__link:hover {
+  color: #dc2626;
+}
+
+[data-theme='light'] .footer {
+  background-color: #f7f8fa;
+  color: #1c1e21;
+}
+
+[data-theme='light'] .footer__link-item {
+  color: #525860;
+}
+
+[data-theme='light'] .footer__link-item:hover {
+  color: #dc2626;
+}
+
+[data-theme='light'] .footer__title {
+  color: #1c1e21;
+  font-weight: 600;
+}
+
+[data-theme='light'] .footer__copyright {
+  color: #525860;
+}
+
+/* Dark mode specific styles */
+[data-theme='dark'] .heroBanner {
+  background: linear-gradient(135deg, #991b1b 0%, #c2410c 100%);
+}
+
+[data-theme='dark'] .heroBanner .hero__title {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .heroBanner .hero__subtitle {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Improve feature cards in dark mode */
+[data-theme='dark'] .features {
+  background: linear-gradient(to bottom, #1b1b1d, #242526);
+}
+
+[data-theme='dark'] .text--center h3 {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .text--center p {
+  color: #e3e3e3;
+}
+
+/* Additional dark mode improvements */
+[data-theme='dark'] .navbar__item {
+  color: #e3e3e3;
+}
+
+[data-theme='dark'] .navbar__link {
+  color: #e3e3e3;
+}
+
+[data-theme='dark'] .navbar__link:hover {
+  color: #f87171;
+}
+
+[data-theme='dark'] .footer {
+  background-color: #242526;
+  color: #e3e3e3;
+}
+
+[data-theme='dark'] .footer__link-item {
+  color: #e3e3e3;
+}
+
+[data-theme='dark'] .footer__link-item:hover {
+  color: #f87171;
+}
+
+[data-theme='dark'] .footer__title {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .footer__copyright {
+  color: #e3e3e3;
+}
+
+[data-theme='dark'] .markdown {
+  color: #e3e3e3;
+}
+
+[data-theme='dark'] .markdown h1,
+[data-theme='dark'] .markdown h2,
+[data-theme='dark'] .markdown h3,
+[data-theme='dark'] .markdown h4,
+[data-theme='dark'] .markdown h5,
+[data-theme='dark'] .markdown h6 {
+  color: #ffffff;
+}
+
+/* Estilos para diagramas Mermaid con zoom */
+.mermaid-container {
+  position: relative;
+  overflow: visible;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+  margin: 1rem 0;
+  padding: 1rem;
+  min-height: auto;
+}
+
+.mermaid {
+  transition: transform 0.3s ease;
+  cursor: grab;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
+}
+
+/* Estilos específicos para diagramas Gantt */
+.mermaid-container .mermaid[data-processed="true"] svg {
+  width: 100% !important;
+  height: auto !important;
+  max-width: none !important;
+}
+
+/* Mejorar la legibilidad del texto en Gantt */
+.mermaid .gantt .taskText {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.mermaid .gantt .sectionTitle {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.mermaid:active {
+  cursor: grabbing;
+}
+
+/* Contenedor con controles de zoom */
+.mermaid-zoom-container {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  overflow: hidden;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mermaid-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.mermaid-zoom-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 10;
+}
+
+.mermaid-zoom-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: var(--ifm-color-primary);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mermaid-zoom-btn:hover {
+  background: var(--ifm-color-primary-dark);
+  transform: scale(1.1);
+}
+
+.mermaid-zoom-btn:active {
+  transform: scale(0.95);
+}
+
+/* Indicador de zoom */
+.mermaid-zoom-indicator {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
+}
+
+/* Estilos para modo pantalla completa */
+
+
+/* Responsive design */
+@media screen and (max-width: 768px) {
+  .heroBanner .hero__title {
+    font-size: 2rem;
+  }
+  
+  .heroBanner .hero__subtitle {
+    font-size: 1rem;
+  }
+  
+  .heroIcon {
+    font-size: 3rem;
+  }
+  
+  .buttons {
+    flex-direction: column;
+  }
+  
+  .mermaid-zoom-controls {
+    top: 5px;
+    right: 5px;
+  }
+  
+  .mermaid-zoom-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+}
+
+/* Architecture Cards Styles */
+.architecture-cards {
+  margin: 2rem 0;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.architecture-card {
+  background: var(--ifm-card-background-color, #ffffff);
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.architecture-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.15);
+  border-color: var(--ifm-color-primary);
+}
+
+.architecture-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--ifm-color-primary), var(--ifm-color-primary-light));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.architecture-card:hover::before {
+  opacity: 1;
+}
+
+.card-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: block;
+  text-align: center;
+}
+
+.architecture-card h3 {
+  color: var(--ifm-heading-color);
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.architecture-card p {
+  color: var(--ifm-color-content-secondary);
+  margin: 0;
+  line-height: 1.6;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+/* Light mode adjustments */
+[data-theme='light'] .architecture-card {
+  background: #ffffff;
+  border-color: var(--ifm-color-emphasis-200);
+}
+
+[data-theme='light'] .architecture-card:hover {
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.15);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .architecture-card {
+  background: var(--ifm-background-surface-color);
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+[data-theme='dark'] .architecture-card:hover {
+  box-shadow: 0 8px 25px rgba(248, 113, 113, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .architecture-card {
+    padding: 1.25rem;
+  }
+  
+  .card-icon {
+    font-size: 2rem;
+  }
+}

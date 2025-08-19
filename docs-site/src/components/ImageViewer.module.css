@@ -1,0 +1,266 @@
+.imageViewer {
+  position: relative;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8f9fa;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e1e5e9;
+  flex-wrap: wrap;
+}
+
+.toolButton {
+  padding: 6px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 32px;
+}
+
+.toolButton:hover {
+  background: #f6f8fa;
+  border-color: #8c959f;
+}
+
+.toolButton:active {
+  background: #e1e5e9;
+}
+
+.zoomLevel {
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #656d76;
+  background: #f6f8fa;
+  border-radius: 4px;
+  border: 1px solid #d0d7de;
+  min-width: 60px;
+  text-align: center;
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+}
+
+.image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.1s ease;
+  user-select: none;
+}
+
+.title {
+  padding: 12px;
+  background: #f6f8fa;
+  border-top: 1px solid #e1e5e9;
+  font-weight: 500;
+  color: #24292f;
+  text-align: center;
+}
+
+/* Fullscreen styles */
+.fullscreenOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreenContainer {
+  position: relative;
+  width: 95vw;
+  height: 95vh;
+  background: #ffffff;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fullscreenToolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #e1e5e9;
+  flex-shrink: 0;
+}
+
+.closeButton {
+  padding: 6px 12px;
+  border: 1px solid #d73a49;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #d73a49;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  margin-left: auto;
+  min-width: 36px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background: #d73a49;
+  color: #ffffff;
+}
+
+.fullscreenImageContainer {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.fullscreenImage {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  transition: transform 0.1s ease;
+  user-select: none;
+}
+
+.fullscreenTitle {
+  padding: 12px;
+  background: #f6f8fa;
+  border-top: 1px solid #e1e5e9;
+  font-weight: 500;
+  color: #24292f;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.instructions {
+  padding: 8px 12px;
+  background: #fff3cd;
+  border-top: 1px solid #ffeaa7;
+  font-size: 12px;
+  color: #856404;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .toolbar {
+    padding: 8px;
+    gap: 4px;
+  }
+  
+  .toolButton {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-width: 32px;
+    height: 28px;
+  }
+  
+  .zoomLevel {
+    padding: 4px 8px;
+    font-size: 12px;
+    min-width: 50px;
+  }
+  
+  .imageContainer {
+    height: 300px;
+  }
+  
+  .fullscreenContainer {
+    width: 98vw;
+    height: 98vh;
+  }
+  
+  .fullscreenToolbar {
+    padding: 8px;
+    gap: 4px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .imageViewer {
+    border-color: #30363d;
+    background: #0d1117;
+  }
+  
+  .toolbar,
+  .fullscreenToolbar {
+    background: #161b22;
+    border-color: #30363d;
+  }
+  
+  .toolButton {
+    background: #21262d;
+    border-color: #30363d;
+    color: #f0f6fc;
+  }
+  
+  .toolButton:hover {
+    background: #30363d;
+    border-color: #8b949e;
+  }
+  
+  .zoomLevel {
+    background: #21262d;
+    border-color: #30363d;
+    color: #f0f6fc;
+  }
+  
+  .imageContainer,
+  .fullscreenImageContainer {
+    background: #0d1117;
+  }
+  
+  .title,
+  .fullscreenTitle {
+    background: #161b22;
+    border-color: #30363d;
+    color: #f0f6fc;
+  }
+  
+  .fullscreenContainer {
+    background: #0d1117;
+  }
+  
+  .instructions {
+    background: #332701;
+    border-color: #7c6d00;
+    color: #e3b341;
+  }
+}

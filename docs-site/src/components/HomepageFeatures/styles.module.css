@@ -1,0 +1,56 @@
+.features {
+  display: flex;
+  align-items: center;
+  padding: 4rem 0;
+  width: 100%;
+  background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+}
+
+/* Dark mode styles for features */
+[data-theme='dark'] .features {
+  background: linear-gradient(to bottom, #1b1b1d, #242526);
+}
+
+.featureIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  padding: 0;
+  background: linear-gradient(135deg, #dc2626, #ea580c);
+  border-radius: 50%;
+  box-shadow: 0 10px 25px rgba(220, 38, 38, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  color: white;
+}
+
+.featureIcon svg {
+  width: 3rem;
+  height: 3rem;
+}
+
+.featureIcon:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(220, 38, 38, 0.4);
+}
+
+/* Responsive design for features */
+@media screen and (max-width: 768px) {
+  .featureIcon {
+    font-size: 2.5rem;
+    width: 100px;
+    height: 100px;
+  }
+  
+  .featureIcon svg {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  
+  .features {
+    padding: 2rem 0;
+  }
+}

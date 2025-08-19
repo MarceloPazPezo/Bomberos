@@ -1,0 +1,11 @@
+{
+  "label": "Guías",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Guías completas para la instalación y configuración del Sistema de Gestión Operativa para Bomberos."
+  },
+  "customProps": {
+    "icon": "FaBook"
+  }
+}
