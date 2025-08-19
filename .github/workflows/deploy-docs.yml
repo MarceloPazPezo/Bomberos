@@ -1,0 +1,73 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - docs
+  pull_request:
+    branches:
+      - docs
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Rama desde la cual desplegar'
+        required: true
+        default: 'docs'
+        type: choice
+        options:
+          - docs
+          - main
+      environment:
+        description: 'Entorno de despliegue'
+        required: false
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || 'docs' }}
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'docs-site/package-lock.json'
+      
+      - name: Install dependencies
+        run: |
+          cd docs-site
+          npm ci
+      
+      - name: Build documentation
+        run: |
+          cd docs-site
+          npm run build
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/build
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        if: github.ref == 'refs/heads/docs'
