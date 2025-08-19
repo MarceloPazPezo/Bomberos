@@ -4,19 +4,19 @@ services:
   # ===========================================
   database:
     image: postgis/postgis:17-3.5
-    container_name: plantilla-pern-database
+    container_name: bomberos-pern-database
     environment:
-      POSTGRES_DB: ${DB_NAME:-db_plantilla}
-      POSTGRES_USER: ${DB_USERNAME:-user_plantilla}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-password_plantilla}
+      POSTGRES_DB: ${DB_NAME:-db_bomberos}
+      POSTGRES_USER: ${DB_USERNAME:-user_bomberos}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password_bomberos}
       POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=es-ES --encoding=UTF8"
     ports:
-      - "${EXTERNAL_DB_PORT:-5433}:5432"
+      - "${EXTERNAL_DB_PORT:-5432}:5432"
     volumes:
       - database_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-user_plantilla} -d ${DB_NAME:-db_plantilla}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-user_bomberos} -d ${DB_NAME:-db_bomberos}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,11 +29,11 @@ services:
   # ===========================================
   database_test:
     image: postgis/postgis:17-3.5
-    container_name: plantilla-pern-database-test
+    container_name: bomberos-pern-database-test
     environment:
-      POSTGRES_DB: ${DB_TEST_NAME:-db_test}
-      POSTGRES_USER: ${DB_TEST_USERNAME:-user_test}
-      POSTGRES_PASSWORD: ${DB_TEST_PASSWORD:-password_test}
+      POSTGRES_DB: ${DB_TEST_NAME:-db_bomberos_test}
+      POSTGRES_USER: ${DB_TEST_USERNAME:-user_bomberos_test}
+      POSTGRES_PASSWORD: ${DB_TEST_PASSWORD:-password_bomberos_test}
       POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=es-ES --encoding=UTF8"
     ports:
       - "${EXTERNAL_DB_TEST_PORT:-5434}:5432"
@@ -41,7 +41,7 @@ services:
       - database_test_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_TEST_USERNAME:-user_test} -d ${DB_TEST_NAME:-db_test}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_TEST_USERNAME:-user_bomberos_test} -d ${DB_TEST_NAME:-db_bomberos_test}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -54,7 +54,7 @@ services:
   # ===========================================
   minio:
     image: minio/minio:latest
-    container_name: plantilla-pern-minio
+    container_name: bomberos-pern-minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
@@ -81,7 +81,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: plantilla-pern-backend
+    container_name: bomberos-pern-backend
     environment:
       # Configuración del servidor
       NODE_ENV: ${NODE_ENV:-production}
@@ -94,9 +94,9 @@ services:
       
       # Base de datos principal (variables que espera configEnv.js)
       DB_HOST: database
-      DATABASE: ${DB_NAME:-db_plantilla}
-      DB_USERNAME: ${DB_USERNAME:-user_plantilla}
-      PASSWORD: ${DB_PASSWORD:-password_plantilla}
+      DATABASE: ${DB_NAME:-db_bomberos}
+      DB_USERNAME: ${DB_USERNAME:-user_bomberos}
+      PASSWORD: ${DB_PASSWORD:-password_bomberos}
       
       # MinIO
       MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
@@ -133,7 +133,7 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_BASE_URL: ${VITE_BASE_URL:-/api}
-    container_name: plantilla-pern-frontend
+    container_name: bomberos-pern-frontend
     ports:
       - "${EXTERNAL_FRONTEND_PORT:-80}:80"
       - "${EXTERNAL_FRONTEND_SSL_PORT:-443}:443"
@@ -168,4 +168,4 @@ volumes:
 networks:
   network:
     driver: bridge
-    name: plantilla-pern-network
+    name: bomberos-pern-network
