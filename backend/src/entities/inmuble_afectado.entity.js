@@ -18,9 +18,9 @@ const InmuebleAfectadoSchema = new EntitySchema({
     },
 
     // FK al afectado
-    afectado_id: {
+    propietario_id: {
       type: "int",
-      nullable: false,
+      nullable: true,
     },
 
     tipo_construccion: {
@@ -64,8 +64,8 @@ const InmuebleAfectadoSchema = new EntitySchema({
   },
 
   indices: [
-    { name: "IDX_INM_AFECTADO_PARTE_ID", columns: ["parte_id"] },
-    { name: "IDX_INM_AFECTADO_AFECTADO_ID", columns: ["afectado_id"] },
+    { name: "IDX_INM_PROPIETARIO_PARTE_ID", columns: ["parte_id"] },
+    { name: "IDX_INM_PROPIETARIO_PROPIETARIO_ID", columns: ["propietario_id"] },
   ],
 
   relations: {
@@ -80,11 +80,11 @@ const InmuebleAfectadoSchema = new EntitySchema({
        eager: true, // activa si quieres cargar siempre el parte
     },
 
-    afectado: {
+    propietario: {
       type: "many-to-one",
-      target: "Afectado",
+      target: "Propietario",
       joinColumn: {
-        name: "afectado_id",
+        name: "propietario_id",
         referencedColumnName: "id",
         onDelete: "CASCADE",
       },

@@ -14,7 +14,12 @@ const OcupantesVehiculoSchema = new EntitySchema({
       type: "int",
       nullable: false, // FK -> vehiculo_afectado.id
     },
-    nombre: {
+    nombres: {
+      type: "varchar",
+      length: 255,
+      nullable: true,
+    },
+    apellidos: {
       type: "varchar",
       length: 255,
       nullable: true,
@@ -56,6 +61,7 @@ const OcupantesVehiculoSchema = new EntitySchema({
         onDelete: "CASCADE",
       },
         eager: true, // si quieres cargar siempre el vehículo
+         onDelete: "CASCADE",  // elimina ocupantes si se elimina el vehículo
     },
   },
 });

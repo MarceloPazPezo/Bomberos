@@ -12,7 +12,7 @@ const ParteEmergenciaSchema = new EntitySchema({
         },
         redactor_id: {
             type: "int",
-            nullable: false,
+            nullable: true,
         },
         fecha: {
             type: "date",
@@ -124,9 +124,9 @@ const ParteEmergenciaSchema = new EntitySchema({
             target: "OtroServicio",
             inverseSide: "parte",
         },
-        afectados: {
+        propietarios: {
             type: "one-to-many",
-            target: "Afectado",
+            target: "Propietario",
             inverseSide: "parte",
         },
         inmueblesAfectados: {

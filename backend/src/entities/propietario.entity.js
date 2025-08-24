@@ -1,9 +1,9 @@
 "use strict";
 import { EntitySchema } from "typeorm";
 
-const AfectadoSchema = new EntitySchema({
-    name: "Afectado",
-    tableName: "afectado",
+const PropietarioSchema = new EntitySchema({
+    name: "Propietario",
+    tableName: "propietario",
     columns: {
         id: {
             type: "int",
@@ -51,7 +51,7 @@ const AfectadoSchema = new EntitySchema({
     },
     indices: [
         {
-            name: "IDX_AFECTADO_PARTE_ID",
+            name: "IDX_PROPIETARIO_PARTE_ID",
             columns: ["parte_id"],
         },
     ],
@@ -69,16 +69,11 @@ const AfectadoSchema = new EntitySchema({
         inmuebles: {
             type: "one-to-many",
             target: "InmuebleAfectado",
-            inverseSide: "afectado",
-        },
-        vehiculosAfectados: {
-            type: "one-to-many",
-            target: "VehiculoAfectado",
-            inverseSide: "afectado", // ← coincide con la propiedad many-to-one en vehiculo_afectado.js
+            inverseSide: "propietario",
         },
 
 
     },
 });
 
-export default AfectadoSchema;
+export default PropietarioSchema;

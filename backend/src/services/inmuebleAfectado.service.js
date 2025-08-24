@@ -30,29 +30,3 @@ export const updateInmuebleAfectadoService = async (id, data) => {
         throw new Error(`Error al actualizar inmueble afectado: ${error.message}`);
     }
 }
-/*
- servicio para obtener inmuebles afectados por parte_id (deberia haber 0 o 1)
-
- Este service lo usare en parteEmergencia.controller.js para verificar si ya existe un  
- inmueble afectado y tambien verificar si existe un afectado (como un afectado esta asociado a un
- inmueble afectado, si existe un inmueble afectado, entonces existe un afectado).
-
- segun como se guardan los partes de la primera de cabrero, las otras casas afectadas se guarda solo datos 
- del dueño de casa (tabla afectado + direccion(misma tabla)) a diferencia de la casa principal que se 
- guarda en (tabla inmuebleAfectado + (tabla afectado - direccion(pq está en tabla ParteEmergencia)))
-
-*/
-export const getInmuebleAfectadoByIdParteService = async (parte_id) => { 
-    try {
-        console.log("Obteniendo inmueble afectado por parte_id:", parte_id);
-        const inmuebleAfectadoRepository = AppDataSource.getRepository(inmuebleAfectado);
-        const inmuebleAfectadoData = await inmuebleAfectadoRepository.findOneBy({ parte_id: parte_id });
-        //retornar la fila encontrada o null si no existe
-        //console.log("Inmueble afectado encontrado:", inmuebleAfectadoData);
-        return inmuebleAfectadoData;
-        
-    } catch (error) {
-        console.log("Error al obtener inmueble afectado por parte_id:", error);
-        throw new Error(`Error al obtener inmueble afectado por parte_id: ${error.message}`);       
-    }
-}

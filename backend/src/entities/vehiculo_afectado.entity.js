@@ -17,11 +17,6 @@ const VehiculoAfectadoSchema = new EntitySchema({
             nullable: false,
         },
 
-        // FK al Afectado
-        afectado_id: {
-            type: "int",
-            nullable: false,
-        },
 
         tipo_vehiculo: {
             type: "varchar",
@@ -66,9 +61,8 @@ const VehiculoAfectadoSchema = new EntitySchema({
     },
 
     indices: [
-        { name: "IDX_VEH_AFECTADO_PARTE_ID", columns: ["parte_id"] },
-        { name: "IDX_VEH_AFECTADO_AFECTADO_ID", columns: ["afectado_id"] },
-        { name: "IDX_VEH_AFECTADO_PATENTE", columns: ["patente"] },
+        { name: "IDX_VEH_PROPIETARIO_PARTE_ID", columns: ["parte_id"] },
+        { name: "IDX_VEH_PROPIETARIO_PATENTE", columns: ["patente"] },
     ],
 
     relations: {
@@ -82,20 +76,13 @@ const VehiculoAfectadoSchema = new EntitySchema({
             },
             eager: true, // si quieres cargar siempre el Parte
         },
-        afectado: {
-            type: "many-to-one",
-            target: "Afectado",
-            joinColumn: {
-                name: "afectado_id",
-                referencedColumnName: "id",
-                onDelete: "CASCADE",
-            },
-            eager: true, // si quieres cargar siempre el Afectado
-        },
         ocupantes: {
             type: "one-to-many",
             target: "OcupantesVehiculo",
             inverseSide: "vehiculo",
+
+            cascade: true,
+            orphanedRowAction: "delete",
         },
 
     },
