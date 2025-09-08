@@ -1,15 +1,15 @@
 "use strict";
 import {
-  deleteRoleService,
-  getRoleService,
+  deleteRolService,
+  getRolService,
   getRolesService,
-  updateRoleService,
-  createRoleService,
+  updateRolService,
+  createRolService,
 } from "../services/rol.service.js";
 import {
-  roleBodyValidation,
-  roleQueryValidation,
-  roleCreateValidation,
+  rolBodyValidation,
+  rolQueryValidation,
+  rolCreateValidation,
 } from "../validations/rol.validation.js";
 import {
   handleErrorClient,
@@ -17,7 +17,7 @@ import {
   handleSuccess,
 } from "../handlers/responseHandlers.js";
 
-export async function getRole(req, res) {
+export async function getRol(req, res) {
   try {
     const { id } = req.params;
     
@@ -26,15 +26,15 @@ export async function getRole(req, res) {
       id: parseInt(id, 10),
     };
     
-    const { error } = roleQueryValidation.validate(queryParams);
+    const { error } = rolQueryValidation.validate(queryParams);
 
     if (error) return handleErrorClient(res, 400, error.message);
 
-    const [role, errorRole] = await getRoleService(queryParams);
+    const [rol, errorRol] = await getRolService(queryParams);
 
-    if (errorRole) return handleErrorClient(res, 404, errorRole);
+    if (errorRol) return handleErrorClient(res, 404, errorRol);
 
-    handleSuccess(res, 200, "Rol encontrado", role);
+    handleSuccess(res, 200, "Rol encontrado", rol);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
   }
@@ -55,7 +55,7 @@ export async function getRoles(req, res) {
   }
 }
 
-export async function updateRole(req, res) {
+export async function updateRol(req, res) {
   try {
     const { id } = req.params;
     const { body } = req;
@@ -65,7 +65,7 @@ export async function updateRole(req, res) {
       id: parseInt(id, 10),
     };
 
-    const { error: queryError } = roleQueryValidation.validate(queryParams);
+    const { error: queryError } = rolQueryValidation.validate(queryParams);
 
     if (queryError) {
       return handleErrorClient(
@@ -76,7 +76,7 @@ export async function updateRole(req, res) {
       );
     }
 
-    const { value, error: bodyError } = roleBodyValidation.validate(body);
+    const { value, error: bodyError } = rolBodyValidation.validate(body);
 
     if (bodyError)
       return handleErrorClient(
@@ -86,18 +86,18 @@ export async function updateRole(req, res) {
         bodyError.message,
       );
 
-    const [role, roleError] = await updateRoleService(queryParams, value);
+    const [rol, rolError] = await updateRolService(queryParams, value);
 
-    if (roleError)
-      return handleErrorClient(res, 400, "Error modificando al rol", roleError);
+    if (rolError)
+      return handleErrorClient(res, 400, "Error modificando al rol", rolError);
 
-    handleSuccess(res, 200, "Rol modificado correctamente", role);
+    handleSuccess(res, 200, "Rol modificado correctamente", rol);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
   }
 }
 
-export async function deleteRole(req, res) {
+export async function deleteRol(req, res) {
   try {
     const { id } = req.params;
 
@@ -106,7 +106,7 @@ export async function deleteRole(req, res) {
       id: parseInt(id, 10),
     };
 
-    const { error: queryError } = roleQueryValidation.validate(queryParams);
+    const { error: queryError } = rolQueryValidation.validate(queryParams);
 
     if (queryError) {
       return handleErrorClient(
@@ -117,35 +117,35 @@ export async function deleteRole(req, res) {
       );
     }
 
-    const [roleDelete, errorRoleDelete] = await deleteRoleService(queryParams);
+    const [rolDelete, errorRolDelete] = await deleteRolService(queryParams);
 
-    if (errorRoleDelete)
+    if (errorRolDelete)
       return handleErrorClient(
         res,
         404,
         "Error eliminado al rol",
-        errorRoleDelete,
+        errorRolDelete,
       );
 
-    handleSuccess(res, 200, "Rol eliminado correctamente", roleDelete);
+    handleSuccess(res, 200, "Rol eliminado correctamente", rolDelete);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
   }
 }
 
-export async function createRole(req, res) {
+export async function createRol(req, res) {
   try {
     const { body } = req;
 
-    const { value, error } = roleCreateValidation.validate(body);
+    const { value, error } = rolCreateValidation.validate(body);
 
     if (error) return handleErrorClient(res, 400, error.message);
 
-    const [role, errorRole] = await createRoleService(value);
+    const [rol, errorRol] = await createRolService(value);
 
-    if (errorRole) return handleErrorClient(res, 400, errorRole);
+    if (errorRol) return handleErrorClient(res, 400, errorRol);
 
-    handleSuccess(res, 201, "Rol creado correctamente", role);
+    handleSuccess(res, 201, "Rol creado correctamente", rol);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
   }

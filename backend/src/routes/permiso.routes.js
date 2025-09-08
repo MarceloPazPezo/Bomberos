@@ -1,52 +1,36 @@
 "use strict";
 import { Router } from "express";
 import {
-  getAllPermissions,
-  getPermissionCategories,
-  getPermission,
-  updateExistingPermission,
-  getStats,
+  getPermisos,
+  getPermiso,
+  updatePermiso,
 } from "../controllers/permiso.controller.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
-import { authorizePermissions } from "../middlewares/authorization.middleware.js";
+import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 
 const router = Router();
 
 router.use(authenticateJwt);
 
-// GET /api/permissions - Obtener todos los permisos con filtros
+// GET /api/permiso - Obtener todos los permisos con filtros
 router.get(
   "/",
-  authorizePermissions(["permiso:leer"]),
-  getAllPermissions,
+  authorizePermisos(["permiso:leer"]),
+  getPermisos,
 );
 
-// GET /api/permission/categories -> Obtener permisos agrupados por categorías
-router.get(
-  "/categories",
-  authorizePermissions(["permiso:leer_categorias"]),
-  getPermissionCategories,
-);
-
-// GET /api/permission/stats -> Obtener estadísticas de permisos
-router.get(
-  "/stats",
-  authorizePermissions(["permiso:leer_estadisticas"]),
-  getStats,
-);
-
-// GET /api/permission/:id -> Obtener un permiso específico por su ID
+// GET /api/permiso/:id -> Obtener un permiso específico por su ID
 router.get(
   "/:id",
-  authorizePermissions(["permiso:leer"]),
-  getPermission,
+  authorizePermisos(["permiso:leer"]),
+  getPermiso,
 );
 
-// PUT /api/permission/:id -> Actualizar un permiso específico por su ID
+// PUT /api/permiso/:id -> Actualizar un permiso específico por su ID
 router.put(
   "/:id",
-  authorizePermissions(["permiso:actualizar"]),
-  updateExistingPermission,
+  authorizePermisos(["permiso:actualizar"]),
+  updatePermiso,
 );
 
 export default router;

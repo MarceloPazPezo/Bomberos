@@ -79,27 +79,18 @@ function formatTelefono(telefono) {
     return telefono;
 }
 
-export function formatUserData(user) {
+export function formatBomberoData(bombero) {
     return {
-        ...user,
-        nombres: Array.isArray(user.nombres) ? user.nombres.map(nombre => startCase(nombre)) : startCase(user.nombres),
-        apellidos: Array.isArray(user.apellidos) ? user.apellidos.map(apellido => startCase(apellido)) : startCase(user.apellidos),
-        run: formatRut(user.run),
-        telefono: formatTelefono(user.telefono),
-        fechaNacimiento: user.fechaNacimiento ? formatTempo(user.fechaNacimiento, "DD-MM-YYYY") : null,
-        fechaIngreso: user.fechaIngreso ? formatTempo(user.fechaIngreso, "DD-MM-YYYY") : null,
-        direccion: user.direccion || null,
-        tipoSangre: user.tipoSangre || null,
-        alergias: user.alergias || null,
-        medicamentos: user.medicamentos || null,
-        condiciones: user.condiciones || null,
-        activo: user.activo,
-        roles: Array.isArray(user.roles) ? user.roles.map(role => startCase(role)) : [],
-        // Mantener las fechas originales sin formatear para conservar la información completa
-        fechaCreacion: user.fechaCreacion,
-        fechaActualizacion: user.fechaActualizacion,
-        creadoPor: user.creadoPor,
-        actualizadoPor: user.actualizadoPor
+        ...bombero,
+        nombres: Array.isArray(bombero.nombres) ? bombero.nombres.map(nombre => startCase(nombre)) : startCase(bombero.nombres),
+        apellidos: Array.isArray(bombero.apellidos) ? bombero.apellidos.map(apellido => startCase(apellido)) : startCase(bombero.apellidos),
+        run: formatRut(bombero.run),
+        activo: bombero.activo,
+        roles: Array.isArray(bombero.roles) ? bombero.roles.map(role => startCase(role)) : [],
+        creadoEl: bombero.creadoEl,
+        actualizadoEl: bombero.actualizadoEl,
+        creadoPor: bombero.creadoPor,
+        actualizadoPor: bombero.actualizadoPor
     };
 }
 
@@ -112,26 +103,18 @@ export function convertirMinusculas(obj) {
     return obj;
 }
 
-export function formatPostUpdate(user) {
+export function formatBomberoDataUpdate(bombero) {
     return {
-        nombres: Array.isArray(user.nombres) ? user.nombres.map(nombre => startCase(nombre)) : startCase(user.nombres),
-        apellidos: Array.isArray(user.apellidos) ? user.apellidos.map(apellido => startCase(apellido)) : startCase(user.apellidos),
-        run: formatRut(user.run),
-        email: user.email,
-        telefono: formatTelefono(user.telefono),
-        fechaNacimiento: user.fechaNacimiento ? formatTempo(user.fechaNacimiento, "DD-MM-YYYY") : null,
-        fechaIngreso: user.fechaIngreso ? formatTempo(user.fechaIngreso, "DD-MM-YYYY") : null,
-        direccion: user.direccion || null,
-        tipoSangre: user.tipoSangre || null,
-        alergias: user.alergias || null,
-        medicamentos: user.medicamentos || null,
-        condiciones: user.condiciones || null,
-        activo: user.activo,
-        roles: Array.isArray(user.roles) ? user.roles.map(role => startCase(role)) : [],
-        fechaCreacion: formatTempo(user.fechaCreacion, "DD-MM-YYYY"),
-        fechaActualizacion: formatTempo(user.fechaActualizacion, "DD-MM-YYYY"),
-        creadoPor: user.creadoPor,
-        actualizadoPor: user.actualizadoPor
+        nombres: Array.isArray(bombero.nombres) ? bombero.nombres.map(nombre => startCase(nombre)) : startCase(bombero.nombres),
+        apellidos: Array.isArray(bombero.apellidos) ? bombero.apellidos.map(apellido => startCase(apellido)) : startCase(bombero.apellidos),
+        run: formatRut(bombero.run),
+        email: bombero.email,
+        activo: bombero.activo,
+        roles: Array.isArray(bombero.roles) ? bombero.roles.map(role => startCase(role)) : [],
+        creadoEl: formatTempo(bombero.creadoEl, "DD-MM-YYYY"),
+        actualizadoEl: formatTempo(bombero.actualizadoEl, "DD-MM-YYYY"),
+        creadoPor: bombero.creadoPor,
+        actualizadoPor: bombero.actualizadoPor
     };
 }
 

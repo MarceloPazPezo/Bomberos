@@ -6,7 +6,7 @@ import {
 } from "../handlers/responseHandlers.js";
 
 export function authenticateJwt(req, res, next) {
-  passport.authenticate("jwt", { session: false }, (err, user, info) => {
+  passport.authenticate("jwt", { session: false }, (err, bombero, info) => {
     if (err) {
       return handleErrorServer(
         res,
@@ -15,16 +15,16 @@ export function authenticateJwt(req, res, next) {
       );
     }
 
-    if (!user) {
+    if (!bombero) {
       return handleErrorClient(
         res,
         401,
         "No tienes permiso para acceder a este recurso",
-        { info: info ? info.message : "No se encontró el usuario" },
+        { info: info ? info.message : "No se encontró el bombero" },
       );
     }
 
-    req.user = user;
+    req.bombero = bombero;
     next();
   })(req, res, next);
 }

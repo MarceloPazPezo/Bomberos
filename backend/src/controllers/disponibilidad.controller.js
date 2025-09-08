@@ -5,22 +5,23 @@ import {
   getDisponibilidadService,
   getDisponibilidadesService,
   updateDisponibilidadService,
-  changeDisponibilidadStatusService,
+  cerrarDisponibilidadService,
   getDisponibilidadActivaService,
 } from "../services/disponibilidad.service.js";
 import {
-  disponibilidadBodyValidation,
+  disponibilidadCreateValidation,
+  disponibilidadUpdateValidation,
+  disponibilidadCerrarValidation,
   disponibilidadQueryValidation,
+  disponibilidadIdParamsValidation,
+  disponibilidadBomberoParamsValidation,
 } from "../validations/disponibilidad.validation.js";
 import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 
 export async function getDisponibilidades(req, res) {
   try {
-    const { error: queryError } = disponibilidadQueryValidation.validate(req.query);
-    
-    if (queryError) {
-      return handleErrorClient(res, 400, queryError.message);
-    }
+    const { error } = disponibilidadQueryValidation.validate(req.query);
+    if (error) return handleErrorClient(res, 400, error.message);
 
     const [disponibilidades, errorDisponibilidades] = await getDisponibilidadesService(req.query);
 
@@ -34,9 +35,8 @@ export async function getDisponibilidades(req, res) {
 
 export async function createDisponibilidad(req, res) {
   try {
-    const { error: bodyError } = disponibilidadBodyValidation.validate(req.body);
-    
-    if (bodyError) return handleErrorClient(res, 400, bodyError.message);
+    const { error } = disponibilidadCreateValidation.validate(req.body);
+    if (error) return handleErrorClient(res, 400, error.message);
 
     const [newDisponibilidad, disponibilidadError] = await createDisponibilidadService(req.body);
 
@@ -50,15 +50,10 @@ export async function createDisponibilidad(req, res) {
 
 export async function getDisponibilidad(req, res) {
   try {
-    const { id } = req.params;
+    const { error } = disponibilidadIdParamsValidation.validate(req.params);
+    if (error) return handleErrorClient(res, 400, error.message);
 
-    const { error: queryError } = disponibilidadQueryValidation.validate({ id });
-    
-    if (queryError) {
-      return handleErrorClient(res, 400, queryError.message);
-    }
-
-    const [disponibilidad, errorDisponibilidad] = await getDisponibilidadService({ id });
+    const [disponibilidad, errorDisponibilidad] = await getDisponibilidadService(req.params);
 
     if (errorDisponibilidad) return handleErrorClient(res, 404, errorDisponibilidad);
 
@@ -70,19 +65,13 @@ export async function getDisponibilidad(req, res) {
 
 export async function updateDisponibilidad(req, res) {
   try {
-    const { id } = req.params;
+    const { error: paramsError } = disponibilidadIdParamsValidation.validate(req.params);
+    if (paramsError) return handleErrorClient(res, 400, paramsError.message);
 
-    const { error: queryError } = disponibilidadQueryValidation.validate({ id });
-    
-    if (queryError) {
-      return handleErrorClient(res, 400, queryError.message);
-    }
-
-    const { error: bodyError } = disponibilidadBodyValidation.validate(req.body);
-    
+    const { error: bodyError } = disponibilidadUpdateValidation.validate(req.body);
     if (bodyError) return handleErrorClient(res, 400, bodyError.message);
 
-    const [disponibilidad, disponibilidadError] = await updateDisponibilidadService({ id }, req.body);
+    const [disponibilidad, disponibilidadError] = await updateDisponibilidadService(req.params, req.body);
 
     if (disponibilidadError) return handleErrorClient(res, 400, disponibilidadError);
 
@@ -94,15 +83,10 @@ export async function updateDisponibilidad(req, res) {
 
 export async function deleteDisponibilidad(req, res) {
   try {
-    const { id } = req.params;
+    const { error } = disponibilidadIdParamsValidation.validate(req.params);
+    if (error) return handleErrorClient(res, 400, error.message);
 
-    const { error: queryError } = disponibilidadQueryValidation.validate({ id });
-    
-    if (queryError) {
-      return handleErrorClient(res, 400, queryError.message);
-    }
-
-    const [disponibilidadDelete, errorDisponibilidadDelete] = await deleteDisponibilidadService({ id });
+    const [disponibilidadDelete, errorDisponibilidadDelete] = await deleteDisponibilidadService(req.params);
 
     if (errorDisponibilidadDelete) return handleErrorClient(res, 404, errorDisponibilidadDelete);
 
@@ -112,17 +96,16 @@ export async function deleteDisponibilidad(req, res) {
   }
 }
 
-export async function changeDisponibilidadStatus(req, res) {
+export async function cerrarDisponibilidad(req, res) {
   try {
-    const { error: bodyError } = disponibilidadBodyValidation.validate(req.body);
-    
-    if (bodyError) return handleErrorClient(res, 400, bodyError.message);
+    const { error } = disponibilidadCerrarValidation.validate(req.body);
+    if (error) return handleErrorClient(res, 400, error.message);
 
-    const [disponibilidad, disponibilidadError] = await changeDisponibilidadStatusService({}, req.body);
+    const [disponibilidad, disponibilidadError] = await cerrarDisponibilidadService({}, req.body);
 
     if (disponibilidadError) return handleErrorClient(res, 400, disponibilidadError);
 
-    handleSuccess(res, 200, "Estado de disponibilidad actualizado correctamente", disponibilidad);
+    handleSuccess(res, 200, "Disponibilidad cerrada correctamente", disponibilidad);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
   }
@@ -130,13 +113,10 @@ export async function changeDisponibilidadStatus(req, res) {
 
 export async function getDisponibilidadActiva(req, res) {
   try {
-    const { usuario_id } = req.params;
+    const { error } = disponibilidadBomberoParamsValidation.validate(req.params);
+    if (error) return handleErrorClient(res, 400, error.message);
 
-    if (!usuario_id) {
-      return handleErrorClient(res, 400, "usuario_id es requerido");
-    }
-
-    const [disponibilidad, disponibilidadError] = await getDisponibilidadActivaService(usuario_id);
+    const [disponibilidad, disponibilidadError] = await getDisponibilidadActivaService(req.params.idBombero);
 
     if (disponibilidadError) return handleErrorClient(res, 404, disponibilidadError);
 

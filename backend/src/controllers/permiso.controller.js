@@ -1,12 +1,8 @@
 "use strict";
 import {
-  getPermissions,
-  getPermissionsByCategory,
-  getPermissionById,
-  createPermission,
-  updatePermission,
-  deletePermission,
-  getPermissionStats,
+  getPermisoService,
+  getPermisosService,
+  updatePermisoService,
 } from "../services/permiso.service.js";
 import {
   handleSuccess,
@@ -14,7 +10,7 @@ import {
   handleErrorServer,
 } from "../handlers/responseHandlers.js";
 
-const getAllPermissions = async (req, res) => {
+export async function getPermisos(req, res) {
   try {
     const filters = {
       category: req.query.category,
@@ -24,39 +20,23 @@ const getAllPermissions = async (req, res) => {
       limit: parseInt(req.query.limit) || 10,
     };
 
-    const result = await getPermissions(filters);
+    const result = await getPermisosService(filters);
 
     handleSuccess(res, 200, "Permisos obtenidos correctamente", result);
   } catch (error) {
-    console.error("Error en getAllPermissions:", error);
+    console.error("Error en getPermisos:", error);
     handleErrorServer(res, 500, error.message);
   }
 };
 
-const getPermissionCategories = async (req, res) => {
-  try {
-    const groupedPermissions = await getPermissionsByCategory();
-
-    handleSuccess(
-      res,
-      200,
-      "Permisos por categoría obtenidos correctamente",
-      groupedPermissions,
-    );
-  } catch (error) {
-    console.error("Error en getPermissionCategories:", error);
-    handleErrorServer(res, 500, error.message);
-  }
-};
-
-const getPermission = async (req, res) => {
+export async function getPermiso(req, res) {
   try {
     const { id } = req.params;
-    const permission = await getPermissionById(parseInt(id));
+    const permiso = await getPermisoService(parseInt(id));
 
-    handleSuccess(res, 200, "Permiso obtenido correctamente", permission);
+    handleSuccess(res, 200, "Permiso obtenido correctamente", permiso);
   } catch (error) {
-    console.error("Error en getPermission:", error);
+    console.error("Error en getPermiso:", error);
     if (error.message === "Permiso no encontrado") {
       handleErrorClient(res, 404, error.message);
     } else {
@@ -65,37 +45,21 @@ const getPermission = async (req, res) => {
   }
 };
 
-const createNewPermission = async (req, res) => {
-  try {
-    const permissionData = req.body;
-    const newPermission = await createPermission(permissionData);
-
-    handleSuccess(res, 201, "Permiso creado correctamente", newPermission);
-  } catch (error) {
-    console.error("Error en createNewPermission:", error);
-    if (error.message === "Ya existe un permiso con ese nombre") {
-      handleErrorClient(res, 409, error.message);
-    } else {
-      handleErrorServer(res, 500, error.message);
-    }
-  }
-};
-
-const updateExistingPermission = async (req, res) => {
+export async function updatePermiso(req, res) {
   try {
     const { id } = req.params;
     const updateData = req.body;
 
-    const updatedPermission = await updatePermission(parseInt(id), updateData);
+    const updatedPermiso = await updatePermisoService(parseInt(id), updateData);
 
     handleSuccess(
       res,
       200,
       "Permiso actualizado correctamente",
-      updatedPermission,
+      updatedPermiso,
     );
   } catch (error) {
-    console.error("Error en updateExistingPermission:", error);
+    console.error("Error en updatePermiso:", error);
     if (error.message === "Permiso no encontrado") {
       handleErrorClient(res, 404, error.message);
     } else if (error.message === "Ya existe un permiso con ese nombre") {
@@ -104,51 +68,4 @@ const updateExistingPermission = async (req, res) => {
       handleErrorServer(res, 500, error.message);
     }
   }
-};
-
-const removePermission = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await deletePermission(parseInt(id));
-
-    handleSuccess(res, 200, result.message);
-  } catch (error) {
-    console.error("Error en removePermission:", error);
-    if (error.message === "Permiso no encontrado") {
-      handleErrorClient(res, 404, error.message);
-    } else if (
-      error.message ===
-      "No se puede eliminar un permiso que está asignado a roles"
-    ) {
-      handleErrorClient(res, 409, error.message);
-    } else {
-      handleErrorServer(res, 500, error.message);
-    }
-  }
-};
-
-const getStats = async (req, res) => {
-  try {
-    const stats = await getPermissionStats();
-
-    handleSuccess(
-      res,
-      200,
-      "Estadísticas de permisos obtenidas correctamente",
-      stats,
-    );
-  } catch (error) {
-    console.error("Error en getStats:", error);
-    handleErrorServer(res, 500, error.message);
-  }
-};
-
-export {
-  getAllPermissions,
-  getPermissionCategories,
-  getPermission,
-  createNewPermission,
-  updateExistingPermission,
-  removePermission,
-  getStats,
 };

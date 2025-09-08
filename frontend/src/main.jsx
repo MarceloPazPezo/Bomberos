@@ -37,7 +37,7 @@ const router = createBrowserRouter([
       {
         path: '/admin',
         element: (
-          <ProtectedRoute requiredPermissions={['usuario:leer_todos']}>
+          <ProtectedRoute requiredPermisos={['bombero:leer']}>
             <Admin />
           </ProtectedRoute>
         ),
@@ -45,7 +45,7 @@ const router = createBrowserRouter([
       {
         path: '/disponibilidad',
         element: (
-          <ProtectedRoute requiredPermissions={['disponibilidad:read_all']}>
+          <ProtectedRoute requiredPermisos={['disponibilidad:leer']}>
             <Disponibilidad />
           </ProtectedRoute>
         ),
@@ -53,7 +53,7 @@ const router = createBrowserRouter([
       {
         path: "/perfil",
         element: (
-          <ProtectedRoute requiredPermissions={['usuario:leer_perfil']}>
+          <ProtectedRoute requiredPermisos={['bombero:leer_perfil']}>
             <Profile />
           </ProtectedRoute>
         ),

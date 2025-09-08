@@ -1,33 +1,35 @@
 "use strict";
-import Role from "../entities/rol.entity.js";
-import Permission from "../entities/permiso.entity.js";
+import Rol from "../entities/rol.entity.js";
+import Permiso from "../entities/permiso.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 import { In } from "typeorm";
 
-export async function getRoleService(query) {
+export async function getRolService(query) {
   try {
     const { id, nombre } = query;
 
-    const roleRepository = AppDataSource.getRepository(Role);
+    const rolRepository = AppDataSource.getRepository(Rol);
 
-    const roleFound = await roleRepository.findOne({
+    const rolFound = await rolRepository.findOne({
       where: [{ id: id }, { nombre: nombre }],
       relations: ["permisos"],
     });
 
-    if (!roleFound) return [null, "Rol no encontrado"];
+    if (!rolFound) return [null, "Rol no encontrado"];
 
-    const roleData = {
-      id: roleFound.id,
-      nombre: roleFound.nombre,
-      descripcion: roleFound.descripcion,
-      fechaCreacion: roleFound.fechaCreacion,
-      fechaActualizacion: roleFound.fechaActualizacion,
-      permisos: roleFound.permisos
-        ? roleFound.permisos.map((r) => r.nombre)
+    const rolData = {
+      id: rolFound.id,
+      nombre: rolFound.nombre,
+      descripcion: rolFound.descripcion,
+      creadoEl: rolFound.creadoEl,
+      creadoPor: rolFound.creadoPor,
+      actualizadoEl: rolFound.actualizadoEl,
+      actualizadoPor: rolFound.actualizadoPor,
+      permisos: rolFound.permisos
+        ? rolFound.permisos.map((r) => r.nombre)
         : [],
     };
-    return [roleData, null];
+    return [rolData, null];
   } catch (error) {
     console.error("Error obtener el rol:", error);
     return [null, "Error interno del servidor"];
@@ -36,22 +38,24 @@ export async function getRoleService(query) {
 
 export async function getRolesService(queryParams = {}) {
   try {
-    const roleRepository = AppDataSource.getRepository(Role);
+    const rolRepository = AppDataSource.getRepository(Rol);
 
-    const queryBuilder = roleRepository
-      .createQueryBuilder("role")
-      .leftJoinAndSelect("role.permisos", "permission")
+    const queryBuilder = rolRepository
+      .createQueryBuilder("rol")
+      .leftJoinAndSelect("rol.permisos", "permiso")
       .select([
-        "role.id",
-        "role.nombre",
-        "role.descripcion",
-        "role.fechaCreacion",
-        "role.fechaActualizacion",
-        "permission.id",
-        "permission.nombre",
+        "rol.id",
+        "rol.nombre",
+        "rol.descripcion",
+        "rol.creadoEl",
+        "rol.creadoPor",
+        "rol.actualizadoEl",
+        "rol.actualizadoPor",
+        "permiso.id",
+        "permiso.nombre",
       ])
-      .orderBy("role.id", "ASC")
-      .addOrderBy("permission.id", "ASC");
+      .orderBy("rol.id", "ASC")
+      .addOrderBy("permiso.id", "ASC");
 
     // Solo aplicar paginación si se especifican parámetros
     if (queryParams.page || queryParams.limit) {
@@ -66,13 +70,15 @@ export async function getRolesService(queryParams = {}) {
       return [null, "No se encontraron roles."];
     }
 
-    const rolesSummarized = roles.map((role) => ({
-      id: role.id,
-      nombre: role.nombre,
-      descripcion: role.descripcion,
-      fechaCreacion: role.fechaCreacion,
-      fechaActualizacion: role.fechaActualizacion,
-      permisos: role.permisos ? role.permisos.map((r) => r.nombre) : [],
+    const rolesSummarized = roles.map((rol) => ({
+      id: rol.id,
+      nombre: rol.nombre,
+      descripcion: rol.descripcion,
+      creadoEl: rol.creadoEl,
+      creadoPor: rol.creadoPor,
+      actualizadoEl: rol.actualizadoEl,
+      actualizadoPor: rol.actualizadoPor,
+      permisos: rol.permisos ? rol.permisos.map((r) => r.nombre) : [],
     }));
 
     return [rolesSummarized, null, total];
@@ -82,130 +88,133 @@ export async function getRolesService(queryParams = {}) {
   }
 }
 
-export async function updateRoleService(query, body) {
+export async function updateRolService(query, body) {
   try {
     const { id, nombre } = query;
 
-    const roleRepository = AppDataSource.getRepository(Role);
-    const permissionRepository = AppDataSource.getRepository(Permission);
+    const rolRepository = AppDataSource.getRepository(Rol);
+    const permisoRepository = AppDataSource.getRepository(Permiso);
 
-    const roleFound = await roleRepository.findOne({
+    const rolFound = await rolRepository.findOne({
       where: [{ id: id }, { nombre: nombre }],
       relations: ["permisos"],
     });
 
-    if (!roleFound) return [null, "Rol no encontrado"];
+    if (!rolFound) return [null, "Rol no encontrado"];
 
-    const existingRole = await roleRepository.findOne({
+    const existingRol = await rolRepository.findOne({
       where: [{ nombre: body.nombre }],
     });
 
-    if (existingRole && existingRole.id !== roleFound.id) {
+    if (existingRol && existingRol.id !== rolFound.id) {
       return [null, "Ya existe un rol con el mismo nombre"];
     }
 
     // Manejar permisos si se proporcionan
-    let permissionsEntities = [];
+    let permisosEntities = [];
     if (body.permisos && Array.isArray(body.permisos)) {
       if (body.permisos.length > 0) {
-        permissionsEntities = await permissionRepository.find({
+        permisosEntities = await permisoRepository.find({
           where: {
             nombre: In(body.permisos),
           },
         });
 
         // Verificar si todos los permisos solicitados fueron encontrados
-        if (permissionsEntities.length !== body.permisos.length) {
-          const foundPermissionNames = permissionsEntities.map((p) => p.nombre);
-          const missingPermissions = body.permisos.filter(
-            (pName) => !foundPermissionNames.includes(pName),
+        if (permisosEntities.length !== body.permisos.length) {
+          const foundPermisosNames = permisosEntities.map((p) => p.nombre);
+          const missingPermisos = body.permisos.filter(
+            (pName) => !foundPermisosNames.includes(pName),
           );
           return [
             null,
-            `Los siguientes permisos no existen en la BD: ${missingPermissions.join(", ")}`,
+            `Los siguientes permisos no existen en la BD: ${missingPermisos.join(", ")}`,
           ];
         }
       }
     } else {
       // Si no se proporcionan permisos, mantener los existentes
-      permissionsEntities = roleFound.permisos;
+      permisosEntities = rolFound.permisos;
     }
 
     // Actualizar el rol
-    roleFound.nombre = body.nombre;
-    roleFound.descripcion = body.descripcion;
-    roleFound.permisos = permissionsEntities;
-    roleFound.fechaActualizacion = new Date();
+    rolFound.nombre = body.nombre;
+    rolFound.descripcion = body.descripcion;
+    rolFound.permisos = permisosEntities;
+    rolFound.actualizadoEl = new Date();
+    rolFound.actualizadoPor = body.actualizadoPor || rolFound.actualizadoPor;
 
-    const savedRole = await roleRepository.save(roleFound);
+    const savedRol = await rolRepository.save(rolFound);
 
     // Formatear la respuesta de manera consistente
-    const roleData = {
-      id: savedRole.id,
-      nombre: savedRole.nombre,
-      descripcion: savedRole.descripcion,
-      fechaCreacion: savedRole.fechaCreacion,
-      fechaActualizacion: savedRole.fechaActualizacion,
-      permisos: savedRole.permisos
-        ? savedRole.permisos.map((p) => p.nombre)
+    const rolData = {
+      id: savedRol.id,
+      nombre: savedRol.nombre,
+      descripcion: savedRol.descripcion,
+      creadoEl: savedRol.creadoEl,
+      creadoPor: savedRol.creadoPor,
+      actualizadoEl: savedRol.actualizadoEl,
+      actualizadoPor: savedRol.actualizadoPor,
+      permisos: savedRol.permisos
+        ? savedRol.permisos.map((p) => p.nombre)
         : [],
     };
 
-    return [roleData, null];
+    return [rolData, null];
   } catch (error) {
     console.error("Error al modificar un rol:", error);
     return [null, "Error interno del servidor"];
   }
 }
 
-export async function deleteRoleService(query) {
+export async function deleteRolService(query) {
   try {
     const { id, nombre } = query;
 
-    const roleRepository = AppDataSource.getRepository(Role);
+    const rolRepository = AppDataSource.getRepository(Rol);
 
-    const roleFound = await roleRepository.findOne({
+    const rolFound = await rolRepository.findOne({
       where: [{ id: id }, { nombre: nombre }],
     });
 
-    if (!roleFound) return [null, "Rol no encontrado"];
+    if (!rolFound) return [null, "Rol no encontrado"];
 
-    // Verificar si el rol está siendo usado por algún usuario consultando la tabla de unión
-    const usersWithRole = await AppDataSource.query(
+    // Verificar si el rol está siendo usado por algún bombero consultando la tabla de unión
+    const bomberoWithRol = await AppDataSource.query(
       `SELECT COUNT(*) as count FROM usuario_roles WHERE rol_id = $1`,
-      [roleFound.id]
+      [rolFound.id]
     );
 
-    const userCount = parseInt(usersWithRole[0].count);
-    if (userCount > 0) {
-      return [null, `No se puede eliminar el rol "${roleFound.nombre}" porque está asignado a ${userCount} usuario(s)`];
+    const bomberoCount = parseInt(bomberoWithRol[0].count);
+    if (bomberoCount > 0) {
+      return [null, `No se puede eliminar el rol "${rolFound.nombre}" porque está asignado a ${bomberoCount} bombero(s)`];
     }
 
     // Primero eliminar las relaciones con permisos
     await AppDataSource.query(
       `DELETE FROM rol_permisos WHERE rol_id = $1`,
-      [roleFound.id]
+      [rolFound.id]
     );
     
     // Ahora eliminar el rol usando SQL directo
     await AppDataSource.query(
       `DELETE FROM roles WHERE id = $1`,
-      [roleFound.id]
+      [rolFound.id]
     );
 
-    return [{ id: roleFound.id, nombre: roleFound.nombre }, null];
+    return [{ id: rolFound.id, nombre: rolFound.nombre }, null];
   } catch (error) {
     console.error("Error al eliminar un rol:", error);
     return [null, "Error interno del servidor"];
   }
 }
 
-export async function createRoleService(body) {
+export async function createRolService(body) {
   try {
-    const roleRepository = AppDataSource.getRepository(Role);
-    const permissionRepository = AppDataSource.getRepository(Permission);
+    const rolRepository = AppDataSource.getRepository(Rol);
+    const permisoRepository = AppDataSource.getRepository(Permiso);
 
-    const existingRol = await roleRepository.findOne({
+    const existingRol = await rolRepository.findOne({
       where: [{ nombre: body.nombre }],
     });
 
@@ -213,53 +222,56 @@ export async function createRoleService(body) {
       return [null, "Ya existe un rol con el mismo nombre"];
     }
 
-    let permissionsEntities = [];
+    let permisosEntities = [];
     if (body.permisos && body.permisos.length > 0) {
-      permissionsEntities = await permissionRepository.find({
+      permisosEntities = await permisoRepository.find({
         where: {
           nombre: In(body.permisos),
         },
       });
 
       // Verificar si todos los permisos solicitados fueron encontrados
-      if (permissionsEntities.length !== body.permisos.length) {
-        const foundPermissionNames = permissionsEntities.map((p) => p.nombre);
-        const missingPermissions = body.permisos.filter(
-          (pName) => !foundPermissionNames.includes(pName),
+      if (permisosEntities.length !== body.permisos.length) {
+        const foundPermisosNames = permisosEntities.map((p) => p.nombre);
+        const missingPermisos = body.permisos.filter(
+          (pName) => !foundPermisosNames.includes(pName),
         );
         return [
           null,
-          `Los siguientes permisos no existen en la BD: ${missingPermissions.join(", ")}`,
+          `Los siguientes permisos no existen en la BD: ${missingPermisos.join(", ")}`,
         ];
       }
     }
 
-    const newRol = roleRepository.create({
+    const newRol = rolRepository.create({
       nombre: body.nombre,
       descripcion: body.descripcion,
-      permisos: permissionsEntities,
+      creadoPor: body.creadoPor,
+      permisos: permisosEntities,
     });
 
-    const savedRol = await roleRepository.save(newRol);
+    const savedRol = await rolRepository.save(newRol);
 
     // Obtener el rol guardado con sus relaciones para devolverlo formateado
-    const roleWithPermissions = await roleRepository.findOne({
+    const rolWithPermisos = await rolRepository.findOne({
       where: { id: savedRol.id },
       relations: ["permisos"],
     });
 
-    const roleData = {
-      id: roleWithPermissions.id,
-      nombre: roleWithPermissions.nombre,
-      descripcion: roleWithPermissions.descripcion,
-      fechaCreacion: roleWithPermissions.fechaCreacion,
-      fechaActualizacion: roleWithPermissions.fechaActualizacion,
-      permisos: roleWithPermissions.permisos
-        ? roleWithPermissions.permisos.map((p) => p.nombre)
+    const rolData = {
+      id: rolWithPermisos.id,
+      nombre: rolWithPermisos.nombre,
+      descripcion: rolWithPermisos.descripcion,
+      creadoEl: rolWithPermisos.fechaCreacion,
+      creadoPor: rolWithPermisos.creadoPor,
+      actualizadoEl: rolWithPermisos.fechaActualizacion,
+      actualizadoPor: rolWithPermisos.actualizadoPor,
+      permisos: rolWithPermisos.permisos
+        ? rolWithPermisos.permisos.map((p) => p.nombre)
         : [],
     };
 
-    return [roleData, null];
+    return [rolData, null];
   } catch (error) {
     console.error("Error al crear un rol:", error);
     return [null, "Error interno del servidor"];

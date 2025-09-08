@@ -1,13 +1,13 @@
 "use strict";
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
-import { authorizePermissions } from "../middlewares/authorization.middleware.js";
+import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import {
-  deleteRole,
-  getRole,
+  deleteRol,
+  getRol,
   getRoles,
-  updateRole,
-  createRole,
+  updateRol,
+  createRol,
 } from "../controllers/rol.controller.js";
 
 
@@ -15,39 +15,39 @@ const router = Router();
 
 router.use(authenticateJwt);
 
-// GET /api/role/ -> Obtener todos los roles
+// GET /api/rol/ -> Obtener todos los roles
 router.get(
   "/",
-  authorizePermissions(["rol:leer"]), // Permiso para leer roles
+  authorizePermisos(["rol:leer"]), // Permiso para leer roles
   getRoles,
 );
 
-// GET /api/role/detail/:id -> Obtener un rol específico por su ID
+// GET /api/rol/detail/:id -> Obtener un rol específico por su ID
 router.get(
   "/detail/:id",
-  authorizePermissions(["rol:leer"]), // Permiso para leer un rol específico
-  getRole,
+  authorizePermisos(["rol:leer_especifico"]), // Permiso para leer un rol específico
+  getRol,
 );
 
-// PATCH /api/role/:id -> Actualizar un rol específico por su ID
+// PATCH /api/rol/:id -> Actualizar un rol específico por su ID
 router.patch(
   "/detail/:id",
-  authorizePermissions(["rol:actualizar"]), // Permiso para actualizar un rol específico
-  updateRole,
+  authorizePermisos(["rol:actualizar"]), // Permiso para actualizar un rol específico
+  updateRol,
 );
 
-// DELETE /api/role/:id -> Eliminar un rol específico por su ID
+// DELETE /api/rol/:id -> Eliminar un rol específico por su ID
 router.delete(
   "/detail/:id",
-  authorizePermissions(["rol:eliminar"]), // Permiso para eliminar un rol
-  deleteRole,
+  authorizePermisos(["rol:eliminar"]), // Permiso para eliminar un rol
+  deleteRol,
 );
 
-// POST /api/role/ -> Crear un nuevo rol
+// POST /api/rol/ -> Crear un nuevo rol
 router.post(
   "/",
-  authorizePermissions(["rol:crear"]), // Permiso para crear un rol
-  createRole,
+  authorizePermisos(["rol:crear"]), // Permiso para crear un rol
+  createRol,
 );
 
 

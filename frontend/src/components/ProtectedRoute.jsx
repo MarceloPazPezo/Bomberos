@@ -5,12 +5,12 @@ import { useState, useEffect } from 'react';
 const ProtectedRoute = ({ 
     children, 
     allowedRoles, 
-    requiredPermissions = [], 
+    requiredPermisos = [], 
     requireAll = false,
     fallbackPath = "/home",
     loadingComponent = null 
 }) => {
-    const { isAuthenticated, user, userPermissions, loading } = useAuth();
+    const { isAuthenticated, bombero, bomberoPermisos, loading } = useAuth();
     const [hasAccess, setHasAccess] = useState(false);
     const [isChecking, setIsChecking] = useState(true);
 
@@ -24,7 +24,7 @@ const ProtectedRoute = ({
 
             // Verificar roles si se especifican
             if (allowedRoles && allowedRoles.length > 0) {
-                const hasRole = allowedRoles.includes(user?.rol);
+                const hasRole = allowedRoles.includes(bombero?.rol);
                 if (!hasRole) {
                     setHasAccess(false);
                     setIsChecking(false);
@@ -33,21 +33,21 @@ const ProtectedRoute = ({
             }
 
             // Verificar permisos si se especifican
-            if (requiredPermissions && requiredPermissions.length > 0) {
-                const userPerms = userPermissions || [];
+            if (requiredPermisos && requiredPermisos.length > 0) {
+                const bomberoPerms = bomberoPermisos || [];
                 
                 if (requireAll) {
                     // Requiere TODOS los permisos
-                    const hasAllPermissions = requiredPermissions.every(permission => 
-                        userPerms.includes(permission)
+                    const hasAllPermisos = requiredPermisos.every(permiso => 
+                        bomberoPerms.includes(permiso)
                     );
-                    setHasAccess(hasAllPermissions);
+                    setHasAccess(hasAllPermisos);
                 } else {
                     // Requiere AL MENOS UNO de los permisos
-                    const hasAnyPermission = requiredPermissions.some(permission => 
-                        userPerms.includes(permission)
+                    const hasAnyPermiso = requiredPermisos.some(permiso => 
+                        bomberoPerms.includes(permiso)
                     );
-                    setHasAccess(hasAnyPermission);
+                    setHasAccess(hasAnyPermiso);
                 }
             } else {
                 // Si no hay permisos específicos requeridos, permitir acceso
@@ -60,7 +60,7 @@ const ProtectedRoute = ({
         if (!loading) {
             checkAccess();
         }
-    }, [isAuthenticated, user, userPermissions, allowedRoles, requiredPermissions, requireAll, loading]);
+    }, [isAuthenticated, bombero, bomberoPermisos, allowedRoles, requiredPermisos, requireAll, loading]);
 
     // Mostrar loading mientras se verifica autenticación
     if (loading || isChecking) {

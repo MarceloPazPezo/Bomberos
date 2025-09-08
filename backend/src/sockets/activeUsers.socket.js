@@ -1,59 +1,59 @@
-// Este archivo manejará la lógica de usuarios activos vía WebSockets
-// Mapa: userId -> { userData, sockets: Set<socket.id> }
-const activeUsers = new Map();
+// Este archivo manejará la lógica de bomberos activos vía WebSockets
+// Mapa: bomberoId -> { bomberoData, sockets: Set<socket.id> }
+const activeBomberos = new Map();
 
 export function handleSocketConnection(io) {
   io.on("connection", (socket) => {
     console.log("[SOCKET] Nueva conexión:", socket.id);
 
-    // Cuando un usuario se conecta y se identifica
+    // Cuando un bombero se conecta y se identifica
 
-    // userData: { id, nombres, apellidos }
-    socket.on("userActive", (userData) => {
-      if (!userData || !userData.id) return;
-      let entry = activeUsers.get(userData.id);
+    // bomberoData: { id, nombres, apellidos }
+    socket.on("bomberoActive", (bomberoData) => {
+      if (!bomberoData || !bomberoData.id) return;
+      let entry = activeBomberos.get(bomberoData.id);
       if (!entry) {
-        entry = { userData, sockets: new Set() };
-        activeUsers.set(userData.id, entry);
+        entry = { bomberoData, sockets: new Set() };
+        activeBomberos.set(bomberoData.id, entry);
       }
       entry.sockets.add(socket.id);
-      console.log(`[SOCKET] Usuario activo: ${userData.id} (${userData.nombres || ''} ${userData.apellidos || ''}) (socket: ${socket.id})`);
-      io.emit("updateActiveUsers", Array.from(activeUsers.values()).map(e => e.userData));
+      console.log(`[SOCKET] Bombero activo: ${bomberoData.id} (${bomberoData.nombres || ''} ${bomberoData.apellidos || ''}) (socket: ${socket.id})`);
+      io.emit("updateActiveBomberos", Array.from(activeBomberos.values()).map(e => e.bomberoData));
     });
 
-    // Cuando un usuario se desconecta
+    // Cuando un bombero se desconecta
     socket.on("disconnect", () => {
-      // Buscar a qué usuario pertenece este socket
-      for (const [userId, entry] of activeUsers.entries()) {
+      // Buscar a qué bombero pertenece este socket
+      for (const [bomberoId, entry] of activeBomberos.entries()) {
         if (entry.sockets.has(socket.id)) {
           entry.sockets.delete(socket.id);
           if (entry.sockets.size === 0) {
-            activeUsers.delete(userId);
-            console.log(`[SOCKET] Desconexión: ${socket.id} (usuario: ${userId}) - usuario eliminado de activos`);
+            activeBomberos.delete(bomberoId);
+            console.log(`[SOCKET] Desconexión: ${socket.id} (bombero: ${bomberoId}) - bombero eliminado de activos`);
           } else {
-            console.log(`[SOCKET] Desconexión: ${socket.id} (usuario: ${userId}) - quedan ${entry.sockets.size} sockets activos`);
+            console.log(`[SOCKET] Desconexión: ${socket.id} (bombero: ${bomberoId}) - quedan ${entry.sockets.size} sockets activos`);
           }
           break;
         }
       }
-      io.emit("updateActiveUsers", Array.from(activeUsers.values()).map(e => e.userData));
+      io.emit("updateActiveBomberos", Array.from(activeBomberos.values()).map(e => e.bomberoData));
     });
 
-    // Eliminar usuario activo explícitamente al hacer logout
-    socket.on("userLogout", (userId) => {
-      if (!userId) return;
-      const entry = activeUsers.get(userId);
+    // Eliminar bombero activo explícitamente al hacer logout
+    socket.on("bomberoLogout", (bomberoId) => {
+      if (!bomberoId) return;
+      const entry = activeBomberos.get(bomberoId);
       if (entry) {
         // Eliminar solo los sockets asociados a este socket
         entry.sockets.delete(socket.id);
         if (entry.sockets.size === 0) {
-          activeUsers.delete(userId);
-          console.log(`[SOCKET] Logout explícito de usuario: ${userId} - usuario eliminado de activos`);
+          activeBomberos.delete(bomberoId);
+          console.log(`[SOCKET] Logout explícito de bombero: ${bomberoId} - bombero eliminado de activos`);
         } else {
-          console.log(`[SOCKET] Logout explícito de usuario: ${userId} - quedan ${entry.sockets.size} sockets activos`);
+          console.log(`[SOCKET] Logout explícito de bombero: ${bomberoId} - quedan ${entry.sockets.size} sockets activos`);
         }
       }
-      io.emit("updateActiveUsers", Array.from(activeUsers.values()).map(e => e.userData));
+      io.emit("updateActiveBomberos", Array.from(activeBomberos.values()).map(e => e.bomberoData));
     });
   });
 }

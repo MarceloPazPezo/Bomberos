@@ -3,51 +3,39 @@ import { EntitySchema } from "typeorm";
 
 const DisponibilidadSchema = new EntitySchema({
   name: "Disponibilidad",
-  tableName: "disponibilidad",
+  tableName: "disponibilidades",
   columns: {
     id: {
       type: "int",
       primary: true,
       generated: "increment",
     },
-    usuario_id: {
+    idBombero: {
       type: "int",
-      nullable: false, // FK -> usuarios.id
+      nullable: false, // FK -> bomberos.id
     },
-    estado: {
-      type: "varchar",
-      length: 50, // ajusta si tienes catálogo
-      nullable: false,
-    },
-    fecha_inicio: {
+    fechaInicio: {
       type: "timestamp with time zone",
       nullable: false,
     },
-    fecha_termino: {
+    fechaTermino: {
       type: "timestamp with time zone",
       nullable: true, // puede estar abierta
     },
-    rol_servicio: {
-      type: "varchar",
-      length: 100,
-      nullable: true,
-    },
-
   },
   indices: [
-    { name: "IDX_DISPONIBILIDAD_USUARIO_ID", columns: ["usuario_id"] },
-    { name: "IDX_DISPONIBILIDAD_ESTADO", columns: ["estado"] },
+    { name: "IDX_DISPONIBILIDAD_BOMBERO_ID", columns: ["idBombero"] },
   ],
   relations: {
-    usuario: {
+    bombero: {
       type: "many-to-one",
-      target: "Usuario",
+      target: "Bombero",
       joinColumn: {
-        name: "usuario_id",
+        name: "idBombero",
         referencedColumnName: "id",
-        onDelete: "CASCADE", // si se borra el usuario, se borran sus disponibilidades
+        onDelete: "CASCADE", // si se borra el bombero, se borran sus disponibilidades
       },
-        eager: true, // activa si quieres cargar siempre el usuario
+        eager: true, // activa si quieres cargar siempre el bombero
     },
   },
 });

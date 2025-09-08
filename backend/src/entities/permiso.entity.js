@@ -35,14 +35,6 @@ const PermisoSchema = new EntitySchema({
       length: 10,
       nullable: true,
     },
-    fechaCreacion: {
-      type: "timestamp with time zone",
-      createDate: true,
-    },
-    fechaActualizacion: {
-      type: "timestamp with time zone",
-      updateDate: true,
-    },
   },
   relations: {
     roles: {

@@ -1,12 +1,12 @@
 "use strict";
 import { DataSource } from "typeorm";
 import {
-  DATABASE,
-  DB_USERNAME,
+  DB_NAME,
   DB_HOST,
-  PASSWORD,
-  NODE_ENV,
   DB_PORT,
+  DB_USERNAME,
+  DB_PASSWORD,
+  NODE_ENV,
 } from "./configEnv.js";
 import logger from "./logger.js";
 
@@ -15,8 +15,8 @@ export const AppDataSource = new DataSource({
   host: `${DB_HOST}`,
   port: `${DB_PORT}`,
   username: `${DB_USERNAME}`,
-  password: `${PASSWORD}`,
-  database: `${DATABASE}`,
+  password: `${DB_PASSWORD}`,
+  database: `${DB_NAME}`,
   entities: ["src/entities/**/*.js"],
   synchronize: true,
   logging: false, // desactivada por defecto
@@ -31,7 +31,7 @@ export async function connectDB() {
   } catch (error) {
     logger.errorWithContext(error, {
       function: "connectDB",
-      database: DATABASE,
+      database: DB_NAME,
       host: DB_HOST,
       port: DB_PORT,
     });

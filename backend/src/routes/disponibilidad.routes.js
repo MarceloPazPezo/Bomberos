@@ -1,14 +1,14 @@
 "use strict";
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
-import { authorizePermissions } from "../middlewares/authorization.middleware.js";
+import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import {
   deleteDisponibilidad,
   getDisponibilidad,
   getDisponibilidades,
   updateDisponibilidad,
   createDisponibilidad,
-  changeDisponibilidadStatus,
+  cerrarDisponibilidad,
   getDisponibilidadActiva,
 } from "../controllers/disponibilidad.controller.js";
 
@@ -19,50 +19,50 @@ router.use(authenticateJwt);
 // GET /api/disponibilidad/ -> Obtener todas las disponibilidades
 router.get(
   "/",
-  authorizePermissions(["disponibilidad:read_all"]),
+  authorizePermisos(["disponibilidad:read_all"]),
   getDisponibilidades,
 );
 
 // GET /api/disponibilidad/detail/:id -> Obtener una disponibilidad específica por su ID
 router.get(
   "/detail/:id",
-  authorizePermissions(["disponibilidad:read_specific"]),
+  authorizePermisos(["disponibilidad:read_specific"]),
   getDisponibilidad,
 );
 
 // PATCH /api/disponibilidad/detail/:id -> Actualizar una disponibilidad específica por su ID
 router.patch(
   "/detail/:id",
-  authorizePermissions(["disponibilidad:update_specific"]),
+  authorizePermisos(["disponibilidad:update_specific"]),
   updateDisponibilidad,
 );
 
 // DELETE /api/disponibilidad/detail/:id -> Eliminar una disponibilidad específica por su ID
 router.delete(
   "/detail/:id",
-  authorizePermissions(["disponibilidad:delete"]),
+  authorizePermisos(["disponibilidad:delete"]),
   deleteDisponibilidad,
 );
 
 // POST /api/disponibilidad/-> Creamos una disponibilidad
 router.post(
   "/",
-  authorizePermissions(["disponibilidad:create"]),
+  authorizePermisos(["disponibilidad:create"]),
   createDisponibilidad,
 );
 
-// GET /api/disponibilidad/activa/:usuario_id -> Obtener disponibilidad activa de un usuario
+// GET /api/disponibilidad/activa/:idBombero -> Obtener disponibilidad activa de un bombero
 router.get(
-  "/activa/:usuario_id",
-  authorizePermissions(["disponibilidad:read_specific"]),
+  "/activa/:idBombero",
+  authorizePermisos(["disponibilidad:read_specific"]),
   getDisponibilidadActiva,
 );
 
-// PATCH /api/disponibilidad/status -> Cambiar estado de disponibilidad
+// PATCH /api/disponibilidad/cerrar -> Cerrar disponibilidad activa
 router.patch(
-  "/status",
-  authorizePermissions(["disponibilidad:change_status"]),
-  changeDisponibilidadStatus,
+  "/cerrar",
+  authorizePermisos(["disponibilidad:update_specific"]),
+  cerrarDisponibilidad,
 );
 
 export default router;

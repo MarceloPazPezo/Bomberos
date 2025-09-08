@@ -25,31 +25,6 @@ services:
       - network
 
   # ===========================================
-  # BASE DE DATOS DE TESTING
-  # ===========================================
-  database_test:
-    image: postgis/postgis:17-3.5
-    container_name: bomberos-pern-database-test
-    environment:
-      POSTGRES_DB: ${DB_TEST_NAME:-db_bomberos_test}
-      POSTGRES_USER: ${DB_TEST_USERNAME:-user_bomberos_test}
-      POSTGRES_PASSWORD: ${DB_TEST_PASSWORD:-password_bomberos_test}
-      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=es-ES --encoding=UTF8"
-    ports:
-      - "${EXTERNAL_DB_TEST_PORT:-5434}:5432"
-    volumes:
-      - database_test_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_TEST_USERNAME:-user_bomberos_test} -d ${DB_TEST_NAME:-db_bomberos_test}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    networks:
-      - network
-
-  # ===========================================
   # ALMACENAMIENTO DE ARCHIVOS (MinIO)
   # ===========================================
   minio:

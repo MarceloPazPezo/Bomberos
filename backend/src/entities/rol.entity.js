@@ -20,39 +20,57 @@ const RolSchema = new EntitySchema({
       type: "text",
       nullable: true,
     },
-    nivel: {
-      type: "int",
-      nullable: false,
-      default: 1,
-      comment: "Nivel jerárquico del rol (1=Usuario, 2=Supervisor, 3=Administrador, etc.)"
-    },
-    fechaCreacion: {
+    creadoEl: {
       type: "timestamp with time zone",
       createDate: true,
     },
-    fechaActualizacion: {
+    creadoPor: {
+      type: "int",
+      nullable: true,
+    },
+    actualizadoEl: {
       type: "timestamp with time zone",
       updateDate: true,
     },
+    actualizadoPor: {
+      type: "int",
+      nullable: true,
+    },
   },
   relations: {
-    usuarios: {
+    creador: {
+      type: "many-to-one",
+      target: "Bombero",
+      joinColumn: {
+        name: "creadoPor",
+        referencedColumnName: "id",
+      },
+    },
+    actualizador: {
+      type: "many-to-one",
+      target: "Bombero",
+      joinColumn: {
+        name: "actualizadoPor",
+        referencedColumnName: "id",
+      },
+    },
+    bomberos: {
       type: "many-to-many",
-      target: "Usuario",
+      target: "Bombero",
       mappedBy: "roles",
     },
     permisos: {
       type: "many-to-many",
       target: "Permiso",
       joinTable: {
-        name: "rol_permisos",
+        name: "rolPermisos",
         joinColumn: {
-          name: "rol_id",
+          name: "idRol",
           referencedColumnName: "id",
           onDelete: "CASCADE",
         },
         inverseJoinColumn: {
-          name: "permiso_id",
+          name: "idPermiso",
           referencedColumnName: "id",
         },
       },

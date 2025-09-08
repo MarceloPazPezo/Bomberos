@@ -4,7 +4,7 @@ import Joi from "joi";
 /**
  * Esquema de validación para actualizar un permiso
  */
-const updatePermissionSchema = Joi.object({
+const updatePermisoSchema = Joi.object({
   name: Joi.string()
     .min(3)
     .max(100)
@@ -22,10 +22,10 @@ const updatePermissionSchema = Joi.object({
   }),
 
   category: Joi.string()
-    .valid("users", "roles", "permissions", "system", "auth", "locations")
+    .valid("users", "roles", "permisos", "system", "auth", "locations")
     .messages({
       "any.only":
-        "La categoría debe ser una de: users, roles, permissions, system, auth, locations",
+        "La categoría debe ser una de: users, roles, permisos, system, auth, locations",
     }),
 
   isActive: Joi.boolean(),
@@ -34,18 +34,18 @@ const updatePermissionSchema = Joi.object({
 /**
  * Esquema de validación para parámetros de ID
  */
-const permissionIdSchema = Joi.object({
+const permisoIdSchema = Joi.object({
   id: Joi.number().integer().positive().required(),
 });
 
 /**
  * Esquema de validación para filtros de consulta
  */
-const queryPermissionSchema = Joi.object({
+const queryPermisoSchema = Joi.object({
   category: Joi.string().valid(
     "users",
     "roles",
-    "permissions",
+    "permisos",
     "system",
     "auth",
     "locations",
@@ -57,8 +57,8 @@ const queryPermissionSchema = Joi.object({
 });
 
 export {
-  createPermissionSchema,
-  updatePermissionSchema,
-  permissionIdSchema,
-  queryPermissionSchema,
+  createPermisoSchema,
+  updatePermisoSchema,
+  permisoIdSchema,
+  queryPermisoSchema,
 };

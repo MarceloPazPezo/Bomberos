@@ -61,36 +61,6 @@ export const updateDisponibilidad = async (id, disponibilidadData) => {
 };
 
 /**
- * Obtiene la disponibilidad activa de un usuario
- * @param {number} usuario_id - ID del usuario
- * @returns {Promise} Promesa que resuelve con la disponibilidad activa
- */
-export const getDisponibilidadActiva = async (usuario_id) => {
-  try {
-    const response = await axios.get(`/disponibilidad/activa/${usuario_id}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error al obtener disponibilidad activa:', error);
-    throw error.response?.data || error;
-  }
-};
-
-/**
- * Cambia el estado de disponibilidad de un usuario
- * @param {Object} statusData - Datos del cambio de estado
- * @returns {Promise} Promesa que resuelve con la disponibilidad actualizada
- */
-export const changeDisponibilidadStatus = async (statusData) => {
-  try {
-    const response = await axios.patch('/disponibilidad/status', statusData);
-    return response.data;
-  } catch (error) {
-    console.error('Error al cambiar estado de disponibilidad:', error);
-    throw error.response?.data || error;
-  }
-};
-
-/**
  * Elimina una disponibilidad
  * @param {number} id - ID de la disponibilidad
  * @returns {Promise} Promesa que resuelve con el resultado de la eliminación
@@ -101,6 +71,37 @@ export const deleteDisponibilidad = async (id) => {
     return response.data;
   } catch (error) {
     console.error('Error al eliminar disponibilidad:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Cambia el estado de disponibilidad de un bombero (cerrar disponibilidad activa)
+ * @param {Object} statusData - Datos del cambio de estado
+ * @param {number} statusData.idBombero - ID del bombero
+ * @returns {Promise} Promesa que resuelve con la disponibilidad actualizada
+ */
+export const cerrarDisponibilidad = async (statusData) => {
+  try {
+    const response = await axios.patch('/disponibilidad/cerrar', statusData);
+    return response.data;
+  } catch (error) {
+    console.error('Error al cerrar disponibilidad:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Obtiene la disponibilidad activa de un bombero
+ * @param {number} idBombero - ID del bombero
+ * @returns {Promise} Promesa que resuelve con la disponibilidad activa
+ */
+export const getDisponibilidadActiva = async (idBombero) => {
+  try {
+    const response = await axios.get(`/disponibilidad/activa/${idBombero}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener disponibilidad activa:', error);
     throw error.response?.data || error;
   }
 };

@@ -16,17 +16,27 @@ import {
 
 import { COOKIE_KEY, HOST, PORT } from "./config/configEnv.js";
 import { connectDB } from "./config/configDb.js";
-import { connectSpatialDB, syncSpatialModels } from "./config/spatialDb.js";
 import { passportJwtSetup } from "./auth/passport.auth.js";
+
 import {
-  crearPermisos,
+  crearCompañia
+} from "./config/data/initialCompania.js";
+import {
+  crearBomberos
+} from "./config/data/initialBombero.js";
+import {
   crearRoles,
-  crearUsuarios,
-  crearConfiguracionesSistema,
-} from "./config/initialSetup.js";
+  crearPermisos
+} from "./config/data/initialRolPermisos.js";
+import {
+  crearRegiones,
+  crearComunas,
+} from "./config/data/initialRegionComuna.js";
+
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { handleSocketConnection } from "./sockets/activeUsers.socket.js";
+import { addAbortListener } from "events";
 async function setupServer() {
   try {
     const app = express();
@@ -108,16 +118,15 @@ async function setupAPI() {
     await connectDB();
     logger.database("TypeORM conectado exitosamente");
 
-    // Conectar Sequelize (datos geoespaciales)
-    await connectSpatialDB();
-    await syncSpatialModels();
-    logger.database("Sequelize/PostGIS conectado exitosamente");
-
     await setupServer();
+    await crearCompañia();
+    await crearRegiones();
+    await crearComunas();
+
     await crearPermisos();
     await crearRoles();
-    await crearUsuarios();
-    await crearConfiguracionesSistema();
+    
+    await crearBomberos();
 
     logger.info("[CONFIG] Configuración inicial completada");
   } catch (error) {

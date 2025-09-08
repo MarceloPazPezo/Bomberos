@@ -3,32 +3,30 @@ import cookies from 'js-cookie';
 import { jwtDecode } from 'jwt-decode';
 import { convertirMinusculas } from '@helpers/formatData.js';
 
-export async function login(dataUser) {
+export async function login(dataBombero) {
     try {
         const response = await axios.post('/auth/login', {
-            run: dataUser.run,
-            password: dataUser.password
+            run: dataBombero.run,
+            password: dataBombero.password
         });
         const { status, data } = response;
         if (status === 200) {
             const decoded = jwtDecode(data.data.token);
             // Unifica todos los permisos de todos los roles en un solo array (sin duplicados)
-            const allPermissions = Array.isArray(decoded.roles)
+            const allPermisos = Array.isArray(decoded.roles)
                 ? [...new Set(decoded.roles.flatMap(r => Array.isArray(r.permisos) ? r.permisos : []))]
                 : [];
-            const userData = {
+            const bomberoData = {
                 id: decoded.id,
-                nombres: decoded.nombres || decoded.firstName,
-                apellidos: decoded.apellidos || decoded.lastName,
+                nombres: decoded.nombres,
+                apellidos: decoded.apellidos,
                 email: decoded.email,
                 run: decoded.run,
-                telefono: decoded.telefono,
-                fechaNacimiento: decoded.fechaNacimiento,
                 activo: decoded.activo,
                 roles: decoded.roles,
-                permissions: allPermissions
+                permisos: allPermisos
             };
-            sessionStorage.setItem('usuario', JSON.stringify(userData));
+            sessionStorage.setItem('bombero', JSON.stringify(bomberoData));
             axios.defaults.headers.common['Authorization'] = `Bearer ${data.data.token}`;
             cookies.set('jwt-auth', data.data.token, {path:'/'});
             return response.data;
@@ -43,7 +41,7 @@ export async function login(dataUser) {
 export async function logout() {
     try {
         await axios.post('/auth/logout');
-        sessionStorage.removeItem('usuario');
+        sessionStorage.removeItem('bombero');
         cookies.remove('jwt');
         cookies.remove('jwt-auth');
     } catch (error) {
@@ -51,15 +49,15 @@ export async function logout() {
     }
 }
 
-export async function getUserPermissions(userId) {
+export async function getBomberoPermisos(idBombero) {
     try {
-        const response = await axios.get(`/auth/user/${userId}/permissions`);
+        const response = await axios.get(`/auth/bombero/${idBombero}/permisos`);
         if (response.status === 200) {
             return response.data.data || [];
         }
         return [];
     } catch (error) {
-        console.error('Error al obtener permisos del usuario:', error);
+        console.error('Error al obtener permisos del bombero:', error);
         return [];
     }
 }

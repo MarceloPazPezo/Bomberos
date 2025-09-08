@@ -1,24 +1,24 @@
 import { useState } from 'react';
 
 const useLogin = () => {
-    const [errorRut, setErrorRut] = useState('');
+    const [errorRun, setErrorRun] = useState('');
     const [errorPassword, setErrorPassword] = useState('');
 
     const errorData = (dataMessage) => {
         if (dataMessage.dataInfo === 'run') {
-            setErrorRut(dataMessage.message);
+            setErrorRun(dataMessage.message);
         } else if (dataMessage.dataInfo === 'password') {
             setErrorPassword(dataMessage.message);
         }
     };
 
     const clearErrors = () => {
-        setErrorRut('');
+        setErrorRun('');
         setErrorPassword('');
     };
 
     return {
-        errorRut,
+        errorRun,
         errorPassword,
         errorData,
         clearErrors,

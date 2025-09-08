@@ -1,38 +1,50 @@
 "use strict";
 import Disponibilidad from "../entities/disponibilidad.entity.js";
-import Usuario from "../entities/usuario.entity.js";
+import Bombero from "../entities/bombero.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 
 export async function createDisponibilidadService(body) {
   try {
-    const disponibilidadRepository = AppDataSource.getRepository(Disponibilidad);
-    const usuarioRepository = AppDataSource.getRepository(Usuario);
+    // Usar transacción para operación crítica
+    return await AppDataSource.transaction(async (manager) => {
+      const disponibilidadRepository = manager.getRepository(Disponibilidad);
+      const bomberoRepository = manager.getRepository(Bombero);
 
-    const { usuario_id, estado, fecha_inicio, fecha_termino, rol_servicio } = body;
+      const { idBombero, fechaInicio, fechaTermino } = body;
 
-    // Verificar que el usuario existe
-    const usuario = await usuarioRepository.findOne({
-      where: { id: usuario_id }
+      // 1. Verificar que el bombero existe
+      const bombero = await bomberoRepository.findOne({
+        where: { id: idBombero }
+      });
+
+      if (!bombero) {
+        throw new Error("Bombero no encontrado");
+      }
+
+      // 2. Verificar que no existe una disponibilidad activa
+      const disponibilidadActiva = await disponibilidadRepository
+        .createQueryBuilder("disponibilidad")
+        .where("disponibilidad.idBombero = :idBombero", { idBombero })
+        .andWhere("(disponibilidad.fechaTermino IS NULL OR disponibilidad.fechaTermino > :now)", { now: new Date() })
+        .getOne();
+
+      if (disponibilidadActiva) {
+        throw new Error("El bombero ya tiene una disponibilidad activa");
+      }
+
+      // 3. Crear nueva disponibilidad
+      const newDisponibilidad = disponibilidadRepository.create({
+        idBombero: bombero.id,
+        fechaInicio: fechaInicio || new Date(),
+        fechaTermino: fechaTermino || null,
+      });
+
+      const savedDisponibilidad = await disponibilidadRepository.save(newDisponibilidad);
+      return [savedDisponibilidad, null];
     });
-
-    if (!usuario) {
-      return [null, "Usuario no encontrado"];
-    }
-
-    const newDisponibilidad = disponibilidadRepository.create({
-      usuario_id,
-      estado: estado || 'disponible',
-      fecha_inicio: fecha_inicio || new Date(),
-      fecha_termino: fecha_termino || null,
-      rol_servicio: rol_servicio || null
-    });
-
-    const savedDisponibilidad = await disponibilidadRepository.save(newDisponibilidad);
-
-    return [savedDisponibilidad, null];
   } catch (error) {
     console.error("Error al crear disponibilidad:", error);
-    return [null, "Error interno del servidor"];
+    return [null, error.message || "Error interno del servidor"];
   }
 }
 
@@ -42,31 +54,24 @@ export async function getDisponibilidadesService(query = {}) {
 
     const queryBuilder = disponibilidadRepository
       .createQueryBuilder("disponibilidad")
-      .leftJoinAndSelect("disponibilidad.usuario", "usuario")
+      .leftJoinAndSelect("disponibilidad.bombero", "bombero")
       .select([
         "disponibilidad.id",
-        "disponibilidad.usuario_id",
-        "disponibilidad.estado",
-        "disponibilidad.fecha_inicio",
-        "disponibilidad.fecha_termino",
-        "disponibilidad.rol_servicio",
-        "usuario.id",
-        "usuario.nombres",
-        "usuario.apellidos",
-        "usuario.run"
+        "disponibilidad.idBombero",
+        "disponibilidad.fechaInicio",
+        "disponibilidad.fechaTermino",
+        "bombero.id",
+        "bombero.nombres",
+        "bombero.apellidos",
+        "bombero.run"
       ]);
 
-    // Filtros opcionales
-    if (query.estado) {
-      queryBuilder.andWhere("disponibilidad.estado = :estado", { estado: query.estado });
-    }
-
-    if (query.usuario_id) {
-      queryBuilder.andWhere("disponibilidad.usuario_id = :usuario_id", { usuario_id: query.usuario_id });
+    if (query.idBombero) {
+      queryBuilder.andWhere("disponibilidad.idBombero = :idBombero", { idBombero: query.idBombero });
     }
 
     // Ordenar por fecha de inicio más reciente
-    queryBuilder.orderBy("disponibilidad.fecha_inicio", "DESC");
+    queryBuilder.orderBy("disponibilidad.fechaInicio", "DESC");
 
     const disponibilidades = await queryBuilder.getMany();
 
@@ -79,31 +84,29 @@ export async function getDisponibilidadesService(query = {}) {
 
 export async function getDisponibilidadService(query) {
   try {
-    const { id, usuario_id } = query;
+    const { id, idBombero } = query;
     const disponibilidadRepository = AppDataSource.getRepository(Disponibilidad);
 
     const queryBuilder = disponibilidadRepository
       .createQueryBuilder("disponibilidad")
-      .leftJoinAndSelect("disponibilidad.usuario", "usuario")
+      .leftJoinAndSelect("disponibilidad.bombero", "bombero")
       .select([
         "disponibilidad.id",
-        "disponibilidad.usuario_id",
-        "disponibilidad.estado",
-        "disponibilidad.fecha_inicio",
-        "disponibilidad.fecha_termino",
-        "disponibilidad.rol_servicio",
-        "usuario.id",
-        "usuario.nombres",
-        "usuario.apellidos",
-        "usuario.run"
+        "disponibilidad.idBombero",
+        "disponibilidad.fechaInicio",
+        "disponibilidad.fechaTermino",
+        "bombero.id",
+        "bombero.nombres",
+        "bombero.apellidos",
+        "bombero.run"
       ]);
 
     if (id) {
       queryBuilder.where("disponibilidad.id = :id", { id });
-    } else if (usuario_id) {
-      queryBuilder.where("disponibilidad.usuario_id = :usuario_id", { usuario_id });
+    } else if (idBombero) {
+      queryBuilder.where("disponibilidad.idBombero = :idBombero", { idBombero });
     } else {
-      return [null, "Debe proporcionar un ID o usuario_id"];
+      return [null, "Debe proporcionar un ID o idBombero"];
     }
 
     const disponibilidad = await queryBuilder.getOne();
@@ -121,40 +124,73 @@ export async function getDisponibilidadService(query) {
 
 export async function updateDisponibilidadService(query, body) {
   try {
-    const { id } = query;
-    const disponibilidadRepository = AppDataSource.getRepository(Disponibilidad);
+    // Transacción para validaciones complejas de fechas y consistencia
+    return await AppDataSource.transaction(async (manager) => {
+      const disponibilidadRepository = manager.getRepository(Disponibilidad);
+      const { id } = query;
 
-    const disponibilidad = await disponibilidadRepository.findOne({
-      where: { id }
+      // 1. Buscar la disponibilidad a actualizar
+      const disponibilidad = await disponibilidadRepository.findOne({
+        where: { id }
+      });
+
+      if (!disponibilidad) {
+        throw new Error("Disponibilidad no encontrada");
+      }
+
+      // 2. Preparar las nuevas fechas para validación
+      const nuevaFechaInicio = body.fechaInicio ? new Date(body.fechaInicio) : disponibilidad.fechaInicio;
+      const nuevaFechaTermino = body.fechaTermino !== undefined 
+        ? (body.fechaTermino ? new Date(body.fechaTermino) : null)
+        : disponibilidad.fechaTermino;
+
+      // 3. Validar lógica de negocio: fechaTermino debe ser posterior a fechaInicio
+      if (nuevaFechaTermino && nuevaFechaInicio && nuevaFechaTermino <= nuevaFechaInicio) {
+        throw new Error("La fecha de término debe ser posterior a la fecha de inicio");
+      }
+
+      // 4. Validar que no se solape con otras disponibilidades del mismo bombero
+      if (body.fechaInicio || body.fechaTermino !== undefined) {
+        const disponibilidadesSolapadas = await disponibilidadRepository
+          .createQueryBuilder("d")
+          .where("d.idBombero = :idBombero", { idBombero: disponibilidad.idBombero })
+          .andWhere("d.id != :currentId", { currentId: id })
+          .andWhere(`
+            (
+              (:nuevaInicio >= d.fechaInicio AND (:nuevaTermino IS NULL OR :nuevaInicio < d.fechaTermino OR d.fechaTermino IS NULL))
+              OR
+              (:nuevaTermino IS NOT NULL AND d.fechaInicio >= :nuevaInicio AND d.fechaInicio < :nuevaTermino)
+              OR
+              (d.fechaTermino IS NULL AND :nuevaTermino IS NULL)
+            )
+          `, {
+            nuevaInicio: nuevaFechaInicio,
+            nuevaTermino: nuevaFechaTermino
+          })
+          .getMany();
+
+        if (disponibilidadesSolapadas.length > 0) {
+          throw new Error("Las fechas se solapan con otra disponibilidad existente del bombero");
+        }
+      }
+
+      // 5. Aplicar los cambios si todas las validaciones pasan
+      if (body.fechaInicio !== undefined) {
+        disponibilidad.fechaInicio = nuevaFechaInicio;
+      }
+      
+      if (body.fechaTermino !== undefined) {
+        disponibilidad.fechaTermino = nuevaFechaTermino;
+      }
+
+      // 6. Guardar los cambios
+      const updatedDisponibilidad = await disponibilidadRepository.save(disponibilidad);
+
+      return [updatedDisponibilidad, null];
     });
-
-    if (!disponibilidad) {
-      return [null, "Disponibilidad no encontrada"];
-    }
-
-    // Actualizar campos permitidos
-    if (body.estado !== undefined) {
-      disponibilidad.estado = body.estado;
-    }
-    
-    if (body.fecha_inicio !== undefined) {
-      disponibilidad.fecha_inicio = body.fecha_inicio;
-    }
-    
-    if (body.fecha_termino !== undefined) {
-      disponibilidad.fecha_termino = body.fecha_termino;
-    }
-    
-    if (body.rol_servicio !== undefined) {
-      disponibilidad.rol_servicio = body.rol_servicio;
-    }
-
-    const updatedDisponibilidad = await disponibilidadRepository.save(disponibilidad);
-
-    return [updatedDisponibilidad, null];
   } catch (error) {
     console.error("Error al actualizar disponibilidad:", error);
-    return [null, "Error interno del servidor"];
+    return [null, error.message || "Error interno del servidor"];
   }
 }
 
@@ -180,28 +216,27 @@ export async function deleteDisponibilidadService(query) {
   }
 }
 
-export async function getDisponibilidadActivaService(usuario_id) {
+export async function getDisponibilidadActivaService(idBombero) {
   try {
     const disponibilidadRepository = AppDataSource.getRepository(Disponibilidad);
 
+    // Buscar disponibilidad activa (sin fecha de término o con fecha de término futura)
     const disponibilidadActiva = await disponibilidadRepository
       .createQueryBuilder("disponibilidad")
-      .leftJoinAndSelect("disponibilidad.usuario", "usuario")
+      .leftJoinAndSelect("disponibilidad.bombero", "bombero")
       .select([
         "disponibilidad.id",
-        "disponibilidad.usuario_id",
-        "disponibilidad.estado",
-        "disponibilidad.fecha_inicio",
-        "disponibilidad.fecha_termino",
-        "disponibilidad.rol_servicio",
-        "usuario.id",
-        "usuario.nombres",
-        "usuario.apellidos",
-        "usuario.run"
+        "disponibilidad.idBombero",
+        "disponibilidad.fechaInicio",
+        "disponibilidad.fechaTermino",
+        "bombero.id",
+        "bombero.nombres",
+        "bombero.apellidos",
+        "bombero.run"
       ])
-      .where("disponibilidad.usuario_id = :usuario_id", { usuario_id })
-      .andWhere("(disponibilidad.fecha_termino IS NULL OR disponibilidad.fecha_termino > :now)", { now: new Date() })
-      .orderBy("disponibilidad.fecha_inicio", "DESC")
+      .where("disponibilidad.idBombero = :idBombero", { idBombero })
+      .andWhere("(disponibilidad.fechaTermino IS NULL OR disponibilidad.fechaTermino > :now)", { now: new Date() })
+      .orderBy("disponibilidad.fechaInicio", "DESC")
       .getOne();
 
     return [disponibilidadActiva, null];
@@ -211,70 +246,47 @@ export async function getDisponibilidadActivaService(usuario_id) {
   }
 }
 
-export async function changeDisponibilidadStatusService(query, body) {
+export async function cerrarDisponibilidadService(query, body) {
   try {
-    const { usuario_id, estado, rol_servicio, fecha_inicio, fecha_termino } = body;
-    const disponibilidadRepository = AppDataSource.getRepository(Disponibilidad);
-    const usuarioRepository = AppDataSource.getRepository(Usuario);
+    // Transacción crítica: cerrar una y crear otra automáticamente
+    return await AppDataSource.transaction(async (manager) => {
+      const disponibilidadRepository = manager.getRepository(Disponibilidad);
+      const bomberoRepository = manager.getRepository(Bombero);
 
-    // Verificar que el usuario existe
-    const usuario = await usuarioRepository.findOne({
-      where: { id: usuario_id }
-    });
+      const { idBombero } = body;
 
-    if (!usuario) {
-      return [null, "Usuario no encontrado"];
-    }
-
-    // Validar estados permitidos
-    const estadosPermitidos = ['disponible', 'no_disponible', 'en_servicio', 'cerrar_estado'];
-    if (!estadosPermitidos.includes(estado)) {
-      return [null, "Estado no válido. Estados permitidos: " + estadosPermitidos.join(', ')];
-    }
-
-    // Buscar disponibilidad activa del usuario (sin fecha_termino o con fecha_termino futura)
-    const disponibilidadActiva = await disponibilidadRepository
-      .createQueryBuilder("disponibilidad")
-      .where("disponibilidad.usuario_id = :usuario_id", { usuario_id })
-      .andWhere("(disponibilidad.fecha_termino IS NULL OR disponibilidad.fecha_termino > :now)", { now: new Date() })
-      .orderBy("disponibilidad.fecha_inicio", "DESC")
-      .getOne();
-
-    // Lógica especial para cerrar estado (cuando se envía 'cerrar_estado')
-    if (estado === 'cerrar_estado') {
-      if (disponibilidadActiva) {
-        disponibilidadActiva.fecha_termino = new Date();
-        const savedDisponibilidad = await disponibilidadRepository.save(disponibilidadActiva);
-        return [savedDisponibilidad, null];
-      } else {
-        return [null, null]; // No hay estado activo que cerrar
-      }
-    }
-
-    // Si el nuevo estado es disponible, en_servicio o no_disponible, crear nuevo registro
-    if (estado === 'disponible' || estado === 'en_servicio' || estado === 'no_disponible') {
-      // Cerrar cualquier disponibilidad activa anterior
-      if (disponibilidadActiva) {
-        disponibilidadActiva.fecha_termino = new Date();
-        await disponibilidadRepository.save(disponibilidadActiva);
-      }
-
-      // Crear nuevo registro
-      const newDisponibilidad = disponibilidadRepository.create({
-        usuario_id,
-        estado,
-        fecha_inicio: fecha_inicio ? new Date(fecha_inicio) : new Date(),
-        fecha_termino: fecha_termino ? new Date(fecha_termino) : null,
-        rol_servicio: rol_servicio || null
+      // 1. Verificar que el bombero existe
+      const bombero = await bomberoRepository.findOne({
+        where: { id: idBombero }
       });
 
-      const savedDisponibilidad = await disponibilidadRepository.save(newDisponibilidad);
-      return [savedDisponibilidad, null];
-    }
+      if (!bombero) {
+        throw new Error("Bombero no encontrado");
+      }
 
-    return [null, "Estado no válido para la operación"];
+      // 2. Buscar disponibilidad activa del bombero
+      const disponibilidadActiva = await disponibilidadRepository
+        .createQueryBuilder("disponibilidad")
+        .where("disponibilidad.idBombero = :idBombero", { idBombero })
+        .andWhere("(disponibilidad.fechaTermino IS NULL OR disponibilidad.fechaTermino > :now)", { now: new Date() })
+        .orderBy("disponibilidad.fechaInicio", "DESC")
+        .getOne();
+
+      if (!disponibilidadActiva) {
+        throw new Error("No hay disponibilidad activa para cerrar");
+      }
+
+      // 3. Cerrar la disponibilidad (OPERACIÓN CRÍTICA)
+      disponibilidadActiva.fechaTermino = new Date();
+      const savedDisponibilidad = await disponibilidadRepository.save(disponibilidadActiva);
+      
+      // 4. Si todo va bien, ambas operaciones se confirman juntas
+      // Si algo falla aquí, la operación 3 también se revierte automáticamente
+      
+      return [savedDisponibilidad, null];
+    });
   } catch (error) {
-    console.error("Error al cambiar estado de disponibilidad:", error);
-    return [null, "Error interno del servidor"];
+    console.error("Error al cerrar disponibilidad:", error);
+    return [null, error.message || "Error interno del servidor"];
   }
 }

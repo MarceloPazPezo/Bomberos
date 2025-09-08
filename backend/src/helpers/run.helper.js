@@ -1,7 +1,7 @@
 /**
  * Normaliza un string de RUN a un formato estándar (XXXXXXXXK).
  * Elimina puntos, guiones, y convierte a mayúsculas.
- * @param {string | null | undefined} runString El RUN ingresado por el usuario.
+ * @param {string | null | undefined} runString El RUN ingresado por el bombero.
  * @returns {string | null} El RUN normalizado en formato XXXXXXXXK, o null si no es válido o no se puede procesar.
  */
 export function normalizeRUN(runString) {

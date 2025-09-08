@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { logout } from '@services/auth.service.js';
+// import { logout } from '@services/auth.service.js';
 import { useAuth } from '@hooks/auth/useAuth';
-import NotificationBell from './NotificationBell';
-import UserProfile from './UserProfile';
+import NotificationBell from '@components/NotificationBell';
+import UserProfile from '@components/bomberos/BomberoProfile';
 import { MdMenu, MdClose } from 'react-icons/md';
 
 
@@ -11,7 +11,7 @@ const Navbar = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, logout: authLogout, hasPermission, hasRole } = useAuth();
+    const { bombero, logout: authLogout, hasPermiso, hasRol } = useAuth();
 
     // Cierra el menú si se cambia de ruta (ej. usando los botones del navegador)
     useEffect(() => {
@@ -42,8 +42,8 @@ const Navbar = () => {
 
     const navLinks = (
         <>
-            {hasRole('administrador') && (
-                <NavLink to="/users" className={getNavLinkClass}>Usuarios</NavLink>
+            {hasRol('administrador') && (
+                <NavLink to="/admin" className={getNavLinkClass}>Bomberos</NavLink>
             )}
         </>
     );
@@ -103,18 +103,18 @@ const Navbar = () => {
                                     {(() => {
                                         // Función para obtener las iniciales
                                         const getFullName = () => {
-                                            if (user?.nombres && user?.apellidos) {
-                                                const nombres = Array.isArray(user.nombres) ? user.nombres.join(' ') : user.nombres;
-                                                const apellidos = Array.isArray(user.apellidos) ? user.apellidos.join(' ') : user.apellidos;
+                                            if (bombero?.nombres && bombero?.apellidos) {
+                                                const nombres = Array.isArray(bombero.nombres) ? bombero.nombres.join(' ') : bombero.nombres;
+                                                const apellidos = Array.isArray(bombero.apellidos) ? bombero.apellidos.join(' ') : bombero.apellidos;
                                                 return `${nombres} ${apellidos}`;
                                             }
-                                            if (user?.name && user.name !== 'undefined undefined') {
-                                                return user.name;
+                                            if (bombero?.name && bombero.name !== 'undefined undefined') {
+                                                return bombero.name;
                                             }
-                                            if (user?.email) {
-                                                return user.email;
+                                            if (bombero?.email) {
+                                                return bombero.email;
                                             }
-                                            return 'Usuario';
+                                            return 'Bombero';
                                         };
                                         const fullName = getFullName();
                                         return fullName.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2);
@@ -125,26 +125,26 @@ const Navbar = () => {
                                 <p className="text-sm font-medium text-gray-900">
                                     {(() => {
                                         // Función para obtener el nombre completo
-                                        if (user?.nombres && user?.apellidos) {
-                                            const nombres = Array.isArray(user.nombres) ? user.nombres.join(' ') : user.nombres;
-                                            const apellidos = Array.isArray(user.apellidos) ? user.apellidos.join(' ') : user.apellidos;
+                                        if (bombero?.nombres && bombero?.apellidos) {
+                                            const nombres = Array.isArray(bombero.nombres) ? bombero.nombres.join(' ') : bombero.nombres;
+                                            const apellidos = Array.isArray(bombero.apellidos) ? bombero.apellidos.join(' ') : bombero.apellidos;
                                             return `${nombres} ${apellidos}`;
                                         }
-                                        if (user?.name && user.name !== 'undefined undefined') {
-                                            return user.name;
+                                        if (bombero?.name && bombero.name !== 'undefined undefined') {
+                                            return bombero.name;
                                         }
-                                        if (user?.email) {
-                                            return user.email;
+                                        if (bombero?.email) {
+                                            return bombero.email;
                                         }
-                                        return 'Usuario';
+                                        return 'Bombero';
                                     })()} 
                                 </p>
                                 <p className="text-sm text-gray-500">
-                                    {user?.email || 'usuario@example.com'}
+                                    {bombero?.email || 'bombero@example.com'}
                                 </p>
-                                {/* Roles del usuario */}
+                                {/* Roles del bombero */}
                                 <div className="flex flex-wrap gap-1 mt-2">
-                                    {user?.roles?.length > 0 ? user.roles.map((role, index) => (
+                                    {bombero?.roles?.length > 0 ? bombero.roles.map((role, index) => (
                                         <span 
                                             key={index}
                                             className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -165,8 +165,8 @@ const Navbar = () => {
 
                     {/* Enlaces de navegación */}
                     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                        {hasRole('administrador') && (
-                            <NavLink to="/users" className={getMobileNavLinkClass}>Usuarios</NavLink>
+                        {hasRol('administrador') && (
+                            <NavLink to="/admin" className={getMobileNavLinkClass}>Bomberos</NavLink>
                         )}
                     </div>
 
@@ -177,15 +177,17 @@ const Navbar = () => {
 
                     {/* Opciones del perfil en móvil */}
                     <div className="px-2 pb-3 space-y-1 border-t border-gray-200">
-                        <button
-                            onClick={() => {
-                                setIsMenuOpen(false);
-                                navigate('/profile');
-                            }}
-                            className="w-full text-left text-gray-700 hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
-                        >
-                            Ver perfil
-                        </button>
+                        {hasPermiso('bombero:leer_perfil') && (
+                            <button
+                                onClick={() => {
+                                    setIsMenuOpen(false);
+                                    navigate('/perfil');
+                                }}
+                                className="w-full text-left text-gray-700 hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
+                            >
+                                Ver perfil
+                            </button>
+                        )}
                         <button
                             onClick={handleLogout}
                             className="w-full text-left text-red-600 hover:bg-red-50 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"

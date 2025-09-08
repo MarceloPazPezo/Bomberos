@@ -1,17 +1,17 @@
 "use strict";
 import Joi from "joi";
 
-const roleNamePattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/;
-const permissionIdentifierPattern = /^[a-zA-Z0-9_:]+$/; // Para nombres de permisos si son strings tipo 'read:users'
+const rolNamePattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/;
+const permisoIdentifierPattern = /^[a-zA-Z0-9_:]+$/;
 
 // 1. Esquema para Parámetros de Consulta (Query) para Roles
-export const roleQueryValidation = Joi.object({
+export const rolQueryValidation = Joi.object({
   id: Joi.number().integer().positive().messages({
     "number.base": "El ID del rol debe ser un número.",
     "number.integer": "El ID del rol debe ser un número entero.",
     "number.positive": "El ID del rol debe ser un número positivo.",
   }),
-  nombre: Joi.string().min(2).max(50).pattern(roleNamePattern).messages({
+  nombre: Joi.string().min(2).max(50).pattern(rolNamePattern).messages({
     "string.base": "El nombre del rol debe ser de tipo string.",
     "string.min":
       "El nombre del rol debe tener como mínimo {#limit} caracteres.",
@@ -31,11 +31,11 @@ export const roleQueryValidation = Joi.object({
   });
 
 // 2. Esquema para el Cuerpo de la Solicitud al Crear un Rol (Create)
-export const roleCreateValidation = Joi.object({
+export const rolCreateValidation = Joi.object({
   nombre: Joi.string()
     .min(2)
     .max(50)
-    .pattern(roleNamePattern)
+    .pattern(rolNamePattern)
     .required()
     .messages({
       "string.base": "El nombre del rol debe ser de tipo string.",
@@ -69,7 +69,7 @@ export const roleCreateValidation = Joi.object({
         Joi.string()
           .min(3)
           .max(100)
-          .pattern(permissionIdentifierPattern)
+          .pattern(permisoIdentifierPattern)
           .messages({
             // O por un nombre/código de permiso
             "string.base":
@@ -100,11 +100,11 @@ export const roleCreateValidation = Joi.object({
   });
 
 // 3. Esquema para el Cuerpo de la Solicitud al Actualizar un Rol (Update)
-export const roleBodyValidation = Joi.object({
+export const rolBodyValidation = Joi.object({
   nombre: Joi.string()
     .min(2)
     .max(50)
-    .pattern(roleNamePattern)
+    .pattern(rolNamePattern)
     .optional()
     .messages({
       "string.base": "El nombre del rol debe ser de tipo string.",
@@ -135,7 +135,7 @@ export const roleBodyValidation = Joi.object({
         Joi.string()
           .min(3)
           .max(100)
-          .pattern(permissionIdentifierPattern)
+          .pattern(permisoIdentifierPattern)
           .messages({
             "string.base":
               "El identificador del permiso debe ser de tipo string.",

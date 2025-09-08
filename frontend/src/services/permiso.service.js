@@ -4,7 +4,7 @@ import axios from './root.service.js';
  * Obtiene todos los permisos del sistema
  * @returns {Promise} Promesa que resuelve con la lista de permisos
  */
-export const getPermissions = async () => {
+export const getPermisos = async () => {
   try {
     const response = await axios.get('/permiso', { timeout: 10000 });
     return response.data;
@@ -30,15 +30,16 @@ export const getPermissions = async () => {
 };
 
 /**
- * Obtiene los permisos agrupados por categoría
- * @returns {Promise} Promesa que resuelve con los permisos agrupados por categoría
+ * Obtiene un permiso específico por ID
+ * @param {string} id - ID del permiso
+ * @returns {Promise} Promesa que resuelve con los datos del permiso
  */
-export const getPermissionsByCategory = async () => {
+export const getPermiso = async (id) => {
   try {
-    const response = await axios.get('/permiso/categories', { timeout: 10000 });
+    const response = await axios.get(`/permiso/${id}`, { timeout: 10000 });
     return response.data;
   } catch (error) {
-    console.error('Error al obtener permisos por categoría:', error);
+    console.error('Error al obtener permiso:', error);
     
     let errorMessage = 'Error al conectar con el servidor';
     
@@ -59,16 +60,32 @@ export const getPermissionsByCategory = async () => {
 };
 
 /**
- * Obtiene un permiso específico por ID
+ * Actualiza un permiso específico por ID
  * @param {string} id - ID del permiso
- * @returns {Promise} Promesa que resuelve con los datos del permiso
+ * @param {Object} permisoData - Datos del permiso a actualizar
+ * @returns {Promise} Promesa que resuelve con los datos del permiso actualizado
  */
-export const getPermission = async (id) => {
+export const updatePermiso = async (id, permisoData) => {
   try {
-    const response = await axios.get(`/permiso/detail/?id=${id}`, { timeout: 10000 });
+    const response = await axios.put(`/permiso/${id}`, permisoData, { timeout: 10000 });
     return response.data;
   } catch (error) {
-    console.error('Error al obtener permiso:', error);
-    throw error;
+    console.error('Error al actualizar permiso:', error);
+    
+    let errorMessage = 'Error al conectar con el servidor';
+    
+    if (error.code === 'ECONNABORTED') {
+      errorMessage = 'La conexión ha tardado demasiado tiempo. Intente nuevamente.';
+    } else if (error.response) {
+      errorMessage = error.response.data?.message || `Error ${error.response.status}: ${error.response.statusText}`;
+    } else if (error.request) {
+      errorMessage = 'No se recibió respuesta del servidor. Verifique su conexión.';
+    }
+    
+    return {
+      status: 'Error',
+      message: errorMessage,
+      details: error.response?.data || error.message
+    };
   }
 };

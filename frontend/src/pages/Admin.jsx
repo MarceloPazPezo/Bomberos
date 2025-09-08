@@ -1,184 +1,94 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useUsers } from '@hooks/users/useUsers';
+import { useBomberos } from '@hooks/bomberos/useBomberos';
 import { useAuth } from '@hooks/auth/useAuth';
-import UpdateUserPopup from '../components/UpdateUserPopup';
-import CreateUserPopup from '@components/CreateUserPopup.jsx';
-import UserDetailModal from '@components/UserDetailModal.jsx';
-import Table from '@components/Table.jsx';
-import Tooltip from '@components/Tooltip.jsx';
-import { MdEdit, MdDelete, MdPersonAddAlt1, MdAdminPanelSettings, MdPerson, MdPhone, MdSecurity, MdApi, MdLink, MdLinkOff, MdAdd, MdViewList, MdViewModule, MdRefresh, MdVisibility, MdBusiness, MdMoreVert } from 'react-icons/md';
-import PermissionsView from '@components/PermissionsView.jsx';
-import RolesView from '@components/RolesView.jsx';
-import UsersView from '@components/UsersView.jsx';
-import CreateRolePopup from '@components/CreateRolePopup.jsx';
-import CompanyConfigManager from '@components/CompanyConfigManager.jsx';
-import DateDisplay from '@components/DateDisplay';
-import DateFilter from '../components/DateFilter';
 import { useRoles } from '@hooks/roles/useRoles';
-import usePermissions from '@hooks/permissions/usePermissions';
+import usePermisos from '@hooks/permisos/usePermisos';
 
-// Función para formatear teléfonos
-const formatTelefono = (telefono) => {
-  if (!telefono) return null;
-  
-  const cleanPhone = telefono.toString().replace(/\D/g, '');
-  
-  if (cleanPhone.length === 9) {
-    if (cleanPhone.startsWith('9')) {
-      return `+56 9 ${cleanPhone.slice(1, 5)} ${cleanPhone.slice(5)}`;
-    }
-    return `+56 ${cleanPhone.slice(0, 1)} ${cleanPhone.slice(1, 5)} ${cleanPhone.slice(5)}`;
-  } else if (cleanPhone.length === 8) {
-    return `${cleanPhone.slice(0, 4)} ${cleanPhone.slice(4)}`;
-  } else if (cleanPhone.length === 11 && cleanPhone.startsWith('56')) {
-    const localNumber = cleanPhone.slice(2);
-    if (localNumber.startsWith('9')) {
-      return `+56 9 ${localNumber.slice(1, 5)} ${localNumber.slice(5)}`;
-    }
-    return `+56 ${localNumber.slice(0, 1)} ${localNumber.slice(1, 5)} ${localNumber.slice(5)}`;
-  }
-  
-  return telefono;
-};
+// Hooks personalizados
+import { useAdminTabs } from '@hooks/admin/useAdminTabs';
+import { useAdminModals } from '@hooks/admin/useAdminModals';
+import { useViewModes } from '@hooks/admin/useViewModes';
+import { useBomberosFilter } from '@hooks/admin/useBomberosFilter';
+
+// Componentes
+import BomberoDetailModal from '@components/bomberos/BomberoDetailModal.jsx';
+import CreateBomberoPopup from '@components/bomberos/CreateBomberoPopup.jsx';
+import UpdateBomberoPopup from '@components/bomberos/UpdateBomberoPopup';
+import CreateRolPopup from '@components/roles/CreateRolPopup.jsx';
+import RolesView from '@components/roles/RolesView.jsx';
+import PermisosView from '@components/permiso/PermisosView.jsx';
+import BomberosView from '@components/bomberos/BomberosView.jsx';
+// import CompaniaConfigManager from '@components/CompanyConfigManager.jsx';
+// import DateDisplay from '@components/DateDisplay';
+import DateFilter from '../components/DateFilter';
+import Tooltip from '@components/Tooltip.jsx';
+
+// Componentes admin
+import AdminTabNavigation from '@components/admin/AdminTabNavigation';
+import ViewModeToggle from '@components/admin/ViewModeToggle';
+import BomberoActionsMenu from '@components/admin/BomberoActionsMenu';
+
+// Helpers
+import { formatTelefono } from '@helpers/phoneFormatter';
+
+// Iconos
+import { MdPersonAddAlt1, MdPhone, MdSecurity, MdAdd, MdRefresh } from 'react-icons/md';
 
 const Admin = () => {
-  const { user: currentUser, hasPermission } = useAuth();
+  const { bombero: currentBombero, hasPermiso } = useAuth();
   const { 
-    users, 
-    fetchUsers, 
-    setUsers, 
-    loading: usersLoading,
-    handleCreateUser,
-    handleUpdateUser,
-    handleDeleteUser,
-    handleChangeUserStatus
-  } = useUsers();
-  const [activeTab, setActiveTab] = useState('');
+    bomberos, 
+    fetchBomberos, 
+    setBomberos, 
+    loading: bomberosLoading,
+    handleCreateBombero,
+    handleUpdateBombero,
+    handleDeleteBombero,
+    handleChangeBomberoStatus
+  } = useBomberos();
+  
   const { roles, fetchRoles, loading: rolesLoading } = useRoles();
-  const { permissions, permissionsByCategory, refreshPermissionsByCategory, loading: permissionsLoading } = usePermissions();
-
-  // Determinar pestañas disponibles basadas en permisos
-  const availableTabs = useMemo(() => {
-    const tabs = [];
-    if (hasPermission('usuario:leer_todos')) tabs.push('usuarios');
-    if (hasPermission('rol:leer')) tabs.push('roles');
-    if (hasPermission('permiso:leer')) tabs.push('permisos');
-    if (hasPermission('configuracion:leer')) tabs.push('configuraciones');
-    return tabs;
-  }, [hasPermission]);
-
-  // Establecer la primera pestaña disponible si no hay una activa válida
-  useEffect(() => {
-    if (availableTabs.length > 0 && (!activeTab || !availableTabs.includes(activeTab))) {
-      setActiveTab(availableTabs[0]);
-    }
-  }, [availableTabs, activeTab]);
-
-  // Estados para los modales
-  const [showCreate, setShowCreate] = useState(false);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [dataUser, setDataUser] = useState(null);
-  const [showCreateRole, setShowCreateRole] = useState(false);
-  const [showUserDetail, setShowUserDetail] = useState(false);
-  const [userDetailData, setUserDetailData] = useState(null);
+  const { permisos, permisosByCategory, refreshPermisosByCategory, loading: permisosLoading } = usePermisos();
   
-  // Estados para la vista de roles y usuarios
-  const [viewMode, setViewMode] = useState('cards'); // 'list' o 'cards' para roles
-  const [refreshRolesTrigger, setRefreshRolesTrigger] = useState(0); // Trigger para refrescar roles
+  // Hooks personalizados
+  const { availableTabs, activeTab, setActiveTab } = useAdminTabs(hasPermiso);
+  const { modals, modalData, openModal, closeModal } = useAdminModals();
+  const { bomberosViewMode, setBomberosViewMode, rolesViewMode, setRolesViewMode } = useViewModes();
+  const { filteredBomberos, handleDateFilterChange } = useBomberosFilter(bomberos);
   
-  // Detectar tamaño de pantalla para vista por defecto de usuarios
-  const getDefaultUsersView = () => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 960 ? 'cards' : 'list';
-    }
-    return 'list';
-  };
-  
-  const [usersViewMode, setUsersViewMode] = useState(getDefaultUsersView()); // 'list' o 'cards' para usuarios
-  
-  // Estado para el filtro de fechas
-  const [dateFilter, setDateFilter] = useState(null);
+  // Estado para trigger de refrescar roles
+  const [refreshRolesTrigger, setRefreshRolesTrigger] = useState(0);
 
-  // Función para filtrar usuarios por fechas
-  const filteredUsers = useMemo(() => {
-    if (!users || !dateFilter) {
-      return users || [];
-    }
-
-    const { type, startDate, endDate } = dateFilter;
-    
-    return users.filter(user => {
-      const fechaCreacion = user.fechaCreacion ? new Date(user.fechaCreacion) : null;
-      const fechaActualizacion = user.fechaActualizacion ? new Date(user.fechaActualizacion) : null;
-      
-      const start = startDate ? new Date(startDate) : null;
-      const end = endDate ? new Date(endDate + 'T23:59:59') : null; // Incluir todo el día final
-      
-      let dateToCheck = null;
-      
-      switch (type) {
-        case 'creation':
-          dateToCheck = fechaCreacion;
-          break;
-        case 'update':
-          dateToCheck = fechaActualizacion;
-          break;
-        case 'both':
-          // Para 'both', verificar si cualquiera de las fechas está en el rango
-          const creationInRange = fechaCreacion && 
-            (!start || fechaCreacion >= start) && 
-            (!end || fechaCreacion <= end);
-          const updateInRange = fechaActualizacion && 
-            (!start || fechaActualizacion >= start) && 
-            (!end || fechaActualizacion <= end);
-          return creationInRange || updateInRange;
-        default:
-          return true;
-      }
-      
-      if (!dateToCheck) return false;
-      
-      const inRange = (!start || dateToCheck >= start) && (!end || dateToCheck <= end);
-      return inRange;
-    });
-  }, [users, dateFilter]);
-
-  // Función para manejar cambios en el filtro de fechas
-  const handleDateFilterChange = (filterData) => {
-    setDateFilter(filterData);
+  // Función para manejar la actualización de bomberos
+  const handleUpdate = (bombero) => {
+    openModal('editBombero', bombero);
   };
 
-  // Función para manejar la actualización de usuarios
-  const handleUpdate = (user) => {
-    setDataUser(user);
-    setIsPopupOpen(true);
-  };
-
-  // Función para manejar la eliminación de usuarios (individual)
-  const handleDelete = async (users) => {
-    // Si es un array de usuarios, procesar cada uno
-    if (Array.isArray(users)) {
-      for (const user of users) {
-        const run = user.run;
+  // Función para manejar la eliminación de bomberos (individual)
+  const handleDelete = async (bomberos) => {
+    // Si es un array de bomberos, procesar cada uno
+    if (Array.isArray(bomberos)) {
+      for (const bombero of bomberos) {
+        const run = bombero.run;
         if (run) {
-          const result = await handleDeleteUser(run);
+          const result = await handleDeleteBombero(run);
           if (result.success) {
-            setDataUser(null);
+            closeModal('editBombero');
           }
         }
       }
     } else {
       // Si es un RUT directo (compatibilidad hacia atrás)
-      const result = await handleDeleteUser(users);
+      const result = await handleDeleteBombero(bomberos);
       if (result.success) {
-        setDataUser(null);
+        closeModal('editBombero');
       }
     }
   };
 
   // Función para manejar la creación de roles
-  const handleCreateRole = () => {
-    setShowCreateRole(true);
+  const handleCreateRol = () => {
+    openModal('createRol');
   };
 
   // Función para manejar la actualización de roles
@@ -188,469 +98,91 @@ const Admin = () => {
   
   // Cargar datos según la pestaña activa, solo cuando sea necesario
   useEffect(() => {
-    // Solo cargar usuarios desde aquí, los demás componentes manejan su propia carga
-    if (activeTab === 'usuarios' && (!users || users.length === 0) && !usersLoading) {
-      fetchUsers(true);
+    if (activeTab === 'bomberos') {
+      fetchBomberos();
+    } else if (activeTab === 'roles') {
+      fetchRoles();
+    } else if (activeTab === 'permisos') {
+      refreshPermisosByCategory();
     }
-    // Cargar permisos cuando se accede a la pestaña de permisos
-    if (activeTab === 'permisos' && Object.keys(permissionsByCategory).length === 0 && !permissionsLoading) {
-      refreshPermissionsByCategory(true);
+  }, [activeTab, fetchBomberos, fetchRoles, refreshPermisosByCategory]);
+
+  // Configuración de la tabla bomberos con memoization
+  const columns = useMemo(() => [
+    { name: 'Nº', selector: row => row.numero_placa, sortable: true, width: '80px' },
+    { name: 'RUN', selector: row => row.run, sortable: true, width: '120px' },
+    { name: 'Nombre', selector: row => `${row.nombres} ${row.apellidos}`, sortable: true, minWidth: '200px' },
+    { name: 'Email', selector: row => row.email, sortable: true, minWidth: '200px' },
+    { 
+      name: 'Teléfono', 
+      selector: row => formatTelefono(row.telefono),
+      sortable: true,
+      width: '130px'
+    },
+    { name: 'Rol', selector: row => row.nombreRol, sortable: true, width: '150px' },
+    {
+      name: 'Estado',
+      selector: row => row.activo,
+      sortable: true,
+      width: '100px',
+      cell: row => (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+          row.activo 
+            ? 'bg-green-100 text-green-800' 
+            : 'bg-red-100 text-red-800'
+        }`}>
+          {row.activo ? 'Activo' : 'Inactivo'}
+        </span>
+      )
+    },
+    {
+      name: 'Acciones',
+      width: '150px',
+      cell: row => renderActions({ row })
     }
-  }, [activeTab]); // Solo depender de activeTab
-  
-  // Manejar cambios de tamaño de ventana para vista responsiva
-  useEffect(() => {
-    const handleResize = () => {
-      const newViewMode = window.innerWidth < 960 ? 'cards' : 'list';
-      setUsersViewMode(newViewMode);
-    };
+  ], []);
 
-    // Agregar listener para cambios de tamaño
-    window.addEventListener('resize', handleResize);
-    
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-  
-  // Evitar incluir las funciones fetch en las dependencias del useEffect
-  // para prevenir ciclos de renderizado
-
-  // Función para extraer roles únicos de los usuarios usando useMemo para estabilidad
-  const uniqueRoles = useMemo(() => {
-    if (!users || users.length === 0) {
-      return [];
-    }
-    
-    const allRoles = users.flatMap(user => 
-      user.roles?.map(role => 
-        typeof role === 'object' ? role.nombre || role.name : role
-      ) || []
-    );
-    
-    const uniqueRoleNames = [...new Set(allRoles)].filter(Boolean);
-    return uniqueRoleNames.map(role => ({ value: role, label: role }));
-  }, [users]);
-
-  // Configuración de badges para el componente Table
-  const badgeMap = {
+  // Badge mapping para la tabla
+  const badgeMap = useMemo(() => ({
     activo: {
-      true: {
-        bg: 'bg-green-100',
-        text: 'text-green-800',
-        border: 'border-green-200',
-        label: 'Activo',
-        dot: 'bg-green-500'
-      },
-      false: {
-        bg: 'bg-red-100',
-        text: 'text-red-800',
-        border: 'border-red-200',
-        label: 'Inactivo',
-        dot: 'bg-red-500'
-      },
-      default: {
-        bg: 'bg-gray-100',
-        text: 'text-gray-800',
-        border: 'border-gray-200',
-        label: 'Desconocido',
-        dot: 'bg-gray-500'
-      }
+      true: { text: 'Activo', variant: 'success' },
+      false: { text: 'Inactivo', variant: 'danger' }
     }
+  }), []);
+
+  // Funciones de manejo simplificadas
+  const handleEdit = (bombero) => {
+    openModal('editBombero', bombero);
   };
 
-  // Definición de columnas para el componente Table
-  const columns = useMemo(() => {
-    
-    return [
-    {
-      accessorKey: 'run',
-      header: 'RUT',
-      size: 130,
-      cell: info => {
-        const value = info.getValue();
-        return (
-          <div className="font-mono text-sm font-medium text-gray-900">
-            {value || '-'}
-          </div>
-        );
-      }
-    },
-    {
-      id: 'informacion_personal',
-      header: 'Información Personal',
-      size: 300,
-      cell: ({ row }) => {
-        const user = row.original;
-        const nombres = Array.isArray(user.nombres) ? user.nombres.join(' ') : user.nombres || '';
-        const apellidos = Array.isArray(user.apellidos) ? user.apellidos.join(' ') : user.apellidos || '';
-        const nombreCompleto = `${nombres} ${apellidos}`.trim();
-        const telefono = user.telefono ? formatTelefono(user.telefono) : null;
-        
-        return (
-          <div className="space-y-1">
-            <div className="font-semibold text-gray-900 text-sm">
-              {nombreCompleto || 'Sin nombre'}
-            </div>
-            <div className="text-sm text-blue-600 hover:text-blue-800">
-              {user.email || 'Sin email'}
-            </div>
-            {telefono && (
-              <div className="text-xs text-gray-600 font-mono flex items-center gap-1">
-                <MdPhone className="w-3 h-3" />
-                {telefono}
-              </div>
-            )}
-            {user.fechaIngreso && (
-              <div className="text-xs text-gray-500 flex items-center gap-1">
-                <span>Ingreso:</span>
-                <span>{new Date(user.fechaIngreso).toLocaleDateString('es-CL')}</span>
-              </div>
-            )}
-          </div>
-        );
-      },
-      // Para filtros, usaremos el nombre completo y email
-      accessorFn: (row) => {
-        const nombres = Array.isArray(row.nombres) ? row.nombres.join(' ') : row.nombres || '';
-        const apellidos = Array.isArray(row.apellidos) ? row.apellidos.join(' ') : row.apellidos || '';
-        const nombreCompleto = `${nombres} ${apellidos}`.trim();
-        return `${nombreCompleto} ${row.email || ''}`.toLowerCase();
-      }
-    },
-    {
-      accessorKey: 'roles',
-      header: 'Roles',
-      size: 180,
-      filterType: 'text',
-      filterFn: (row, columnId, filterValue) => {
-        if (!filterValue) return true;
-        const roles = row.getValue(columnId);
-        if (!roles || !Array.isArray(roles)) return false;
-        
-        // Convertir el valor de búsqueda a minúsculas para búsqueda insensible a mayúsculas
-        const searchValue = filterValue.toLowerCase();
-        
-        return roles.some(role => {
-          // Los roles pueden ser strings directamente o objetos con propiedades nombre/name
-          const roleName = typeof role === 'object' ? (role.nombre || role.name) : role;
-          return roleName && roleName.toLowerCase().includes(searchValue);
-        });
-      },
-      cell: info => {
-        const roles = info.getValue();
-        if (!roles || !Array.isArray(roles) || roles.length === 0) {
-          return (
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-              Sin roles
-            </span>
-          );
-        }
-        
-        return (
-          <div className="flex flex-wrap gap-1">
-            {roles.slice(0, 2).map((role, index) => {
-              const getRoleStyle = (roleName) => {
-                const roleKey = typeof roleName === 'string' ? roleName.toLowerCase() : '';
-                if (roleKey.includes('administrador') || roleKey.includes('admin')) {
-                  return 'bg-purple-100 text-purple-800 border-purple-200';
-                } else if (roleKey.includes('usuario') || roleKey.includes('user')) {
-                  return 'bg-blue-100 text-blue-800 border-blue-200';
-                } else if (roleKey.includes('directiva') || roleKey.includes('directivo')) {
-                  return 'bg-green-100 text-green-800 border-green-200';
-                } else if (roleKey.includes('voluntario')) {
-                  return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-                } else {
-                  return 'bg-gray-100 text-gray-800 border-gray-200';
-                }
-              };
-
-              const roleDisplay = typeof role === 'object' ? role.nombre || role.name || 'Rol' : role;
-              
-              return (
-                <span 
-                  key={index} 
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleStyle(roleDisplay)}`}
-                >
-                  {roleDisplay}
-                </span>
-              );
-            })}
-            {roles.length > 2 && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                +{roles.length - 2}
-              </span>
-            )}
-          </div>
-        );
-      }
-    },
-    {
-      id: 'dates',
-      header: 'Fechas',
-      size: 140,
-      enableColumnFilter: false,
-      enableSorting: false,
-      cell: ({ row }) => {
-        const user = row.original;
-        return (
-          <div className="w-full h-full">
-            <DateDisplay 
-              fechaCreacion={user.fechaCreacion} 
-              fechaActualizacion={user.fechaActualizacion}
-              compact={true}
-            />
-          </div>
-        );
-      }
-    },
-    {
-      accessorKey: 'activo',
-      header: 'Estado',
-      size: 100,
-      filterType: 'select',
-      filterOptions: [
-        { value: true, label: 'Activo' },
-        { value: false, label: 'Inactivo' }
-      ],
-      cell: info => {
-        const isActive = info.getValue();
-        return (
-          <div className="flex items-center">
-            <div className={`w-2 h-2 rounded-full mr-2 ${isActive ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className={`text-sm font-medium ${isActive ? 'text-green-700' : 'text-red-700'}`}>
-              {isActive ? 'Activo' : 'Inactivo'}
-            </span>
-          </div>
-        );
-      }
-    }
-    ];
-  }, [uniqueRoles]);
-
-  // Funciones para el componente Table
-  const handleEdit = (user) => {
-    setDataUser(user);
-    setIsPopupOpen(true);
+  const handleDeleteSingle = async (bombero) => {
+    await handleDelete([bombero]);
   };
 
-  const handleViewDetails = (user) => {
-    if (user && typeof user === 'object') {
-      setUserDetailData(user);
-      setShowUserDetail(true);
-    }
+  const handleBulkDelete = async (selectedBomberos) => {
+    await handleDelete(selectedBomberos);
   };
 
-  const handleDeleteSingle = (user) => {
-    handleDelete([user]);
-  };
-
-  const handleBulkDelete = (selectedUsers) => {
-    handleDelete(selectedUsers);
+  const handleViewDetails = (bombero) => {
+    openModal('bomberoDetail', bombero);
   };
 
   const handleRefresh = () => {
-    fetchUsers();
+    fetchBomberos();
   };
 
+  // Función de renderActions usando el componente BomberoActionsMenu
   const renderActions = ({ row }) => {
-    const [showDropdown, setShowDropdown] = useState(false);
-    const isCurrentUser = currentUser && (currentUser.run === row.run || currentUser.id === row.id);
-    const canEdit = hasPermission('usuario:actualizar_especifico');
-    const canDelete = hasPermission('usuario:eliminar');
-    const canChangeStatus = hasPermission('usuario:cambiar_estado');
-    const canView = hasPermission('usuario:leer_todos');
-    
-    // Si no tiene permisos para ninguna acción, no mostrar nada
-    if (!canEdit && !canDelete && !canChangeStatus && !canView) {
-      return null;
-    }
-
-    const handleStatusChange = async (userId, newStatus) => {
-      await handleChangeUserStatus(userId, newStatus);
-    };
-
-    // Definir las acciones disponibles
-    const actions = [];
-    
-    if (canView) {
-      actions.push({
-        key: 'view',
-        icon: <MdVisibility size={18} />,
-        label: 'Ver detalles',
-        onClick: () => handleViewDetails(row),
-        className: "text-gray-600 hover:text-gray-900 hover:bg-gray-50",
-        tooltip: "Ver detalles completos del usuario",
-        disabled: false,
-        priority: 1
-      });
-    }
-
-    if (canEdit) {
-      actions.push({
-        key: 'edit',
-        icon: <MdEdit size={18} />,
-        label: 'Editar',
-        onClick: () => !isCurrentUser && handleEdit(row),
-        className: isCurrentUser 
-          ? "text-gray-400 cursor-not-allowed bg-gray-50" 
-          : "text-blue-600 hover:text-blue-900 hover:bg-blue-50",
-        tooltip: isCurrentUser 
-          ? "No puedes editarte a ti mismo" 
-          : "Editar información del usuario",
-        disabled: isCurrentUser,
-        priority: 2
-      });
-    }
-
-    if (canChangeStatus) {
-      actions.push({
-        key: 'status',
-        icon: row.activo ? <MdLinkOff size={18} /> : <MdLink size={18} />,
-        label: row.activo ? 'Desactivar' : 'Activar',
-        onClick: () => !isCurrentUser && handleStatusChange(row.id, !row.activo),
-        className: isCurrentUser 
-          ? "text-gray-400 cursor-not-allowed bg-gray-50" 
-          : row.activo 
-            ? "text-orange-600 hover:text-orange-900 hover:bg-orange-50" 
-            : "text-green-600 hover:text-green-900 hover:bg-green-50",
-        tooltip: isCurrentUser 
-          ? "No puedes cambiar tu propio estado" 
-          : row.activo 
-            ? "Desactivar usuario - El usuario no podrá acceder al sistema" 
-            : "Activar usuario - El usuario podrá acceder al sistema",
-        disabled: isCurrentUser,
-        priority: 3
-      });
-    }
-
-    if (canDelete) {
-      actions.push({
-        key: 'delete',
-        icon: <MdDelete size={18} />,
-        label: 'Eliminar',
-        onClick: () => !isCurrentUser && handleDeleteSingle(row),
-        className: isCurrentUser 
-          ? "text-gray-400 cursor-not-allowed bg-gray-50" 
-          : "text-red-600 hover:text-red-900 hover:bg-red-50",
-        tooltip: isCurrentUser 
-          ? "No puedes eliminarte a ti mismo" 
-          : "Eliminar usuario permanentemente - Esta acción no se puede deshacer",
-        disabled: isCurrentUser,
-        priority: 4
-      });
-    }
-
-    // Ordenar por prioridad y separar acciones principales de secundarias
-    const sortedActions = actions.sort((a, b) => a.priority - b.priority);
-    const primaryActions = sortedActions.slice(0, 2);
-    const secondaryActions = sortedActions.slice(2);
-    
     return (
-      <div className="flex items-center gap-1">
-        {/* Acciones principales (máximo 2) */}
-        {primaryActions.map((action) => (
-          <Tooltip
-            key={action.key}
-            id={`${action.key}-${row.id}`}
-            content={action.tooltip}
-            place="top"
-            variant={action.disabled ? "light" : "dark"}
-          >
-            <button 
-              className={`transition-all duration-200 p-2 rounded-lg hover:scale-105 ${action.className}`}
-              onClick={action.onClick}
-              disabled={action.disabled}
-            >
-              {action.icon}
-            </button>
-          </Tooltip>
-        ))}
-
-        {/* Menú desplegable para acciones secundarias */}
-        {secondaryActions.length > 0 && (
-          <div className="relative">
-            <Tooltip
-              id={`more-${row.id}`}
-              content="Más opciones"
-              place="top"
-              variant="dark"
-            >
-              <button 
-                className="transition-all duration-200 p-2 rounded-lg hover:scale-105 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                onClick={() => setShowDropdown(!showDropdown)}
-              >
-                <MdMoreVert size={18} />
-              </button>
-            </Tooltip>
-
-            {/* Dropdown menu */}
-            {showDropdown && (
-              <>
-                {/* Overlay para cerrar al hacer click fuera */}
-                <div 
-                  className="fixed inset-0 z-10" 
-                  onClick={() => setShowDropdown(false)}
-                />
-                
-                {/* Menu desplegable */}
-                 <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-                   <div className="py-1">
-                     {secondaryActions.map((action) => (
-                       <Tooltip
-                         key={action.key}
-                         id={`dropdown-${action.key}-${row.id}`}
-                         content={action.tooltip}
-                         place="left"
-                         variant={action.disabled ? "light" : "dark"}
-                       >
-                         <button
-                           onClick={() => {
-                             action.onClick();
-                             setShowDropdown(false);
-                           }}
-                           disabled={action.disabled}
-                           className={`w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors ${
-                             action.disabled
-                               ? 'text-gray-400 cursor-not-allowed bg-gray-50'
-                               : action.key === 'status'
-                                 ? row.activo
-                                   ? 'text-orange-600 hover:bg-orange-50'
-                                   : 'text-green-600 hover:bg-green-50'
-                                 : action.key === 'delete'
-                                   ? 'text-red-600 hover:bg-red-50'
-                                   : action.key === 'edit'
-                                     ? 'text-blue-600 hover:bg-blue-50'
-                                     : 'text-gray-700 hover:bg-gray-50'
-                           }`}
-                         >
-                           <span className={`${
-                             action.disabled
-                               ? 'text-gray-400'
-                               : action.key === 'status'
-                                 ? row.activo
-                                   ? 'text-orange-600'
-                                   : 'text-green-600'
-                                 : action.key === 'delete'
-                                   ? 'text-red-600'
-                                   : action.key === 'edit'
-                                     ? 'text-blue-600'
-                                     : 'text-gray-700'
-                           }`}>
-                             {action.icon}
-                           </span>
-                           <span>{action.label}</span>
-                         </button>
-                       </Tooltip>
-                     ))}
-                   </div>
-                 </div>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      <BomberoActionsMenu
+        bombero={row}
+        currentBombero={currentBombero}
+        hasPermiso={hasPermiso}
+        onEdit={handleEdit}
+        onDelete={handleDeleteSingle}
+        onStatusChange={handleChangeBomberoStatus}
+        onViewDetails={handleViewDetails}
+      />
     );
   };
 
@@ -660,81 +192,17 @@ const Admin = () => {
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[#2C3E50] mb-2">Administración</h1>
         <p className="text-gray-600 text-sm">
-          Administra usuarios, roles y permisos del sistema
+          Administra bomberos, roles y permisos del sistema
         </p>
       </div>
 
-
-
-      {/* Pestañas para alternar entre Usuarios y Roles */}
-      {availableTabs.length > 0 && (
-        <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
-              {hasPermission('usuario:leer_todos') && (
-                <button
-                  onClick={() => setActiveTab('usuarios')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                    activeTab === 'usuarios'
-                      ? 'border-[#4EB9FA] text-[#2C3E50]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <MdPerson size={18} />
-                    Usuarios
-                  </span>
-                </button>
-              )}
-              {hasPermission('rol:leer') && (
-                <button
-                  onClick={() => setActiveTab('roles')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                    activeTab === 'roles'
-                      ? 'border-[#4EB9FA] text-[#2C3E50]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <MdSecurity size={18} />
-                    Roles
-                  </span>
-                </button>
-              )}
-              {hasPermission('permiso:leer') && (
-                <button
-                  onClick={() => setActiveTab('permisos')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                    activeTab === 'permisos'
-                      ? 'border-[#4EB9FA] text-[#2C3E50]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <MdAdminPanelSettings size={18} />
-                    Permisos
-                  </span>
-                </button>
-              )}
-              {hasPermission('configuracion:leer') && (
-                <button
-                  onClick={() => setActiveTab('configuraciones')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                    activeTab === 'configuraciones'
-                      ? 'border-[#4EB9FA] text-[#2C3E50]'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <MdBusiness size={18} />
-                    Configuraciones
-                  </span>
-                </button>
-              )}
-            </nav>
-          </div>
-        </div>
-      )}
+      {/* Navegación por pestañas */}
+      <AdminTabNavigation
+        availableTabs={availableTabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        hasPermiso={hasPermiso}
+      />
 
       {/* Contenido según la pestaña activa */}
       {availableTabs.length === 0 ? (
@@ -750,79 +218,59 @@ const Admin = () => {
         </div>
       ) : (
         <>
-          {activeTab === 'usuarios' && (
+          {activeTab === 'bomberos' && (
             <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-3 sm:p-4 lg:p-6 rounded-2xl mb-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">Gestión de Usuarios</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Gestión de Bomberos</h2>
                 <div className="flex items-center gap-2">
                   {/* Toggle de vista */}
-                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setUsersViewMode('list')}
-                      className={`px-3 py-2 transition-colors ${
-                        usersViewMode === 'list' 
-                          ? 'bg-[#4EB9FA] text-white' 
-                          : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-gray-50'
-                      }`}
-                      title="Vista de lista"
-                    >
-                      <MdViewList size={20} />
-                    </button>
-                    <button
-                      onClick={() => setUsersViewMode('cards')}
-                      className={`px-3 py-2 transition-colors ${
-                        usersViewMode === 'cards' 
-                          ? 'bg-[#4EB9FA] text-white' 
-                          : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-gray-50'
-                      }`}
-                      title="Vista de cards"
-                    >
-                      <MdViewModule size={20} />
-                    </button>
-                  </div>
+                  <ViewModeToggle
+                    viewMode={bomberosViewMode}
+                    onViewModeChange={setBomberosViewMode}
+                  />
                   
                   <button
                     onClick={handleRefresh}
-                    className={`px-3 py-2 border rounded-lg transition-colors ${usersLoading ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'text-[#4EB9FA] hover:text-[#3DA8E9] border-[#4EB9FA] hover:bg-[#4EB9FA]/10'}`}
+                    className={`px-3 py-2 border rounded-lg transition-colors ${bomberosLoading ? 'text-gray-400 border-gray-300 cursor-not-allowed' : 'text-[#4EB9FA] hover:text-[#3DA8E9] border-[#4EB9FA] hover:bg-[#4EB9FA]/10'}`}
                     title="Actualizar"
-                    disabled={usersLoading}
+                    disabled={bomberosLoading}
                   >
-                    <MdRefresh size={20} className={usersLoading ? 'animate-spin' : ''} />
+                    <MdRefresh size={20} className={bomberosLoading ? 'animate-spin' : ''} />
                   </button>
                   
-                  {hasPermission('usuario:crear') && (
+                  {hasPermiso('bombero:crear') && (
                     <Tooltip
-                      id="create-user-btn"
-                      content="Crear un nuevo usuario en el sistema"
+                      id="create-bombero-btn"
+                      content="Crear un nuevo bombero en el sistema"
                       place="top"
                       variant="dark"
                     >
                       <button
                         className="bg-[#2C3E50] hover:bg-[#34495E] text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 border border-[#2C3E50] hover:-translate-y-0.5 hover:scale-105"
-                        onClick={() => setShowCreate(true)}
+                        onClick={() => openModal('createBombero')}
                       >
                         <span className="flex items-center gap-2">
                           <MdPersonAddAlt1 size={18} />
-                          <span className="hidden sm:inline">Crear usuario</span>
+                          <span className="hidden sm:inline">Crear bombero</span>
                         </span>
                       </button>
                     </Tooltip>
                   )}
                 </div>
               </div>
-              <UsersView
-                viewMode={usersViewMode}
-                users={users}
-                loading={usersLoading}
+              <BomberosView
+                viewMode={bomberosViewMode}
+                bomberos={bomberos}
+                loading={bomberosLoading}
                 error={null}
                 columns={columns}
                 badgeMap={badgeMap}
                 onEdit={handleEdit}
                 onDelete={handleBulkDelete}
                 onViewDetails={handleViewDetails}
-                onChangeStatus={handleChangeUserStatus}
+                onChangeStatus={handleChangeBomberoStatus}
                 onRefresh={handleRefresh}
-                filteredUsers={filteredUsers}
+                filteredBomberos={filteredBomberos}
                 renderActions={renderActions}
                 customActions={
                   <div className="flex gap-2">
@@ -839,30 +287,10 @@ const Admin = () => {
                 <h2 className="text-xl font-semibold text-gray-800">Gestión de Roles</h2>
                 <div className="flex items-center gap-2">
                   {/* Toggle de vista */}
-                  <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`px-3 py-2 transition-colors ${
-                        viewMode === 'list' 
-                          ? 'bg-[#4EB9FA] text-white' 
-                          : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-gray-50'
-                      }`}
-                      title="Vista de lista"
-                    >
-                      <MdViewList size={20} />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('cards')}
-                      className={`px-3 py-2 transition-colors ${
-                        viewMode === 'cards' 
-                          ? 'bg-[#4EB9FA] text-white' 
-                          : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-gray-50'
-                      }`}
-                      title="Vista de cards"
-                    >
-                      <MdViewModule size={20} />
-                    </button>
-                  </div>
+                  <ViewModeToggle
+                    viewMode={rolesViewMode}
+                    onViewModeChange={setRolesViewMode}
+                  />
                   
                   <button
                     onClick={handleRefreshRoles}
@@ -873,7 +301,7 @@ const Admin = () => {
                     <MdRefresh size={20} className={rolesLoading ? 'animate-spin' : ''} />
                   </button>
                   
-                  {hasPermission('rol:crear') && (
+                  {hasPermiso('rol:crear') && (
                     <Tooltip
                       id="create-role-btn"
                       content="Crear un nuevo rol en el sistema"
@@ -882,7 +310,7 @@ const Admin = () => {
                     >
                       <button
                         className="bg-[#2C3E50] hover:bg-[#34495E] text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 border border-[#2C3E50] hover:-translate-y-0.5 hover:scale-105"
-                        onClick={handleCreateRole}
+                        onClick={handleCreateRol}
                       >
                         <span className="flex items-center gap-2">
                           <MdAdd size={18} />
@@ -893,34 +321,49 @@ const Admin = () => {
                   )}
                 </div>
               </div>
-              <RolesView viewMode={viewMode} refreshTrigger={refreshRolesTrigger} />
+              <RolesView viewMode={rolesViewMode} refreshTrigger={refreshRolesTrigger} />
             </div>
           )}
 
           {activeTab === 'permisos' && (
-            <PermissionsView />
-          )}
-
-          {activeTab === 'configuraciones' && (
-            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-3 sm:p-4 lg:p-6 rounded-2xl mb-4">
-              <CompanyConfigManager />
-            </div>
+            <PermisosView />
           )}
         </>
       )}
 
-      <UpdateUserPopup show={isPopupOpen} setShow={setIsPopupOpen} data={dataUser} onUserUpdated={handleUpdateUser} />
-      {showCreate && (
-        <CreateUserPopup show={showCreate} setShow={setShowCreate} onUserCreated={handleCreateUser} />
+      {/* Modales */}
+      <UpdateBomberoPopup 
+        show={modals.editBombero} 
+        setShow={(show) => show ? openModal('editBombero') : closeModal('editBombero')} 
+        data={modalData.bombero} 
+        onBomberoUpdated={handleUpdateBombero} 
+      />
+      
+      {modals.createBombero && (
+        <CreateBomberoPopup 
+          show={modals.createBombero} 
+          setShow={(show) => show ? openModal('createBombero') : closeModal('createBombero')} 
+          onBomberoCreated={handleCreateBombero} 
+        />
       )}
-      {showCreateRole && (
-        <CreateRolePopup show={showCreateRole} setShow={setShowCreateRole} onRoleCreated={() => setRefreshRolesTrigger(prev => prev + 1)} />
+      
+      {modals.createRol && (
+        <CreateRolPopup 
+          show={modals.createRol} 
+          setShow={(show) => show ? openModal('createRol') : closeModal('createRol')} 
+          onRoleCreated={() => setRefreshRolesTrigger(prev => prev + 1)} 
+        />
       )}
-      {showUserDetail && userDetailData && (
-        <UserDetailModal show={showUserDetail} setShow={setShowUserDetail} userData={userDetailData} />
+      
+      {modals.bomberoDetail && modalData.bomberoDetail && (
+        <BomberoDetailModal 
+          show={modals.bomberoDetail} 
+          setShow={(show) => show ? openModal('bomberoDetail') : closeModal('bomberoDetail')} 
+          bomberoData={modalData.bomberoDetail} 
+        />
       )}
     </div>
   );
-};
+}
 
 export default Admin;

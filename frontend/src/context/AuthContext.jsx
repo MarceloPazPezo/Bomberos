@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
 import { io } from "socket.io-client";
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getUserPermissions, validateToken } from '@services/auth.service';
+import { getBomberoPermisos, validateToken } from '@services/auth.service';
 import cookies from 'js-cookie';
 import axios from '@services/root.service';
 
@@ -10,85 +10,85 @@ export const AuthContext = createContext();
 export function AuthProvider({ children }) {
     const navigate = useNavigate();
     const location = useLocation();
-    
-    const [user, setUser] = useState(null);
-    const [userPermissions, setUserPermissions] = useState([]);
+
+    const [bombero, setBombero] = useState(null);
+    const [bomberoPermisos, setBomberoPermisos] = useState([]);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
     const [sessionExpired, setSessionExpired] = useState(false);
 
-    // Función para cargar datos del usuario desde sessionStorage
-    const loadUserFromStorage = useCallback(() => {
+    // Función para cargar datos del bombero desde sessionStorage
+    const loadBomberoFromStorage = useCallback(() => {
         try {
-            const storedUser = sessionStorage.getItem('usuario');
-            
-            if (storedUser) {
-                const userData = JSON.parse(storedUser);
-                setUser(userData);
+            const storedBombero = sessionStorage.getItem('bombero');
+
+            if (storedBombero) {
+                const bomberoData = JSON.parse(storedBombero);
+                setBombero(bomberoData);
                 setIsAuthenticated(true);
-                // Los permisos ya vienen en el userData desde el JWT
-                setUserPermissions(userData.permissions || []);
-                return userData;
+                // Los permisos ya vienen en el bomberoData desde el JWT
+                setBomberoPermisos(bomberoData.permisos || []);
+                return bomberoData;
             }
             return null;
         } catch (error) {
-            console.error('Error al cargar usuario desde storage:', error);
+            console.error('Error al cargar bombero desde storage:', error);
             return null;
         }
     }, []);
 
-    // Función para cargar permisos del usuario (mantener para compatibilidad)
-    const loadUserPermissions = useCallback(async (userId) => {
+    // Función para cargar permisos del bombero (mantener para compatibilidad)
+    const loadBomberoPermisos = useCallback(async (idBombero) => {
         try {
-            // Si el usuario ya tiene permisos, no necesitamos cargarlos del backend
-            if (user?.permissions) {
-                setUserPermissions(user.permissions);
+            // Si el bombero ya tiene permisos, no necesitamos cargarlos del backend
+            if (bombero?.permisos) {
+                setBomberoPermisos(bombero.permisos);
                 return;
             }
             
             setLoading(true);
-            const permissions = await getUserPermissions(userId);
-            setUserPermissions(permissions || []);
+            const permisos = await getBomberoPermisos(idBombero);
+            setBomberoPermisos(permisos || []);
         } catch (error) {
-            console.error('Error al cargar permisos del usuario:', error);
-            setUserPermissions([]);
+            console.error('Error al cargar permisos del bombero:', error);
+            setBomberoPermisos([]);
         } finally {
             setLoading(false);
         }
-    }, [user]);
+    }, [bombero]);
 
-    // Función para actualizar el usuario
-    const updateUser = useCallback((userData) => {
-        setUser(userData);
-        sessionStorage.setItem('usuario', JSON.stringify(userData));
-        
-        // Actualizar permisos directamente desde userData
-        setUserPermissions(userData.permissions || []);
+    // Función para actualizar el bombero
+    const updateBombero = useCallback((bomberoData) => {
+        setBombero(bomberoData);
+        sessionStorage.setItem('bombero', JSON.stringify(bomberoData));
+
+        // Actualizar permisos directamente desde bomberoData
+        setBomberoPermisos(bomberoData.permisos || []);
     }, []);
 
     // Función para hacer login
-    const login = useCallback((userData, token) => {
-        sessionStorage.setItem('usuario', JSON.stringify(userData));
+    const login = useCallback((bomberoData, token) => {
+        sessionStorage.setItem('bombero', JSON.stringify(bomberoData));
         if (token) {
             sessionStorage.setItem('token', token);
         }
-        setUser(userData);
+        setBombero(bomberoData);
         setIsAuthenticated(true);
         setSessionExpired(false);
-        
-        // Los permisos ya vienen en userData desde el JWT
-        setUserPermissions(userData.permissions || []);
+
+        // Los permisos ya vienen en bomberoData desde el JWT
+        setBomberoPermisos(bomberoData.permisos || []);
     }, []);
 
     // Función para hacer logout (ahora asíncrona para asegurar limpieza antes de navegar)
     const logout = useCallback(async () => {
         try {
-            const user = JSON.parse(sessionStorage.getItem("usuario"));
-            if (user && user.id) {
+            const bombero = JSON.parse(sessionStorage.getItem("bombero"));
+            if (bombero && bombero.id) {
                 // Crear una conexión temporal solo para emitir el logout
                 const tempSocket = io("http://localhost:3000", { withCredentials: true });
                 await new Promise((resolve) => {
-                    tempSocket.emit("userLogout", user.id);
+                    tempSocket.emit("userLogout", bombero.id);
                     setTimeout(() => {
                         tempSocket.disconnect();
                         resolve();
@@ -96,10 +96,10 @@ export function AuthProvider({ children }) {
                 });
             }
         } catch {}
-        sessionStorage.removeItem('usuario');
+        sessionStorage.removeItem('bombero');
         sessionStorage.removeItem('token');
-        setUser(null);
-        setUserPermissions([]);
+        setBombero(null);
+        setBomberoPermisos([]);
         setIsAuthenticated(false);
         setSessionExpired(false);
         setLoading(false);
@@ -107,38 +107,38 @@ export function AuthProvider({ children }) {
         navigate('/auth');
     }, [navigate]);
 
-    // Función para verificar si el usuario tiene un permiso específico
-    const hasPermission = useCallback((permission) => {
-        return userPermissions.includes(permission);
-    }, [userPermissions]);
+    // Función para verificar si el bombero tiene un permiso específico
+    const hasPermiso = useCallback((permiso) => {
+        return bomberoPermisos.includes(permiso);
+    }, [bomberoPermisos]);
 
-    // Función para verificar si el usuario tiene alguno de los permisos
-    const hasAnyPermission = useCallback((permissions) => {
-        return permissions.some(permission => userPermissions.includes(permission));
-    }, [userPermissions]);
+    // Función para verificar si el bombero tiene alguno de los permisos
+    const hasAnyPermisos = useCallback((permisos) => {
+        return permisos.some(permiso => bomberoPermisos.includes(permiso));
+    }, [bomberoPermisos]);
 
-    // Función para verificar si el usuario tiene todos los permisos
-    const hasAllPermissions = useCallback((permissions) => {
-        return permissions.every(permission => userPermissions.includes(permission));
-    }, [userPermissions]);
+    // Función para verificar si el bombero tiene todos los permisos
+    const hasAllPermisos = useCallback((permisos) => {
+        return permisos.every(permiso => bomberoPermisos.includes(permiso));
+    }, [bomberoPermisos]);
 
-    // Función para verificar si el usuario tiene un rol específico
-    const hasRole = useCallback((role) => {
-        if (user?.roles && Array.isArray(user.roles)) {
-            return user.roles.some(r => r.name === role || r === role);
+    // Función para verificar si el bombero tiene un rol específico
+    const hasRol = useCallback((rol) => {
+        if (bombero?.roles && Array.isArray(bombero.roles)) {
+            return bombero.roles.some(r => r.name === rol || r === rol);
         }
-        return user?.rol === role; // Compatibilidad con estructura anterior
-    }, [user]);
+        return bombero?.rol === rol; // Compatibilidad con estructura anterior
+    }, [bombero]);
 
-    // Función para verificar si el usuario tiene alguno de los roles
-    const hasAnyRole = useCallback((roles) => {
-        if (user?.roles && Array.isArray(user.roles)) {
-            return roles.some(role => 
-                user.roles.some(r => r.name === role || r === role)
+    // Función para verificar si el bombero tiene alguno de los roles
+    const hasAnyRol = useCallback((roles) => {
+        if (bombero?.roles && Array.isArray(bombero.roles)) {
+            return roles.some(rol => 
+                bombero.roles.some(r => r.name === rol || r === rol)
             );
         }
-        return roles.includes(user?.rol); // Compatibilidad con estructura anterior
-    }, [user]);
+        return roles.includes(bombero?.rol);
+    }, [bombero]);
 
     // Función para manejar errores de autenticación (token expirado, etc.)
     const handleAuthError = useCallback(() => {
@@ -154,29 +154,29 @@ export function AuthProvider({ children }) {
             // Verificar si hay un token en las cookies
             const token = cookies.get('jwt-auth');
             
-            // Cargar datos del usuario desde sessionStorage
-            const storedUser = sessionStorage.getItem('usuario');
-            let userData = null;
-            
-            if (storedUser) {
+            // Cargar datos del bombero desde sessionStorage
+            const storedBombero = sessionStorage.getItem('bombero');
+            let bomberoData = null;
+
+            if (storedBombero) {
                 try {
-                    userData = JSON.parse(storedUser);
+                    bomberoData = JSON.parse(storedBombero);
                 } catch (error) {
-                    console.error('Error al cargar usuario desde storage:', error);
+                    console.error('Error al cargar bombero desde storage:', error);
                     // Si hay error al parsear, limpiar storage
-                    sessionStorage.removeItem('usuario');
+                    sessionStorage.removeItem('bombero');
                     sessionStorage.removeItem('token');
                 }
             }
-            
-            if (token && userData) {
+
+            if (token && bomberoData) {
                 // Configurar el header de autorización
                 axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-                
-                // Establecer el estado del usuario
-                setUser(userData);
+
+                // Establecer el estado del bombero
+                setBombero(bomberoData);
                 setIsAuthenticated(true);
-                setUserPermissions(userData.permissions || []);
+                setBomberoPermisos(bomberoData.permisos || []);
                 setLoading(false);
                 
                 // Validar token en segundo plano (sin bloquear la UI)
@@ -185,10 +185,10 @@ export function AuthProvider({ children }) {
                         // Token inválido, limpiar todo
                         cookies.remove('jwt-auth');
                         cookies.remove('jwt');
-                        sessionStorage.removeItem('usuario');
+                        sessionStorage.removeItem('bombero');
                         sessionStorage.removeItem('token');
-                        setUser(null);
-                        setUserPermissions([]);
+                        setBombero(null);
+                        setBomberoPermisos([]);
                         setIsAuthenticated(false);
                         
                         if (location.pathname !== '/auth') {
@@ -200,10 +200,10 @@ export function AuthProvider({ children }) {
                     // En caso de error, limpiar todo
                     cookies.remove('jwt-auth');
                     cookies.remove('jwt');
-                    sessionStorage.removeItem('usuario');
+                    sessionStorage.removeItem('bombero');
                     sessionStorage.removeItem('token');
-                    setUser(null);
-                    setUserPermissions([]);
+                    setBombero(null);
+                    setBomberoPermisos([]);
                     setIsAuthenticated(false);
                     
                     if (location.pathname !== '/auth') {
@@ -211,15 +211,15 @@ export function AuthProvider({ children }) {
                     }
                 });
             } else {
-                // No hay token o datos de usuario válidos
-                if (userData && !token) {
+                // No hay token o datos de bombero válidos
+                if (bomberoData && !token) {
                     // Limpiar datos huérfanos
-                    sessionStorage.removeItem('usuario');
+                    sessionStorage.removeItem('bombero');
                     sessionStorage.removeItem('token');
                 }
-                
-                setUser(null);
-                setUserPermissions([]);
+
+                setBombero(null);
+                setBomberoPermisos([]);
                 setIsAuthenticated(false);
                 setLoading(false);
             }
@@ -244,8 +244,8 @@ export function AuthProvider({ children }) {
 
     const contextValue = {
         // Estado
-        user,
-        userPermissions,
+        bombero,
+        bomberoPermisos,
         isAuthenticated,
         loading,
         sessionExpired,
@@ -253,20 +253,20 @@ export function AuthProvider({ children }) {
         // Funciones de autenticación
         login,
         logout,
-        updateUser,
-        
+        updateBombero,
+
         // Funciones de verificación de permisos
-        hasPermission,
-        hasAnyPermission,
-        hasAllPermissions,
-        hasRole,
-        hasAnyRole,
+        hasPermiso,
+        hasAnyPermisos,
+        hasAllPermisos,
+        hasRol,
+        hasAnyRol,
         
         // Manejo de errores
         handleAuthError,
         
         // Funciones de utilidad
-        loadUserPermissions
+        loadBomberoPermisos
     };
 
     return (

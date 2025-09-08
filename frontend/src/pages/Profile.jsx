@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
-import { useProfile } from '@hooks/useProfile';
-import { formatRut, formatTelefono } from '@helpers/formatData';
+import { useProfile } from '@hooks/bomberos/useProfile';
+import { useAuth } from '@hooks/auth/useAuth';
+import { formatRut } from '@helpers/formatData';
 import { 
   MdPerson, 
   MdEmail, 
-  MdPhone, 
-  MdCalendarToday, 
   MdEdit, 
   MdSave, 
   MdCancel, 
   MdLock, 
   MdVisibility, 
   MdVisibilityOff,
-  MdShield
+  MdShield,
+  MdBadge,
+  MdCalendarToday
 } from 'react-icons/md';
 
 const Profile = () => {
+  const { hasPermiso } = useAuth();
   const { 
     profile, 
     loading, 
@@ -47,9 +49,7 @@ const Profile = () => {
 
   // Función para manejar cambios en los campos y limpiar errores
   const handleFieldChange = (fieldName, value) => {
-    // Limpiar error del campo cuando el usuario empiece a escribir
     clearFieldError(fieldName);
-    
     if (isEditing) {
       setEditForm(prev => ({ ...prev, [fieldName]: value }));
     }
@@ -57,24 +57,18 @@ const Profile = () => {
 
   // Función para manejar cambios en los campos de contraseña
   const handlePasswordFieldChange = (fieldName, value) => {
-    // Limpiar error del campo cuando el usuario empiece a escribir
     clearFieldError(fieldName);
-    
     setPasswordForm(prev => ({ ...prev, [fieldName]: value }));
   };
 
   // Inicializar formulario de edición
   const handleEditStart = () => {
+    if (!hasPermiso('bombero:actualizar_perfil')) {
+      setError('No tienes permisos para editar el perfil');
+      return;
+    }
     setEditForm({
       email: profile?.email || '',
-      telefono: profile?.telefono || '',
-      fechaNacimiento: profile?.fechaNacimiento ? 
-        new Date(profile.fechaNacimiento).toISOString().split('T')[0] : '',
-      direccion: profile?.direccion || '',
-      tipoSangre: profile?.tipoSangre || '',
-      alergias: Array.isArray(profile?.alergias) ? profile.alergias.join(', ') : profile?.alergias || '',
-      medicamentos: Array.isArray(profile?.medicamentos) ? profile.medicamentos.join(', ') : profile?.medicamentos || '',
-      condiciones: Array.isArray(profile?.condiciones) ? profile.condiciones.join(', ') : profile?.condiciones || ''
     });
     setIsEditing(true);
     setError(null);
@@ -90,31 +84,25 @@ const Profile = () => {
 
   // Guardar cambios del perfil
   const handleEditSave = async () => {
-    // Crear una copia del formulario para modificar
     const formData = { ...editForm };
-    
-    // Transformar alergias, medicamentos y condiciones en arrays separados solo por comas
-    formData.alergias = formData.alergias.split(',').map(item => item.trim()).filter(item => item !== '');
-    formData.medicamentos = formData.medicamentos.split(',').map(item => item.trim()).filter(item => item !== '');
-    formData.condiciones = formData.condiciones.split(',').map(item => item.trim()).filter(item => item !== '');
-    
-    // Si el tipo de sangre está vacío o es "No especificado", no lo incluir en los datos
-    if (!formData.tipoSangre || formData.tipoSangre === '') {
-      delete formData.tipoSangre;
-    }
-
-    // Si las fechas están vacías, no las incluir en los datos
-    if (!formData.fechaNacimiento || formData.fechaNacimiento === '') {
-      delete formData.fechaNacimiento;
-    }
-
     const result = await updateProfile(formData);
     if (result.success) {
       setIsEditing(false);
       setSuccessMessage('Perfil actualizado correctamente');
       setTimeout(() => setSuccessMessage(''), 5000);
     }
-    // Los errores por campo se manejan automáticamente en el hook
+  };
+
+  // Inicializar cambio de contraseña
+  const handlePasswordChangeStart = () => {
+    if (!hasPermiso('bombero:cambiar_contrasena')) {
+      setError('No tienes permisos para cambiar la contraseña');
+      return;
+    }
+    setIsChangingPassword(true);
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setError(null);
+    setSuccessMessage('');
   };
 
   // Manejar cambio de contraseña
@@ -141,7 +129,6 @@ const Profile = () => {
       setSuccessMessage('Contraseña actualizada correctamente');
       setTimeout(() => setSuccessMessage(''), 5000);
     }
-    // Los errores por campo se manejan automáticamente en el hook
   };
 
   // Función para alternar visibilidad de contraseñas
@@ -171,6 +158,22 @@ const Profile = () => {
     }
     return `${baseClasses} border-gray-300 focus:border-blue-500 focus:ring-blue-500`;
   };
+
+  // Función para obtener el nombre completo
+  const getFullName = () => {
+    if (profile?.nombres && profile?.apellidos) {
+      const nombres = Array.isArray(profile.nombres) ? profile.nombres.join(' ') : profile.nombres;
+      const apellidos = Array.isArray(profile.apellidos) ? profile.apellidos.join(' ') : profile.apellidos;
+      return `${nombres} ${apellidos}`;
+    }
+    return 'No especificado';
+  };
+
+  // Debug temporal - log para ver qué datos recibe profile
+  if (profile) {
+    console.log('Profile data:', profile);
+    console.log('Profile roles:', profile.roles);
+  }
 
   if (loading) {
     return (
@@ -202,7 +205,7 @@ const Profile = () => {
                 <h1 className="text-2xl font-bold text-gray-900">Mi Perfil</h1>
                 <p className="text-gray-600">Gestiona tu información personal y configuración de cuenta</p>
               </div>
-              {!isEditing && !isChangingPassword && (
+              {!isEditing && !isChangingPassword && hasPermiso('bombero:actualizar_perfil') && (
                 <button
                   onClick={handleEditStart}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -233,29 +236,14 @@ const Profile = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-4">Información Personal</h3>
               
               {/* Campos no editables */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombres
+                    Nombre Completo
                   </label>
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                     <MdPerson className="h-5 w-5 text-gray-400 mr-3" />
-                    <span className="text-gray-900">
-                      {Array.isArray(profile.nombres) ? profile.nombres.join(' ') : profile.nombres || 'No especificado'}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">Este campo no se puede modificar</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Apellidos
-                  </label>
-                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                    <MdPerson className="h-5 w-5 text-gray-400 mr-3" />
-                    <span className="text-gray-900">
-                      {Array.isArray(profile.apellidos) ? profile.apellidos.join(' ') : profile.apellidos || 'No especificado'}
-                    </span>
+                    <span className="text-gray-900">{getFullName()}</span>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">Este campo no se puede modificar</p>
                 </div>
@@ -272,17 +260,33 @@ const Profile = () => {
                   </div>
                   <p className="mt-1 text-xs text-gray-500">Este campo no se puede modificar</p>
                 </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de ingreso
+                    Fecha de Registro
                   </label>
                   <div className="flex items-center p-3 bg-gray-50 rounded-lg">
                     <MdCalendarToday className="h-5 w-5 text-gray-400 mr-3" />
                     <span className="text-gray-900">
-                      {profile.fechaIngreso ? 
-                        new Date(profile.fechaIngreso).toLocaleDateString('es-CL') : 
+                      {profile.creadoEl ? 
+                        new Date(profile.creadoEl).toLocaleDateString('es-CL') : 
                         'No especificado'
                       }
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Este campo no se puede modificar</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Estado
+                  </label>
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    <MdBadge className="h-5 w-5 text-gray-400 mr-3" />
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      profile.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {profile.activo ? 'Activo' : 'Inactivo'}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">Este campo no se puede modificar</p>
@@ -290,7 +294,7 @@ const Profile = () => {
               </div>
 
               {/* Campos editables */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Email
@@ -316,397 +320,173 @@ const Profile = () => {
                     </div>
                   )}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Teléfono
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <div className="relative">
-                        <MdPhone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                        <input
-                          type="tel"
-                          value={editForm.telefono}
-                          onChange={(e) => handleFieldChange('telefono', e.target.value)}
-                          className={getFieldClasses('telefono', "pl-10 pr-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
-                          placeholder="+56 9 1234 5678"
-                        />
-                      </div>
-                      {renderFieldError('telefono')}
-                    </div>
-                  ) : (
-                    <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
-                      <MdPhone className="h-5 w-5 text-gray-400 mr-3" />
-                      <span className="text-gray-900">
-                        {formatTelefono(profile.telefono) || 'No especificado'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha de Nacimiento
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <div className="relative">
-                        <MdCalendarToday className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                        <input
-                          type="date"
-                          value={editForm.fechaNacimiento}
-                          onChange={(e) => handleFieldChange('fechaNacimiento', e.target.value)}
-                          className={getFieldClasses('fechaNacimiento', "pl-10 pr-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
-                        />
-                      </div>
-                      {renderFieldError('fechaNacimiento')}
-                    </div>
-                  ) : (
-                    <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
-                      <MdCalendarToday className="h-5 w-5 text-gray-400 mr-3" />
-                      <span className="text-gray-900">
-                        {profile.fechaNacimiento ? 
-                          new Date(profile.fechaNacimiento).toLocaleDateString('es-CL') : 
-                          'No especificado'
-                        }
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dirección
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <input
-                        type="text"
-                        value={editForm.direccion}
-                        onChange={(e) => handleFieldChange('direccion', e.target.value)}
-                        className={getFieldClasses('direccion', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
-                        placeholder="Av. Principal 123, Santiago"
-                      />
-                      {renderFieldError('direccion')}
-                    </div>
-                  ) : (
-                    <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
-                      <span className="text-gray-900">{profile.direccion || 'No especificado'}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipo de Sangre
-                  </label>
-                  {isEditing ? (
-                    <div>
-                      <select
-                        value={editForm.tipoSangre}
-                        onChange={(e) => handleFieldChange('tipoSangre', e.target.value)}
-                        className={getFieldClasses('tipoSangre', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
-                      >
-                        <option value="">No especificado</option>
-                        <option value="A+">A+</option>
-                        <option value="A-">A-</option>
-                        <option value="B+">B+</option>
-                        <option value="B-">B-</option>
-                        <option value="AB+">AB+</option>
-                        <option value="AB-">AB-</option>
-                        <option value="O+">O+</option>
-                        <option value="O-">O-</option>
-                      </select>
-                      {renderFieldError('tipoSangre')}
-                    </div>
-                  ) : (
-                    <div className="flex items-center p-3 bg-white border border-gray-300 rounded-lg">
-                      <span className="text-gray-900">{profile.tipoSangre || 'No especificado'}</span>
-                    </div>
-                  )}
-                </div>
               </div>
 
-              {/* Información médica */}
+              {/* Roles y Permisos */}
               <div className="mt-6">
-                <h4 className="text-md font-medium text-gray-900 mb-4">Información Médica</h4>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Alergias
-                    </label>
-                    {isEditing ? (
-                      <div>
-                        <textarea
-                          value={editForm.alergias}
-                          onChange={(e) => handleFieldChange('alergias', e.target.value)}
-                          rows={3}
-                          className={getFieldClasses('alergias', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
-                          placeholder="Polen de abedul, frutos secos, mariscos (separar por comas)"
-                        />
-                        {renderFieldError('alergias')}
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-white border border-gray-300 rounded-lg">
-                        <span className="text-gray-900">{profile.alergias || 'No especificado'}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Medicamentos
-                    </label>
-                    {isEditing ? (
-                      <div>
-                        <textarea
-                          value={editForm.medicamentos}
-                          onChange={(e) => handleFieldChange('medicamentos', e.target.value)}
-                          rows={3}
-                          className={getFieldClasses('medicamentos', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
-                          placeholder="Aspirina 100mg, Losartán 50mg, Vitamina D (separar por comas)"
-                        />
-                        {renderFieldError('medicamentos')}
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-white border border-gray-300 rounded-lg">
-                        <span className="text-gray-900">{profile.medicamentos || 'No especificado'}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Condiciones médicas
-                    </label>
-                    {isEditing ? (
-                      <div>
-                        <textarea
-                          value={editForm.condiciones}
-                          onChange={(e) => handleFieldChange('condiciones', e.target.value)}
-                          rows={3}
-                          className={getFieldClasses('condiciones', "px-3 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
-                          placeholder="Hipertensión arterial, Diabetes tipo 2, Asma bronquial (separar por comas)"
-                        />
-                        {renderFieldError('condiciones')}
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-white border border-gray-300 rounded-lg">
-                        <span className="text-gray-900">{profile.condiciones || 'No especificado'}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Información de Roles */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Roles Asignados</h3>
-              {profile.roles && profile.roles.length > 0 ? (
+                <h4 className="text-sm font-medium text-gray-700 mb-3">Roles Asignados</h4>
                 <div className="flex flex-wrap gap-2">
-                  {profile.roles.map((role, index) => (
-                    <span
-                      key={index}
-                      className="inline-block px-3 py-1 text-sm font-medium bg-blue-100 text-blue-800 rounded-full"
-                    >
-                      {role.nombre || role.name || role}
-                    </span>
-                  ))}
+                  {profile.roles && profile.roles.length > 0 ? (
+                    profile.roles.map((role, index) => (
+                      <span
+                        key={index}
+                        className={`px-3 py-1 text-sm font-medium rounded-full ${
+                          role.nombre === 'Administrador' ? 'bg-red-100 text-red-800' :
+                          role.nombre === 'Supervisor' ? 'bg-purple-100 text-purple-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {role.nombre}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-sm text-gray-500">Sin roles asignados</span>
+                  )}
                 </div>
-              ) : (
-                <p className="text-gray-500 text-sm">Sin roles asignados</p>
+                <p className="mt-1 text-xs text-gray-500">Los roles son asignados por un administrador</p>
+              </div>
+
+              {/* Botones de acción para modo edición */}
+              {isEditing && (
+                <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={handleEditCancel}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    <MdCancel className="h-4 w-4 mr-2" />
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleEditSave}
+                    disabled={updating}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  >
+                    <MdSave className="h-4 w-4 mr-2" />
+                    {updating ? 'Guardando...' : 'Guardar Cambios'}
+                  </button>
+                </div>
               )}
             </div>
 
-            {/* Seguridad */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Seguridad</h3>
-              {!isChangingPassword ? (
-                <button
-                  onClick={() => setIsChangingPassword(true)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <MdLock className="h-4 w-4 mr-2" />
-                  Cambiar Contraseña
-                </button>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Contraseña Actual
-                    </label>
+            {/* Sección de Seguridad */}
+            {hasPermiso('bombero:cambiar_contrasena') && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Seguridad</h3>
+                
+                {!isChangingPassword ? (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900">Contraseña</h4>
+                        <p className="text-sm text-gray-600">Última actualización: Hace tiempo</p>
+                      </div>
+                      <button
+                        onClick={handlePasswordChangeStart}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        <MdLock className="h-4 w-4 mr-2" />
+                        Cambiar Contraseña
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Contraseña Actual
+                      </label>
                       <div className="relative">
+                        <MdLock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <input
                           type={showPasswords.current ? "text" : "password"}
                           value={passwordForm.currentPassword}
                           onChange={(e) => handlePasswordFieldChange('currentPassword', e.target.value)}
-                          className={getFieldClasses('currentPassword', "block w-full pr-10 pl-3 py-3 rounded-lg shadow-sm text-gray-900")}
-                          required
+                          className={getFieldClasses('currentPassword', "pl-10 pr-10 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="Ingresa tu contraseña actual"
                         />
                         <button
                           type="button"
                           onClick={() => togglePasswordVisibility('current')}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                         >
-                          {showPasswords.current ? 
-                            <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
-                            <MdVisibility className="h-5 w-5 text-gray-400" />
-                          }
+                          {showPasswords.current ? <MdVisibilityOff className="h-5 w-5" /> : <MdVisibility className="h-5 w-5" />}
                         </button>
                       </div>
                       {renderFieldError('currentPassword')}
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nueva Contraseña
-                    </label>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nueva Contraseña
+                      </label>
                       <div className="relative">
+                        <MdLock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <input
                           type={showPasswords.new ? "text" : "password"}
                           value={passwordForm.newPassword}
                           onChange={(e) => handlePasswordFieldChange('newPassword', e.target.value)}
-                          className={getFieldClasses('newPassword', "block w-full pr-10 pl-3 py-3 rounded-lg shadow-sm text-gray-900")}
-                          required
-                          minLength={8}
+                          className={getFieldClasses('newPassword', "pl-10 pr-10 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="Ingresa una nueva contraseña"
                         />
                         <button
                           type="button"
                           onClick={() => togglePasswordVisibility('new')}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                         >
-                          {showPasswords.new ? 
-                            <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
-                            <MdVisibility className="h-5 w-5 text-gray-400" />
-                          }
+                          {showPasswords.new ? <MdVisibilityOff className="h-5 w-5" /> : <MdVisibility className="h-5 w-5" />}
                         </button>
                       </div>
                       {renderFieldError('newPassword')}
+                      <p className="mt-1 text-xs text-gray-500">Mínimo 8 caracteres</p>
                     </div>
-                  </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirmar Nueva Contraseña
-                    </label>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Confirmar Nueva Contraseña
+                      </label>
                       <div className="relative">
+                        <MdLock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                         <input
                           type={showPasswords.confirm ? "text" : "password"}
                           value={passwordForm.confirmPassword}
                           onChange={(e) => handlePasswordFieldChange('confirmPassword', e.target.value)}
-                          className={getFieldClasses('confirmPassword', "block w-full pr-10 pl-3 py-3 rounded-lg shadow-sm text-gray-900")}
-                          required
+                          className={getFieldClasses('confirmPassword', "pl-10 pr-10 py-3 block w-full rounded-lg shadow-sm text-gray-900")}
+                          placeholder="Confirma la nueva contraseña"
                         />
                         <button
                           type="button"
                           onClick={() => togglePasswordVisibility('confirm')}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                         >
-                          {showPasswords.confirm ? 
-                            <MdVisibilityOff className="h-5 w-5 text-gray-400" /> : 
-                            <MdVisibility className="h-5 w-5 text-gray-400" />
-                          }
+                          {showPasswords.confirm ? <MdVisibilityOff className="h-5 w-5" /> : <MdVisibility className="h-5 w-5" />}
                         </button>
                       </div>
                       {renderFieldError('confirmPassword')}
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
 
-            {/* Información de Cuenta */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Información de Cuenta</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Estado</p>
-                    <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                      profile.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {profile.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Miembro desde</p>
-                    <p className="text-sm text-gray-900">
-                      {profile.fechaIngreso ? 
-                        new Date(profile.fechaIngreso).toLocaleDateString('es-CL') : 
-                        (profile.fechaCreacion ? 
-                          new Date(profile.fechaCreacion).toLocaleDateString('es-CL') : 
-                          'No disponible'
-                        )
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Última actualización</p>
-                    <p className="text-sm text-gray-900">
-                      {profile.fechaActualizacion ? 
-                        new Date(profile.fechaActualizacion).toLocaleDateString('es-CL') : 
-                        'No disponible'
-                      }
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-            {/* Botones de Acción */}
-            {(isEditing || isChangingPassword) && (
-              <div className="pt-6 border-t border-gray-200">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  {isEditing && (
-                    <>
-                      <button
-                        onClick={handleEditSave}
-                        disabled={updating}
-                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                      >
-                        <MdSave className="h-4 w-4 mr-2" />
-                        {updating ? 'Guardando...' : 'Guardar Información'}
-                      </button>
-                      <button
-                        onClick={handleEditCancel}
-                        disabled={updating}
-                        className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                      >
-                        <MdCancel className="h-4 w-4 mr-2" />
-                        Cancelar
-                      </button>
-                    </>
-                  )}
-                  
-                  {isChangingPassword && (
-                    <>
-                      <button
-                        onClick={handlePasswordChange}
-                        disabled={updating}
-                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-                      >
-                        <MdLock className="h-4 w-4 mr-2" />
-                        {updating ? 'Cambiando...' : 'Cambiar Contraseña'}
-                      </button>
+                    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                       <button
                         onClick={() => {
                           setIsChangingPassword(false);
                           setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
                           setError(null);
                         }}
-                        disabled={updating}
-                        className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
                         <MdCancel className="h-4 w-4 mr-2" />
                         Cancelar
                       </button>
-                    </>
-                  )}
-                </div>
+                      <button
+                        onClick={handlePasswordChange}
+                        disabled={updating}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        <MdSave className="h-4 w-4 mr-2" />
+                        {updating ? 'Actualizando...' : 'Cambiar Contraseña'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

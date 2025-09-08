@@ -1,7 +1,7 @@
 "use strict";
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
-import { authorizePermissions } from "../middlewares/authorization.middleware.js";
+import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import { cleanEmptyStrings } from "../middlewares/cleanEmptyStrings.middleware.js";
 import {
   getMyProfile,
@@ -13,26 +13,26 @@ const router = Router();
 
 router.use(authenticateJwt);
 
-// GET /api/profile/detail/ -> Obtener el perfil del usuario autenticado
+// GET /api/perfil/detail/ -> Obtener el perfil del bombero autenticado
 router.get(
   "/",
-  authorizePermissions(["usuario:leer_perfil"]), // Permiso para leer el propio perfil
+  authorizePermisos(["bombero:leer_perfil"]), // Permiso para leer el propio perfil
   getMyProfile
 );
 
-// PATCH /api/profile/ -> Actualizar el perfil del usuario autenticado
+// PATCH /api/perfil/ -> Actualizar el perfil del bombero autenticado
 router.patch(
   "/",
   cleanEmptyStrings,
-  authorizePermissions(["usuario:actualizar_perfil"]), // Permiso para actualizar el propio perfil
+  authorizePermisos(["bombero:actualizar_perfil"]), // Permiso para actualizar el propio perfil
   updateMyProfile
 );
 
-// PATCH /api/profile/change-password -> Cambiar contraseña del usuario autenticado
+// PATCH /api/perfil/cambiar-contrasena -> Cambiar contraseña del bombero autenticado
 router.patch(
-  "/change-password",
+  "/cambiar-contrasena",
   cleanEmptyStrings,
-  authorizePermissions(["usuario:actualizar_perfil"]), // Permiso para actualizar el propio perfil
+  authorizePermisos(["bombero:cambiar_contrasena"]), // Permiso para cambiar la contraseña
   changeMyPassword
 );
 

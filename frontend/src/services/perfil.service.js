@@ -1,7 +1,7 @@
 import axios from './root.service.js';
 
 /**
- * Obtiene el perfil del usuario autenticado
+ * Obtiene el perfil del bombero autenticado
  * @returns {Promise} Respuesta con los datos del perfil
  */
 export async function getMyProfile() {
@@ -15,7 +15,7 @@ export async function getMyProfile() {
 }
 
 /**
- * Actualiza el perfil del usuario autenticado
+ * Actualiza el perfil del bombero autenticado
  * @param {Object} profileData - Datos del perfil a actualizar
  * @returns {Promise} Respuesta con los datos actualizados
  */
@@ -30,13 +30,13 @@ export async function updateMyProfile(profileData) {
 }
 
 /**
- * Cambia la contraseña del usuario autenticado
+ * Cambia la contraseña del bombero autenticado
  * @param {Object} passwordData - Datos de la contraseña (currentPassword, newPassword)
  * @returns {Promise} Respuesta del servidor
  */
 export const changePassword = async (passwordData) => {
   try {
-    const response = await axios.patch('/perfil/change-password', passwordData);
+    const response = await axios.patch('/perfil/cambiar-contrasena', passwordData);
     return response.data;
   } catch (error) {
     console.error('Error al cambiar la contraseña:', error);

@@ -1,63 +1,57 @@
 "use strict";
-import Usuario from "../entities/usuario.entity.js";
+import Bombero from "../entities/bombero.entity.js";
 import jwt from "jsonwebtoken";
 import { AppDataSource } from "../config/configDb.js";
 import { comparePassword, encryptPassword } from "../helpers/bcrypt.helper.js";
 import { ACCESS_TOKEN_SECRET } from "../config/configEnv.js";
 
-export async function loginService(user) {
+export async function loginService(bombero) {
   try {
-    const userRepository = AppDataSource.getRepository(Usuario);
-    const { run, password } = user;
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+    const { run, password } = bombero;
     const createErrorMessage = (dataInfo, message) => ({
       dataInfo,
       message,
     });
 
-    const userFound = await userRepository
-      .createQueryBuilder("user")
-      .leftJoinAndSelect("user.roles", "role")
-      .leftJoinAndSelect("role.permisos", "permission")
+    const bomberoFound = await bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoinAndSelect("bombero.roles", "rol")
+      .leftJoinAndSelect("rol.permisos", "permiso")
       .select([
-        "user.id",
-        "user.nombres",
-        "user.apellidos",
-        "user.email",
-        "user.run",
-        "user.telefono",
-        "user.fechaNacimiento",
-        "user.fechaIngreso",
-        "user.direccion",
-        "user.tipoSangre",
-        "user.alergias",
-        "user.medicamentos",
-        "user.condiciones",
-        "user.activo",
-        "user.fechaCreacion",
-        "user.fechaActualizacion",
-        "role.id",
-        "role.nombre",
-        "permission.nombre",
+        "bombero.id",
+        "bombero.nombres",
+        "bombero.apellidos",
+        "bombero.email",
+        "bombero.run",
+        "bombero.creadoEl",
+        "bombero.creadoPor",
+        "bombero.actualizadoEl",
+        "bombero.actualizadoPor",
+        "bombero.activo",
+        "rol.id",
+        "rol.nombre",
+        "permiso.nombre",
       ])
-      .addSelect("user.passwordHash")
-      .where("user.run = :run", { run: run })
+      .addSelect("bombero.password")
+      .where("bombero.run = :run", { run: run })
       .getOne();
 
-    if (!userFound) {
+    if (!bomberoFound) {
       return [null, createErrorMessage("run", "El run es incorrecto")];
     }
 
-    if (!userFound.activo) {
+    if (!bomberoFound.activo) {
       return [
         null,
         createErrorMessage(
           "estado",
-          "La cuenta de usuario está inactiva. Por favor, contacta al administrador.",
+          "La cuenta de bombero está inactiva. Por favor, contacta al administrador.",
         ),
       ];
     }
 
-    const isMatch = await comparePassword(password, userFound.passwordHash);
+    const isMatch = await comparePassword(password, bomberoFound.password);
 
     if (!isMatch) {
       return [
@@ -67,23 +61,17 @@ export async function loginService(user) {
     }
 
     const payload = {
-      id: userFound.id,
-      nombres: userFound.nombres,
-      apellidos: userFound.apellidos,
-      email: userFound.email,
-      run: userFound.run,
-      telefono: userFound.telefono,
-      fechaNacimiento: userFound.fechaNacimiento,
-      fechaIngreso: userFound.fechaIngreso,
-      direccion: userFound.direccion,
-      tipoSangre: userFound.tipoSangre,
-      alergias: userFound.alergias,
-      medicamentos: userFound.medicamentos,
-      condiciones: userFound.condiciones,
-      activo: userFound.activo,
-      fechaCreacion: userFound.fechaCreacion,
-      fechaActualizacion: userFound.fechaActualizacion,
-      roles: userFound.roles.map((r) => ({
+      id: bomberoFound.id,
+      nombres: bomberoFound.nombres,
+      apellidos: bomberoFound.apellidos,
+      email: bomberoFound.email,
+      run: bomberoFound.run,
+      activo: bomberoFound.activo,
+      creadoEl: bomberoFound.creadoEl,
+      creadoPor: bomberoFound.creadoPor,
+      actualizadoEl: bomberoFound.actualizadoEl,
+      actualizadoPor: bomberoFound.actualizadoPor,
+      roles: bomberoFound.roles.map((r) => ({
         nombre: r.nombre,
         permisos: r.permisos ? r.permisos.map((p) => p.nombre) : [],
       })),

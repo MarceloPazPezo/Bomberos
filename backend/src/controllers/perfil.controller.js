@@ -1,10 +1,10 @@
 "use strict";
-import { getUserService, updateUserService } from "../services/usuario.service.js";
+import { getBomberoService, updateBomberoService } from "../services/bombero.service.js";
 import {
-  userBodyValidation,
-  userQueryValidation,
+  bomberoBodyValidation,
+  bomberoQueryValidation,
   changePasswordValidation,
-} from "../validations/usuario.validation.js";
+} from "../validations/bombero.validation.js";
 import {
   handleErrorClient,
   handleErrorServer,
@@ -13,25 +13,25 @@ import {
 
 export async function getMyProfile(req, res) {
   try {
-    const { id } = req.user;
+    const { id, run, email } = req.bombero;
 
     if (id === undefined) {
       return handleErrorClient(
         res,
         401,
-        "Usuario no autenticado o ID no disponible.",
+        "Bombero no autenticado o ID no disponible.",
       );
     }
 
-    const { error } = userQueryValidation.validate({ id });
+    const { error } = bomberoQueryValidation.validate({ id, run, email });
 
     if (error) return handleErrorClient(res, 400, error.message);
 
-    const [user, errorUser] = await getUserService({ id });
+    const [bombero, errorBombero] = await getBomberoService({ id, run, email });
 
-    if (errorUser) return handleErrorClient(res, 404, errorUser);
+    if (errorBombero) return handleErrorClient(res, 404, errorBombero);
 
-    handleSuccess(res, 200, "Perfil de usuario encontrado", user);
+    handleSuccess(res, 200, "Perfil de bombero encontrado", bombero);
   } catch (error) {
     console.error("Error en getMyProfile:", error);
     handleErrorServer(res, 500, "Error interno al obtener el perfil.");
@@ -40,7 +40,7 @@ export async function getMyProfile(req, res) {
 
 export async function updateMyProfile(req, res) {
   try {
-    const { id } = req.user;
+    const { id, run, email } = req.bombero;
     const { body } = req;
 
     if (id === undefined) {
@@ -51,11 +51,11 @@ export async function updateMyProfile(req, res) {
       );
     }
 
-    const { error } = userQueryValidation.validate({ id });
+    const { error } = bomberoQueryValidation.validate({ id, run, email });
 
     if (error) return handleErrorClient(res, 400, error.message);
 
-    const { error: bodyError } = userBodyValidation.validate(body);
+    const { error: bodyError } = bomberoBodyValidation.validate(body);
 
     if (bodyError) {
       const errorMessages = bodyError.details.map((detail) => {
@@ -71,13 +71,12 @@ export async function updateMyProfile(req, res) {
       return handleErrorClient(res, 400, "Error de validación", errorMessages);
     }
 
-    const updatedBy = req.user ? `${req.user.nombres?.join(' ')} ${req.user.apellidos?.join(' ')}`.trim() : 'Sistema';
+    const actualizadoPor = req.bombero?.id;
+    const [bombero, errorBombero] = await updateBomberoService({ id, run, email }, body, actualizadoPor);
 
-    const [user, errorUser] = await updateUserService({ id }, body, updatedBy);
+    if (errorBombero) return handleErrorClient(res, 404, errorBombero);
 
-    if (errorUser) return handleErrorClient(res, 404, errorUser);
-
-    handleSuccess(res, 200, "Perfil de usuario actualizado", user);
+    handleSuccess(res, 200, "Perfil de bombero actualizado", bombero);
   } catch (error) {
     console.error("Error en updateMyProfile:", error);
     handleErrorServer(res, 500, "Error interno al actualizar el perfil.");
@@ -86,7 +85,7 @@ export async function updateMyProfile(req, res) {
 
 export async function changeMyPassword(req, res) {
   try {
-    const { id } = req.user;
+    const { id } = req.bombero;
     const { currentPassword, newPassword } = req.body;
 
     if (id === undefined) {
@@ -112,15 +111,15 @@ export async function changeMyPassword(req, res) {
       return handleErrorClient(res, 400, "Error de validación", errorMessages);
     }
 
-    const updatedBy = req.user ? `${req.user.nombres?.join(' ')} ${req.user.apellidos?.join(' ')}`.trim() : 'Sistema';
+    const actualizadoPor = req.bombero?.id;
 
-    const [user, errorUser] = await updateUserService(
+    const [bombero, errorBombero] = await updateBomberoService(
       { id },
       { currentPassword, newPassword },
-      updatedBy,
+      actualizadoPor,
     );
 
-    if (errorUser) return handleErrorClient(res, 400, errorUser);
+    if (errorBombero) return handleErrorClient(res, 400, errorBombero);
 
     handleSuccess(res, 200, "Contraseña actualizada correctamente");
   } catch (error) {

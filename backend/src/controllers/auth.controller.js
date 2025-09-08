@@ -64,7 +64,7 @@ export async function validateToken(req, res) {
       // El token es válido
       handleSuccess(res, 200, "Token válido", { 
         valid: true, 
-        userId: decoded.id,
+        idBombero: decoded.id,
         run: decoded.run 
       });
     } catch (jwtError) {

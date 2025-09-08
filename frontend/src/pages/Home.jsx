@@ -1,9 +1,8 @@
 import React from 'react';
-import UsuariosActivos from '../components/UsuariosActivos';
-import SystemConfigManager from '../components/SystemConfigManager';
+import BomberosActivos from '@components/bomberos/BomberosActivos';
 import { useAuth } from '@hooks/auth/useAuth';
-import { useCompanyConfig } from '../hooks/useSystemConfig';
-import { useActiveUsersCount } from '../hooks/useActiveUsersCount';
+import { useActiveBomberos } from '@hooks/bomberos/useActiveBomberos';
+import { useCompaniaConfig } from '@hooks/compania/useCompaniaConfig';
 import { 
     MdSettings,
     MdLocalFireDepartment,
@@ -20,13 +19,9 @@ import {
 } from 'react-icons/md';
 
 const Home = () => {
-  const { user } = useAuth();
-  const { configs, loading: configLoading } = useCompanyConfig();
-  const { activeUsersCount, isConnected, connectionError } = useActiveUsersCount();
-
-  const getConfigValue = (key) => {
-    return configs.find(config => config.key === key)?.value;
-  };
+  const { bombero } = useAuth();
+  const { loading: configLoading, getConfigValue } = useCompaniaConfig();
+  const { activeBomberos, isConnected, connectionError } = useActiveBomberos();
 
   const companyName = getConfigValue('company_name', 'Bomberos de Chile');
   const companyCity = getConfigValue('company_city', 'Chile');
@@ -47,8 +42,8 @@ const Home = () => {
               {configLoading ? 'Cargando...' : companyName}
             </h1>
             <p className="text-xl text-red-100 mb-6">
-              {user ? (
-                <>¡Bienvenido/a de vuelta, <span className="font-semibold">{user.name}</span>!</>
+              {bombero ? (
+                <>¡Bienvenido/a de vuelta, <span className="font-semibold">{bombero.name}</span>!</>
               ) : (
                 'Sistema de Gestión para Cuerpos de Bomberos'
               )}
@@ -97,15 +92,15 @@ const Home = () => {
 
         {/* Usuarios Activos */}
         <section className="mb-8">
-          <UsuariosActivos />
+          <BomberosActivos />
         </section>
 
-        {/* Configuración del Sistema (Solo para Administradores) */}
-        {user && user.roles?.some(role => role.name === 'Administrador') && (
+        {/* Configuración del Sistema (Solo para Administradores)
+        {bombero && bombero.roles?.some(role => role.name === 'Administrador') && (
           <section className="mb-8">
             <SystemConfigManager />
           </section>
-        )}
+        )} */}
 
         {/* Estadísticas Rápidas */}
         <section className="mb-8">
@@ -134,14 +129,14 @@ const Home = () => {
             <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">Usuarios Conectados</p>
+                  <p className="text-sm font-medium text-slate-600">Bomberos Conectados</p>
                   <p className={`text-2xl font-bold ${isConnected ? 'text-blue-600' : 'text-gray-400'}`}>
-                    {isConnected ? activeUsersCount : '--'}
+                    {isConnected ? activeBomberos : '--'}
                   </p>
                   {isConnected && (
                     <p className="text-xs text-green-600 mt-1">● En línea</p>
                   )}
-                  {!isConnected && user && !connectionError && (
+                  {!isConnected && bombero && !connectionError && (
                     <p className="text-xs text-orange-600 mt-1">● Conectando...</p>
                   )}
                   {connectionError && (
