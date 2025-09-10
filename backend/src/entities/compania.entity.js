@@ -58,6 +58,17 @@ const CompaniaSchema = new EntitySchema({
         onDelete: "SET NULL",
       },
     },
+    fichas: {
+      type: "one-to-many",
+      target: "FichaBombero",
+      inverseSide: "compania",
+    },
+    registroDonacion: {
+      type: "one-to-many",
+      target: "RegistroDonacion",
+      inverseSide: "compania",
+    },
+
   },
 });
 
