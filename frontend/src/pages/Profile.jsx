@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 import { useProfile } from '@hooks/bomberos/useProfile';
 import { useAuth } from '@hooks/auth/useAuth';
 import { formatRut } from '@helpers/formatData';
+import LoadingPage from '@components/LoadingPage';
 import { 
   MdPerson, 
   MdEmail, 
@@ -13,11 +15,13 @@ import {
   MdVisibilityOff,
   MdShield,
   MdBadge,
-  MdCalendarToday
+  MdCalendarToday,
+  MdCheck,
+  MdClose
 } from 'react-icons/md';
 
 const Profile = () => {
-  const { hasPermiso } = useAuth();
+  const { hasPermiso, bombero, bomberoPermisos } = useAuth();
   const { 
     profile, 
     loading, 
@@ -37,7 +41,6 @@ const Profile = () => {
     new: false,
     confirm: false
   });
-  const [successMessage, setSuccessMessage] = useState('');
 
   // Estados para formularios
   const [editForm, setEditForm] = useState({});
@@ -55,6 +58,20 @@ const Profile = () => {
     }
   };
 
+  // Función para validar la seguridad de la contraseña
+  const validatePasswordSecurity = (password) => {
+    const requirements = {
+      minLength: password.length >= 8,
+      hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
+      hasNumber: /\d/.test(password),
+      hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(password)
+    };
+    
+    const isValid = Object.values(requirements).every(req => req);
+    return { requirements, isValid };
+  };
+
   // Función para manejar cambios en los campos de contraseña
   const handlePasswordFieldChange = (fieldName, value) => {
     clearFieldError(fieldName);
@@ -64,7 +81,11 @@ const Profile = () => {
   // Inicializar formulario de edición
   const handleEditStart = () => {
     if (!hasPermiso('bombero:actualizar_perfil')) {
-      setError('No tienes permisos para editar el perfil');
+      toast.error('No tienes permisos para editar el perfil', {
+        position: "top-right",
+        autoClose: 4000,
+        icon: "🚫",
+      });
       return;
     }
     setEditForm({
@@ -72,7 +93,6 @@ const Profile = () => {
     });
     setIsEditing(true);
     setError(null);
-    setSuccessMessage('');
   };
 
   // Cancelar edición
@@ -88,33 +108,76 @@ const Profile = () => {
     const result = await updateProfile(formData);
     if (result.success) {
       setIsEditing(false);
-      setSuccessMessage('Perfil actualizado correctamente');
-      setTimeout(() => setSuccessMessage(''), 5000);
+      toast.success('Perfil actualizado correctamente', {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    } else {
+      toast.error(result.error || 'Error al actualizar el perfil', {
+        position: "bottom-right",
+        autoClose: 5000,
+      });
     }
   };
 
-  // Inicializar cambio de contraseña
+  // Función para inicializar cambio de contraseña
   const handlePasswordChangeStart = () => {
     if (!hasPermiso('bombero:cambiar_contrasena')) {
-      setError('No tienes permisos para cambiar la contraseña');
+      toast.error('No tienes permisos para cambiar la contraseña', {
+        position: "top-right",
+        autoClose: 4000,
+        icon: "🚫",
+      });
       return;
     }
     setIsChangingPassword(true);
     setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     setError(null);
-    setSuccessMessage('');
+  };
+
+  // Función para cancelar cambio de contraseña
+  const handlePasswordChangeCancel = () => {
+    setIsChangingPassword(false);
+    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setError(null);
+    // Limpiar cualquier error de campo específico
+    Object.keys(fieldErrors).forEach(field => {
+      if (field.includes('Password') || field.includes('password')) {
+        clearFieldError(field);
+      }
+    });
   };
 
   // Manejar cambio de contraseña
   const handlePasswordChange = async () => {
+    // Limpiar errores previos
+    setError(null);
+    
     // Validaciones locales
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      toast.error('Las contraseñas no coinciden', {
+        position: "top-right",
+        autoClose: 4000,
+        icon: "⚠️",
+      });
       return;
     }
 
-    if (passwordForm.newPassword.length < 8) {
-      setError('La nueva contraseña debe tener al menos 8 caracteres');
+    // Validar seguridad de la contraseña
+    const { isValid, requirements } = validatePasswordSecurity(passwordForm.newPassword);
+    if (!isValid) {
+      const missingRequirements = [];
+      if (!requirements.minLength) missingRequirements.push('al menos 8 caracteres');
+      if (!requirements.hasUppercase) missingRequirements.push('una letra mayúscula');
+      if (!requirements.hasLowercase) missingRequirements.push('una letra minúscula');
+      if (!requirements.hasNumber) missingRequirements.push('un número');
+      if (!requirements.hasSpecialChar) missingRequirements.push('un carácter especial');
+      
+      toast.error(`La contraseña debe contener: ${missingRequirements.join(', ')}`, {
+        position: "top-right",
+        autoClose: 6000,
+        icon: "🔐",
+      });
       return;
     }
 
@@ -126,8 +189,26 @@ const Profile = () => {
     if (result.success) {
       setIsChangingPassword(false);
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      setSuccessMessage('Contraseña actualizada correctamente');
-      setTimeout(() => setSuccessMessage(''), 5000);
+      toast.success('¡Contraseña actualizada correctamente!', {
+        position: "top-right",
+        autoClose: 4000,
+        icon: "🔐",
+      });
+    } else {
+      // Los errores ya fueron manejados por el hook useProfile
+      // Solo necesitamos asegurarnos de que se muestren
+      if (result.error && !result.fieldErrors) {
+        toast.error(result.error, {
+          position: "top-right",
+          autoClose: 5000,
+        });
+      } else if (result.fieldErrors && result.fieldErrors.currentPassword) {
+        toast.error('La contraseña actual es incorrecta', {
+          position: "top-right",
+          autoClose: 5000,
+          icon: "🔒",
+        });
+      }
     }
   };
 
@@ -159,6 +240,51 @@ const Profile = () => {
     return `${baseClasses} border-gray-300 focus:border-blue-500 focus:ring-blue-500`;
   };
 
+  // Función para obtener la fecha de última actualización de contraseña
+  const getPasswordLastUpdate = () => {
+    if (!profile?.actualizadoEl) {
+      return 'No disponible';
+    }
+    
+    const updateDate = new Date(profile.actualizadoEl);
+    const now = new Date();
+    const diffTime = Math.abs(now - updateDate);
+    const diffMinutes = Math.floor(diffTime / (1000 * 60));
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Menos de 1 minuto
+    if (diffMinutes < 1) {
+      return 'Hace un momento';
+    }
+    
+    // Entre 1 y 59 minutos
+    if (diffMinutes < 60) {
+      return diffMinutes === 1 ? 'Hace 1 minuto' : `Hace ${diffMinutes} minutos`;
+    }
+    
+    // Entre 1 y 23 horas
+    if (diffHours < 24) {
+      return diffHours === 1 ? 'Hace 1 hora' : `Hace ${diffHours} horas`;
+    }
+    
+    // Entre 1 y 6 días
+    if (diffDays <= 6) {
+      return diffDays === 1 ? 'Hace 1 día' : `Hace ${diffDays} días`;
+    }
+    
+    // Más de 6 días: mostrar fecha completa
+    const options = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    
+    return updateDate.toLocaleDateString('es-CL', options);
+  };
+
   // Función para obtener el nombre completo
   const getFullName = () => {
     if (profile?.nombres && profile?.apellidos) {
@@ -169,18 +295,8 @@ const Profile = () => {
     return 'No especificado';
   };
 
-  // Debug temporal - log para ver qué datos recibe profile
-  if (profile) {
-    console.log('Profile data:', profile);
-    console.log('Profile roles:', profile.roles);
-  }
-
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
-      </div>
-    );
+    return <LoadingPage message="Cargando perfil..." />;
   }
 
   if (!profile) {
@@ -221,12 +337,6 @@ const Profile = () => {
           {error && (
             <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{error}</p>
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="mx-6 mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-sm text-green-600">{successMessage}</p>
             </div>
           )}
 
@@ -378,7 +488,9 @@ const Profile = () => {
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-sm font-medium text-gray-900">Contraseña</h4>
-                        <p className="text-sm text-gray-600">Última actualización: Hace tiempo</p>
+                        <p className="text-sm text-gray-600">
+                          Última actualización: {getPasswordLastUpdate()}
+                        </p>
                       </div>
                       <button
                         onClick={handlePasswordChangeStart}
@@ -413,6 +525,20 @@ const Profile = () => {
                         </button>
                       </div>
                       {renderFieldError('currentPassword')}
+                      {fieldErrors.currentPassword ? (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center">
+                            <MdClose className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
+                            <span className="text-sm text-red-600">
+                              Verifica que hayas ingresado correctamente tu contraseña actual
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Ingresa la contraseña que usas actualmente para iniciar sesión
+                        </p>
+                      )}
                     </div>
 
                     <div>
@@ -437,7 +563,36 @@ const Profile = () => {
                         </button>
                       </div>
                       {renderFieldError('newPassword')}
-                      <p className="mt-1 text-xs text-gray-500">Mínimo 8 caracteres</p>
+                      
+                      {/* Indicadores de requisitos de seguridad */}
+                      {passwordForm.newPassword && (
+                        <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs font-medium text-gray-700 mb-2">Requisitos de seguridad:</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
+                            {(() => {
+                              const { requirements } = validatePasswordSecurity(passwordForm.newPassword);
+                              return [
+                                { key: 'minLength', text: 'Al menos 8 caracteres', valid: requirements.minLength },
+                                { key: 'hasUppercase', text: 'Una letra mayúscula', valid: requirements.hasUppercase },
+                                { key: 'hasLowercase', text: 'Una letra minúscula', valid: requirements.hasLowercase },
+                                { key: 'hasNumber', text: 'Un número', valid: requirements.hasNumber },
+                                { key: 'hasSpecialChar', text: 'Un carácter especial', valid: requirements.hasSpecialChar }
+                              ].map(({ key, text, valid }) => (
+                                <div key={key} className="flex items-center">
+                                  {valid ? (
+                                    <MdCheck className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
+                                  ) : (
+                                    <MdClose className="h-4 w-4 text-red-500 mr-2 flex-shrink-0" />
+                                  )}
+                                  <span className={`text-xs ${valid ? 'text-green-600' : 'text-red-600'}`}>
+                                    {text}
+                                  </span>
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -462,15 +617,28 @@ const Profile = () => {
                         </button>
                       </div>
                       {renderFieldError('confirmPassword')}
+                      
+                      {/* Indicador de coincidencia de contraseñas */}
+                      {passwordForm.confirmPassword && (
+                        <div className="mt-2">
+                          {passwordForm.newPassword === passwordForm.confirmPassword ? (
+                            <div className="flex items-center">
+                              <MdCheck className="h-4 w-4 text-green-500 mr-2" />
+                              <span className="text-xs text-green-600">Las contraseñas coinciden</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <MdClose className="h-4 w-4 text-red-500 mr-2" />
+                              <span className="text-xs text-red-600">Las contraseñas no coinciden</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                       <button
-                        onClick={() => {
-                          setIsChangingPassword(false);
-                          setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-                          setError(null);
-                        }}
+                        onClick={handlePasswordChangeCancel}
                         className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
                         <MdCancel className="h-4 w-4 mr-2" />
@@ -478,8 +646,15 @@ const Profile = () => {
                       </button>
                       <button
                         onClick={handlePasswordChange}
-                        disabled={updating}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                        disabled={
+                          updating || 
+                          !passwordForm.currentPassword || 
+                          !passwordForm.newPassword || 
+                          !passwordForm.confirmPassword ||
+                          passwordForm.newPassword !== passwordForm.confirmPassword ||
+                          !validatePasswordSecurity(passwordForm.newPassword).isValid
+                        }
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <MdSave className="h-4 w-4 mr-2" />
                         {updating ? 'Actualizando...' : 'Cambiar Contraseña'}

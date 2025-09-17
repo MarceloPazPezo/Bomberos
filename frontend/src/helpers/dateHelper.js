@@ -99,6 +99,22 @@ export const dateHelper = {
   },
 
   /**
+   * Convierte una fecha JavaScript Date a DateTime de Santiago
+   * @param {Date} jsDate - Fecha JavaScript
+   * @returns {DateTime} DateTime en zona horaria de Santiago
+   */
+  fromJSDate(jsDate) {
+    if (!jsDate || !(jsDate instanceof Date)) {
+      throw new Error('Formato de fecha no válido: debe ser una instancia de Date');
+    }
+    const dateTime = DateTime.fromJSDate(jsDate).setZone(SANTIAGO_TIMEZONE);
+    if (!dateTime.isValid) {
+      throw new Error('Formato de fecha no válido: fecha JavaScript inválida');
+    }
+    return dateTime;
+  },
+
+  /**
    * Añade tiempo a una fecha
    * @param {string|Date|DateTime} date - Fecha base
    * @param {Object} duration - Duración a añadir (ej: { hours: 2, minutes: 30 })

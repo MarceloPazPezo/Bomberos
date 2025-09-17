@@ -221,6 +221,14 @@ async function crearPermisos() {
         ruta: "/api/compania/detail/:id",
         metodo: "DELETE",
       },
+      // Permisos administrativos especiales
+      {
+        nombre: "admin:admin",
+        descripcion: "Permiso especial de administrador para la renderizacion de la seccion administracion",
+        categoria: "Administración",
+        ruta: "*",
+        metodo: "*",
+      },
     ];
 
     const permisos = permisosData.map((p) =>
@@ -253,7 +261,11 @@ async function crearRoles() {
         permisoNames: [
           "bombero:leer_perfil", 
           "bombero:actualizar_perfil",
-          "compania:leer_bombero" // Permite ver su propia compañía
+          "bombero:cambiar_contrasena", // Agregar permiso para cambiar contraseña
+          "compania:leer_bombero", // Permite ver su propia compañía
+          "disponibilidad:leer", // Permite ver disponibilidades
+          "disponibilidad:crear", // Permite crear su propia disponibilidad
+          "disponibilidad:cambiar_estado" // Permite cambiar su propio estado
         ],
       },
       {
@@ -263,6 +275,7 @@ async function crearRoles() {
         permisoNames: [
           "bombero:leer",
           "bombero:cambiar_estado",
+          "bombero:cambiar_contrasena", // Agregar permiso para cambiar contraseña
           "rol:leer",
           "rol:actualizar",
           "permiso:leer",
@@ -307,6 +320,8 @@ async function crearRoles() {
           "compania:crear",
           "compania:actualizar",
           "compania:eliminar",
+          // Permiso administrativo especial
+          "admin:admin",
         ],
       },
     ];

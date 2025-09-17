@@ -8,6 +8,7 @@ import permisoRoutes from "./permiso.routes.js";
 import healthRoutes from "./health.routes.js";
 import disponibilidadRoutes from "./disponibilidad.routes.js";
 import companiaRoutes from "./compania.routes.js";
+import debugRoutes from "./debug.routes.js";
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router
   .use("/permiso", permisoRoutes)
   .use("/disponibilidad", disponibilidadRoutes)
   .use("/compania", companiaRoutes)
+  .use("/debug", debugRoutes)
   .use("/health", healthRoutes);
 
 export default router;

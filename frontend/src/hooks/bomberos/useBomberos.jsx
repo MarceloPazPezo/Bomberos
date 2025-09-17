@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { getBomberos, createBombero, updateBombero, deleteBombero, changeBomberoEstado } from '@services/bombero.service.js';
 import { showErrorAlert, showSuccessAlert } from '@helpers/sweetAlert.js';
 
@@ -6,31 +6,55 @@ export const useBomberos = () => {
   const [bomberos, setBomberos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastFetchTime, setLastFetchTime] = useState(0);
+  
+  // Usar useRef para variables que no necesitan causar re-renders
+  const lastFetchTimeRef = useRef(0);
+  const loadingRef = useRef(false);
 
   // Función para obtener todos los bomberos
-  const fetchBomberos = async (force = false) => {
+  const fetchBomberos = useCallback(async (force = false) => {
     // Evitar múltiples llamadas en un corto período de tiempo
     const now = Date.now();
-    if (!force && loading) {
+    if (!force && loadingRef.current) {
       return;
     }
-    if (!force && now - lastFetchTime < 2000) {
+    if (!force && now - lastFetchTimeRef.current < 2000) {
       return;
     }
 
     // Prevenir bucles infinitos
-    if (loading) {
+    if (loadingRef.current) {
       return;
     }
 
     try {
       setLoading(true);
+      loadingRef.current = true;
       setError(null);
       const response = await getBomberos();
 
+      // Manejar tanto array directo como respuesta con status
       if (Array.isArray(response)) {
+        // Array directo
         setBomberos(response);
+      } else if (response.status === 'Success') {
+        // Respuesta con status
+        const responseData = response.data || [];
+        
+        // Manejar tanto array directo como estructura paginada
+        let bomberos2;
+        if (Array.isArray(responseData)) {
+          // Array directo
+          bomberos2 = responseData;
+        } else if (responseData.bomberos && Array.isArray(responseData.bomberos)) {
+          // Estructura paginada: { bomberos: [...], pagination: {...} }
+          bomberos2 = responseData.bomberos;
+        } else {
+          // Asumir que es array directo si no tiene estructura paginada
+          bomberos2 = responseData;
+        }
+        
+        setBomberos(Array.isArray(bomberos2) ? bomberos2 : []);
       } else if (response.status === 'Error') {
         console.error('Error en la respuesta:', response.message);
         setError(response.message || 'Error al cargar bomberos');
@@ -38,17 +62,18 @@ export const useBomberos = () => {
         console.error('Respuesta inesperada:', response);
         setError('Error al cargar bomberos');
       }
-      setLastFetchTime(now);
+      lastFetchTimeRef.current = now;
     } catch (error) {
       console.error('Error fetching bomberos:', error);
       setError('Error al conectar con el servidor');
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
-  };
+  }, []); // Sin dependencias para evitar bucles infinitos
 
   // Función para crear un nuevo bombero
-  const handleCreateBombero = async (bomberoData) => {
+  const handleCreateBombero = useCallback(async (bomberoData) => {
     try {
       const response = await createBombero(bomberoData);
 
@@ -90,10 +115,10 @@ export const useBomberos = () => {
       showErrorAlert('Error', errorMessage);
       return { success: false, error: errorMessage };
     }
-  };
+  }, []); // Sin dependencias para evitar bucles
 
   // Función para actualizar un bombero
-  const handleUpdateBombero = async (bomberoData, run) => {
+  const handleUpdateBombero = useCallback(async (bomberoData, run) => {
     try {
       const response = await updateBombero(bomberoData, run);
 
@@ -111,10 +136,10 @@ export const useBomberos = () => {
       showErrorAlert('Error', errorMessage);
       return { success: false, error: errorMessage };
     }
-  };
+  }, []); // Sin dependencias para evitar bucles
 
   // Función para eliminar un bombero
-  const handleDeleteBombero = async (run) => {
+  const handleDeleteBombero = useCallback(async (run) => {
     try {
       const response = await deleteBombero(run);
 
@@ -132,10 +157,10 @@ export const useBomberos = () => {
       showErrorAlert('Error', errorMessage);
       return { success: false, error: errorMessage };
     }
-  };
+  }, []); // Sin dependencias para evitar bucles
 
   // Función para cambiar el estado activo de un bombero
-  const handleChangeBomberoEstado = async (idBombero, activo) => {
+  const handleChangeBomberoEstado = useCallback(async (idBombero, activo) => {
     try {
       const response = await changeBomberoEstado(idBombero, activo);
 
@@ -154,7 +179,7 @@ export const useBomberos = () => {
       showErrorAlert('Error', errorMessage);
       return { success: false, error: errorMessage };
     }
-  };
+  }, []); // Sin dependencias para evitar bucles
 
   return {
     bomberos,

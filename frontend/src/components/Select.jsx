@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef } from 'react';
 import { MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md';
 import PropTypes from 'prop-types';
 
-const Select = ({ 
+const Select = forwardRef(({ 
   options = [], 
   value = '', 
   onChange, 
@@ -13,17 +13,29 @@ const Select = ({
   name = '',
   required = false,
   error = false
-}) => {
+}, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState('bottom');
-  const selectRef = useRef(null);
+  const internalRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  // Callback ref para combinar ref externa e interna
+  const setRef = (element) => {
+    internalRef.current = element;
+    if (ref) {
+      if (typeof ref === 'function') {
+        ref(element);
+      } else {
+        ref.current = element;
+      }
+    }
+  };
 
   // Calcular posición del dropdown
   const calculateDropdownPosition = () => {
-    if (!selectRef.current) return;
+    if (!internalRef.current) return;
 
-    const selectRect = selectRef.current.getBoundingClientRect();
+    const selectRect = internalRef.current.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
     const dropdownHeight = 200; // Altura máxima estimada del dropdown
     
@@ -41,7 +53,7 @@ const Select = ({
   // Manejar click fuera del componente
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (selectRef.current && !selectRef.current.contains(event.target)) {
+      if (internalRef.current && !internalRef.current.contains(event.target)) {
         setIsOpen(false);
       }
     };
@@ -92,7 +104,7 @@ const Select = ({
   const selectedOption = options.find(option => option.value === value);
 
   return (
-    <div className="relative" ref={selectRef}>
+    <div className="relative" ref={setRef}>
       {/* Select Button */}
       <button
         type="button"
@@ -214,7 +226,9 @@ const Select = ({
       )}
     </div>
   );
-};
+});
+
+Select.displayName = 'Select';
 
 Select.propTypes = {
   options: PropTypes.arrayOf(

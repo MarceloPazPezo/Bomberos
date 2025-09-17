@@ -19,49 +19,49 @@ router.use(authenticateJwt);
 // GET /api/disponibilidad/ -> Obtener todas las disponibilidades
 router.get(
   "/",
-  authorizePermisos(["disponibilidad:read_all"]),
+  authorizePermisos(["disponibilidad:leer"]),
   getDisponibilidades,
 );
 
 // GET /api/disponibilidad/detail/:id -> Obtener una disponibilidad específica por su ID
 router.get(
   "/detail/:id",
-  authorizePermisos(["disponibilidad:read_specific"]),
+  authorizePermisos(["disponibilidad:leer_especifico"]),
   getDisponibilidad,
 );
 
 // PATCH /api/disponibilidad/detail/:id -> Actualizar una disponibilidad específica por su ID
 router.patch(
   "/detail/:id",
-  authorizePermisos(["disponibilidad:update_specific"]),
+  authorizePermisos(["disponibilidad:actualizar"]),
   updateDisponibilidad,
 );
 
 // DELETE /api/disponibilidad/detail/:id -> Eliminar una disponibilidad específica por su ID
 router.delete(
   "/detail/:id",
-  authorizePermisos(["disponibilidad:delete"]),
+  authorizePermisos(["disponibilidad:eliminar"]),
   deleteDisponibilidad,
 );
 
 // POST /api/disponibilidad/-> Creamos una disponibilidad
 router.post(
   "/",
-  authorizePermisos(["disponibilidad:create"]),
+  authorizePermisos(["disponibilidad:crear"]),
   createDisponibilidad,
 );
 
 // GET /api/disponibilidad/activa/:idBombero -> Obtener disponibilidad activa de un bombero
 router.get(
   "/activa/:idBombero",
-  authorizePermisos(["disponibilidad:read_specific"]),
+  authorizePermisos(["disponibilidad:leer_especifico"]),
   getDisponibilidadActiva,
 );
 
 // PATCH /api/disponibilidad/cerrar -> Cerrar disponibilidad activa
 router.patch(
   "/cerrar",
-  authorizePermisos(["disponibilidad:update_specific"]),
+  authorizePermisos(["disponibilidad:cambiar_estado"]),
   cerrarDisponibilidad,
 );
 

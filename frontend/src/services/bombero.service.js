@@ -12,7 +12,15 @@ export async function createBombero(bomberoData) {
 
 export async function getBomberos() {
     try {
-        const { data } = await axios.get('/bombero/');
+        // Enviamos todos los posibles estados para obtener todos los bomberos
+        // Esto cumple con la validación del backend que requiere al menos un parámetro
+        const { data } = await axios.get('/bombero/', {
+            params: {
+                // Usamos un rango de fechas muy amplio para obtener todos los registros
+                creadoDesde: '2020-01-01',
+                creadoHasta: '2030-12-31'
+            }
+        });
         const formattedData = data.data.map(formatBomberoData);
         return formattedData;
     } catch (error) {

@@ -1,8 +1,11 @@
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from '@pages/Login';
 import Home from '@pages/Home';
 import Admin from '@pages/Admin';
+import Demo from '@pages/Demo';
 import Disponibilidad from '@pages/Disponibilidad';
 import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
@@ -10,6 +13,7 @@ import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
 
 import ProtectedRoute from '@components/ProtectedRoute';
+import { FireAlertProvider } from '@components/FireAlertProvider';
 import '@styles/styles.css';
 
 const router = createBrowserRouter([
@@ -37,8 +41,16 @@ const router = createBrowserRouter([
       {
         path: '/admin',
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:leer']}>
+          <ProtectedRoute requiredPermisos={['admin:admin']}>
             <Admin />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/demo',
+        element: (
+          <ProtectedRoute>
+            <Demo />
           </ProtectedRoute>
         ),
       },
@@ -76,5 +88,19 @@ const router = createBrowserRouter([
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <RouterProvider router={router} />
+  <FireAlertProvider>
+    <RouterProvider router={router} />
+    <ToastContainer
+      position="bottom-right"
+      autoClose={5000}
+      hideProgressBar={false}
+      newestOnTop={true}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme="light"
+    />
+  </FireAlertProvider>
 )

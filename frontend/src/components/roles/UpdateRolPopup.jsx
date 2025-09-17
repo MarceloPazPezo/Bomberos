@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { MdClose, MdSecurity, MdCheck, MdExpandMore, MdExpandLess, MdSelectAll, MdClear, MdSave } from 'react-icons/md';
 import Form from '@components/Form';
-import { getPermisos } from '@services/permiso.service';
 import { useRoles } from '@hooks/roles/useRoles';
 import usePermisos from '@hooks/permisos/usePermisos';
 
-export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
+export default function UpdateRolPopup({ show, setShow, editingRole, onRoleUpdated }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
-    const { permisos, permisosByCategory, refreshPermisosByCategory } = usePermisos();
+    const { permisosByCategory, refreshPermisosByCategory } = usePermisos();
     
     const [formData, setFormData] = useState({
         nombre: '',
@@ -19,7 +18,7 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
     
     const [expandedCategories, setExpandedCategories] = useState(new Set());
     
-    const { handleCreateRole } = useRoles();
+    const { handleUpdateRole } = useRoles();
 
     // Cargar permisos cuando se muestra el modal
     useEffect(() => {
@@ -44,17 +43,20 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
         };
     }, [show]);
 
-    // Inicializar cuando se abre el modal
+    // Inicializar cuando se abre el modal con datos del rol a editar
     useEffect(() => {
-        if (show) {
+        if (show && editingRole) {
             setFormData({
-                nombre: '',
-                descripcion: '',
-                permisos: []
+                nombre: editingRole.nombre || '',
+                descripcion: editingRole.descripcion || '',
+                permisos: editingRole.permisos || []
             });
             setErrors({});
+        } else if (show && !editingRole) {
+            // Si no hay rol para editar, cerrar el modal
+            setShow(false);
         }
-    }, [show]);
+    }, [show, editingRole]);
 
     // Expandir categorías cuando se cargan los permisos
     useEffect(() => {
@@ -73,10 +75,6 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
             ...prev,
             [field]: value
         }));
-    };
-
-    const errorData = (errorDetails) => {
-        setErrors(errorDetails || {});
     };
 
     // Manejar selección/deselección de permisos
@@ -113,19 +111,19 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
         setExpandedCategories(newExpanded);
     };
 
-    const handleSubmit = async (createdRoleData) => {
-        if (createdRoleData) {
+    const handleSubmit = async (updatedRoleData) => {
+        if (updatedRoleData && editingRole) {
             // Validaciones adicionales antes de enviar
             const validationErrors = {};
             
             // Validar nombre según patrón del backend
             const nombrePattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/;
-            if (!nombrePattern.test(createdRoleData.nombre)) {
+            if (!nombrePattern.test(updatedRoleData.nombre)) {
                 validationErrors.nombre = "El nombre del rol solo puede contener letras, números, espacios, guiones o guiones bajos.";
             }
             
             // Validar longitud de descripción
-            if (createdRoleData.descripcion && createdRoleData.descripcion.length > 500) {
+            if (updatedRoleData.descripcion && updatedRoleData.descripcion.length > 500) {
                 validationErrors.descripcion = "La descripción del rol debe tener como máximo 500 caracteres.";
             }
             
@@ -148,11 +146,11 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
             try {
                 // Combinar datos del formulario básico con los permisos seleccionados
                 const roleData = {
-                    ...createdRoleData,
+                    ...updatedRoleData,
                     permisos: formData.permisos
                 };
                 
-                const result = await handleCreateRole(roleData);
+                const result = await handleUpdateRole(editingRole.id, roleData);
                 if (result.success) {
                     setShow(false);
                     setErrors({});
@@ -161,17 +159,17 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                         descripcion: '',
                         permisos: []
                     });
-                    if (onRoleCreated) {
-                        onRoleCreated();
+                    if (onRoleUpdated) {
+                        onRoleUpdated();
                     }
                 } else if (result.error && typeof result.error === 'object') {
                     setErrors(result.error);
                 } else {
-                    setErrors({ general: result.error || 'Error al crear el rol' });
+                    setErrors({ general: result.error || 'Error al actualizar el rol' });
                 }
             } catch (error) {
-                console.error('Error creating role:', error);
-                setErrors({ general: 'Error inesperado al crear el rol' });
+                console.error('Error updating role:', error);
+                setErrors({ general: 'Error inesperado al actualizar el rol' });
             } finally {
                 setLoading(false);
             }
@@ -184,14 +182,17 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
 
     return (
         <div>
-            {show && (
+            {show && editingRole && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
                     <div className="relative w-full max-w-xs sm:max-w-4xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl max-h-[90vh]">
                         {/* Header */}
                         <div className="flex items-center px-4 sm:px-10 pt-6 pb-4 border-b border-[#4EB9FA]/20 relative flex-shrink-0">
                             <div className="flex items-center gap-3 flex-1">
                                 <MdSecurity className="text-[#4EB9FA]" size={24} />
-                                <h2 className="text-2xl font-bold text-[#2C3E50]">Crear rol</h2>
+                                <h2 className="text-2xl font-bold text-[#2C3E50]">Editar rol</h2>
+                                {editingRole && (
+                                    <span className="text-lg text-gray-600">- {editingRole.nombre}</span>
+                                )}
                             </div>
                             
                             {/* Botones de acción en el header */}
@@ -209,7 +210,7 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                     }}
                                     disabled={loading || !formData.nombre.trim()}
                                     className="flex items-center justify-center w-10 h-10 bg-[#4EB9FA] text-white shadow-lg hover:bg-[#3A9BD9] transition-all duration-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title={loading ? "Guardando..." : "Guardar rol"}
+                                    title={loading ? "Guardando..." : "Guardar cambios"}
                                 >
                                     {loading ? (
                                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -395,8 +396,9 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
     );
 }
 
-CreateRolePopup.propTypes = {
+UpdateRolPopup.propTypes = {
     show: PropTypes.bool.isRequired,
     setShow: PropTypes.func.isRequired,
-    onRoleCreated: PropTypes.func.isRequired,
+    editingRole: PropTypes.object,
+    onRoleUpdated: PropTypes.func.isRequired,
 };

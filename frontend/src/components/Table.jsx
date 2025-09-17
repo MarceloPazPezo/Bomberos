@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import LoadingSpinner from '@components/LoadingSpinner';
 import {
   useReactTable,
   getCoreRowModel,
@@ -342,7 +343,7 @@ const Table = ({
     return (
       <div className="w-full p-8 text-center">
         <div className="inline-flex items-center gap-2 text-blue-600">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <LoadingSpinner variant="spinner" size="sm" color="blue" />
           <span>Cargando datos...</span>
         </div>
       </div>

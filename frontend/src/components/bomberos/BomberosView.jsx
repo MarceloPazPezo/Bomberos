@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BomberosLoader from '@components/BomberosLoader';
 import { 
   MdPerson, 
   MdEdit, 
@@ -20,9 +21,9 @@ import { showConfirmAlert } from '@helpers/sweetAlert.js';
 import Table from '@components/Table.jsx';
 import Tooltip from '@components/Tooltip.jsx';
 
-const UsersView = ({ 
+const BomberosView = ({ 
   viewMode = 'list',
-  users = [],
+  bomberos = [],
   loading = false,
   error = null,
   columns = [],
@@ -32,11 +33,20 @@ const UsersView = ({
   onViewDetails,
   onChangeStatus,
   onRefresh,
-  filteredUsers = [],
+  filteredBomberos = [],
   renderActions,
   customActions
 }) => {
-  const { hasPermiso } = useAuth();
+  // Verificación de seguridad para el contexto de autenticación
+  let hasPermiso;
+  try {
+    const auth = useAuth();
+    hasPermiso = auth?.hasPermiso || (() => false);
+  } catch (error) {
+    // Fallback durante hot reload o si el contexto no está disponible
+    console.warn('AuthContext no disponible, usando permisos por defecto');
+    hasPermiso = () => false;
+  }
   
   // Estado para detectar vista móvil
   const [isMobile, setIsMobile] = useState(false);
@@ -88,31 +98,31 @@ const UsersView = ({
   };
 
   // Función para confirmar eliminación
-  const handleDeleteConfirm = async (user) => {
+  const handleDeleteConfirm = async (bombero) => {
     const result = await showConfirmAlert(
-      '¿Eliminar usuario?',
-      `¿Estás seguro de que deseas eliminar al usuario "${getFullName(user)}"? Esta acción no se puede deshacer.`,
+      '¿Eliminar bombero?',
+      `¿Estás seguro de que deseas eliminar al bombero "${getFullName(bombero)}"? Esta acción no se puede deshacer.`,
       'Eliminar',
       'Cancelar'
     );
 
     if (result.isConfirmed && onDelete) {
-      onDelete([user]);
+      onDelete([bombero]);
     }
   };
 
-  // Función para cambiar estado del usuario
-  const handleStatusChange = async (user) => {
-    const newStatus = user.estado === 'Activo' ? 'Inactivo' : 'Activo';
+  // Función para cambiar estado del bombero
+  const handleStatusChange = async (bombero) => {
+    const newStatus = bombero.estado === 'Activo' ? 'Inactivo' : 'Activo';
     const result = await showConfirmAlert(
-      `¿${newStatus === 'Activo' ? 'Activar' : 'Desactivar'} usuario?`,
-      `¿Estás seguro de que deseas ${newStatus === 'Activo' ? 'activar' : 'desactivar'} al usuario "${getFullName(user)}"?`,
+      `¿${newStatus === 'Activo' ? 'Activar' : 'Desactivar'} bombero?`,
+      `¿Estás seguro de que deseas ${newStatus === 'Activo' ? 'activar' : 'desactivar'} al bombero "${getFullName(bombero)}"?`,
       newStatus === 'Activo' ? 'Activar' : 'Desactivar',
       'Cancelar'
     );
 
     if (result.isConfirmed && onChangeStatus) {
-      onChangeStatus(user.id, newStatus);
+      onChangeStatus(bombero.id, newStatus);
     }
   };
 
@@ -211,11 +221,11 @@ const UsersView = ({
   const renderCardsView = () => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredUsers.map((user) => {
-          const age = calculateAge(user.fechaNacimiento);
+        {filteredBomberos.map((bombero) => {
+          const age = calculateAge(bombero.fechaNacimiento);
           
           return (
-            <div key={user.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden">
+            <div key={bombero.id} className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden">
               {/* Header con avatar y acciones */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 relative">
                 <div className="flex items-start justify-between">
@@ -228,22 +238,22 @@ const UsersView = ({
                     {/* Info básica */}
                      <div>
                        <h3 className="font-semibold text-gray-800 text-base leading-tight">
-                         {getFullName(user)}
+                         {getFullName(bombero)}
                        </h3>
                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                         {user.run && (
-                           <span>RUN: {user.run}</span>
+                         {bombero.run && (
+                           <span>RUN: {bombero.run}</span>
                          )}
-                         {user.run && age !== null && (
+                         {bombero.run && age !== null && (
                            <span className="text-gray-400">•</span>
                          )}
                          {age !== null && (
                            <span>{age} años</span>
                          )}
-                         {!user.run && age === null && user.email && (
-                           <span className="truncate">{user.email}</span>
+                         {!bombero.run && age === null && bombero.email && (
+                           <span className="truncate">{bombero.email}</span>
                          )}
-                         {!user.run && age === null && !user.email && (
+                         {!bombero.run && age === null && !bombero.email && (
                            <span className="text-gray-500">Sin información adicional</span>
                          )}
                        </div>
@@ -252,12 +262,12 @@ const UsersView = ({
                   
                   {/* Badges de estado y rol */}
                   <div className="flex flex-col gap-1 items-end">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(user.estado)}`}>
-                      {user.estado === 'Activo' ? 'En Servicio' : user.estado}
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(bombero.estado)}`}>
+                      {bombero.estado === 'Activo' ? 'En Servicio' : bombero.estado}
                     </span>
-                    {user.roles && user.roles.length > 0 && (
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(user.roles)}`}>
-                        {user.roles[0].nombre || user.roles[0].name || user.roles[0]}
+                    {bombero.roles && bombero.roles.length > 0 && (
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleColor(bombero.roles)}`}>
+                        {bombero.roles[0].nombre || bombero.roles[0].name || bombero.roles[0]}
                       </span>
                     )}
                   </div>
@@ -265,7 +275,7 @@ const UsersView = ({
                 
                 {/* Indicador de estado visual */}
                 <div className="absolute top-2 left-2">
-                  {user.estado === 'Activo' ? (
+                  {bombero.estado === 'Activo' ? (
                     <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                   ) : (
                     <div className="w-3 h-3 bg-red-400 rounded-full"></div>
@@ -276,43 +286,43 @@ const UsersView = ({
               {/* Contenido principal */}
               <div className="p-4 space-y-3">
                 {/* Email */}
-                {user.email && (
+                {bombero.email && (
                   <div className="flex items-center gap-2 text-sm">
                     <MdEmail className="text-gray-400 flex-shrink-0" size={16} />
-                    <span className="text-gray-700 truncate">{user.email}</span>
+                    <span className="text-gray-700 truncate">{bombero.email}</span>
                   </div>
                 )}
                 
                 {/* Teléfono */}
-                {user.telefono && (
+                {bombero.telefono && (
                   <div className="flex items-center gap-2 text-sm">
                     <MdPhone className="text-gray-400 flex-shrink-0" size={16} />
-                    <span className="text-gray-700">{user.telefono}</span>
+                    <span className="text-gray-700">{bombero.telefono}</span>
                   </div>
                 )}
                 
                 {/* Dirección */}
-                {user.direccion && (
+                {bombero.direccion && (
                   <div className="flex items-center gap-2 text-sm">
                     <MdLocationOn className="text-gray-400 flex-shrink-0" size={16} />
-                    <span className="text-gray-700 truncate">{user.direccion}</span>
+                    <span className="text-gray-700 truncate">{bombero.direccion}</span>
                   </div>
                 )}
                 
                 {/* Fecha de ingreso */}
-                {user.fechaCreacion && (
+                {bombero.fechaCreacion && (
                   <div className="flex items-center gap-2 text-sm">
                     <MdCalendarToday className="text-gray-400 flex-shrink-0" size={16} />
-                    <span className="text-gray-700">Ingreso: {formatDate(user.fechaCreacion)}</span>
+                    <span className="text-gray-700">Ingreso: {formatDate(bombero.fechaCreacion)}</span>
                   </div>
                 )}
                 
                 {/* Última actividad */}
-                {user.fechaActualizacion && (
+                {bombero.fechaActualizacion && (
                   <div className="flex items-center gap-2 text-sm">
                     <MdAccessTime className="text-gray-400 flex-shrink-0" size={16} />
                     <span className="text-gray-700">
-                      Última actividad: {formatDate(user.fechaActualizacion)}
+                      Última actividad: {formatDate(bombero.fechaActualizacion)}
                     </span>
                   </div>
                 )}
@@ -326,7 +336,7 @@ const UsersView = ({
                     <div className="grid grid-cols-3 gap-2">
                       {hasPermiso('usuario:leer_especifico') && (
                         <button
-                          onClick={() => onViewDetails && onViewDetails(user)}
+                          onClick={() => onViewDetails && onViewDetails(bombero)}
                           className="flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                         >
                           <MdVisibility size={16} />
@@ -335,7 +345,7 @@ const UsersView = ({
                       )}
                       {hasPermiso('usuario:actualizar_especifico') && (
                         <button
-                          onClick={() => onEdit && onEdit(user)}
+                          onClick={() => onEdit && onEdit(bombero)}
                           className="flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
                         >
                           <MdEdit size={16} />
@@ -344,7 +354,7 @@ const UsersView = ({
                       )}
                       {hasPermiso('usuario:eliminar') && (
                         <button
-                          onClick={() => handleDeleteConfirm(user)}
+                          onClick={() => handleDeleteConfirm(bombero)}
                           className="flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
                         >
                           <MdDelete size={16} />
@@ -356,14 +366,14 @@ const UsersView = ({
                     {/* Botón de cambio de estado en móvil */}
                     {hasPermiso('usuario:cambiar_estado') && (
                       <button
-                        onClick={() => handleStatusChange(user)}
+                        onClick={() => handleStatusChange(bombero)}
                         className={`w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          user.estado === 'Inactivo'
+                          bombero.estado === 'Inactivo'
                             ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                             : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
                         }`}
                       >
-                        {user.estado === 'Inactivo' ? 'Activar usuario' : 'Desactivar usuario'}
+                        {bombero.estado === 'Inactivo' ? 'Activar usuario' : 'Desactivar usuario'}
                       </button>
                     )}
                   </div>
@@ -375,7 +385,7 @@ const UsersView = ({
                       {hasPermiso('usuario:leer_especifico') && (
                         <Tooltip content="Ver Ficha" place="top">
                           <button
-                            onClick={() => onViewDetails && onViewDetails(user)}
+                            onClick={() => onViewDetails && onViewDetails(bombero)}
                             className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
                           >
                             <MdVisibility size={16} />
@@ -385,7 +395,7 @@ const UsersView = ({
                       {hasPermiso('usuario:actualizar_especifico') && (
                         <Tooltip content="Editar" place="top">
                           <button
-                            onClick={() => onEdit && onEdit(user)}
+                            onClick={() => onEdit && onEdit(bombero)}
                             className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors"
                           >
                             <MdEdit size={16} />
@@ -395,7 +405,7 @@ const UsersView = ({
                       {hasPermiso('usuario:eliminar') && (
                         <Tooltip content="Eliminar" place="top">
                           <button
-                            onClick={() => handleDeleteConfirm(user)}
+                            onClick={() => handleDeleteConfirm(bombero)}
                             className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
                           >
                             <MdDelete size={16} />
@@ -407,14 +417,14 @@ const UsersView = ({
                     {/* Botón de cambio de estado */}
                     {hasPermiso('usuario:cambiar_estado') && (
                       <button
-                        onClick={() => handleStatusChange(user)}
+                        onClick={() => handleStatusChange(bombero)}
                         className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                          user.estado === 'Inactivo'
+                          bombero.estado === 'Inactivo'
                             ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                             : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
                         }`}
                       >
-                        {user.estado === 'Inactivo' ? 'Activar usuario' : 'Desactivar usuario'}
+                        {bombero.estado === 'Inactivo' ? 'Activar usuario' : 'Desactivar usuario'}
                       </button>
                     )}
                   </div>
@@ -431,8 +441,7 @@ const UsersView = ({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4EB9FA]"></div>
-        <span className="ml-2 text-gray-600">Cargando usuarios...</span>
+        <BomberosLoader size="md" message="Cargando usuarios..." />
       </div>
     );
   }
@@ -459,28 +468,27 @@ const UsersView = ({
   return (
     <div className="space-y-6">
       {/* Contenido de usuarios */}
-      {filteredUsers.length === 0 ? (
+      {filteredBomberos.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
           <MdPerson size={64} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay usuarios</h3>
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay bomberos</h3>
           <p className="text-gray-500 mb-4">
-            No se encontraron usuarios en el sistema.
+            No se encontraron bomberos en el sistema.
           </p>
         </div>
       ) : (
         viewMode === 'cards' ? renderCardsView() : (
           <Table
-            data={filteredUsers}
+            data={filteredBomberos}
             columns={columns}
             badgeMap={badgeMap}
-            title="Lista de Usuarios"
             enableSelection={true}
             enableExport={true}
             enableRefresh={true}
             onRefresh={onRefresh}
             onBulkDelete={onDelete}
             renderActions={renderActions}
-            emptyMessage="No hay usuarios registrados en el sistema"
+            emptyMessage="No hay bomberos registrados en el sistema"
             searchPlaceholder="Buscar por nombre, email o RUT..."
             pageSize={5}
             customActions={customActions}
@@ -491,4 +499,4 @@ const UsersView = ({
   );
 };
 
-export default UsersView;
+export default BomberosView;

@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
-import { MdMenu, MdClose, MdHome, MdAdminPanelSettings } from 'react-icons/md';
+import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode } from 'react-icons/md';
 import { FaUserCheck } from 'react-icons/fa';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
@@ -18,6 +18,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
     const navLinks = [
         { to: "/home", label: "Inicio", icon: <MdHome size={20} className="mr-2" /> },
+        { to: "/demo", label: "Demo", icon: <MdCode size={20} className="mr-2" /> },
     ];
 
     // Estado local para controlar el retraso del botón hamburger
@@ -74,7 +75,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center">{link.icon}{link.label}</span>
                         </NavLink>
                     ))}
-                    {hasPermiso('disponibilidad:read_all') && (
+                    {hasPermiso('disponibilidad:leer') && (
                         <NavLink
                             to="/disponibilidad"
                             onClick={() => setSidebarOpen(false)}
@@ -83,7 +84,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center"><FaUserCheck size={20} className="mr-2" />Disponibilidad</span>
                         </NavLink>
                     )}
-                    {hasPermiso('usuario:leer_todos') && (
+                    {hasPermiso('bombero:leer') && (
                         <NavLink
                             to="/admin"
                             onClick={() => setSidebarOpen(false)}
