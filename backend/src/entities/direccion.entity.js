@@ -67,6 +67,53 @@ const DireccionSchema = new EntitySchema({
             target: "Comuna",
             joinColumn: { name: "idComuna", referencedColumnName: "id", onDelete: "RESTRICT" } //uso restrict para evitar borrar comunas con direcciones ya creadas
         },
+         creadoPor: {
+            type: "many-to-one",
+            target: "Bombero",
+            joinColumn: { name: "creadoPor", referencedColumnName: "id", onDelete: "SET NULL" },
+        },
+        actualizadoPor: {
+            type: "many-to-one",
+            target: "Bombero",
+            joinColumn: { name: "actualizadoPor", referencedColumnName: "id", onDelete: "SET NULL" },
+        },
+        incidentes: {
+            type: "one-to-many",
+            target: "Incidente",
+            inverseSide: "direccion",
+            cascade: true,
+        },
+        afectados: {
+            type: "one-to-many",
+            target: "Afectado",
+            inverseSide: "direccion",
+            cascade: true,
+        },
+        inmuebles: {
+            type: "one-to-many",
+            target: "Inmueble",
+            inverseSide: "direccion",
+            cascade: true,
+        },
+        eventos: {
+            type: "one-to-many",
+            target: "Evento",
+            inverseSide: "direccion",
+            cascade: true,
+        },
+        companias: {
+            type: "one-to-many",
+            target: "Compania",
+            inverseSide: "direccion",
+            cascade: true,
+        },
+        fichasBomberos: {
+            type: "one-to-many",
+            target: "FichaBombero",
+            inverseSide: "direccion",
+            cascade: true,
+        },
+        
     },
 });
 

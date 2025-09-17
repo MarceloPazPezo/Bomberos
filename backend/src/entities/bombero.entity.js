@@ -103,6 +103,73 @@ const BomberoSchema = new EntitySchema({
       },
       eager: true,
     },
+    asistenciasEvento: {
+      type: "one-to-many",
+      target: "AsistenciaEvento",
+      inverseSide: "bombero",
+      cascade: true,
+    },
+    asistenciasIncidente: {
+      type: "one-to-many",
+      target: "AsistenciaIncidente",
+      inverseSide: "bombero",
+      cascade: true,
+    },
+    bomberosAccidentados: {
+      type: "one-to-many",
+      target: "BomberoAccidentado",
+      inverseSide: "bombero",
+      cascade: true,
+    },
+    bomberoActualizaestadoIncidente: {
+      type: "one-to-many",
+      target: "EstadoEstablecido",
+      inverseSide: "bombero",
+      cascade: true,
+    },
+    bomberoActualizaIncidente: {
+      type: "one-to-many",
+      target: "Incidente",
+      inverseSide: "actualizadopor",
+      cascade: true,
+    },
+    bomberoCreaIncidente: {
+      type: "one-to-many",
+      target: "Incidente",
+      inverseSide: "creadopor",
+      cascade: true,
+    },
+    bomberoACargoIncidente: {
+      type: "one-to-many",
+      target: "Incidente",
+      inverseSide: "bomberoACargo",
+      cascade: true,
+    },
+    redactaIncidente: {
+      type: "one-to-many",
+      target: "Incidente",
+      inverseSide: "redactor",
+      cascade: true,
+    },
+
+    registroDonaciones: {
+      type: "one-to-many",
+      target: "RegistroDonacion",
+      inverseSide: "creadopor",
+      cascade: true,
+    },
+    actualizaRegistroDonaciones: {
+      type: "one-to-many",
+      target: "RegistroDonacion",
+      inverseSide: "actualizadopor",
+      cascade: true,
+    },
+    conduceCarro: {
+      type: "one-to-many",
+      target: "EsDespachado",
+      inverseSide: "bomberoMaquinista",
+      cascade: true,
+    },
   },
 });
 
