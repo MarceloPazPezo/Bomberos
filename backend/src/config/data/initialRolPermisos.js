@@ -16,8 +16,8 @@ async function crearPermisos() {
 
     const permisosData = [
       {
-        nombre: "bombero:leer_perfil",
-        descripcion: "Permite leer el perfil del propio bombero",
+        nombre: "bombero:obtener_perfil",
+        descripcion: "Permite obtener el perfil del propio bombero",
         categoria: "Perfil",
         ruta: "/api/perfil",
         metodo: "GET",
@@ -37,6 +37,13 @@ async function crearPermisos() {
         metodo: "PATCH",
       },
       {
+        nombre: "bombero:obtener",
+        descripcion: "Permite obtener información de todos los bomberos",
+        categoria: "Bomberos",
+        ruta: "/api/bombero",
+        metodo: "GET",
+      },
+      {
         nombre: "bombero:crear",
         descripcion: "Permite crear nuevos bomberos",
         categoria: "Bomberos",
@@ -44,32 +51,25 @@ async function crearPermisos() {
         metodo: "POST",
       },
       {
-        nombre: "bombero:leer",
-        descripcion: "Permite leer información de todos los bomberos",
-        categoria: "Bomberos",
-        ruta: "/api/bombero",
-        metodo: "GET",
-      },
-      {
-        nombre: "bombero:leer_especifico",
+        nombre: "bombero:obtener_especifico",
         descripcion:
-          "Permite leer información de un bombero especifico (ej. por ID)",
+          "Permite leer información especifica de un bombero especifico (ej. por ID)",
         categoria: "Bomberos",
-        ruta: "/api/bombero/detalles/:id",
+        ruta: "/api/bombero/detalle/:id",
         metodo: "GET",
       },
       {
         nombre: "bombero:actualizar",
         descripcion: "Permite actualizar información de un bombero especifico",
         categoria: "Bomberos",
-        ruta: "/api/bombero/detalles/:id",
+        ruta: "/api/bombero/detalle/:id",
         metodo: "PATCH",
       },
       {
         nombre: "bombero:eliminar",
         descripcion: "Permite eliminar bomberos",
         categoria: "Bomberos",
-        ruta: "/api/bombero/detalles/:id",
+        ruta: "/api/bombero/detalle/:id",
         metodo: "DELETE",
       },
       {
@@ -87,67 +87,19 @@ async function crearPermisos() {
         metodo: "PATCH",
       },
       {
-        nombre: "rol:crear",
-        descripcion: "Permite crear nuevos roles",
-        categoria: "Roles",
-        ruta: "/api/rol",
-        metodo: "POST",
-      },
-      {
-        nombre: "rol:leer",
-        descripcion: "Permite leer la lista de roles y sus detalles",
-        categoria: "Roles",
-        ruta: "/api/rol",
-        metodo: "GET",
-      },
-      {
-        nombre: "rol:actualizar",
-        descripcion: "Permite actualizar roles (nombre, descripción)",
-        categoria: "Roles",
-        ruta: "/api/rol/detalles/:id",
-        metodo: "PATCH",
-      },
-      {
-        nombre: "rol:eliminar",
-        descripcion: "Permite eliminar roles",
-        categoria: "Roles",
-        ruta: "/api/rol/detalles/:id",
-        metodo: "DELETE",
-      },
-      {
-        nombre: "rol:asignar_permiso",
-        descripcion: "Permite asignar/revocar permisos a un rol",
-        categoria: "Roles",
-        ruta: "/api/rol/permisos/:id",
-        metodo: "PATCH",
-      },
-      {
-        nombre: "permiso:leer",
+        nombre: "bombero:admin",
         descripcion:
-          "Permite leer la lista de todos los permisos disponibles en el sistema",
-        categoria: "Permisos",
-        ruta: "/api/permiso",
-        metodo: "GET",
+          "Permite administración completa de bomberos (crear, actualizar, eliminar, cambiar estado, asignar roles)",
+        categoria: "Bomberos",
+        ruta: "/api/bombero/*",
+        metodo: "*",
       },
       {
-        nombre: "permiso:actualizar",
-        descripcion: "Permite actualizar la descripción de permisos existentes",
-        categoria: "Permisos",
-        ruta: "/api/permiso/:id",
-        metodo: "PUT",
-      },
-      {
-        nombre: "disponibilidad:leer",
-        descripcion: "Permite leer la disponibilidad de todos los voluntarios",
+        nombre: "disponibilidad:obtener",
+        descripcion:
+          "Permite obtener la disponibilidad de todos los voluntarios",
         categoria: "Disponibilidad",
         ruta: "/api/disponibilidad",
-        metodo: "GET",
-      },
-      {
-        nombre: "disponibilidad:leer_especifico",
-        descripcion: "Permite leer una disponibilidad específica",
-        categoria: "Disponibilidad",
-        ruta: "/api/disponibilidad/detail/:id",
         metodo: "GET",
       },
       {
@@ -159,81 +111,112 @@ async function crearPermisos() {
       },
       {
         nombre: "disponibilidad:actualizar",
-        descripcion: "Permite actualizar registros de disponibilidad específicos",
+        descripcion:
+          "Permite actualizar registros de disponibilidad específicos",
         categoria: "Disponibilidad",
-        ruta: "/api/disponibilidad/detail/:id",
+        ruta: "/api/disponibilidad/detalle/:id",
         metodo: "PATCH",
       },
       {
-        nombre: "disponibilidad:eliminar",
-        descripcion: "Permite eliminar registros de disponibilidad",
+        nombre: "disponibilidad:admin",
+        descripcion:
+          "Permite administración completa de disponibilidad (crear, actualizar, eliminar registros)",
         categoria: "Disponibilidad",
-        ruta: "/api/disponibilidad/detail/:id",
-        metodo: "DELETE",
+        ruta: "/api/disponibilidad/*",
+        metodo: "*",
       },
       {
-        nombre: "disponibilidad:cambiar_estado",
-        descripcion: "Permite cambiar el estado de disponibilidad de voluntarios",
-        categoria: "Disponibilidad",
-        ruta: "/api/disponibilidad/estado/:id",
-        metodo: "PATCH",
-      },
-      // Permisos de Compañía
-      {
-        nombre: "compania:leer",
-        descripcion: "Permite leer la lista de todas las compañías",
+        nombre: "compania:obtener",
+        descripcion: "Permite obtener la lista de todas las compañías",
         categoria: "Compañía",
         ruta: "/api/compania",
         metodo: "GET",
       },
       {
-        nombre: "compania:leer_especifico",
-        descripcion: "Permite leer información de una compañía específica",
+        nombre: "compania:obtener_especifico",
+        descripcion: "Permite obtener información de una compañía específica",
         categoria: "Compañía",
-        ruta: "/api/compania/detail/:id",
+        ruta: "/api/compania/detalle/:id",
         metodo: "GET",
       },
       {
-        nombre: "compania:leer_bombero",
+        nombre: "compania:bombero_pertenece",
         descripcion: "Permite obtener la compañía asociada a un bombero",
         categoria: "Compañía",
         ruta: "/api/compania/bombero/:idBombero",
         metodo: "GET",
       },
       {
-        nombre: "compania:crear",
-        descripcion: "Permite crear nuevas compañías",
-        categoria: "Compañía",
-        ruta: "/api/compania",
-        metodo: "POST",
+        nombre: "region:obtener",
+        descripcion: "Permite obtener la lista de todas las regiones",
+        categoria: "Región",
+        ruta: "/api/region",
+        metodo: "GET",
       },
       {
-        nombre: "compania:actualizar",
-        descripcion: "Permite actualizar información de compañías",
-        categoria: "Compañía",
-        ruta: "/api/compania/detail/:id",
-        metodo: "PATCH",
+        nombre: "comuna:obtener",
+        descripcion: "Permite obtener la lista de todas las comunas",
+        categoria: "Comuna",
+        ruta: "/api/comuna",
+        metodo: "GET",
       },
       {
-        nombre: "compania:eliminar",
-        descripcion: "Permite eliminar compañías",
-        categoria: "Compañía",
-        ruta: "/api/compania/detail/:id",
-        metodo: "DELETE",
+        nombre: "permiso:obtener",
+        descripcion: "Permite consultar la lista de permisos del sistema",
+        categoria: "Administración",
+        ruta: "/api/permiso",
+        metodo: "GET",
       },
-      // Permisos administrativos especiales
       {
-        nombre: "admin:admin",
-        descripcion: "Permiso especial de administrador para la renderizacion de la seccion administracion",
+        nombre: "permiso:admin",
+        descripcion:
+          "Permiso especial de administrador para la gestion total de permisos",
+        categoria: "Permiso",
+        ruta: "*",
+        metodo: "*",
+      },
+      {
+        nombre: "rol:obtener",
+        descripcion: "Permite consultar la lista de roles del sistema",
+        categoria: "Rol",
+        ruta: "/api/rol",
+        metodo: "GET",
+      },
+      {
+        nombre: "rol:admin",
+        descripcion:
+          "Permiso especial de administrador para la gestion total de roles",
+        categoria: "Administración",
+        ruta: "*",
+        metodo: "*",
+      },
+      {
+        nombre: "region:admin",
+        descripcion:
+          "Permiso especial de administrador para la gestion total de regiones",
+        categoria: "Administración",
+        ruta: "*",
+        metodo: "*",
+      },
+      {
+        nombre: "comuna:admin",
+        descripcion:
+          "Permiso especial de administrador para la gestion total de comunas",
+        categoria: "Administración",
+        ruta: "*",
+        metodo: "*",
+      },
+      {
+        nombre: "compania:admin",
+        descripcion:
+          "Permiso especial de administrador para la gestion total de compañias",
         categoria: "Administración",
         ruta: "*",
         metodo: "*",
       },
     ];
 
-    const permisos = permisosData.map((p) =>
-      permisoRepository.create(p),
-    );
+    const permisos = permisosData.map((p) => permisoRepository.create(p));
     await permisoRepository.save(permisos);
     logger.info("[SERVER] Permisos creados exitosamente");
   } catch (error) {
@@ -257,71 +240,42 @@ async function crearRoles() {
       {
         nombre: "Bombero",
         descripcion: "Rol básico para bomberos con perfil.",
-        nivel: 1,
         permisoNames: [
-          "bombero:leer_perfil", 
+          "bombero:obtener_perfil",
           "bombero:actualizar_perfil",
           "bombero:cambiar_contrasena", // Agregar permiso para cambiar contraseña
-          "compania:leer_bombero", // Permite ver su propia compañía
-          "disponibilidad:leer", // Permite ver disponibilidades
+          "compania:bombero_pertenece", // Permite obtener su propia compañía
+          "compania:obtener", // Permite ver todas las compañías
+          "region:obtener", // Permite obtener regiones para dropdowns
+          "comuna:obtener", // Permite obtener comunas para dropdowns
+          "disponibilidad:obtener", // Permite obtener disponibilidades
           "disponibilidad:crear", // Permite crear su propia disponibilidad
-          "disponibilidad:cambiar_estado" // Permite cambiar su propio estado
+          "disponibilidad:actualizar", // Permite cambiar su propio estado
         ],
       },
       {
         nombre: "Supervisor",
         descripcion: "Rol intermedio con permisos limitados.",
-        nivel: 2,
-        permisoNames: [
-          "bombero:leer",
-          "bombero:cambiar_estado",
-          "bombero:cambiar_contrasena", // Agregar permiso para cambiar contraseña
-          "rol:leer",
-          "rol:actualizar",
-          "permiso:leer",
-          "disponibilidad:leer",
-          "disponibilidad:cambiar_estado",
-          // Permisos de compañía para supervisores
-          "compania:leer",
-          "compania:leer_especifico",
-          "compania:leer_bombero",
-          "compania:actualizar"
-        ],
+        permisoNames: [],
       },
       {
         nombre: "Administrador",
         descripcion: "Rol con acceso total al sistema.",
-        nivel: 3,
         permisoNames: [
           "bombero:crear",
-          "bombero:leer",
-          "bombero:leer_especifico",
+          "bombero:obtener",
+          "bombero:obtener_especifico",
           "bombero:actualizar",
           "bombero:eliminar",
           "bombero:cambiar_estado",
           "bombero:asignar_rol",
-          "rol:crear",
-          "rol:leer",
-          "rol:actualizar",
-          "rol:eliminar",
-          "rol:asignar_permiso",
-          "permiso:leer",
-          "permiso:actualizar",
-          "disponibilidad:leer",
-          "disponibilidad:leer_especifico",
-          "disponibilidad:crear",
-          "disponibilidad:actualizar",
-          "disponibilidad:eliminar",
-          "disponibilidad:cambiar_estado",
-          // Todos los permisos de compañía para administradores
-          "compania:leer",
-          "compania:leer_especifico",
-          "compania:leer_bombero",
-          "compania:crear",
-          "compania:actualizar",
-          "compania:eliminar",
-          // Permiso administrativo especial
-          "admin:admin",
+          "compania:obtener_especifico",
+          "compania:admin",
+          "disponibilidad:admin",
+          "permiso:admin",
+          "rol:admin",
+          "region:admin",
+          "comuna:admin",
         ],
       },
     ];
@@ -344,9 +298,7 @@ async function crearRoles() {
       return;
     }
 
-    const permisosMap = new Map(
-      existingPermisos.map((p) => [p.nombre, p]),
-    );
+    const permisosMap = new Map(existingPermisos.map((p) => [p.nombre, p]));
 
     const rolesToSave = rolesData.map((roleDef) => {
       const permisosForRole = roleDef.permisoNames
@@ -355,7 +307,6 @@ async function crearRoles() {
       return roleRepository.create({
         nombre: roleDef.nombre,
         descripcion: roleDef.descripcion,
-        nivel: roleDef.nivel,
         permisos: permisosForRole,
       });
     });

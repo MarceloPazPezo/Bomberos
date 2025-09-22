@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
-import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode } from 'react-icons/md';
+import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode, MdSecurity } from 'react-icons/md';
 import { FaUserCheck } from 'react-icons/fa';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
@@ -75,7 +75,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center">{link.icon}{link.label}</span>
                         </NavLink>
                     ))}
-                    {hasPermiso('disponibilidad:leer') && (
+                    {hasPermiso('disponibilidad:obtener') && (
                         <NavLink
                             to="/disponibilidad"
                             onClick={() => setSidebarOpen(false)}
@@ -84,7 +84,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center"><FaUserCheck size={20} className="mr-2" />Disponibilidad</span>
                         </NavLink>
                     )}
-                    {hasPermiso('bombero:leer') && (
+                    {(hasPermiso('bombero:admin') || hasPermiso('rol:admin') || hasPermiso('permiso:admin')) && (
                         <NavLink
                             to="/admin"
                             onClick={() => setSidebarOpen(false)}

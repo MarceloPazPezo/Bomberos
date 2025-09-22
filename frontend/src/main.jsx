@@ -11,6 +11,7 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
+import TestPermisos from '@pages/TestPermisos';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
@@ -41,7 +42,7 @@ const router = createBrowserRouter([
       {
         path: '/admin',
         element: (
-          <ProtectedRoute requiredPermisos={['admin:admin']}>
+          <ProtectedRoute requiredPermisos={['bombero:admin', 'rol:admin', 'permiso:admin']}>
             <Admin />
           </ProtectedRoute>
         ),
@@ -57,7 +58,7 @@ const router = createBrowserRouter([
       {
         path: '/disponibilidad',
         element: (
-          <ProtectedRoute requiredPermisos={['disponibilidad:leer']}>
+          <ProtectedRoute requiredPermisos={['disponibilidad:obtener']}>
             <Disponibilidad />
           </ProtectedRoute>
         ),
@@ -65,7 +66,7 @@ const router = createBrowserRouter([
       {
         path: "/perfil",
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:leer_perfil']}>
+          <ProtectedRoute requiredPermisos={['bombero:obtener_perfil']}>
             <Profile />
           </ProtectedRoute>
         ),
@@ -73,6 +74,10 @@ const router = createBrowserRouter([
       {
         path: '/test-roles',
         element: <TestRoles />
+      },
+      {
+        path: '/test-permisos',
+        element: <TestPermisos />
       },
 
     ]

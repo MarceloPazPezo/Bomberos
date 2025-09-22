@@ -2,6 +2,18 @@
 // Mapa: bomberoId -> { bomberoData, sockets: Set<socket.id> }
 const activeBomberos = new Map();
 
+// Función para emitir actualizaciones de disponibilidad a todos los clientes conectados
+export function emitDisponibilidadUpdate(io, eventType, data) {
+  if (io) {
+    io.emit('disponibilidadUpdate', {
+      type: eventType, // 'created', 'closed', 'updated'
+      data: data,
+      timestamp: new Date().toISOString()
+    });
+    console.log(`[SOCKET] Emitido evento de disponibilidad: ${eventType}`, data);
+  }
+}
+
 export function handleSocketConnection(io) {
   io.on("connection", (socket) => {
     console.log("[SOCKET] Nueva conexión:", socket.id);

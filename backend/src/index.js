@@ -36,6 +36,11 @@ import {
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { handleSocketConnection } from "./sockets/activeUsers.socket.js";
+
+// Variable global para acceder a la instancia de socket.io desde otros módulos
+let ioInstance = null;
+
+export const getIO = () => ioInstance;
 import { addAbortListener } from "events";
 async function setupServer() {
   try {
@@ -100,6 +105,10 @@ async function setupServer() {
         credentials: true,
       },
     });
+    
+    // Asignar la instancia global
+    ioInstance = io;
+    
     handleSocketConnection(io);
     server.listen(PORT, () => {
       logger.info(`[SERVER] Servidor corriendo en http://${HOST}:${PORT}/api`);
