@@ -26,10 +26,18 @@ const BomberoActionsMenu = ({
   const [showDropdown, setShowDropdown] = useState(false);
   
   const isCurrentUser = currentBombero && (currentBombero.run === bombero.run || currentBombero.id === bombero.id);
-  const canEdit = hasPermiso('bombero:actualizar_especifico');
-  const canDelete = hasPermiso('bombero:eliminar');
-  const canChangeStatus = hasPermiso('bombero:cambiar_estado');
-  const canView = hasPermiso('bombero:leer_todos');
+  
+  // Verificar si el bombero tiene roles protegidos (Administrador o Capitán)
+  const hasProtectedRole = bombero.roles && bombero.roles.some(role => 
+    role.nombre === 'Administrador' || role.nombre === 'Capitán'
+  );
+  
+  // Permisos específicos según initialRolPermisos.js
+  // Cada permiso incluye también 'bombero:admin' para administradores completos
+  const canView = hasPermiso('bombero:obtener_especifico') || hasPermiso('bombero:admin');        // Ver detalles del bombero
+  const canEdit = hasPermiso('bombero:actualizar') || hasPermiso('bombero:admin');                // Editar información del bombero
+  const canDelete = hasPermiso('bombero:eliminar') || hasPermiso('bombero:admin');                // Eliminar bombero
+  const canChangeStatus = (hasPermiso('bombero:cambiar_estado') || hasPermiso('bombero:admin')) && !hasProtectedRole;    // Activar/desactivar bombero (excepto roles protegidos)
   
   // Si no tiene permisos para ninguna acción, no mostrar nada
   if (!canEdit && !canDelete && !canChangeStatus && !canView) {
@@ -77,23 +85,28 @@ const BomberoActionsMenu = ({
     });
   }
 
-  if (canChangeStatus) {
+  if (hasPermiso('bombero:cambiar_estado') || hasPermiso('bombero:admin')) {
+    const isDisabled = isCurrentUser || hasProtectedRole;
+    const getTooltipMessage = () => {
+      if (isCurrentUser) return "No puedes cambiar tu propio estado";
+      if (hasProtectedRole) return "No se puede cambiar el estado de bomberos con roles Administrador o Capitán";
+      return bombero.activo 
+        ? "Desactivar bombero - El bombero no podrá acceder al sistema" 
+        : "Activar bombero - El bombero podrá acceder al sistema";
+    };
+
     actions.push({
       key: 'status',
       icon: bombero.activo ? <MdLinkOff size={18} /> : <MdLink size={18} />,
       label: bombero.activo ? 'Desactivar' : 'Activar',
-      onClick: () => !isCurrentUser && handleStatusChange(bombero.id, !bombero.activo),
-      className: isCurrentUser 
+      onClick: () => !isDisabled && handleStatusChange(bombero.id, !bombero.activo),
+      className: isDisabled
         ? "text-gray-400 cursor-not-allowed bg-gray-50" 
         : bombero.activo 
           ? "text-orange-600 hover:text-orange-900 hover:bg-orange-50" 
           : "text-green-600 hover:text-green-900 hover:bg-green-50",
-      tooltip: isCurrentUser 
-        ? "No puedes cambiar tu propio estado" 
-        : bombero.activo 
-          ? "Desactivar bombero - El bombero no podrá acceder al sistema" 
-          : "Activar bombero - El bombero podrá acceder al sistema",
-      disabled: isCurrentUser,
+      tooltip: getTooltipMessage(),
+      disabled: isDisabled,
       priority: 3
     });
   }

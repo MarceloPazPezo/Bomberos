@@ -23,8 +23,6 @@ const useSocket = () => {
     const socket = socketRef.current;
 
     socket.on('connect', () => {
-      console.log('[SOCKET] Conectado al servidor:', socket.id);
-      
       // Identificar al bombero en el servidor
       socket.emit('bomberoActive', {
         id: bombero.id,
@@ -34,11 +32,11 @@ const useSocket = () => {
     });
 
     socket.on('disconnect', () => {
-      console.log('[SOCKET] Desconectado del servidor');
+      // Socket desconectado
     });
 
     socket.on('connect_error', (error) => {
-      console.error('[SOCKET] Error de conexión:', error);
+      console.error('Error de conexión socket:', error);
     });
 
     // Cleanup function

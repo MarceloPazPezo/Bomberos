@@ -18,11 +18,13 @@ const Admin = () => {
 
   // Lista de permisos de administración
   const adminPermissions = [
-    'bombero:listar', 'bombero:leer', 'bombero:crear', 'bombero:actualizar', 'bombero:eliminar',
-    'rol:listar', 'rol:leer', 'rol:crear', 'rol:actualizar', 'rol:eliminar',
-    'permiso:listar', 'permiso:leer', 'permiso:crear', 'permiso:actualizar', 'permiso:eliminar',
-    'compania:listar', 'compania:leer', 'compania:crear', 'compania:actualizar', 'compania:eliminar',
-    'direccion:listar', 'direccion:leer', 'direccion:crear', 'direccion:actualizar', 'direccion:eliminar'
+    'bombero:obtener', 'bombero:crear', 'bombero:obtener_especifico', 'bombero:actualizar', 'bombero:eliminar', 'bombero:cambiar_estado', 'bombero:asignar_rol', 'bombero:admin',
+    'rol:obtener', 'rol:admin',
+    'permiso:obtener', 'permiso:admin',
+    'compania:obtener', 'compania:obtener_especifico', 'compania:admin',
+    'region:obtener', 'region:admin',
+    'comuna:obtener', 'comuna:admin',
+    'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin'
   ];
 
   // Verificar si el usuario tiene al menos un permiso de administración

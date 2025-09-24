@@ -84,7 +84,13 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center"><FaUserCheck size={20} className="mr-2" />Disponibilidad</span>
                         </NavLink>
                     )}
-                    {(hasPermiso('bombero:admin') || hasPermiso('rol:admin') || hasPermiso('permiso:admin')) && (
+                    {(hasPermiso('bombero:obtener') || hasPermiso('bombero:crear') || hasPermiso('bombero:obtener_especifico') || hasPermiso('bombero:actualizar') || hasPermiso('bombero:eliminar') || hasPermiso('bombero:cambiar_estado') || hasPermiso('bombero:asignar_rol') || hasPermiso('bombero:admin') ||
+                      hasPermiso('rol:obtener') || hasPermiso('rol:admin') ||
+                      hasPermiso('permiso:obtener') || hasPermiso('permiso:admin') ||
+                      hasPermiso('compania:obtener') || hasPermiso('compania:obtener_especifico') || hasPermiso('compania:admin') ||
+                      hasPermiso('region:obtener') || hasPermiso('region:admin') ||
+                      hasPermiso('comuna:obtener') || hasPermiso('comuna:admin') ||
+                      hasPermiso('disponibilidad:obtener') || hasPermiso('disponibilidad:crear') || hasPermiso('disponibilidad:actualizar') || hasPermiso('disponibilidad:admin')) && (
                         <NavLink
                             to="/admin"
                             onClick={() => setSidebarOpen(false)}

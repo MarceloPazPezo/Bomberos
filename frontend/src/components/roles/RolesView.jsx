@@ -217,21 +217,21 @@ const RolesView = ({
 
             {/* Acciones */}
             <div className="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200">
-              {hasPermiso('rol:actualizar') && (
-                <Tooltip id={`edit-${role.id}`} content="Editar">
+              {hasPermiso('rol:admin') && (
+                <Tooltip id={`edit-${role.id}`} content="Editar rol">
                   <button
                     onClick={() => onEdit && onEdit(role)}
-                    className="text-yellow-600 hover:text-yellow-800 p-2 rounded-md hover:bg-yellow-50"
+                    className="text-yellow-600 hover:text-yellow-800 p-2 rounded-md hover:bg-yellow-50 transition-colors"
                   >
                     <MdEdit className="h-4 w-4" />
                   </button>
                 </Tooltip>
               )}
-              {hasPermiso('rol:eliminar') && (
-                <Tooltip id={`delete-${role.id}`} content="Eliminar">
+              {hasPermiso('rol:admin') && (
+                <Tooltip id={`delete-${role.id}`} content="Eliminar rol">
                   <button
                     onClick={() => handleDelete(role)}
-                    className="text-red-600 hover:text-red-800 p-2 rounded-md hover:bg-red-50"
+                    className="text-red-600 hover:text-red-800 p-2 rounded-md hover:bg-red-50 transition-colors"
                   >
                     <MdDelete className="h-4 w-4" />
                   </button>

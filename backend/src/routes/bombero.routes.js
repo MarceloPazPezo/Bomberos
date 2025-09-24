@@ -28,8 +28,21 @@ router.patch(
   authorizePermisos(["bombero:actualizar"]),
   updateBombero,
 );
+// Ruta alternativa para actualizar por RUN o email sin requerir ID en la URL
+router.patch(
+  "/",
+  cleanEmptyStrings,
+  authorizePermisos(["bombero:actualizar"]),
+  updateBombero,
+);
 router.delete(
   "/detalle/:id",
+  authorizePermisos(["bombero:eliminar"]),
+  deleteBombero,
+);
+// Ruta alternativa para eliminar por RUN o email sin requerir ID en la URL
+router.delete(
+  "/",
   authorizePermisos(["bombero:eliminar"]),
   deleteBombero,
 );

@@ -28,11 +28,6 @@ const DisponibilidadPage = () => {
 
   // Verificar si el usuario tiene al menos un permiso de disponibilidad
   const hasAnyDisponibilidadPermission = disponibilidadPermissions.some(permission => hasPermiso(permission));
-  
-  // Debug: Log de permisos para depuración
-  console.log('[DEBUG] Permisos de disponibilidad verificados:', disponibilidadPermissions);
-  console.log('[DEBUG] Usuario tiene permisos:', disponibilidadPermissions.map(p => ({ permiso: p, tiene: hasPermiso(p) })));
-  console.log('[DEBUG] Tiene algún permiso:', hasAnyDisponibilidadPermission);
 
   if (!hasAnyDisponibilidadPermission) {
     return (

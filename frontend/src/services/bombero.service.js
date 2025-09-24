@@ -29,21 +29,38 @@ export async function getBomberos() {
     }
 }
 
-export async function updateBombero(bomberoData, run) {
+export async function updateBombero(bomberoData, run, id = null) {
     try {
         const normalizedRut = normalizeRutForBackend(run);
-        const response = await axios.patch(`/bombero/detail/?run=${normalizedRut}`, bomberoData);
-        return response.data.data;
+        console.log('DEBUG - updateBombero - run original:', run);
+        console.log('DEBUG - updateBombero - run normalizado:', normalizedRut);
+        console.log('DEBUG - updateBombero - id:', id);
+        console.log('DEBUG - updateBombero - bomberoData original:', bomberoData);
+        
+        // Remover el RUN del bomberoData ya que va en la URL
+        const { run: _, ...dataWithoutRun } = bomberoData;
+        console.log('DEBUG - updateBombero - dataWithoutRun:', dataWithoutRun);
+        
+        // Usar la nueva ruta sin ID, solo con query parameters
+        const response = await axios.patch(`/bombero/?run=${normalizedRut}`, dataWithoutRun);
+        console.log('DEBUG - updateBombero - response:', response.data);
+        return response.data;
     } catch (error) {
         console.error('Error in updateBombero:', error);
         return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
     }
 }
 
-export async function deleteBombero(run) {
+export async function deleteBombero(run, id = null) {
     try {
         const normalizedRut = normalizeRutForBackend(run);
-        const response = await axios.delete(`/bombero/detail/?run=${normalizedRut}`);
+        console.log('DEBUG - deleteBombero - run original:', run);
+        console.log('DEBUG - deleteBombero - run normalizado:', normalizedRut);
+        console.log('DEBUG - deleteBombero - id:', id);
+        
+        // Usar la nueva ruta sin ID, solo con query parameters
+        const response = await axios.delete(`/bombero/?run=${normalizedRut}`);
+        console.log('DEBUG - deleteBombero - response:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error in deleteBombero:', error);

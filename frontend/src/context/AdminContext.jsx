@@ -19,35 +19,35 @@ export const AdminProvider = ({ children }) => {
       label: 'Bomberos',
       description: 'Gestión de bomberos y voluntarios',
       icon: 'MdPeople',
-      permissions: ['bombero:listar', 'bombero:leer']
+      permissions: ['bombero:obtener', 'bombero:admin']
     },
     {
       id: 'roles',
       label: 'Roles',
       description: 'Gestión de roles del sistema',
       icon: 'MdSecurity',
-      permissions: ['rol:listar', 'rol:leer']
+      permissions: ['rol:obtener', 'rol:admin']
     },
     {
       id: 'permisos',
       label: 'Permisos',
       description: 'Gestión de permisos del sistema',
       icon: 'MdVpnKey',
-      permissions: ['permiso:listar', 'permiso:leer']
+      permissions: ['permiso:obtener', 'permiso:admin']
     },
     {
       id: 'companias',
       label: 'Compañías',
       description: 'Gestión de compañías',
       icon: 'MdBusiness',
-      permissions: ['compania:listar', 'compania:leer']
+      permissions: ['compania:obtener', 'compania:admin']
     },
     {
       id: 'direcciones',
       label: 'Direcciones',
       description: 'Gestión de direcciones',
       icon: 'MdLocationOn',
-      permissions: ['direccion:listar', 'direccion:leer']
+      permissions: ['region:obtener', 'region:admin', 'comuna:obtener', 'comuna:admin']
     }
   ];
 

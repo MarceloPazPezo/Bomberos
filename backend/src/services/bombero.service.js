@@ -291,10 +291,22 @@ export async function changeBomberoStatusService(idBombero, activo, updatedBy = 
 
     const bomberoFound = await bomberoRepository.findOne({
       where: { id: idBombero },
+      relations: ["roles"], // Incluir roles para validación
     });
 
     if (!bomberoFound) {
       return [null, "Bombero no encontrado"];
+    }
+
+    // Validar que el bombero no tenga roles protegidos (Administrador o Capitán)
+    if (bomberoFound.roles && bomberoFound.roles.length > 0) {
+      const hasProtectedRole = bomberoFound.roles.some(role => 
+        role.nombre === 'Administrador' || role.nombre === 'Capitán'
+      );
+      
+      if (hasProtectedRole) {
+        return [null, "No se puede cambiar el estado de bomberos con roles Administrador o Capitán"];
+      }
     }
     
     // Actualizar el estado
@@ -309,7 +321,6 @@ export async function changeBomberoStatusService(idBombero, activo, updatedBy = 
 
     return [bomberoResult, null];
   } catch (error) {
-    console.error("Error al cambiar el estado del bombero:", error);
     return [null, "Error interno del servidor"];
   }
 }

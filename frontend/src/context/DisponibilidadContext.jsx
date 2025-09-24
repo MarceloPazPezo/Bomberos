@@ -75,11 +75,6 @@ export const DisponibilidadProvider = ({ children }) => {
   const availableTabs = tabsConfig.filter(tab => 
     tab.permissions.some(permission => hasPermiso(permission))
   );
-  
-  // Debug: Log de pestañas para depuración
-  console.log('[DEBUG] Configuración de pestañas:', tabsConfig);
-  console.log('[DEBUG] Pestañas disponibles:', availableTabs);
-  console.log('[DEBUG] Pestaña activa:', activeTab);
 
   // Efecto para establecer la pestaña activa correcta basada en permisos
   useEffect(() => {
@@ -224,8 +219,6 @@ export const DisponibilidadProvider = ({ children }) => {
     if (!on || !off) return;
 
     const handleDisponibilidadUpdate = (eventData) => {
-      console.log('[SOCKET] Evento de disponibilidad recibido:', eventData);
-      
       // Actualizar lista de disponibilidades
       setDisponibilidades(prev => {
         let newDisponibilidades = [...prev];
@@ -233,23 +226,11 @@ export const DisponibilidadProvider = ({ children }) => {
         if (eventData.type === 'created') {
           // Agregar nueva disponibilidad
           newDisponibilidades.push(eventData.data);
-          
-          // Mostrar notificación si no es del usuario actual
-          if (eventData.data.idBombero !== bombero?.id) {
-            const nombreBombero = getBomberoInfo(eventData.data.idBombero, eventData.data);
-            console.log(`[SOCKET] ${nombreBombero} se marcó como disponible`);
-          }
         } else if (eventData.type === 'closed') {
           // Actualizar disponibilidad cerrada
           const index = newDisponibilidades.findIndex(d => d.id === eventData.data.id);
           if (index !== -1) {
             newDisponibilidades[index] = eventData.data;
-          }
-          
-          // Mostrar notificación si no es del usuario actual
-          if (eventData.data.idBombero !== bombero?.id) {
-            const nombreBombero = getBomberoInfo(eventData.data.idBombero, eventData.data);
-            console.log(`[SOCKET] ${nombreBombero} cerró su disponibilidad`);
           }
         }
         

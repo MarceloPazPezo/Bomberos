@@ -212,13 +212,22 @@ export async function deleteRolService(query) {
   }
 }
 
-export async function createRolService(body) {
+export async function createRolService(roleData) {
   try {
+    // Validar que roleData existe y tiene las propiedades necesarias
+    if (!roleData) {
+      return [null, "Datos del rol no proporcionados"];
+    }
+    
+    if (!roleData.nombre) {
+      return [null, "El nombre del rol es requerido"];
+    }
+
     const rolRepository = AppDataSource.getRepository(Rol);
     const permisoRepository = AppDataSource.getRepository(Permiso);
 
     const existingRol = await rolRepository.findOne({
-      where: [{ nombre: body.nombre }],
+      where: [{ nombre: roleData.nombre }],
     });
 
     if (existingRol) {
@@ -226,17 +235,17 @@ export async function createRolService(body) {
     }
 
     let permisosEntities = [];
-    if (body.permisos && body.permisos.length > 0) {
+    if (roleData.permisos && roleData.permisos.length > 0) {
       permisosEntities = await permisoRepository.find({
         where: {
-          nombre: In(body.permisos),
+          nombre: In(roleData.permisos),
         },
       });
 
       // Verificar si todos los permisos solicitados fueron encontrados
-      if (permisosEntities.length !== body.permisos.length) {
+      if (permisosEntities.length !== roleData.permisos.length) {
         const foundPermisosNames = permisosEntities.map((p) => p.nombre);
-        const missingPermisos = body.permisos.filter(
+        const missingPermisos = roleData.permisos.filter(
           (pName) => !foundPermisosNames.includes(pName),
         );
         return [
@@ -247,9 +256,9 @@ export async function createRolService(body) {
     }
 
     const newRol = rolRepository.create({
-      nombre: body.nombre,
-      descripcion: body.descripcion,
-      creadoPor: body.creadoPor,
+      nombre: roleData.nombre,
+      descripcion: roleData.descripcion,
+      creadoPor: roleData.creadoPor,
       permisos: permisosEntities,
     });
 
@@ -276,7 +285,6 @@ export async function createRolService(body) {
 
     return [rolData, null];
   } catch (error) {
-    console.error("Error al crear un rol:", error);
     return [null, "Error interno del servidor"];
   }
 }

@@ -163,7 +163,7 @@ async function crearPermisos() {
       {
         nombre: "permiso:obtener",
         descripcion: "Permite consultar la lista de permisos del sistema",
-        categoria: "Administración",
+        categoria: "Permiso",
         ruta: "/api/permiso",
         metodo: "GET",
       },
@@ -171,7 +171,7 @@ async function crearPermisos() {
         nombre: "permiso:admin",
         descripcion:
           "Permiso especial de administrador para la gestion total de permisos",
-        categoria: "Permiso",
+        categoria: "Administración",
         ruta: "*",
         metodo: "*",
       },
@@ -248,6 +248,8 @@ async function crearRoles() {
           "compania:obtener", // Permite ver todas las compañías
           "region:obtener", // Permite obtener regiones para dropdowns
           "comuna:obtener", // Permite obtener comunas para dropdowns
+          "rol:obtener", // Permite obtener roles para dropdowns
+          "permiso:obtener", // Permite obtener permisos para dropdowns
           "disponibilidad:obtener", // Permite obtener disponibilidades
           "disponibilidad:crear", // Permite crear su propia disponibilidad
           "disponibilidad:actualizar", // Permite cambiar su propio estado

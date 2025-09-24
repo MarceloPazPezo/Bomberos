@@ -5,6 +5,38 @@ import PropTypes from 'prop-types';
 
 const animatedComponents = makeAnimated();
 
+// Componente personalizado para el botón de eliminar que respeta el estado bloqueado
+const CustomMultiValueRemove = (props) => {
+  const { data } = props;
+  
+  // Si el elemento está bloqueado, no renderizar el botón de eliminar
+  if (data.isLocked) {
+    return null;
+  }
+  
+  // Usar el componente por defecto si no está bloqueado
+  const { MultiValueRemove } = animatedComponents;
+  return <MultiValueRemove {...props} />;
+};
+
+// Componente personalizado para el botón Clear que respeta valores bloqueados
+const CustomClearIndicator = (props) => {
+  const { getValue } = props;
+  const selectedValues = getValue();
+  
+  // Verificar si hay valores bloqueados
+  const hasLockedValues = selectedValues.some(value => value.isLocked);
+  
+  // Si hay valores bloqueados, no mostrar el botón Clear
+  if (hasLockedValues) {
+    return null;
+  }
+  
+  // Usar el componente por defecto si no hay valores bloqueados
+  const { ClearIndicator } = animatedComponents;
+  return <ClearIndicator {...props} />;
+};
+
 const filterOptions = (inputValue, options) => {
   return options.filter(option =>
     option.label.toLowerCase().includes(inputValue.toLowerCase())
@@ -96,16 +128,16 @@ const customStyles = {
     paddingLeft: '8px',
     paddingRight: '4px',
   }),
-  multiValueRemove: (styles) => ({
+  multiValueRemove: (styles, { data }) => ({
     ...styles,
-    color: '#2C3E50',
-    cursor: 'pointer',
+    color: data.isLocked ? '#ccc' : '#2C3E50',
+    cursor: data.isLocked ? 'not-allowed' : 'pointer',
     borderRadius: '0 6px 6px 0',
     paddingLeft: '4px',
     paddingRight: '8px',
     ':hover': {
-      backgroundColor: '#ef4444',
-      color: 'white',
+      backgroundColor: data.isLocked ? 'transparent' : '#ef4444',
+      color: data.isLocked ? '#ccc' : 'white',
     },
   }),
   placeholder: (styles) => ({
@@ -188,7 +220,11 @@ const MultiSelect = ({
         isMulti
         cacheOptions
         defaultOptions={validOptions} // Usar las opciones validadas
-        components={animatedComponents}
+        components={{
+          ...animatedComponents,
+          MultiValueRemove: CustomMultiValueRemove,
+          ClearIndicator: CustomClearIndicator
+        }}
         loadOptions={(inputValue) => promiseOptions(inputValue, validOptions)}
         value={selectedOptions}
         isLoading={isLoading}

@@ -70,8 +70,11 @@ export async function updateBombero(req, res) {
     const { run, email } = req.query;
     const { body } = req;
 
+    // Si no hay ID en los parámetros, usar undefined para que la validación funcione
+    const idForValidation = id === undefined ? undefined : id;
+
     const { error: queryError } = bomberoQueryValidation.validate({
-      id,
+      id: idForValidation,
       run,
       email,
     });
@@ -104,7 +107,7 @@ export async function updateBombero(req, res) {
     const actualizadoPor = req.bombero?.id; // ID del bombero que realiza la actualización
 
     const [bombero, bomberoError] = await updateBomberoService(
-      { id, run, email },
+      { id: idForValidation, run, email },
       body,
       actualizadoPor,
     );
@@ -129,8 +132,11 @@ export async function deleteBombero(req, res) {
     const { id } = req.params;
     const { run, email } = req.query;
 
+    // Si no hay ID en los parámetros, usar undefined para que la validación funcione
+    const idForValidation = id === undefined ? undefined : id;
+
     const { error: queryError } = bomberoQueryValidation.validate({
-      id,
+      id: idForValidation,
       run,
       email,
     });
@@ -145,7 +151,7 @@ export async function deleteBombero(req, res) {
     }
 
     const [bomberoDelete, errorBomberoDelete] = await deleteBomberoService({
-      id,
+      id: idForValidation,
       run,
       email,
     });

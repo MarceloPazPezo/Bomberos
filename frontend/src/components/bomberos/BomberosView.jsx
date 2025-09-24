@@ -334,7 +334,7 @@ const BomberosView = ({
                   /* Vista móvil - Botones con texto en columnas */
                   <div className="space-y-2">
                     <div className="grid grid-cols-3 gap-2">
-                      {hasPermiso('usuario:leer_especifico') && (
+                      {hasPermiso('bombero:obtener_especifico') && (
                         <button
                           onClick={() => onViewDetails && onViewDetails(bombero)}
                           className="flex items-center justify-center gap-1 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
@@ -382,7 +382,7 @@ const BomberosView = ({
                   <div className="flex items-center justify-between gap-2">
                     {/* Botones de acción */}
                     <div className="flex items-center gap-1">
-                      {hasPermiso('usuario:leer_especifico') && (
+                      {hasPermiso('bombero:obtener_especifico') && (
                         <Tooltip content="Ver Ficha" place="top">
                           <button
                             onClick={() => onViewDetails && onViewDetails(bombero)}

@@ -19,32 +19,27 @@ const AdminTabNavigation = ({ availableTabs, activeTab, onTabChange, hasPermiso 
     bomberos: {
       icon: MdPerson,
       label: 'Bomberos',
-      permiso: 'bombero:leer'
+      permiso: 'bombero:obtener'
     },
     roles: {
       icon: MdSecurity,
       label: 'Roles',
-      permiso: 'rol:leer'
+      permiso: 'rol:obtener'
     },
     permisos: {
       icon: MdAdminPanelSettings,
       label: 'Permisos',
-      permiso: 'permiso:leer'
+      permiso: 'permiso:obtener'
     },
     companias: {
       icon: MdBusiness,
       label: 'Compañías',
-      permiso: 'compania:leer'
+      permiso: 'compania:obtener'
     },
     direcciones: {
       icon: MdLocationOn,
       label: 'Direcciones',
-      permiso: 'direccion:leer'
-    },
-    configuraciones: {
-      icon: MdHome,
-      label: 'Configuraciones',
-      permiso: 'configuracion:leer'
+      permiso: 'region:obtener'
     }
   };
 

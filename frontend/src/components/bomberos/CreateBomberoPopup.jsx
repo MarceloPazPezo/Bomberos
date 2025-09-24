@@ -88,6 +88,29 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
         }
     };
 
+    // Función para manejar cambios en la selección de roles
+    const handleRolesChange = (selectedRoles) => {
+        // Buscar el rol "Bombero" en la lista de roles disponibles
+        const bomberoRole = rolesOptions.find(role => role.label === 'Bombero');
+        
+        if (bomberoRole) {
+            // Asegurar que el rol "Bombero" siempre esté seleccionado
+            const hasBomberoRole = selectedRoles.some(role => role.value === bomberoRole.value);
+            
+            if (!hasBomberoRole) {
+                // Si no está seleccionado, agregarlo automáticamente
+                selectedRoles = [bomberoRole, ...selectedRoles];
+            }
+        }
+        
+        // Limpiar error del campo roles si existe
+        if (errors.roles) {
+            setErrors(prev => ({ ...prev, roles: null }));
+        }
+        
+        return selectedRoles;
+    };
+
     // Hook para obtener roles
     const { roles, loading: rolesLoading, fetchRoles } = useRoles();
     
@@ -107,6 +130,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
         .map((role) => ({
             value: role.id,
             label: role.nombre,
+            isLocked: role.nombre === 'Bombero' // Marcar el rol Bombero como bloqueado
         })) : [];
 
     const errorData = (errorDetails) => {
@@ -123,6 +147,10 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                     return rut.replace(/\./g, '');
                 };
 
+                // Buscar el rol "Bombero" en la lista de roles disponibles
+                const bomberoRole = roles.find(role => role.nombre === 'Bombero');
+                const bomberoRoleId = bomberoRole ? bomberoRole.id : null;
+
                 // Transformar los datos para que coincidan con el formato esperado por el backend
                 const transformedData = {
                     // Formatear RUT para API (sin puntos, solo guión)
@@ -133,8 +161,11 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                     // Campos básicos requeridos
                     email: createdUserData.email,
                     password: createdUserData.password,
-                    // Transformar roles del multiselect al formato esperado por el backend
-                    roles: createdUserData.roles ? createdUserData.roles.map(role => role.value) : [],
+                    // Forzar el rol "Bombero" + roles seleccionados por el usuario
+                    roles: [
+                        ...(bomberoRoleId ? [bomberoRoleId] : []), // Siempre incluir rol Bombero
+                        ...(createdUserData.roles ? createdUserData.roles.map(role => role.value) : [])
+                    ].filter((value, index, self) => self.indexOf(value) === index), // Eliminar duplicados
                     // Estado activo
                     activo: createdUserData.activo !== undefined ? createdUserData.activo : true
                 };
@@ -176,7 +207,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                 <div className="p-2 bg-white/20 rounded-lg">
                                     <MdPersonAdd className="w-6 h-6 text-white" />
                                 </div>
-                                <h2 className="text-xl font-bold text-white">Crear Nuevo Bombero</h2>
+                                <h2 className="text-xl font-bold text-white">Ingresar Bombero</h2>
                             </div>
                             <button
                                 className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group"
@@ -249,14 +280,14 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                     {
                                         label: "Correo electrónico",
                                         name: "email",
-                                        placeholder: 'example@bomberosxiregion.cl',
+                                        placeholder: 'example@gmail.com',
                                         fieldType: 'input',
                                         type: "email",
                                         required: true,
-                                        minLength: 15,
+                                        minLength: 5,
                                         maxLength: 255,
-                                        pattern: /^[a-zA-Z0-9._%+-]+@bomberosxiregion\.cl$/,
-                                        patternMessage: "Debe usar el dominio @bomberosxiregion.cl",
+                                        pattern: /^[a-zA-Z0-9._%+-]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|live\.com|msn\.com|icloud\.com|me\.com|[a-zA-Z0-9.-]+\.cl)$/,
+                                        patternMessage: "Debe usar un dominio permitido (ej. @gmail.com, @hotmail.com, @example.cl)",
                                         errorMessageData: errors.email,
                                         onChange: (e) => handleInputChange('email', e.target.value),
                                         autoComplete: "new-email"
@@ -281,12 +312,17 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                         name: "roles",
                                         fieldType: 'multiselect',
                                         options: rolesOptions,
-                                        defaultValue: [],
+                                        defaultValue: (() => {
+                                            // Preseleccionar el rol "Bombero" automáticamente
+                                            const bomberoRole = rolesOptions.find(role => role.label === 'Bombero');
+                                            return bomberoRole ? [bomberoRole] : [];
+                                        })(),
                                         required: true,
-                                        placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles...",
+                                        placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles adicionales...",
                                         searchPlaceholder: "Buscar roles...",
                                         errorMessageData: errors.roles,
-                                        isLoading: rolesLoading
+                                        isLoading: rolesLoading,
+                                        onChange: handleRolesChange
                                     },
                                     {
                                         label: "Estado",
@@ -339,7 +375,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                 ) : (
                                     <>
                                         <MdSave className="w-4 h-4" />
-                                        <span>Crear Bombero</span>
+                                        <span>Ingresar Bombero</span>
                                     </>
                                 )}
                             </button>

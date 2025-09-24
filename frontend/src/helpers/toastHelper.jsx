@@ -214,6 +214,21 @@ export const bomberoDeletedToast = () => {
   );
 };
 
+export const bomberoStatusChangedToast = (status) => {
+  const statusText = status ? 'activado' : 'desactivado';
+  toast.success(
+    <div className="flex items-center">
+      <BomberoIcon />
+      <span>Bombero {statusText} exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
 // Funciones específicas para disponibilidad
 export const disponibilidadCreatedToast = (message = "Disponibilidad creada correctamente") => {
   toast.success(

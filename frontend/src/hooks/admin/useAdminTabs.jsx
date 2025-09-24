@@ -11,12 +11,11 @@ export const useAdminTabs = (hasPermiso) => {
   // Determinar pestañas disponibles basadas en permisos (memoizado para evitar recálculos)
   const availableTabs = useMemo(() => {
     const tabs = [];
-    if (hasPermiso('bombero:leer')) tabs.push('bomberos');
-    if (hasPermiso('rol:leer')) tabs.push('roles');
-    if (hasPermiso('permiso:leer')) tabs.push('permisos');
-    if (hasPermiso('compania:leer')) tabs.push('companias');
-    if (hasPermiso('direccion:leer') || hasPermiso('region:leer') || hasPermiso('comuna:leer')) tabs.push('direcciones');
-    if (hasPermiso('configuracion:leer')) tabs.push('configuraciones');
+    if (hasPermiso('bombero:obtener') || hasPermiso('bombero:admin')) tabs.push('bomberos');
+    if (hasPermiso('rol:obtener') || hasPermiso('rol:admin')) tabs.push('roles');
+    if (hasPermiso('permiso:obtener') || hasPermiso('permiso:admin')) tabs.push('permisos');
+    if (hasPermiso('compania:obtener') || hasPermiso('compania:admin')) tabs.push('companias');
+    if (hasPermiso('region:obtener') || hasPermiso('region:admin') || hasPermiso('comuna:obtener') || hasPermiso('comuna:admin')) tabs.push('direcciones');
     return tabs;
   }, [hasPermiso]);
 

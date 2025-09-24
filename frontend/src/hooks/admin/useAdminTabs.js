@@ -12,7 +12,7 @@ export const useAdminTabs = (hasPermiso) => {
       id: 'bomberos',
       label: 'Bomberos',
       icon: 'MdPeople',
-      permissions: ['bombero:listar'],
+      permissions: ['bombero:obtener'],
       description: 'Gestionar información de bomberos',
       color: '#3B82F6'
     },
@@ -20,7 +20,7 @@ export const useAdminTabs = (hasPermiso) => {
       id: 'roles',
       label: 'Roles',
       icon: 'MdSecurity',
-      permissions: ['rol:listar'],
+      permissions: ['rol:obtener'],
       description: 'Administrar roles y permisos',
       color: '#8B5CF6'
     },
@@ -28,7 +28,7 @@ export const useAdminTabs = (hasPermiso) => {
       id: 'permisos',
       label: 'Permisos',
       icon: 'MdVpnKey',
-      permissions: ['permiso:listar'],
+      permissions: ['permiso:obtener'],
       description: 'Gestionar permisos del sistema',
       color: '#F59E0B'
     },
@@ -36,7 +36,7 @@ export const useAdminTabs = (hasPermiso) => {
       id: 'companias',
       label: 'Compañías',
       icon: 'MdBusiness',
-      permissions: ['compania:listar'],
+      permissions: ['compania:obtener'],
       description: 'Administrar compañías de bomberos',
       color: '#10B981'
     },
@@ -44,7 +44,7 @@ export const useAdminTabs = (hasPermiso) => {
       id: 'direcciones',
       label: 'Direcciones',
       icon: 'MdLocationOn',
-      permissions: ['region:listar', 'comuna:listar'],
+      permissions: ['region:obtener', 'comuna:obtener'],
       description: 'Gestionar regiones y comunas',
       color: '#EF4444'
     }
