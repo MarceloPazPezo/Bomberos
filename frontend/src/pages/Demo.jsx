@@ -27,7 +27,7 @@ import BomberosLoader from '@components/BomberosLoader';
 import Tooltip from '@components/Tooltip.jsx';
 import FireAlertDemo from '@components/FireAlertDemo.jsx';
 import { showConfirmAlert, showInfoAlert, showErrorAlert, showWarningAlert, showConflictAlert, showSecurityAlert } from '@helpers/fireAlert.js';
-import { fireSuccessToast, roleCreatedToast, roleDeletedToast } from '@helpers/toastHelper.js';
+import { fireSuccessToast, roleCreatedToast, roleDeletedToast } from '@helpers/toastHelper.jsx';
 import usePermisos from '@hooks/permisos/usePermisos';
 
 const Demo = () => {

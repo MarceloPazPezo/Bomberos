@@ -1,6 +1,7 @@
 import React from 'react';
 import { useDisponibilidad } from '@context/DisponibilidadContext';
 import { useGlobalFireAlert } from '@components/FireAlertProvider';
+import { disponibilidadCreatedToast, disponibilidadClosedToast } from '@helpers/toastHelper.jsx';
 import { 
   FaUserCheck, 
   FaUsers, 
@@ -24,7 +25,7 @@ import dateHelper from '@helpers/dateHelper';
  * Incluye formulario, acceso rápido y vista del personal disponible
  */
 const DisponibilidadMarcarTab = () => {
-  const { fireSuccess, fireError, fireWarning, fireConfirm } = useGlobalFireAlert();
+  const { fireError, fireWarning, fireConfirm } = useGlobalFireAlert();
   const {
     // Datos
     disponibilidades,
@@ -155,7 +156,7 @@ const DisponibilidadMarcarTab = () => {
       const newDisponibilidad = await createDisponibilidad(disponibilidadData);
       setMiDisponibilidad(newDisponibilidad);
       
-      fireSuccess('¡Disponibilidad Creada!', `¡${descripcionPreset.charAt(0).toUpperCase() + descripcionPreset.slice(1)} creada correctamente!`);
+      disponibilidadCreatedToast(`¡${descripcionPreset.charAt(0).toUpperCase() + descripcionPreset.slice(1)} creada correctamente!`);
       
       // Actualizar datos
       triggerRefresh();
@@ -268,7 +269,7 @@ const DisponibilidadMarcarTab = () => {
       // Reiniciar formulario
       initializeFechas();
       
-      fireSuccess('¡Disponibilidad Creada!', '¡Disponibilidad creada correctamente!');
+      disponibilidadCreatedToast('¡Disponibilidad creada correctamente!');
       
       // Actualizar datos
       triggerRefresh();
@@ -293,7 +294,7 @@ const DisponibilidadMarcarTab = () => {
       await cerrarDisponibilidad(disponibilidadData);
       setMiDisponibilidad(null);
       
-      fireSuccess('Disponibilidad Cerrada', 'Disponibilidad cerrada correctamente');
+      disponibilidadClosedToast('Disponibilidad cerrada correctamente');
       
       // Actualizar datos
       triggerRefresh();

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDisponibilidad } from '@context/DisponibilidadContext';
 import { 
   FaUserCheck, 
@@ -38,6 +38,13 @@ const DisponibilidadHistorialTab = () => {
     getBomberoInfo
   } = useDisponibilidad();
 
+  // Estado para forzar actualización de duraciones en tiempo real
+  const [refreshTime, setRefreshTime] = useState(Date.now());
+  
+  // Estado local para registros por página (permite al usuario cambiar)
+  // Valor por defecto optimizado para pantallas estándar
+  const [registrosPorPaginaLocal, setRegistrosPorPaginaLocal] = useState(8);
+
   // Función para formatear fechas
   const formatFecha = (fecha) => {
     try {
@@ -50,6 +57,64 @@ const DisponibilidadHistorialTab = () => {
   // Función para verificar si una disponibilidad está activa
   const estaDisponible = (disponibilidad) => {
     return !disponibilidad.fechaTermino || new Date(disponibilidad.fechaTermino) > new Date();
+  };
+
+  // Función para formatear la información del bombero en el formato RUN NombreCompleto
+  const formatearBomberoInfo = (disponibilidad) => {
+    if (disponibilidad.bombero) {
+      const { nombres, apellidos, run } = disponibilidad.bombero;
+      const nombreCompleto = `${nombres} ${apellidos}`;
+      if (run) {
+        return (
+          <span>
+            <span className="font-bold">{run}</span> {nombreCompleto}
+          </span>
+        );
+      }
+      return nombreCompleto;
+    }
+    
+    // Fallback si no hay información del bombero
+    const nombreFallback = getBomberoInfo(disponibilidad.idBombero, disponibilidad);
+    return nombreFallback;
+  };
+
+  // Función para calcular la duración del turno
+  const calcularDuracionTurno = (fechaInicio, fechaTermino, estaDisponible) => {
+    try {
+      const inicio = dateHelper.toSantiago(fechaInicio);
+      let fin;
+      let esEstimada = false;
+      
+      if (fechaTermino) {
+        fin = dateHelper.toSantiago(fechaTermino);
+        // Si está disponible pero tiene fecha de término, es una duración estimada
+        if (estaDisponible) {
+          esEstimada = true;
+        }
+      } else {
+        // Si no hay fecha de término, usar hora actual
+        fin = dateHelper.now();
+      }
+      
+      const diff = fin.diff(inicio, ['hours', 'minutes']);
+      
+      let duracion;
+      if (diff.hours >= 1) {
+        duracion = `${Math.floor(diff.hours)}h ${Math.floor(diff.minutes)}m`;
+      } else {
+        duracion = `${Math.floor(diff.minutes)}m`;
+      }
+      
+      // Agregar "estimada" si corresponde
+      if (esEstimada) {
+        return `Se estima ${duracion}`;
+      }
+      
+      return duracion;
+    } catch (error) {
+      return 'Duración inválida';
+    }
   };
 
   // Función para filtrar disponibilidades según los filtros activos
@@ -136,13 +201,13 @@ const DisponibilidadHistorialTab = () => {
 
   // Funciones de paginación
   const obtenerRegistrosPaginados = (registrosFiltrados) => {
-    const indiceInicio = (paginaActual - 1) * registrosPorPagina;
-    const indiceFin = indiceInicio + registrosPorPagina;
+    const indiceInicio = (paginaActual - 1) * registrosPorPaginaLocal;
+    const indiceFin = indiceInicio + registrosPorPaginaLocal;
     return registrosFiltrados.slice(indiceInicio, indiceFin);
   };
 
   const calcularTotalPaginas = (totalRegistros) => {
-    return Math.ceil(totalRegistros / registrosPorPagina);
+    return Math.ceil(totalRegistros / registrosPorPaginaLocal);
   };
 
   const cambiarPagina = (nuevaPagina) => {
@@ -215,6 +280,20 @@ const DisponibilidadHistorialTab = () => {
     setPaginaActual(1);
   }, [filtros, setPaginaActual]);
 
+  // Efecto para actualizar duraciones en tiempo real cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRefreshTime(Date.now());
+    }, 60000); // Actualizar cada minuto
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Efecto para resetear página cuando cambie el número de registros por página
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [registrosPorPaginaLocal, setPaginaActual]);
+
   if (loading) {
     return <LoadingPage />;
   }
@@ -260,6 +339,25 @@ const DisponibilidadHistorialTab = () => {
                   {bombero.nombre}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Selector de registros por página */}
+          <div className="w-24">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Por página
+            </label>
+            <select
+              value={registrosPorPaginaLocal}
+              onChange={(e) => setRegistrosPorPaginaLocal(parseInt(e.target.value))}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value={5}>5</option>
+              <option value={8}>8</option>
+              <option value={12}>12</option>
+              <option value={16}>16</option>
+              <option value={20}>20</option>
+              <option value={25}>25</option>
             </select>
           </div>
 
@@ -362,6 +460,9 @@ const DisponibilidadHistorialTab = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Fecha Término
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Duración
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -374,7 +475,7 @@ const DisponibilidadHistorialTab = () => {
                   <tr key={disponibilidad.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {getBomberoInfo(disponibilidad.idBombero, disponibilidad)}
+                        {formatearBomberoInfo(disponibilidad)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -401,6 +502,14 @@ const DisponibilidadHistorialTab = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {disponibilidad.fechaTermino ? formatFecha(disponibilidad.fechaTermino) : 'En curso'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <FaClock className="text-blue-500 text-xs" />
+                        <span className="font-medium text-blue-600">
+                          {calcularDuracionTurno(disponibilidad.fechaInicio, disponibilidad.fechaTermino, estaDisponible(disponibilidad))}
+                        </span>
+                      </div>
                     </td>
                   </tr>
                 ));
@@ -429,8 +538,8 @@ const DisponibilidadHistorialTab = () => {
           if (totalPaginas <= 1) return null; // No mostrar paginación si hay 1 página o menos
 
           const numerosPaginas = generarNumerosPaginas(paginaActual, totalPaginas);
-          const indiceInicio = (paginaActual - 1) * registrosPorPagina + 1;
-          const indiceFin = Math.min(paginaActual * registrosPorPagina, registrosFiltrados.length);
+          const indiceInicio = (paginaActual - 1) * registrosPorPaginaLocal + 1;
+          const indiceFin = Math.min(paginaActual * registrosPorPaginaLocal, registrosFiltrados.length);
 
           return (
             <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">

@@ -75,6 +75,21 @@ export const DisponibilidadProvider = ({ children }) => {
   const availableTabs = tabsConfig.filter(tab => 
     tab.permissions.some(permission => hasPermiso(permission))
   );
+  
+  // Debug: Log de pestañas para depuración
+  console.log('[DEBUG] Configuración de pestañas:', tabsConfig);
+  console.log('[DEBUG] Pestañas disponibles:', availableTabs);
+  console.log('[DEBUG] Pestaña activa:', activeTab);
+
+  // Efecto para establecer la pestaña activa correcta basada en permisos
+  useEffect(() => {
+    if (availableTabs.length > 0) {
+      // Si la pestaña actual no está disponible, cambiar a la primera disponible
+      if (!availableTabs.some(tab => tab.id === activeTab)) {
+        setActiveTab(availableTabs[0].id);
+      }
+    }
+  }, [availableTabs, activeTab]);
 
   // Inicializar fechas por defecto
   const initializeFechas = useCallback(() => {
@@ -92,9 +107,12 @@ export const DisponibilidadProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // Cargar disponibilidades siempre
-      const disponibilidadesResponse = await getDisponibilidades();
-      const disponibilidadesData = Array.isArray(disponibilidadesResponse) ? disponibilidadesResponse : [];
+      // Cargar disponibilidades solo si tiene permisos
+      let disponibilidadesData = [];
+      if (hasPermiso('disponibilidad:obtener') || hasPermiso('disponibilidad:admin')) {
+        const disponibilidadesResponse = await getDisponibilidades();
+        disponibilidadesData = Array.isArray(disponibilidadesResponse) ? disponibilidadesResponse : [];
+      }
       setDisponibilidades(disponibilidadesData);
 
       // Solo cargar bomberos si tiene permisos para leer todos los bomberos

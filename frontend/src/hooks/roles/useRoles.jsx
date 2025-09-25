@@ -4,7 +4,7 @@ import {
   roleCreatedToast,
   roleDeletedToast,
   roleUpdatedToast
-} from '@helpers/toastHelper.js';
+} from '@helpers/toastHelper.jsx';
 import { 
   showErrorAlert,
   showConflictAlert,
