@@ -177,22 +177,25 @@ export async function deleteRolService(query) {
       where: [{ id: id }, { nombre: nombre }],
     });
 
-    if (!rolFound) return [null, "Rol no encontrado"];
+    if (!rolFound) {
+      return [null, "Rol no encontrado"];
+    }
 
     // Verificar si el rol está siendo usado por algún bombero consultando la tabla de unión
     const bomberoWithRol = await AppDataSource.query(
-      `SELECT COUNT(*) as count FROM usuario_roles WHERE rol_id = $1`,
+      `SELECT COUNT(*) as count FROM "bomberoRoles" WHERE "idRol" = $1`,
       [rolFound.id]
     );
 
     const bomberoCount = parseInt(bomberoWithRol[0].count);
+    
     if (bomberoCount > 0) {
       return [null, `No se puede eliminar el rol "${rolFound.nombre}" porque está asignado a ${bomberoCount} bombero(s)`];
     }
 
     // Primero eliminar las relaciones con permisos
     await AppDataSource.query(
-      `DELETE FROM rol_permisos WHERE rol_id = $1`,
+      `DELETE FROM "rolPermisos" WHERE "idRol" = $1`,
       [rolFound.id]
     );
     
@@ -204,7 +207,7 @@ export async function deleteRolService(query) {
 
     return [{ id: rolFound.id, nombre: rolFound.nombre }, null];
   } catch (error) {
-    console.error("Error al eliminar un rol:", error);
+    console.error("❌ Error al eliminar un rol:", error);
     return [null, "Error interno del servidor"];
   }
 }

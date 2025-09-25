@@ -5,6 +5,7 @@ import { MdVisibility, MdVisibilityOff, MdAdd, MdRemove } from 'react-icons/md';
 import { FaAsterisk } from "react-icons/fa";
 import MultiSelect from '@components/MultiSelect';
 import Select from '@components/Select';
+import LoadingSpinner from '@components/LoadingSpinner';
 import CustomDatePicker from './CustomDatePicker';
 import { registerLocale } from 'react-datepicker';
 import { es } from 'date-fns/locale';
@@ -494,7 +495,7 @@ const Form = forwardRef(({
                 >
                     {loading ? (
                         <div className="flex items-center justify-center space-x-2">
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                            <LoadingSpinner variant="spinner" size="sm" color="current" />
                             <span>Procesando...</span>
                         </div>
                     ) : (

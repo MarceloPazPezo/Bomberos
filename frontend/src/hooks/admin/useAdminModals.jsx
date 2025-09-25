@@ -9,12 +9,14 @@ export const useAdminModals = () => {
     createBombero: false,
     editBombero: false,
     createRol: false,
+    updateRol: false,
     bomberoDetail: false
   });
 
   const [modalData, setModalData] = useState({
     bombero: null,
-    bomberoDetail: null
+    bomberoDetail: null,
+    updateRol: null
   });
 
   const openModal = (modalName, data = null) => {

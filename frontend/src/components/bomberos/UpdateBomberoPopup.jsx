@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Form from '@components/Form';
+import LoadingSpinner from '@components/LoadingSpinner';
 import { MdClose, MdHelpOutline } from 'react-icons/md';
 import '@styles/popup.css';
 
@@ -318,7 +319,7 @@ export default function UpdateUserPopup({ show, setShow, data, onUserUpdated }) 
                                     >
                                         {loading ? (
                                             <div className="flex items-center space-x-2">
-                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                <LoadingSpinner variant="spinner" size="sm" color="white" />
                                                 <span>Actualizando...</span>
                                             </div>
                                         ) : (

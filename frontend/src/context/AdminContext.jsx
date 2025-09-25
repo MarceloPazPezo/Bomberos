@@ -1,0 +1,119 @@
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import { useAuth } from '@hooks/auth/useAuth';
+
+const AdminContext = createContext();
+
+/**
+ * Contexto principal para la administración
+ * Maneja el estado global de las pestañas y funciones comunes
+ */
+export const AdminProvider = ({ children }) => {
+  const { hasPermiso } = useAuth();
+  const [activeTab, setActiveTab] = useState('bomberos');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Configuración de pestañas disponibles
+  const tabsConfig = [
+    {
+      id: 'bomberos',
+      label: 'Bomberos',
+      description: 'Gestión de bomberos y voluntarios',
+      icon: 'MdPeople',
+      permissions: ['bombero:listar', 'bombero:leer']
+    },
+    {
+      id: 'roles',
+      label: 'Roles',
+      description: 'Gestión de roles del sistema',
+      icon: 'MdSecurity',
+      permissions: ['rol:listar', 'rol:leer']
+    },
+    {
+      id: 'permisos',
+      label: 'Permisos',
+      description: 'Gestión de permisos del sistema',
+      icon: 'MdVpnKey',
+      permissions: ['permiso:listar', 'permiso:leer']
+    },
+    {
+      id: 'companias',
+      label: 'Compañías',
+      description: 'Gestión de compañías',
+      icon: 'MdBusiness',
+      permissions: ['compania:listar', 'compania:leer']
+    },
+    {
+      id: 'direcciones',
+      label: 'Direcciones',
+      description: 'Gestión de direcciones',
+      icon: 'MdLocationOn',
+      permissions: ['direccion:listar', 'direccion:leer']
+    }
+  ];
+
+  // Obtener pestañas disponibles según permisos usando hasPermiso
+  const availableTabs = tabsConfig.filter(tab => 
+    tab.permissions.some(permission => hasPermiso(permission))
+  );
+
+  // Función para cambiar pestaña activa
+  const handleTabChange = useCallback((tabId) => {
+    if (availableTabs.some(tab => tab.id === tabId)) {
+      setActiveTab(tabId);
+    }
+  }, [availableTabs]);
+
+  // Función para refrescar datos
+  const triggerRefresh = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // Función para verificar permisos específicos de una pestaña
+  const hasTabPermission = useCallback((tabId, action) => {
+    const permission = `${tabId.slice(0, -1)}:${action}`; // bomberos -> bombero:crear
+    return hasPermiso(permission);
+  }, [hasPermiso]);
+
+  // Función para obtener configuración de una pestaña
+  const getTabConfig = useCallback((tabId) => {
+    return tabsConfig.find(tab => tab.id === tabId);
+  }, []);
+
+  const value = {
+    // Estado
+    activeTab,
+    availableTabs,
+    refreshTrigger,
+    
+    // Funciones
+    handleTabChange,
+    triggerRefresh,
+    hasTabPermission,
+    getTabConfig,
+    hasPermiso,
+    
+    // Configuración
+    tabsConfig
+  };
+
+  return (
+    <AdminContext.Provider value={value}>
+      {children}
+    </AdminContext.Provider>
+  );
+};
+
+/**
+ * Hook para usar el contexto de administración
+ */
+export const useAdmin = () => {
+  const context = useContext(AdminContext);
+  
+  if (!context) {
+    throw new Error('useAdmin debe ser usado dentro de un AdminProvider');
+  }
+  
+  return context;
+};
+
+export default AdminContext;

@@ -82,11 +82,17 @@ function formatTelefono(telefono) {
 export function formatBomberoData(bombero) {
     return {
         ...bombero,
-        nombres: Array.isArray(bombero.nombres) ? bombero.nombres.map(nombre => startCase(nombre)) : startCase(bombero.nombres),
-        apellidos: Array.isArray(bombero.apellidos) ? bombero.apellidos.map(apellido => startCase(apellido)) : startCase(bombero.apellidos),
+        id: bombero.id,
+        nombres: Array.isArray(bombero.nombres) 
+            ? bombero.nombres.map(nombre => startCase(nombre)).join(' ')
+            : startCase(bombero.nombres || ''),
+        apellidos: Array.isArray(bombero.apellidos) 
+            ? bombero.apellidos.map(apellido => startCase(apellido)).join(' ')
+            : startCase(bombero.apellidos || ''),
         run: formatRut(bombero.run),
+        email: bombero.email,
         activo: bombero.activo,
-        roles: Array.isArray(bombero.roles) ? bombero.roles.map(role => startCase(role)) : [],
+        roles: Array.isArray(bombero.roles) ? bombero.roles : [],
         creadoEl: bombero.creadoEl,
         actualizadoEl: bombero.actualizadoEl,
         creadoPor: bombero.creadoPor,
@@ -105,12 +111,16 @@ export function convertirMinusculas(obj) {
 
 export function formatBomberoDataUpdate(bombero) {
     return {
-        nombres: Array.isArray(bombero.nombres) ? bombero.nombres.map(nombre => startCase(nombre)) : startCase(bombero.nombres),
-        apellidos: Array.isArray(bombero.apellidos) ? bombero.apellidos.map(apellido => startCase(apellido)) : startCase(bombero.apellidos),
+        nombres: Array.isArray(bombero.nombres) 
+            ? bombero.nombres.map(nombre => startCase(nombre)).join(' ')
+            : startCase(bombero.nombres || ''),
+        apellidos: Array.isArray(bombero.apellidos) 
+            ? bombero.apellidos.map(apellido => startCase(apellido)).join(' ')
+            : startCase(bombero.apellidos || ''),
         run: formatRut(bombero.run),
         email: bombero.email,
         activo: bombero.activo,
-        roles: Array.isArray(bombero.roles) ? bombero.roles.map(role => startCase(role)) : [],
+        roles: Array.isArray(bombero.roles) ? bombero.roles : [],
         creadoEl: formatTempo(bombero.creadoEl, "DD-MM-YYYY"),
         actualizadoEl: formatTempo(bombero.actualizadoEl, "DD-MM-YYYY"),
         creadoPor: bombero.creadoPor,

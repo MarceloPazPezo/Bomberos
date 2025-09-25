@@ -86,7 +86,7 @@ export const updateRole = async (id, roleData) => {
 };
 
 /**
- * Elimina un rol
+ * Elimina un rol del sistema
  * @param {string} id - ID del rol a eliminar
  * @returns {Promise} Promesa que resuelve con la confirmación de eliminación
  */

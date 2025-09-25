@@ -82,14 +82,25 @@ export const useProfile = () => {
         return { success: true, message: 'Contraseña actualizada correctamente' };
       }
     } catch (err) {
+      console.error('Error al cambiar contraseña:', err);
+      
       // Manejar errores de validación por campo para contraseñas
       if (err.response?.data?.details && typeof err.response.data.details === 'object') {
         setFieldErrors(err.response.data.details);
         return { success: false, fieldErrors: err.response.data.details };
       } else {
         const errorMessage = err.response?.data?.message || 'Error al cambiar la contraseña';
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        
+        // Si el error es específicamente sobre contraseña actual incorrecta,
+        // marcarlo como error de campo para mejor UX
+        if (errorMessage.toLowerCase().includes('contraseña actual') || 
+            errorMessage.toLowerCase().includes('no coincide')) {
+          setFieldErrors({ currentPassword: errorMessage });
+          return { success: false, fieldErrors: { currentPassword: errorMessage } };
+        } else {
+          setError(errorMessage);
+          return { success: false, error: errorMessage };
+        }
       }
     } finally {
       setUpdating(false);

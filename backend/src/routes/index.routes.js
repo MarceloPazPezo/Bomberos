@@ -12,7 +12,9 @@ import direccionRoutes from "./direccion.routes.js";
 import subtipoIncidenteRoutes from "./subtipoIncidente.routes.js";
 import carroRoutes from "./carro.routes.js";
 import serviciosRoutes from "./servicios.routes.js";
-
+import regionRoutes from "./region.routes.js";
+import comunaRoutes from "./comuna.routes.js";
+import debugRoutes from "./debug.routes.js";
 
 const router = Router();
 
@@ -28,7 +30,10 @@ router
   .use("/direccion", direccionRoutes)
   .use("/subtipoIncidente", subtipoIncidenteRoutes)
   .use("/carro", carroRoutes)
-  .use("/servicios", serviciosRoutes);
-
+  .use("/servicios", serviciosRoutes)
+  .use("/region", regionRoutes)
+  .use("/comuna", comunaRoutes)
+  .use("/debug", debugRoutes)
+  .use("/health", healthRoutes);
 
 export default router;

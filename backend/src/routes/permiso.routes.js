@@ -12,25 +12,8 @@ const router = Router();
 
 router.use(authenticateJwt);
 
-// GET /api/permiso - Obtener todos los permisos con filtros
-router.get(
-  "/",
-  authorizePermisos(["permiso:leer"]),
-  getPermisos,
-);
-
-// GET /api/permiso/:id -> Obtener un permiso específico por su ID
-router.get(
-  "/:id",
-  authorizePermisos(["permiso:leer"]),
-  getPermiso,
-);
-
-// PUT /api/permiso/:id -> Actualizar un permiso específico por su ID
-router.put(
-  "/:id",
-  authorizePermisos(["permiso:actualizar"]),
-  updatePermiso,
-);
+router.get("/", authorizePermisos(["permiso:obtener"]), getPermisos);
+router.get("/detalle/:id", authorizePermisos(["permiso:admin"]), getPermiso);
+router.put("/detalle/:id", authorizePermisos(["permiso:admin"]), updatePermiso);
 
 export default router;

@@ -1,26 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Form from '../Form';
-import { MdClose, MdPersonAdd, MdSave, MdCalendarToday } from 'react-icons/md';
+import LoadingSpinner from '@components/LoadingSpinner';
+import { MdClose, MdPersonAdd, MdSave } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useRoles } from '@hooks/roles/useRoles';
-import { useRutFormatter, formatRutForAPI } from '@helpers/rutFormatter.js';
-import DatePicker, { registerLocale } from 'react-datepicker';
-import { es } from 'date-fns/locale';
-import 'react-datepicker/dist/react-datepicker.css';
 
-// Registrar el locale español
-registerLocale('es', es);
-
-export default function CreateUserPopup({ show, setShow, onUserCreated }) {
+export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const formRef = useRef(null);
-    
-    // Hook para formateo de RUT
-    const rutFormatter = useRutFormatter(
-        (fieldName, value) => formRef.current?.setValue(fieldName, value),
-        'run'
-    );
 
     // Función para enfocar el primer campo con error
     const focusFirstErrorField = () => {
@@ -89,11 +77,14 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
             setErrors(prev => ({ ...prev, [field]: null }));
         }
         
-        // Para campos de fecha, convertir Date a formato ISO si es necesario
-        if ((field === 'fechaNacimiento' || field === 'fechaIngreso') && value instanceof Date) {
-            // El DatePicker ya maneja la conversión a ISO en Form.jsx
-            // Solo necesitamos limpiar errores aquí
-            return;
+        // Para nombres y apellidos, convertir string a array
+        if (field === 'nombres' || field === 'apellidos') {
+            if (typeof value === 'string' && value.trim()) {
+                // Dividir por espacios y filtrar elementos vacíos
+                const arrayValue = value.split(' ').filter(item => item.trim() !== '');
+                // Retornar para uso posterior en transformedData
+                return arrayValue;
+            }
         }
     };
 
@@ -122,47 +113,34 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
         setErrors(errorDetails || {});
     };
 
-    const patternRut = new RegExp(/^(?:(?:[1-9]\d{0}|[1-2]\d{1})(\.\d{3}){2}|[1-9]\d{6}|[1-2]\d{7}|29\.999\.999|29999999)-[\dkK]$/);
-
     const handleSubmit = async (createdUserData) => {
-        if (createdUserData && onUserCreated) {
+        if (createdUserData && onBomberoCreated) {
             setLoading(true);
             try {
+                // Función para formatear RUT para API (remover puntos, mantener guión)
+                const formatRutForAPI = (rut) => {
+                    if (!rut) return '';
+                    return rut.replace(/\./g, '');
+                };
+
                 // Transformar los datos para que coincidan con el formato esperado por el backend
                 const transformedData = {
-                    ...createdUserData,
                     // Formatear RUT para API (sin puntos, solo guión)
                     run: formatRutForAPI(createdUserData.run),
                     // Convertir nombres y apellidos de string a array
                     nombres: createdUserData.nombres ? createdUserData.nombres.split(' ').filter(name => name.trim() !== '') : [],
                     apellidos: createdUserData.apellidos ? createdUserData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
+                    // Campos básicos requeridos
+                    email: createdUserData.email,
+                    password: createdUserData.password,
                     // Transformar roles del multiselect al formato esperado por el backend
                     roles: createdUserData.roles ? createdUserData.roles.map(role => role.value) : [],
-                    // Convertir alergias de string a array separando solo por comas
-                    alergias: createdUserData.alergias ? 
-                        createdUserData.alergias.split(',').map(alergia => alergia.trim()).filter(alergia => alergia !== '') : [],
-                    // Convertir medicamentos de string a array separando solo por comas
-                    medicamentos: createdUserData.medicamentos ? 
-                        createdUserData.medicamentos.split(',').map(medicamento => medicamento.trim()).filter(medicamento => medicamento !== '') : [],
-                    // Convertir condiciones de string a array separando solo por comas
-                    condiciones: createdUserData.condiciones ? 
-                        createdUserData.condiciones.split(',').map(condicion => condicion.trim()).filter(condicion => condicion !== '') : []
+                    // Estado activo
+                    activo: createdUserData.activo !== undefined ? createdUserData.activo : true
                 };
 
-                // Si el tipo de sangre está vacío o es "No especificado", no lo incluir en los datos
-                if (!transformedData.tipoSangre || transformedData.tipoSangre === '') {
-                    delete transformedData.tipoSangre;
-                }
-
-                // Si las fechas están vacías, no las incluir en los datos
-                if (!transformedData.fechaNacimiento || transformedData.fechaNacimiento === '') {
-                    delete transformedData.fechaNacimiento;
-                }
-                if (!transformedData.fechaIngreso || transformedData.fechaIngreso === '') {
-                    delete transformedData.fechaIngreso;
-                }
                 
-                const result = await onUserCreated(transformedData);
+                const result = await onBomberoCreated(transformedData);
                 if (result.success) {
                     setShow(false);
                     setErrors({});
@@ -198,7 +176,7 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                 <div className="p-2 bg-white/20 rounded-lg">
                                     <MdPersonAdd className="w-6 h-6 text-white" />
                                 </div>
-                                <h2 className="text-xl font-bold text-white">Crear Nuevo Usuario</h2>
+                                <h2 className="text-xl font-bold text-white">Crear Nuevo Bombero</h2>
                             </div>
                             <button
                                 className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group"
@@ -220,10 +198,10 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Nombres",
                                         name: "nombres",
-                                        placeholder: 'Diego Alexis',
+                                        placeholder: 'Ingrese los nombres',
                                         fieldType: 'input',
                                         type: "text",
-                                        required: false,
+                                        required: true,
                                         minLength: 2,
                                         maxLength: 50,
                                         pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑàèìòùÀÈÌÒÙ\s]+$/,
@@ -234,10 +212,10 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                     {
                                         label: "Apellidos",
                                         name: "apellidos",
-                                        placeholder: 'Salazar Jara',
+                                        placeholder: 'Ingrese los apellidos',
                                         fieldType: 'input',
                                         type: "text",
-                                        required: false,
+                                        required: true,
                                         minLength: 2,
                                         maxLength: 50,
                                         pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑàèìòùÀÈÌÒÙ\s]+$/,
@@ -246,140 +224,42 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         autoComplete: "off"
                                     },
                                     {
+                                        label: "RUT",
+                                        name: "run",
+                                        placeholder: '12.345.678-9',
+                                        fieldType: 'input',
+                                        type: "text",
+                                        required: true,
+                                        minLength: 11,
+                                        maxLength: 12,
+                                        pattern: /^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/,
+                                        patternMessage: "Formato válido: 12.345.678-9",
+                                        errorMessageData: errors.run,
+                                        onChange: (e) => {
+                                            // Formateo automático del RUT
+                                            let value = e.target.value.replace(/[^\dkK]/g, '');
+                                            if (value.length > 1) {
+                                                value = value.slice(0, -1).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.') + '-' + value.slice(-1);
+                                            }
+                                            e.target.value = value;
+                                            handleInputChange('run', value);
+                                        },
+                                        autoComplete: "off"
+                                    },
+                                    {
                                         label: "Correo electrónico",
                                         name: "email",
-                                        placeholder: 'example@gmail.cl',
+                                        placeholder: 'example@bomberosxiregion.cl',
                                         fieldType: 'input',
                                         type: "email",
                                         required: true,
                                         minLength: 15,
                                         maxLength: 255,
+                                        pattern: /^[a-zA-Z0-9._%+-]+@bomberosxiregion\.cl$/,
+                                        patternMessage: "Debe usar el dominio @bomberosxiregion.cl",
                                         errorMessageData: errors.email,
                                         onChange: (e) => handleInputChange('email', e.target.value),
                                         autoComplete: "new-email"
-                                    },
-                                    {
-                                        ...rutFormatter.getFieldConfig(),
-                                        errorMessageData: errors.run,
-                                        onChange: (e) => {
-                                            // Primero ejecutar el formateo del RUT
-                                            rutFormatter.getFieldConfig().onChange(e);
-                                            // Luego limpiar errores
-                                            handleInputChange('run', e.target.value);
-                                        }
-                                    },
-                                    {
-                                        label: "Teléfono",
-                                        name: "telefono",
-                                        placeholder: '+56912345678',
-                                        fieldType: 'input',
-                                        type: "tel",
-                                        required: false,
-                                        minLength: 8,
-                                        maxLength: 20,
-                                        errorMessageData: errors.telefono,
-                                        onChange: (e) => handleInputChange('telefono', e.target.value),
-                                        autoComplete: "tel"
-                                    },
-                                    {
-                                        label: "Fecha de nacimiento",
-                                        name: "fechaNacimiento",
-                                        fieldType: 'datepicker',
-                                        required: true,
-                                        errorMessageData: errors.fechaNacimiento,
-                                        onChange: (date) => handleInputChange('fechaNacimiento', date),
-                                        maxDate: new Date(), // No permitir fechas futuras
-                                        autoComplete: "bday"
-                                    },
-                                    {
-                                        label: "Fecha de ingreso",
-                                        name: "fechaIngreso",
-                                        fieldType: 'datepicker',
-                                        required: false,
-                                        errorMessageData: errors.fechaIngreso,
-                                        onChange: (date) => handleInputChange('fechaIngreso', date),
-                                        autoComplete: "off"
-                                    },
-                                    {
-                                        label: "Dirección",
-                                        name: "direccion",
-                                        placeholder: 'Av. Principal 123, Santiago',
-                                        fieldType: 'input',
-                                        type: "text",
-                                        required: false,
-                                        minLength: 5,
-                                        maxLength: 255,
-                                        errorMessageData: errors.direccion,
-                                        onChange: (e) => handleInputChange('direccion', e.target.value),
-                                        autoComplete: "street-address"
-                                    },
-                                    {
-                                        label: "Tipo de sangre",
-                                        name: "tipoSangre",
-                                        fieldType: 'select',
-                                        required: false,
-                                        placeholder: "Seleccionar tipo de sangre",
-                                        options: [
-                                            { value: '', label: 'No especificado' },
-                                            { value: 'A+', label: 'A+' },
-                                            { value: 'A-', label: 'A-' },
-                                            { value: 'B+', label: 'B+' },
-                                            { value: 'B-', label: 'B-' },
-                                            { value: 'AB+', label: 'AB+' },
-                                            { value: 'AB-', label: 'AB-' },
-                                            { value: 'O+', label: 'O+' },
-                                            { value: 'O-', label: 'O-' }
-                                        ],
-                                        errorMessageData: errors.tipoSangre,
-                                        onChange: (e) => handleInputChange('tipoSangre', e.target.value)
-                                    },
-                                    {
-                                        label: "Alergias",
-                                        name: "alergias",
-                                        placeholder: 'Penicilina, mariscos, polen de abedul (separar con comas)',
-                                        fieldType: 'textarea',
-                                        required: false,
-                                        maxLength: 500,
-                                        rows: 3,
-                                        errorMessageData: errors.alergias,
-                                        onChange: (e) => handleInputChange('alergias', e.target.value),
-                                        autoComplete: "off"
-                                    },
-                                    {
-                                        label: "Medicamentos",
-                                        name: "medicamentos",
-                                        placeholder: 'Aspirina, Losartán 50mg, Metformina XR (separar con comas)',
-                                        fieldType: 'textarea',
-                                        required: false,
-                                        maxLength: 500,
-                                        rows: 3,
-                                        errorMessageData: errors.medicamentos,
-                                        onChange: (e) => handleInputChange('medicamentos', e.target.value),
-                                        autoComplete: "off"
-                                    },
-                                    {
-                                        label: "Condiciones médicas",
-                                        name: "condiciones",
-                                        placeholder: 'Diabetes tipo 2, Hipertensión arterial, Asma bronquial (separar con comas)',
-                                        fieldType: 'textarea',
-                                        required: false,
-                                        maxLength: 500,
-                                        rows: 3,
-                                        errorMessageData: errors.condiciones,
-                                        onChange: (e) => handleInputChange('condiciones', e.target.value),
-                                        autoComplete: "off"
-                                    },
-                                    {
-                                        label: "Roles",
-                                        name: "roles",
-                                        fieldType: 'multiselect',
-                                        options: rolesOptions,
-                                        defaultValue: [],
-                                        required: true,
-                                        placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles...",
-                                        searchPlaceholder: "Buscar roles...",
-                                        errorMessageData: errors.roles,
-                                        isLoading: rolesLoading
                                     },
                                     {
                                         label: "Contraseña",
@@ -395,6 +275,31 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                                         errorMessageData: errors.password,
                                         onChange: (e) => handleInputChange('password', e.target.value),
                                         autoComplete: "new-password"
+                                    },
+                                    {
+                                        label: "Roles",
+                                        name: "roles",
+                                        fieldType: 'multiselect',
+                                        options: rolesOptions,
+                                        defaultValue: [],
+                                        required: true,
+                                        placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles...",
+                                        searchPlaceholder: "Buscar roles...",
+                                        errorMessageData: errors.roles,
+                                        isLoading: rolesLoading
+                                    },
+                                    {
+                                        label: "Estado",
+                                        name: "activo",
+                                        fieldType: 'select',
+                                        required: true,
+                                        placeholder: "Seleccionar estado",
+                                        options: [
+                                            { value: 'true', label: 'Activo' },
+                                            { value: 'false', label: 'Inactivo' }
+                                        ],
+                                        errorMessageData: errors.activo,
+                                        onChange: (e) => handleInputChange('activo', e.target.value === 'true')
                                     }
                                 ]}
                                 onSubmit={handleSubmit}
@@ -428,13 +333,13 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
                             >
                                 {loading ? (
                                     <>
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        <LoadingSpinner variant="spinner" size="sm" color="white" />
                                         <span>Creando...</span>
                                     </>
                                 ) : (
                                     <>
                                         <MdSave className="w-4 h-4" />
-                                        <span>Crear Usuario</span>
+                                        <span>Crear Bombero</span>
                                     </>
                                 )}
                             </button>
@@ -445,8 +350,8 @@ export default function CreateUserPopup({ show, setShow, onUserCreated }) {
         </div>
     );
 }
-CreateUserPopup.propTypes = {
+CreateBomberoPopup.propTypes = {
     show: PropTypes.bool.isRequired,
     setShow: PropTypes.func.isRequired,
-    onUserCreated: PropTypes.func.isRequired,
+    onBomberoCreated: PropTypes.func.isRequired,
 };

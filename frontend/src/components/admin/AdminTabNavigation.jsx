@@ -1,7 +1,8 @@
-import { MdPerson, MdSecurity, MdAdminPanelSettings, MdBusiness } from 'react-icons/md';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { MdPerson, MdSecurity, MdAdminPanelSettings, MdBusiness, MdLocationOn, MdHome } from 'react-icons/md';
 
 /**
- * Componente de navegación por pestañas para el panel de administración
+ * Componente de navegación por pestañas para el panel de administración con slider animado
  * @param {Object} props - Props del componente
  * @param {Array} props.availableTabs - Lista de pestañas disponibles
  * @param {string} props.activeTab - Pestaña activa actual
@@ -10,6 +11,10 @@ import { MdPerson, MdSecurity, MdAdminPanelSettings, MdBusiness } from 'react-ic
  * @returns {JSX.Element} Componente AdminTabNavigation
  */
 const AdminTabNavigation = ({ availableTabs, activeTab, onTabChange, hasPermiso }) => {
+  const [sliderStyle, setSliderStyle] = useState({});
+  const containerRef = useRef(null);
+  const tabRefs = useRef({});
+
   const tabConfig = {
     bomberos: {
       icon: MdPerson,
@@ -26,47 +31,129 @@ const AdminTabNavigation = ({ availableTabs, activeTab, onTabChange, hasPermiso 
       label: 'Permisos',
       permiso: 'permiso:leer'
     },
-    configuraciones: {
+    companias: {
       icon: MdBusiness,
+      label: 'Compañías',
+      permiso: 'compania:leer'
+    },
+    direcciones: {
+      icon: MdLocationOn,
+      label: 'Direcciones',
+      permiso: 'direccion:leer'
+    },
+    configuraciones: {
+      icon: MdHome,
       label: 'Configuraciones',
       permiso: 'configuracion:leer'
     }
   };
 
-  if (availableTabs.length === 0) {
+  // Memoizar las pestañas visibles para evitar recálculos innecesarios
+  const visibleTabs = useMemo(() => {
+    return availableTabs.filter(tabKey => {
+      const tab = tabConfig[tabKey];
+      return tab && hasPermiso(tab.permiso);
+    });
+  }, [availableTabs, hasPermiso]);
+
+  // Función para actualizar la posición del slider
+  const updateSliderPosition = () => {
+    if (tabRefs.current[activeTab] && containerRef.current) {
+      const activeTabElement = tabRefs.current[activeTab];
+      const containerElement = containerRef.current;
+      
+      const containerRect = containerElement.getBoundingClientRect();
+      const tabRect = activeTabElement.getBoundingClientRect();
+      
+      const left = tabRect.left - containerRect.left - 4; // -4 por el padding del contenedor
+      const width = tabRect.width;
+      
+      setSliderStyle({
+        transform: `translateX(${left}px)`,
+        width: `${width}px`,
+      });
+    }
+  };
+
+  // Actualizar posición del slider cuando cambia la pestaña activa
+  useEffect(() => {
+    updateSliderPosition();
+  }, [activeTab]);
+
+  // Actualizar posición del slider cuando cambian las pestañas visibles
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      updateSliderPosition();
+    }, 0);
+    
+    return () => clearTimeout(timer);
+  }, [visibleTabs.length]);
+
+  if (visibleTabs.length === 0) {
     return null;
   }
 
   return (
-    <div className="mb-6">
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {availableTabs.map((tabKey) => {
-            const tab = tabConfig[tabKey];
-            if (!tab || !hasPermiso(tab.permiso)) return null;
+    <div className="flex">
+      <div 
+        ref={containerRef}
+        className="relative flex bg-gradient-to-r from-gray-100 to-gray-50 rounded-xl p-1 shadow-inner border border-gray-200/50"
+      >
+        {/* Slider animado */}
+        <div
+          className="absolute top-1 bottom-1 bg-white rounded-lg shadow-lg border border-[#4EB9FA]/20 transition-all duration-300 ease-out"
+          style={sliderStyle}
+        >
+          {/* Efecto de brillo en el slider */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#4EB9FA]/5 via-[#4EB9FA]/10 to-[#4EB9FA]/5 rounded-lg"></div>
+        </div>
 
-            const Icon = tab.icon;
-            const isActive = activeTab === tabKey;
+        {/* Pestañas */}
+        {visibleTabs.map((tabKey) => {
+          const tab = tabConfig[tabKey];
+          const Icon = tab.icon;
+          const isActive = activeTab === tabKey;
 
-            return (
-              <button
-                key={tabKey}
-                onClick={() => onTabChange(tabKey)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                  isActive
-                    ? 'border-[#4EB9FA] text-[#2C3E50]'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-                type="button"
-              >
-                <span className="flex items-center gap-2">
-                  <Icon size={18} />
+          return (
+            <button
+              key={tabKey}
+              ref={(el) => tabRefs.current[tabKey] = el}
+              onClick={() => onTabChange(tabKey)}
+              className={`
+                relative px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-300 ease-out transform
+                ${isActive
+                  ? 'text-[#2C3E50] scale-105 z-10'
+                  : 'text-gray-600 hover:text-[#2C3E50] hover:scale-102 z-0'
+                }
+              `}
+              type="button"
+            >
+              <span className="flex items-center gap-2 relative z-10">
+                <Icon 
+                  size={18} 
+                  className={`transition-all duration-300 ${
+                    isActive 
+                      ? 'text-[#4EB9FA] drop-shadow-sm' 
+                      : 'text-gray-500 group-hover:text-[#4EB9FA]'
+                  }`} 
+                />
+                <span className={`transition-all duration-300 ${
+                  isActive ? 'font-semibold' : 'font-medium'
+                }`}>
                   {tab.label}
                 </span>
-              </button>
-            );
-          })}
-        </nav>
+              </span>
+              
+              {/* Indicador de actividad sutil */}
+              {isActive && (
+                <div className="absolute -bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-[#4EB9FA] rounded-full opacity-60"></div>
+              )}
+            </button>
+          );
+        })}
+        
+        {/* Efecto de brillo en los bordes */}
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"></div>
       </div>
     </div>
   );

@@ -4,19 +4,19 @@ import {
   deleteDisponibilidadService,
   getDisponibilidadService,
   getDisponibilidadesService,
-  updateDisponibilidadService,
   cerrarDisponibilidadService,
   getDisponibilidadActivaService,
 } from "../services/disponibilidad.service.js";
 import {
   disponibilidadCreateValidation,
-  disponibilidadUpdateValidation,
   disponibilidadCerrarValidation,
   disponibilidadQueryValidation,
   disponibilidadIdParamsValidation,
   disponibilidadBomberoParamsValidation,
 } from "../validations/disponibilidad.validation.js";
 import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
+import { getIO } from "../index.js";
+import { emitDisponibilidadUpdate } from "../sockets/activeUsers.socket.js";
 
 export async function getDisponibilidades(req, res) {
   try {
@@ -42,6 +42,12 @@ export async function createDisponibilidad(req, res) {
 
     if (disponibilidadError) return handleErrorClient(res, 400, disponibilidadError);
 
+    // Emitir evento de socket cuando se crea una disponibilidad
+    const io = getIO();
+    if (io) {
+      emitDisponibilidadUpdate(io, 'created', newDisponibilidad);
+    }
+
     handleSuccess(res, 201, "Disponibilidad creada correctamente", newDisponibilidad);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
@@ -58,24 +64,6 @@ export async function getDisponibilidad(req, res) {
     if (errorDisponibilidad) return handleErrorClient(res, 404, errorDisponibilidad);
 
     handleSuccess(res, 200, "Disponibilidad obtenida", disponibilidad);
-  } catch (error) {
-    handleErrorServer(res, 500, error.message);
-  }
-}
-
-export async function updateDisponibilidad(req, res) {
-  try {
-    const { error: paramsError } = disponibilidadIdParamsValidation.validate(req.params);
-    if (paramsError) return handleErrorClient(res, 400, paramsError.message);
-
-    const { error: bodyError } = disponibilidadUpdateValidation.validate(req.body);
-    if (bodyError) return handleErrorClient(res, 400, bodyError.message);
-
-    const [disponibilidad, disponibilidadError] = await updateDisponibilidadService(req.params, req.body);
-
-    if (disponibilidadError) return handleErrorClient(res, 400, disponibilidadError);
-
-    handleSuccess(res, 200, "Disponibilidad actualizada correctamente", disponibilidad);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
   }
@@ -104,6 +92,12 @@ export async function cerrarDisponibilidad(req, res) {
     const [disponibilidad, disponibilidadError] = await cerrarDisponibilidadService({}, req.body);
 
     if (disponibilidadError) return handleErrorClient(res, 400, disponibilidadError);
+
+    // Emitir evento de socket cuando se cierra una disponibilidad
+    const io = getIO();
+    if (io) {
+      emitDisponibilidadUpdate(io, 'closed', disponibilidad);
+    }
 
     handleSuccess(res, 200, "Disponibilidad cerrada correctamente", disponibilidad);
   } catch (error) {

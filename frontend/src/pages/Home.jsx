@@ -65,43 +65,6 @@ const Home = () => {
       </div>
 
       <div className="max-w-6xl mx-auto p-4 sm:p-8">
-
-
-
-        {/* Funcionalidades Principales */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-center text-slate-900 mb-8">Funcionalidades del Sistema</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 text-center hover:shadow-xl transition-shadow">
-              <MdPeople className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="font-bold text-slate-900 mb-2">Personal</h3>
-              <p className="text-sm text-slate-600">Gestión de bomberos y voluntarios</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 text-center hover:shadow-xl transition-shadow">
-              <MdAssignment className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <h3 className="font-bold text-slate-900 mb-2">Reportes</h3>
-              <p className="text-sm text-slate-600">Informes y estadísticas</p>
-            </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg border border-slate-200 text-center hover:shadow-xl transition-shadow">
-              <MdSettings className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-              <h3 className="font-bold text-slate-900 mb-2">Configuración</h3>
-              <p className="text-sm text-slate-600">Personalización del sistema</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Usuarios Activos */}
-        <section className="mb-8">
-          <BomberosActivos />
-        </section>
-
-        {/* Configuración del Sistema (Solo para Administradores)
-        {bombero && bombero.roles?.some(role => role.name === 'Administrador') && (
-          <section className="mb-8">
-            <SystemConfigManager />
-          </section>
-        )} */}
-
         {/* Estadísticas Rápidas */}
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-center text-slate-900 mb-8">Estado del Sistema</h2>

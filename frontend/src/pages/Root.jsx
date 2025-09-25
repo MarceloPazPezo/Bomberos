@@ -4,6 +4,7 @@ import { AuthProvider } from '@context/AuthContext';
 import { useAuth } from '@hooks/auth/useAuth';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
+import LoadingPage from '@components/LoadingPage';
 
 function Root() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -19,14 +20,7 @@ function AuthWrapper({ sidebarOpen, setSidebarOpen }) {
   
   // Mostrar loading global mientras se inicializa la autenticación
   if (loading) {
-    return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-600 text-lg font-medium">Cargando aplicación...</p>
-        </div>
-      </div>
-    );
+    return <LoadingPage message="Cargando aplicación..." />;
   }
 
   return <PageRoot sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />;

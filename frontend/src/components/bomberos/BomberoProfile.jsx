@@ -7,7 +7,7 @@ import {
   MdKeyboardArrowDown 
 } from 'react-icons/md';
 
-const UserProfile = () => {
+const BomberoProfile = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { bombero, logout: authLogout, hasPermiso } = useAuth();
   const navigate = useNavigate();
@@ -102,44 +102,10 @@ const UserProfile = () => {
           />
           
           {/* Panel del perfil */}
-          <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
-            {/* Header con información del usuario */}
-            <div className="px-4 py-3 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-semibold text-lg">
-                    {getUserInitials()}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {getFullName()}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {bombero.email}
-                  </p>
-                  {/* Roles */}
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {bombero.roles && bombero.roles.length > 0 ? (
-                      bombero.roles.map((role, index) => (
-                        <span
-                          key={index}
-                          className={getRoleColor(role.nombre || role.name || role)}
-                        >
-                          {role.nombre || role.name || role}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-gray-400">Sin roles asignados</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          <div className="absolute mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
             {/* Opciones del menú */}
-            <div className="py-2">
-              {hasPermiso('bombero:leer_perfil') && (
+            <div className="py-1">
+              {hasPermiso('bombero:obtener_perfil') && (
                 <button
                   onClick={() => {
                     setIsOpen(false);
@@ -147,22 +113,16 @@ const UserProfile = () => {
                   }}
                   className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                 >
-                  <MdPerson className="h-5 w-5 mr-3 text-gray-400" />
+                  <MdPerson className="h-4 w-4 mr-3 text-gray-400" />
                   Ver perfil
                 </button>
               )}
-            </div>
-
-            {/* Separador */}
-            <div className="border-t border-gray-200" />
-
-            {/* Cerrar sesión */}
-            <div className="py-2">
+              
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200"
               >
-                <MdLogout className="h-5 w-5 mr-3 text-red-500" />
+                <MdLogout className="h-4 w-4 mr-3 text-red-500" />
                 Cerrar sesión
               </button>
             </div>
@@ -173,4 +133,4 @@ const UserProfile = () => {
   );
 };
 
-export default UserProfile;
+export default BomberoProfile;

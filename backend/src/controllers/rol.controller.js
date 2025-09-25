@@ -105,7 +105,7 @@ export async function deleteRol(req, res) {
     const queryParams = {
       id: parseInt(id, 10),
     };
-
+    
     const { error: queryError } = rolQueryValidation.validate(queryParams);
 
     if (queryError) {
@@ -119,13 +119,24 @@ export async function deleteRol(req, res) {
 
     const [rolDelete, errorRolDelete] = await deleteRolService(queryParams);
 
-    if (errorRolDelete)
+    if (errorRolDelete) {
+      // Si el error es porque el rol no existe, usar 404
+      if (errorRolDelete === "Rol no encontrado") {
+        return handleErrorClient(
+          res,
+          404,
+          "Rol no encontrado",
+          errorRolDelete,
+        );
+      }
+      // Si el error es porque está asignado a bomberos, usar 409 (Conflict)
       return handleErrorClient(
         res,
-        404,
-        "Error eliminado al rol",
+        409,
+        "No se puede eliminar el rol",
         errorRolDelete,
       );
+    }
 
     handleSuccess(res, 200, "Rol eliminado correctamente", rolDelete);
   } catch (error) {

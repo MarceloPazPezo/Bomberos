@@ -11,7 +11,7 @@ import {
 import { useRoles } from '@hooks/roles/useRoles';
 import usePermisos from '@hooks/permisos/usePermisos';
 
-const RoleFormModal = ({ show, setShow, editingRole, onSuccess }) => {
+const RolFormModal = ({ show, setShow, editingRole, onSuccess }) => {
   const { handleCreateRole, handleUpdateRole } = useRoles();
   const { permisos, permisosByCategory, refreshPermisosByCategory } = usePermisos();
   
@@ -337,4 +337,4 @@ const RoleFormModal = ({ show, setShow, editingRole, onSuccess }) => {
   );
 };
 
-export default RoleFormModal;
+export default RolFormModal;
