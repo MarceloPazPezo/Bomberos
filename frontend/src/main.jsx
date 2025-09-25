@@ -8,6 +8,7 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
+import CrearParte from '@pages/crearParte';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import '@styles/styles.css';
@@ -61,6 +62,15 @@ const router = createBrowserRouter([
       {
         path: '/test-roles',
         element: <TestRoles />
+      },
+
+            {
+        path: '/crearparte',
+        element: (
+          <ProtectedRoute>
+            <CrearParte />
+          </ProtectedRoute>
+        )
       },
 
     ]

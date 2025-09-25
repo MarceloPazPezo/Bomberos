@@ -8,6 +8,11 @@ import permisoRoutes from "./permiso.routes.js";
 import healthRoutes from "./health.routes.js";
 import disponibilidadRoutes from "./disponibilidad.routes.js";
 import companiaRoutes from "./compania.routes.js";
+import direccionRoutes from "./direccion.routes.js";
+import subtipoIncidenteRoutes from "./subtipoIncidente.routes.js";
+import carroRoutes from "./carro.routes.js";
+import serviciosRoutes from "./servicios.routes.js";
+
 
 const router = Router();
 
@@ -19,6 +24,11 @@ router
   .use("/permiso", permisoRoutes)
   .use("/disponibilidad", disponibilidadRoutes)
   .use("/compania", companiaRoutes)
-  .use("/health", healthRoutes);
+  .use("/health", healthRoutes)
+  .use("/direccion", direccionRoutes)
+  .use("/subtipoIncidente", subtipoIncidenteRoutes)
+  .use("/carro", carroRoutes)
+  .use("/servicios", serviciosRoutes);
+
 
 export default router;
