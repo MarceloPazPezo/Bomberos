@@ -8,6 +8,10 @@ import permisoRoutes from "./permiso.routes.js";
 import healthRoutes from "./health.routes.js";
 import disponibilidadRoutes from "./disponibilidad.routes.js";
 import companiaRoutes from "./compania.routes.js";
+import direccionRoutes from "./direccion.routes.js";
+import subtipoIncidenteRoutes from "./subtipoIncidente.routes.js";
+import carroRoutes from "./carro.routes.js";
+import serviciosRoutes from "./servicios.routes.js";
 import regionRoutes from "./region.routes.js";
 import comunaRoutes from "./comuna.routes.js";
 import debugRoutes from "./debug.routes.js";
@@ -22,6 +26,11 @@ router
   .use("/permiso", permisoRoutes)
   .use("/disponibilidad", disponibilidadRoutes)
   .use("/compania", companiaRoutes)
+  .use("/health", healthRoutes)
+  .use("/direccion", direccionRoutes)
+  .use("/subtipoIncidente", subtipoIncidenteRoutes)
+  .use("/carro", carroRoutes)
+  .use("/servicios", serviciosRoutes)
   .use("/region", regionRoutes)
   .use("/comuna", comunaRoutes)
   .use("/debug", debugRoutes)

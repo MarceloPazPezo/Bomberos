@@ -76,3 +76,28 @@ export async function changeBomberoEstado(idBombero, activo) {
         return error.response?.data || error;
     }
 }
+
+//obtener bomberos por compañia
+export async function getBomberosPorCompania(idCompania) {
+    try {
+        const { data } = await axios.get(`/bombero/compania/${idCompania}`);
+        const formattedData = data.data.map(formatBomberoData);
+        console.log('Formatted Data:', formattedData); // Log para verificar los datos formateados
+        return formattedData;
+    } catch (error) {
+        console.error('Error in getBomberosPorCompania:', error);
+        return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
+    }
+}
+//obtener bomberos con licencias
+export async function getBomberosConLicencias(idCompania) {
+    try {
+        const { data } = await axios.get(`/bombero/licencias/${idCompania}`);
+        const formattedData = data.data.map(formatBomberoData);
+        console.log('Formatted Data:', data.data); // Log para verificar los datos formateados
+        return formattedData;
+    } catch (error) {
+        console.error('Error in getBomberosConLicencias:', error);
+        return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
+    }
+}

@@ -17,7 +17,7 @@ const FichaBomberoSchema = new EntitySchema({
     fotoPerfilKEY: { type: "varchar", length: 255, nullable: true },
 
     idCompania: { type: "int", nullable: false },
-    idDireccion: { type: "int", nullable: false },
+    idDireccion: { type: "int", nullable: true },
     idTipoSangre: { type: "int", nullable: true },
 
     idBombero: { type: "int", nullable: false, unique: true },

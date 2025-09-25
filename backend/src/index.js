@@ -33,6 +33,13 @@ import {
   crearComunas,
 } from "./config/data/initialRegionComuna.js";
 
+import {
+  crearSubTipoIncidente,
+  crearClasificacionEmergencia,
+  crearTipoDano,
+  crearfaseIncidente
+} from "./config/data/initialSubTipoIncidente.js";
+
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { handleSocketConnection } from "./sockets/activeUsers.socket.js";
@@ -42,6 +49,9 @@ let ioInstance = null;
 
 export const getIO = () => ioInstance;
 import { addAbortListener } from "events";
+import crearServicios from "./config/data/initialOtrosServicios.js";
+
+
 async function setupServer() {
   try {
     const app = express();
@@ -136,6 +146,14 @@ async function setupAPI() {
     await crearRoles();
     
     await crearBomberos();
+
+
+    await crearClasificacionEmergencia();
+    await crearSubTipoIncidente();
+    await crearTipoDano();
+    await crearfaseIncidente();
+    await crearServicios();
+    
 
     logger.info("[CONFIG] Configuración inicial completada");
   } catch (error) {

@@ -1,0 +1,161 @@
+import { AppDataSource } from "../configDb.js";
+import logger from "../logger.js";
+import subTipoIncidente from "../../entities/subtipoIncidente.entity.js"
+import clasificacionEmergencia from "../../entities/clasificacionEmergencia.entity.js";
+import TipoDano from "../../entities/tipoDano.entity.js";
+import faseIncidente from "../../entities/faseIncidente.entity.js";
+
+async function crearTipoDano(params) {
+    try {
+        const tipoDanoRepository = AppDataSource.getRepository(TipoDano);
+        const count = await tipoDanoRepository.count();
+        if (count > 0) {
+            logger.info("[SERVER] TipoDano ya existen, omitiendo creación.");
+            return;
+        }
+        const tipoDanoData = [
+            { nombre: "COMPARTIMENTAL" },
+            { nombre: "MULTICOMPARTIMENTAL" },
+            { nombre: "ESTRUCTURAL" },
+        ];
+
+        for (const tipoDanoItem of tipoDanoData) {
+            const tipoDanoEntity = tipoDanoRepository.create(tipoDanoItem);
+            await tipoDanoRepository.save(tipoDanoEntity);
+        }
+        logger.info("[SERVER] TipoDano creados exitosamente");
+    } catch (error) {
+        logger.errorWithContext(error, { function: "crearTipoDano" });
+        throw error;
+    }
+    
+}
+
+async function crearfaseIncidente(params) {
+    try {
+        const faseIncidenteRepository = AppDataSource.getRepository(faseIncidente);
+        const count = await faseIncidenteRepository.count();
+        if (count > 0) {
+            logger.info("[SERVER] faseIncidente ya existen, omitiendo creación.");
+            return;
+        }
+        const faseIncidenteData = [
+            { nombre: "IGNICIÓN" },
+            { nombre: "INCREMENTO" },
+            { nombre: "LATENTE" },
+            { nombre: "LIBRE COMBUSTIÓN" },
+            { nombre: "DECAIMIENTO" },
+        ];
+
+        for (const faseIncidenteItem of faseIncidenteData) {
+            const faseIncidenteEntity = faseIncidenteRepository.create(faseIncidenteItem);
+            await faseIncidenteRepository.save(faseIncidenteEntity);
+        }
+        logger.info("[SERVER] faseIncidente creados exitosamente");
+    } catch (error) {
+        logger.errorWithContext(error, { function: "crearfaseIncidente" });
+        throw error;
+    }
+    
+}
+
+
+async function crearClasificacionEmergencia() {
+    try {
+        const clasificacionEmergenciaRepository = AppDataSource.getRepository(clasificacionEmergencia);
+        const count = await clasificacionEmergenciaRepository.count();
+        if (count > 0) {
+            logger.info("[SERVER] ClasificacionEmergencia ya existen, omitiendo creación.");
+            return;
+        }
+        const clasificacionEmergenciaData = [
+            { nombre: "EDIFICACION" },
+            { nombre: "FUEGO EN VEHICULO" },
+            { nombre: "FUEGO EN MATORRALES" },
+            { nombre: "RESCATE" },
+            { nombre: "ACCIDENTE DE TRÁNSITO" },
+            { nombre: "MATERIALES PELIGROSOS" },
+            { nombre: "EMANACION DE GASES" },
+            { nombre: "OTROS" },
+        ];
+        for (const clasificacionItem of clasificacionEmergenciaData) {
+            const clasificacionEntity = clasificacionEmergenciaRepository.create(clasificacionItem);
+            await clasificacionEmergenciaRepository.save(clasificacionEntity);
+        }
+        logger.info("[SERVER] ClasificacionEmergencia creadas exitosamente");
+    } catch (error) {
+        logger.errorWithContext(error, { function: "crearClasificacionEmergencia" });
+        throw error;
+    }
+}
+
+async function crearSubTipoIncidente() {
+    try {
+        const subTipoIncidenteRepository = AppDataSource.getRepository(subTipoIncidente);
+        const count = await subTipoIncidenteRepository.count();
+        if (count > 0) {
+            logger.info("[SERVER] SubTipoIncidente ya existen, omitiendo creación.");
+            return;
+        }
+        const subTipoIncidenteData = [
+            {claveRadial: "10-0-1", clasificacion: "1", descripcion:"EDIFICACIONES DESTINADAS A UNA O 2 VIVIENDA.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-0-2", clasificacion: "1", descripcion:"EDIFICACIONES CON MÁS DE 3 VIVIENDAS Y SOBRE 2 PISOS INDISTINTAMENTE SU DESTINO DE USO.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-0-3", clasificacion: "1", descripcion:"EDIFICACIONES DESTINADAS A LA AFLUENCIA DE PÚBLICO INSISTINTAMENTE DE SU HORARIO, INDUSTRIAS O RECINTOS COMERCIALES.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-0-4", clasificacion: "1", descripcion:"EDIFICACIONES CON ALTO NIVEL DE PROPAGACION O POBLACIONES CLASIFICADAS DE ALTO RIESGO.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-0-5", clasificacion: "1", descripcion:"EDIFICACIONES CON PRESENCIA CONFIRMADA O PRESUNCION DE ALMACENAMIENTO DE MATERIALES PELIGROSOS.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-1-1", clasificacion: "2", descripcion:"FUEGO EN VEHICULOS LIVIANOS Y/O MOTOCICLETAS INDISTINTAMENTE SU DESTINO DE USO.", contieneFuego: true, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-1-2", clasificacion: "2", descripcion:"FUEGO EN VEHICULOS PESADOS DESTINADOS A CARGA O MAQUINARIA AGRICOLA", contieneFuego: true, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-1-3", clasificacion: "2", descripcion:"FUEGO EN VEHICULOS DESTINADOS AL TRANSPORTE DE PASAJEROS.", contieneFuego: true, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-1-4", clasificacion: "2", descripcion:"FUEGO EN VEHICULOS CON PRESENCIA DE MATERIALES PELIGROSOS.", contieneFuego: true, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-2-1", clasificacion: "3", descripcion:"FUEGO EN MATORRALES Y/O PASTIZALES DE CONTROL RÁPIDO.", contieneFuego: true, contieneInmuebles: false, contieneVehiculos: false},
+            {claveRadial: "10-2-2", clasificacion: "3", descripcion:"FUEGO EN MATORRALES Y/O PASTIZALES CON RÁPIDO AVANCE CON PELIGRO DE PROPAGACIÓN A BOSQUE O VIVIENDAS.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-3-1", clasificacion: "4", descripcion:"RESCATE DE BAJA COMPLEJIDAD (ATROPELLOS, APOYO A SAMU, CAÍDAS DE NIVEL, HERIDAS CORTO PUNZANTE, PERSONAS ENCERRADAS EN INMUEBLES, ETC)."},
+            {claveRadial: "10-3-2", clasificacion: "4", descripcion:"RESCATE DE MEDIANA COMPLEJIDAD (EMPALAMIENTO, ATRAPAMIENTO, ELECTROCUCIÓN).", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: true},
+            {claveRadial: "10-3-3", clasificacion: "4", descripcion:"RESCATE DE BAJO NIVEL (RÍOS, POZOS, CANALES, ZANJAS, ETC)."},
+            {claveRadial: "10-3-4", clasificacion: "4", descripcion:"RESCATE DE PERSONA POR ATROPELLO FERROVIARIO."},
+            {claveRadial: "10-3-5", clasificacion: "4", descripcion:"RESCATE SOBRE NIVEL (ANDAMIOS, TORRES DE ALTA TENCIÓN, PASARELAS, ETC)."},
+            {claveRadial: "10-3-6", clasificacion: "4", descripcion:"RESCATE DE PERSONA DESAPARECIDA."},
+            {claveRadial: "10-3-7", clasificacion: "4", descripcion:"RESCATE POR COLAPSO ESTRUCTURAL.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-3-8", clasificacion: "4", descripcion:"INTENTOS DE SUICIDIO QUE NO INVOLUCREN PRESENCIA CONFIRMADA O PRESUNCION DE MATERIALES PELIGROSOS."},
+            {claveRadial: "10-3-9", clasificacion: "4", descripcion:"LLAMADO A RESCATE ANIMAL."},
+            {claveRadial: "10-4-1", clasificacion: "5", descripcion: "ACCIDENTE DE TRÁNSITO QUE INVOLUCRE VEHICULOS LIVIANOS INDISTINTAMENTE LA CANTIDAD DE LESIONADOS (COLISIÓN, CHOQUE, VOLCAMIENTO, DESBARRANCAMIENTO, ETC).",contieneFuego: false, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-4-2", clasificacion: "5", descripcion: "ACCIDENTE DE TRÁNSITO QUE INVOLUCRE VEHICULOS DE TRANSPORTE DE PASAJEROS, INDISTINTAMENTE SU PERSO Y CANTIDAD DE LESIONADOS (COLISION CHOQUE, VOLCAMIENTO, DESBARRANCAMIENTO, ETC).",contieneFuego: false, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-4-3", clasificacion: "5", descripcion: "ACCIDENTE DE TRÁNSITO QUE INVOLUCRE VEHICULOS PESADOS O CON CARGA SIN PRESENCIA CONFIRMADA NI PRESUNCION DE TRANSPORTE DE MATERIALES PELIGROSOS (COLISIÓN, CHOQUE, VOLCAMIENTO, DESBARRANCAMIENTO, ETC)",contieneFuego: false, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-4-4", clasificacion: "5", descripcion: "ACCIDENTE DE TRANSITO QUE INVOLUCRE VEHICULOS CON PRESENCIA CONFIRMADA O PRESUNCION DE TRANSPORTE DE MATERIALES PELIGROSOS.",contieneFuego: false, contieneInmuebles: false, contieneVehiculos: true},
+            {claveRadial: "10-5-1", clasificacion: "6", descripcion: "EMERGENCIAS CON MATERIALES PELIGROSOS EN EDIFICACIONES DESTINADAS A VIVIENDA.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-5-2", clasificacion: "6", descripcion: "EMERGENCIAS CON MATERIALES PELIGROSOS EN VÍA PÚBLICA."},
+            {claveRadial: "10-5-3", clasificacion: "6", descripcion: "EMERGENCIAS CON MATERIALES PELIGROSOS EN EDIFICACIONES DESTINADAS AL SECTOR INDUSTRIALY/O COMERCIAL, LUGARES CON ALTA AFLUENCIA DE PÚBLICO.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-6-3", clasificacion: "7", descripcion: "EMANACION DE GAS EN EDIFICACIONES DESTINADAS A VIVIENDA.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-6-2", clasificacion: "7", descripcion: "EMANACION DE GAS O PRESENCIA DE ESTE EN VÍA PÚBLICA."},
+            {claveRadial: "10-6-3", clasificacion: "7", descripcion: "EMANACION DE GAS EN EDIFICACIONES DESTINADAS AL SECTOR INDUSTRIAL Y/O COMERCIAL, LUGARES CON ALTA AFLUENCIA DE PÚBLICO.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-6-4", clasificacion: "7", descripcion: "EMANACION DE GASES COMBUSTIBLES CON CONFIRMACION O PRESUNCION DE PERSONAS INTOXICADAS EN EDIFICACIONES O VÍA PÚBLICA.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-7-1", clasificacion: "8", descripcion: "EMERGENCIA ELECTRICA EN VIA PUBLICA Y/O EDIFICACIONES DESTINADAS A VIVIENDA.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-7-2", clasificacion: "8", descripcion: "EMERGENCIA ELECTRICA EN EDIFICACIONES DESTINADAS AL SECTOR INDUSTRIAL Y/O COMERCIAL, LUGARES CON ALTA AFLUENCIA DE PÚBLICO.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-8-1", clasificacion: "8", descripcion: "EMERGENCIA DE CAIDA DE ARBOL."},
+            {claveRadial: "10-8-2", clasificacion: "8", descripcion: "EMERGENCIA DE INUNDACIONES O SALIDAS DE RÍOS."},
+            {claveRadial: "10-8-3", clasificacion: "8", descripcion: "EMERGENCIA DE VOLADURA DE TECHOS Y/O INFRAESTRUCTURA", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-8-4", clasificacion: "8", descripcion: "EMERGENCIA DE HABILITACION DE RUTAS."},
+            {claveRadial: "10-8-5", clasificacion: "8", descripcion: "EMERGENCIA NO CLASIFICADAS."},
+            {claveRadial: "10-9", clasificacion: "8", descripcion: "OTROS SERVICIOS, DESPACHO SEGÚN REQUERIMIENTO ESPECIFICO DE LA SOLICITUD.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: true},
+            {claveRadial: "10-10", clasificacion: "8", descripcion: "LLAMADO A REBROTE DE INCENDIO.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-11", clasificacion: "8", descripcion: "APOLLO A SERVICIO AÉREO.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: false},
+            {claveRadial: "10-12", clasificacion: "8", descripcion: "APOYO A OTROS CUERPOS DE BOMBEROS, DESPACHO SEGÚN REQUERIMIENTO ESPECIFICO DE LA SOLICITUD.", contieneFuego: true, contieneInmuebles: true, contieneVehiculos: true},
+            {claveRadial: "10-13", clasificacion: "8", descripcion: "ATENTADO TERRORISTA."},
+            {claveRadial: "10-14", clasificacion: "8", descripcion: "ACCIDENTE AÉREO."},
+            {claveRadial: "10-15", clasificacion: "8", descripcion: "SIMULACRO, DESPACHO SEGUN COORDINACIÓN."},
+        ];
+
+        for (const subTipoIncidenteItem of subTipoIncidenteData) {
+            const subTipoIncidenteEntity = subTipoIncidenteRepository.create(subTipoIncidenteItem);
+            await subTipoIncidenteRepository.save(subTipoIncidenteEntity);
+        }
+        logger.info("[SERVER] SubTipoIncidente creados exitosamente");
+    } catch (error) {
+        logger.errorWithContext(error, { function: "crearSubTipoIncidente" });
+        throw error;
+    }
+}
+
+
+
+export { crearSubTipoIncidente, crearClasificacionEmergencia, crearTipoDano, crearfaseIncidente};

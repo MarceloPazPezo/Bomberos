@@ -8,6 +8,7 @@ const CarroSchema = new EntitySchema({
         id: { type: "int", primary: true, generated: "increment" },
         patente: { type: "varchar", length: 20, nullable: false, unique: true },
         capacidadPasajeros: { type: "int", nullable: true },
+        idCompania: { type: "int", nullable: false },
     },
     relations: {
         esDespachado: {
@@ -15,6 +16,14 @@ const CarroSchema = new EntitySchema({
             target: "EsDespachado",
             inverseSide: "carro",
         },
+        compania: {
+            type: "many-to-one",
+            target: "Compania",
+            joinColumn: { name: "idCompania" },
+            inverseSide: "carros",
+            onDelete: "CASCADE",
+            onUpdate: "CASCADE",
+        }
     }
 });
 export default CarroSchema;

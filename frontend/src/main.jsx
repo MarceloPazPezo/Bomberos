@@ -11,6 +11,7 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
+import CrearParte from '@pages/crearParte';
 import TestPermisos from '@pages/TestPermisos';
 
 import ProtectedRoute from '@components/ProtectedRoute';
@@ -78,6 +79,15 @@ const router = createBrowserRouter([
       {
         path: '/test-permisos',
         element: <TestPermisos />
+      },
+
+            {
+        path: '/crearparte',
+        element: (
+          <ProtectedRoute>
+            <CrearParte />
+          </ProtectedRoute>
+        )
       },
 
     ]

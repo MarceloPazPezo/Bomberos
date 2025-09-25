@@ -6,6 +6,8 @@ import {
   updateBomberoService,
   createBomberoService,
   changeBomberoStatusService,
+  getBomberosConLicenciasService,
+  getBomberosPorCompaniaService,
 } from "../services/bombero.service.js";
 import {
   bomberoBodyValidation,
@@ -232,6 +234,45 @@ export async function changeBomberoStatus(req, res) {
       `Bombero ${activo ? "activado" : "desactivado"} correctamente`,
       bombero,
     );
+  } catch (error) {
+    handleErrorServer(res, 500, error.message);
+  }
+}
+
+//obtener bomberos con licencias
+export async function getBomberosConLicencias(req, res) {
+  try {
+    const { idCompania } = req.params;
+    if (!idCompania || isNaN(parseInt(idCompania))) {
+      return handleErrorClient(res, 400, "ID de compañía inválido");
+    }
+    const [bomberos, errorBomberos] = await getBomberosConLicenciasService(
+      parseInt(idCompania),
+    );
+    if (errorBomberos) return handleErrorClient(res, 404, errorBomberos);
+
+    bomberos.length === 0
+      ? handleSuccess(res, 204)
+      : handleSuccess(res, 200, "Bomberos encontrados", bomberos);
+  } catch (error) {
+    handleErrorServer(res, 500, error.message);
+  }
+}
+
+//obetner bomberos por compañia
+export async function getBomberosPorCompania(req, res) {
+  try {
+    const { idCompania } = req.params;
+    if (!idCompania || isNaN(parseInt(idCompania))) {
+      return handleErrorClient(res, 400, "ID de compañía inválido");
+    }   
+    const [bomberos, errorBomberos] = await getBomberosPorCompaniaService(
+      parseInt(idCompania),
+    );
+    if (errorBomberos) return handleErrorClient(res, 404, errorBomberos);
+    bomberos.length === 0
+      ? handleSuccess(res, 204)
+      : handleSuccess(res, 200, "Bomberos encontrados", bomberos);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
   }

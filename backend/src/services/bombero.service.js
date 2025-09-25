@@ -1,5 +1,6 @@
 "use strict";
 import Bombero from "../entities/bombero.entity.js";
+import FichaBombero from "../entities/fichaBombero.entity.js";
 import Rol from "../entities/rol.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 import { comparePassword, encryptPassword } from "../helpers/bcrypt.helper.js";
@@ -412,3 +413,85 @@ export async function createBomberoService(body, createdBy = null) {
     return [null, "Error interno del servidor"];
   }
 }
+
+//obtener bomberos con licencias
+
+export async function getBomberosConLicenciasService(idCompania) {
+  try {
+
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+
+    // Join explícito a la tabla fichaBombero usando la clave foránea idBombero
+    const queryBuilder = bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoin(
+        FichaBombero,
+        "fichaBombero",
+        "fichaBombero.idBombero = bombero.id AND fichaBombero.idCompania = :idCompania",
+        { idCompania }
+      )
+      .select([
+        "bombero.id AS id",
+        "bombero.nombres AS nombres",
+        "bombero.apellidos AS apellidos",
+        "bombero.run AS run",
+        "bombero.email AS email"
+      ])
+      .where("bombero.activo = :activo", { activo: true })
+      .andWhere("fichaBombero.idCompania = :idCompania", { idCompania })
+      .andWhere("fichaBombero.licenciaClaseF = true")
+      .orderBy("bombero.apellidos", "ASC")
+      .addOrderBy("bombero.nombres", "ASC");
+
+  // Usamos getRawMany porque seleccionamos con alias específicos
+  const bomberos = await queryBuilder.getRawMany();
+
+    if (!bomberos || bomberos.length === 0) {
+      return [null, "No se encontraron bomberos con licencias en la compañía especificada."];
+    }
+    // Ya vienen con los alias correctos
+    return [bomberos, null];
+  } catch (error) {
+    console.error("Error al obtener los bomberos con licencias:", error);
+    return [null, "Error interno del servidor al obtener bomberos con licencias."];
+  }
+}
+
+//obetner bomberos por compania
+export async function getBomberosPorCompaniaService(idCompania) {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+
+    const queryBuilder = bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoin(
+        FichaBombero,
+        "fichaBombero",
+        "fichaBombero.idBombero = bombero.id AND fichaBombero.idCompania = :idCompania",
+        { idCompania }
+      )
+      .select([
+        "bombero.id AS id",
+        "bombero.nombres AS nombres",
+        "bombero.apellidos AS apellidos",
+        "bombero.run AS run",
+        "bombero.email AS email"
+      ])
+      .where("bombero.activo = :activo", { activo: true })
+      .andWhere("fichaBombero.idCompania = :idCompania", { idCompania })
+      .orderBy("bombero.apellidos", "ASC")
+      .addOrderBy("bombero.nombres", "ASC");
+    const bomberos = await queryBuilder.getRawMany();
+
+    if (!bomberos || bomberos.length === 0) {
+      return [null, "No se encontraron bomberos en la compañía especificada."];
+    }
+    return [bomberos, null];
+  }
+  catch (error) {
+    console.error("Error al obtener los bomberos por compañía:", error);
+    return [null, "Error interno del servidor al obtener bomberos por compañía."];
+  }
+}
+    
+
