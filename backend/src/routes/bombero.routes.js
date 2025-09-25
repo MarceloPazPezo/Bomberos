@@ -10,6 +10,8 @@ import {
   updateBombero,
   createBombero,
   changeBomberoStatus,
+  getBomberosConLicencias,
+  getBomberosPorCompania,
 } from "../controllers/bombero.controller.js";
 
 const router = Router();
@@ -44,5 +46,20 @@ router.patch(
   authorizePermisos(["bombero:cambiar_estado"]),
   changeBomberoStatus,
 );
+
+
+//obetner bomberos 
+router.get(
+  "/compania/:idCompania",
+  authorizePermisos(["bombero:leer"]),
+  getBomberosPorCompania,
+);
+ //obtener bomberos con licencias
+router.get(
+  "/licencias/:idCompania",
+  authorizePermisos(["bombero:leer"]),
+  getBomberosConLicencias,
+);
+
 
 export default router;

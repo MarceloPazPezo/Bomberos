@@ -68,6 +68,12 @@ const CompaniaSchema = new EntitySchema({
       target: "RegistroDonacion",
       inverseSide: "compania",
     },
+    carros: {
+      type: "one-to-many",
+      target: "Carro",
+      inverseSide: "compania",
+      cascade: true,
+    }
 
   },
 });
