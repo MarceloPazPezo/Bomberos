@@ -42,37 +42,7 @@ export const disponibilidadCreateValidation = Joi.object({
   "date.fechaTermino.invalid": "La fecha de término debe ser posterior a la fecha de inicio.",
 });
 
-// 2. Esquema para actualizar disponibilidad
-export const disponibilidadUpdateValidation = Joi.object({
-  fechaInicio: Joi.date()
-    .iso()
-    .messages({
-      "date.base": "La fecha de inicio debe ser una fecha válida.",
-      "date.format": "La fecha de inicio debe estar en formato ISO.",
-    }),
-  fechaTermino: Joi.date()
-    .iso()
-    .allow(null)
-    .messages({
-      "date.base": "La fecha de término debe ser una fecha válida.",
-      "date.format": "La fecha de término debe estar en formato ISO.",
-    }),
-})
-.or('fechaInicio', 'fechaTermino')
-.custom((value, helpers) => {
-  const { fechaInicio, fechaTermino } = value;
-  if (fechaTermino && fechaInicio && new Date(fechaTermino) <= new Date(fechaInicio)) {
-    return helpers.error('date.fechaTermino.invalid');
-  }
-  return value;
-}, 'Validación de rango de fechas')
-.messages({
-  "object.unknown": "No se permiten propiedades adicionales.",
-  "object.missing": "Debe proporcionar al menos una fecha para actualizar.",
-  "date.fechaTermino.invalid": "La fecha de término debe ser posterior a la fecha de inicio.",
-});
-
-// 3. Esquema para cerrar disponibilidad
+// 2. Esquema para cerrar disponibilidad
 export const disponibilidadCerrarValidation = Joi.object({
   idBombero: Joi.number()
     .integer()
@@ -88,7 +58,7 @@ export const disponibilidadCerrarValidation = Joi.object({
   "object.unknown": "No se permiten propiedades adicionales.",
 });
 
-// 4. Esquemas para consultas (mantener para compatibilidad)
+// 3. Esquemas para consultas (mantener para compatibilidad)
 export const disponibilidadQueryValidation = Joi.object({
   id: Joi.number()
     .integer()

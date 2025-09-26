@@ -1,6 +1,7 @@
 import { useAuth } from '@hooks/auth/useAuth';
 import { Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import LoadingPage from '@components/LoadingPage';
 
 const ProtectedRoute = ({ 
     children, 
@@ -64,14 +65,7 @@ const ProtectedRoute = ({
 
     // Mostrar loading mientras se verifica autenticación
     if (loading || isChecking) {
-        return loadingComponent || (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="flex flex-col items-center space-y-4">
-                    <div className="w-8 h-8 border-4 border-[#4EB9FA] border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-[#2C3E50] text-sm">Verificando permisos...</p>
-                </div>
-            </div>
-        );
+        return loadingComponent || <LoadingPage message="Verificando permisos..." />;
     }
 
     // Redirigir si no está autenticado

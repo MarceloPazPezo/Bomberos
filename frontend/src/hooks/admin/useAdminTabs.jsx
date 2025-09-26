@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 
 /**
  * Hook para manejar las pestañas del panel de administración
@@ -8,26 +8,33 @@ import { useState, useMemo, useEffect } from 'react';
 export const useAdminTabs = (hasPermiso) => {
   const [activeTab, setActiveTab] = useState('');
 
-  // Determinar pestañas disponibles basadas en permisos
+  // Determinar pestañas disponibles basadas en permisos (memoizado para evitar recálculos)
   const availableTabs = useMemo(() => {
     const tabs = [];
     if (hasPermiso('bombero:leer')) tabs.push('bomberos');
     if (hasPermiso('rol:leer')) tabs.push('roles');
     if (hasPermiso('permiso:leer')) tabs.push('permisos');
+    if (hasPermiso('compania:leer')) tabs.push('companias');
+    if (hasPermiso('direccion:leer') || hasPermiso('region:leer') || hasPermiso('comuna:leer')) tabs.push('direcciones');
     if (hasPermiso('configuracion:leer')) tabs.push('configuraciones');
     return tabs;
   }, [hasPermiso]);
 
-  // Establecer la primera pestaña disponible si no hay una activa válida
+  // Función estable para establecer pestaña activa
+  const setActiveTabStable = useCallback((tab) => {
+    setActiveTab(tab);
+  }, []);
+
+  // Establecer la primera pestaña disponible solo una vez al inicio
   useEffect(() => {
-    if (availableTabs.length > 0 && (!activeTab || !availableTabs.includes(activeTab))) {
+    if (availableTabs.length > 0 && !activeTab) {
       setActiveTab(availableTabs[0]);
     }
-  }, [availableTabs, activeTab]);
+  }, [availableTabs]); // Removido activeTab de las dependencias para evitar bucles
 
   return { 
-    availableTabs, 
-    activeTab, 
-    setActiveTab 
+    availableTabs,
+    activeTab,
+    setActiveTab: setActiveTabStable
   };
 };

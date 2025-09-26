@@ -17,6 +17,24 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
     const [sessionExpired, setSessionExpired] = useState(false);
 
+    // Función para extraer permisos de los roles
+    const extractPermisosFromRoles = useCallback((bomberoData) => {
+        if (!bomberoData?.roles || !Array.isArray(bomberoData.roles)) {
+            return [];
+        }
+        
+        const allPermisos = new Set();
+        bomberoData.roles.forEach((role) => {
+            if (role.permisos && Array.isArray(role.permisos)) {
+                role.permisos.forEach(permiso => {
+                    allPermisos.add(permiso);
+                });
+            }
+        });
+        
+        return Array.from(allPermisos);
+    }, []);
+
     // Función para cargar datos del bombero desde sessionStorage
     const loadBomberoFromStorage = useCallback(() => {
         try {
@@ -26,8 +44,10 @@ export function AuthProvider({ children }) {
                 const bomberoData = JSON.parse(storedBombero);
                 setBombero(bomberoData);
                 setIsAuthenticated(true);
-                // Los permisos ya vienen en el bomberoData desde el JWT
-                setBomberoPermisos(bomberoData.permisos || []);
+                
+                // Extraer permisos de los roles o usar permisos directos
+                const permisos = bomberoData.permisos || extractPermisosFromRoles(bomberoData);
+                setBomberoPermisos(permisos);
                 return bomberoData;
             }
             return null;
@@ -35,7 +55,7 @@ export function AuthProvider({ children }) {
             console.error('Error al cargar bombero desde storage:', error);
             return null;
         }
-    }, []);
+    }, [extractPermisosFromRoles]);
 
     // Función para cargar permisos del bombero (mantener para compatibilidad)
     const loadBomberoPermisos = useCallback(async (idBombero) => {
@@ -62,9 +82,10 @@ export function AuthProvider({ children }) {
         setBombero(bomberoData);
         sessionStorage.setItem('bombero', JSON.stringify(bomberoData));
 
-        // Actualizar permisos directamente desde bomberoData
-        setBomberoPermisos(bomberoData.permisos || []);
-    }, []);
+        // Extraer permisos de los roles o usar permisos directos
+        const permisos = bomberoData.permisos || extractPermisosFromRoles(bomberoData);
+        setBomberoPermisos(permisos);
+    }, [extractPermisosFromRoles]);
 
     // Función para hacer login
     const login = useCallback((bomberoData, token) => {
@@ -76,9 +97,10 @@ export function AuthProvider({ children }) {
         setIsAuthenticated(true);
         setSessionExpired(false);
 
-        // Los permisos ya vienen en bomberoData desde el JWT
-        setBomberoPermisos(bomberoData.permisos || []);
-    }, []);
+        // Extraer permisos de los roles o usar permisos directos
+        const permisos = bomberoData.permisos || extractPermisosFromRoles(bomberoData);
+        setBomberoPermisos(permisos);
+    }, [extractPermisosFromRoles]);
 
     // Función para hacer logout (ahora asíncrona para asegurar limpieza antes de navegar)
     const logout = useCallback(async () => {
@@ -176,7 +198,10 @@ export function AuthProvider({ children }) {
                 // Establecer el estado del bombero
                 setBombero(bomberoData);
                 setIsAuthenticated(true);
-                setBomberoPermisos(bomberoData.permisos || []);
+                
+                // Extraer permisos de los roles o usar permisos directos
+                const permisos = bomberoData.permisos || extractPermisosFromRoles(bomberoData);
+                setBomberoPermisos(permisos);
                 setLoading(false);
                 
                 // Validar token en segundo plano (sin bloquear la UI)

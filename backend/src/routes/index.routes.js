@@ -12,6 +12,9 @@ import direccionRoutes from "./direccion.routes.js";
 import subtipoIncidenteRoutes from "./subtipoIncidente.routes.js";
 import carroRoutes from "./carro.routes.js";
 import serviciosRoutes from "./servicios.routes.js";
+import regionRoutes from "./region.routes.js";
+import comunaRoutes from "./comuna.routes.js";
+import debugRoutes from "./debug.routes.js";
 import parteEmergenciaRoutes from "./parteEmergencia.routes.js";
 
 
@@ -29,6 +32,11 @@ router
   .use("/direccion", direccionRoutes)
   .use("/subtipoIncidente", subtipoIncidenteRoutes)
   .use("/carro", carroRoutes)
+  .use("/servicios", serviciosRoutes)
+  .use("/region", regionRoutes)
+  .use("/comuna", comunaRoutes)
+  .use("/debug", debugRoutes)
+  .use("/health", healthRoutes)
   .use("/servicios", serviciosRoutes)
   .use("/parteEmergencia", parteEmergenciaRoutes);
 

@@ -1,16 +1,21 @@
 import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Login from '@pages/Login';
 import Home from '@pages/Home';
 import Admin from '@pages/Admin';
+import Demo from '@pages/Demo';
 import Disponibilidad from '@pages/Disponibilidad';
 import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
 import CrearParte from '@pages/crearParte';
+import TestPermisos from '@pages/TestPermisos';
 
 import ProtectedRoute from '@components/ProtectedRoute';
+import { FireAlertProvider } from '@components/FireAlertProvider';
 import '@styles/styles.css';
 
 const router = createBrowserRouter([
@@ -38,15 +43,23 @@ const router = createBrowserRouter([
       {
         path: '/admin',
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:leer']}>
+          <ProtectedRoute requiredPermisos={['bombero:admin', 'rol:admin', 'permiso:admin']}>
             <Admin />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/demo',
+        element: (
+          <ProtectedRoute>
+            <Demo />
           </ProtectedRoute>
         ),
       },
       {
         path: '/disponibilidad',
         element: (
-          <ProtectedRoute requiredPermisos={['disponibilidad:leer']}>
+          <ProtectedRoute requiredPermisos={['disponibilidad:obtener']}>
             <Disponibilidad />
           </ProtectedRoute>
         ),
@@ -54,7 +67,7 @@ const router = createBrowserRouter([
       {
         path: "/perfil",
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:leer_perfil']}>
+          <ProtectedRoute requiredPermisos={['bombero:obtener_perfil']}>
             <Profile />
           </ProtectedRoute>
         ),
@@ -62,6 +75,10 @@ const router = createBrowserRouter([
       {
         path: '/test-roles',
         element: <TestRoles />
+      },
+      {
+        path: '/test-permisos',
+        element: <TestPermisos />
       },
 
             {
@@ -86,5 +103,19 @@ const router = createBrowserRouter([
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <RouterProvider router={router} />
+  <FireAlertProvider>
+    <RouterProvider router={router} />
+    <ToastContainer
+      position="bottom-right"
+      autoClose={5000}
+      hideProgressBar={false}
+      newestOnTop={true}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme="light"
+    />
+  </FireAlertProvider>
 )

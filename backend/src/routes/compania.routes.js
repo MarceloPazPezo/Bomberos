@@ -16,43 +16,32 @@ const router = Router();
 
 router.use(authenticateJwt);
 
-// GET /api/compania/ -> Obtener todas las compañías con filtros y paginación
-router.get("/", authorizePermisos(["compania:leer"]), getCompanias);
-
-// GET /api/compania/detail/:id -> Obtener una compañía específica por su ID
+router.get("/", authorizePermisos(["compania:obtener"]), getCompanias);
 router.get(
-  "/detail/:id",
-  authorizePermisos(["compania:leer_especifico"]),
+  "/detalle/:id",
+  authorizePermisos(["compania:admin"]),
   getCompania,
 );
-
-// GET /api/compania/bombero/:idBombero -> Obtener la compañía asociada a un bombero
 router.get(
   "/bombero/:idBombero",
-  authorizePermisos(["compania:leer_bombero"]),
+  authorizePermisos(["compania:bombero_pertenece"]),
   getCompaniaBombero,
 );
-
-// POST /api/compania/ -> Crear una nueva compañía
 router.post(
   "/",
   cleanEmptyStrings,
-  authorizePermisos(["compania:crear"]),
+  authorizePermisos(["compania:admin"]),
   createCompania,
 );
-
-// PATCH /api/compania/detail/:id -> Actualizar una compañía específica por su ID
 router.patch(
-  "/detail/:id",
+  "/detalle/:id",
   cleanEmptyStrings,
-  authorizePermisos(["compania:actualizar"]),
+  authorizePermisos(["compania:admin"]),
   updateCompania,
 );
-
-// DELETE /api/compania/detail/:id -> Eliminar una compañía específica por su ID
 router.delete(
-  "/detail/:id",
-  authorizePermisos(["compania:eliminar"]),
+  "/detalle/:id",
+  authorizePermisos(["compania:admin"]),
   deleteCompania,
 );
 

@@ -1,44 +1,62 @@
 import React, { useState, useEffect } from 'react';
+import BomberosLoader from '@components/BomberosLoader';
 import { 
   MdSecurity, 
   MdEdit, 
   MdDelete, 
+  MdVisibility,
+  MdToggleOn,
+  MdToggleOff,
+  MdClose,
+  MdRefresh,
+  MdAccessTime,
   MdExpandMore,
   MdExpandLess,
   MdCheck,
-  MdClose,
-  MdAdd
+  MdAdd,
+  MdPeople,
+  MdSearch,
+  MdClear,
+  MdPersonAdd,
+  MdUpdate
 } from 'react-icons/md';
-import { useRoles } from '@hooks/roles/useRoles';
-import usePermisos from '@hooks/permisos/usePermisos';
 import { useAuth } from '@hooks/auth/useAuth';
-import RolFormModal from '@components/roles/RolFormModal';
-import { showConfirmAlert } from '@helpers/sweetAlert.js';
+import { showConfirmAlert } from '@helpers/fireAlert.js';
+import Tooltip from '@components/Tooltip.jsx';
 
-const RolesView = ({ viewMode = 'cards', refreshTrigger }) => {
-  const { roles, loading, error, fetchRoles, handleDeleteRole } = useRoles();
-  const { permisos, permisosByCategory, refreshPermisos } = usePermisos();
-  const { hasPermiso } = useAuth();
+const RolesView = ({ 
+  roles = [],
+  loading = false,
+  error = null,
+  onEdit,
+  onDelete,
+  onViewDetails,
+  onRefresh,
+  renderActions,
+  searchTerm = '',
+  onSearchChange
+}) => {
+  // Verificación de seguridad para el contexto de autenticación
+  let hasPermiso;
+  try {
+    const auth = useAuth();
+    hasPermiso = auth?.hasPermiso || (() => false);
+  } catch (error) {
+    // Fallback durante hot reload o si el contexto no está disponible
+    console.warn('AuthContext no disponible, usando permisos por defecto');
+    hasPermiso = () => false;
+  }
+  
   const [expandedRoles, setExpandedRoles] = useState(new Set());
-  const [showModal, setShowModal] = useState(false);
-  const [editingRole, setEditingRole] = useState(null);
 
-  // Cargar solo roles cuando se monta el componente
-  useEffect(() => {
-    if ((!roles || roles.length === 0) && !loading) {
-      fetchRoles(true);
-    }
-    // Los permisos se cargarán bajo demanda cuando se necesiten para mostrar detalles
-  }, []);
-
-  // Refrescar roles cuando cambie refreshTrigger
-  useEffect(() => {
-    if (refreshTrigger) {
-      fetchRoles(true);
-    }
-  }, [refreshTrigger]);
-
-
+  // Función para filtrar roles basado en el término de búsqueda
+  const filteredRoles = roles.filter(role =>
+    role.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    role.descripcion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (Array.isArray(role.permisos) && role.permisos.some(permiso => 
+      permiso.toLowerCase().includes(searchTerm.toLowerCase())
+    ))
+  );
 
   // Función para alternar la expansión de un rol
   const toggleRoleExpansion = (roleId) => {
@@ -47,375 +65,183 @@ const RolesView = ({ viewMode = 'cards', refreshTrigger }) => {
       newExpanded.delete(roleId);
     } else {
       newExpanded.add(roleId);
-      // Cargar permisos cuando se expande un rol para mostrar detalles
-      ensurePermisosLoaded();
     }
     setExpandedRoles(newExpanded);
   };
 
-  // Función para abrir el modal de edición
-  const handleEditRole = (role) => {
-    setEditingRole(role);
-    setShowModal(true);
-  };
-
-  // Función para confirmar eliminación
-  const handleDeleteConfirm = async (role) => {
+  // Función para manejar la eliminación de un rol
+  const handleDelete = async (role) => {
     const result = await showConfirmAlert(
-      '¿Eliminar rol?',
-      `¿Estás seguro de que deseas eliminar el rol "${role.nombre}"? Esta acción no se puede deshacer.`,
+      'Confirmar eliminación',
+      `¿Estás seguro de que quieres eliminar el rol "${role.nombre}"?`,
       'Eliminar',
       'Cancelar'
     );
 
-    if (result.isConfirmed) {
-      await handleDeleteRole(role.id);
-    }
-  };
-
-  // Función para obtener el color del badge según el rol
-  const getRoleColor = (roleName) => {
-    const roleKey = roleName?.toLowerCase() || '';
-    if (roleKey.includes('administrador') || roleKey.includes('admin')) {
-      return 'bg-red-100 text-red-800 border-red-200';
-    } else if (roleKey.includes('supervisor') || roleKey.includes('moderador')) {
-      return 'bg-orange-100 text-orange-800 border-orange-200';
-    } else if (roleKey.includes('usuario') || roleKey.includes('user')) {
-      return 'bg-blue-100 text-blue-800 border-blue-200';
-    }
-    return 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  // Función para cargar permisos si no están disponibles
-  const ensurePermisosLoaded = () => {
-    if (permisos.length === 0 && Object.keys(permisosByCategory).length === 0) {
-      refreshPermisos(true);
-    }
-  };
-
-  // Función para agrupar permisos por categoría
-  const groupPermisosByCategory = (rolePermisos) => {
-    const grouped = {};
-    
-    rolePermisos.forEach(permisoName => {
-      // Buscar el permiso en todas las categorías
-      let foundPermiso = null;
-      let foundCategory = null;
+    if (result.isConfirmed && onDelete) {
+      const deleteResult = await onDelete(role.id);
       
-      // Buscar en permisosByCategory primero
-      for (const [category, categoryPermisos] of Object.entries(permisosByCategory)) {
-        const permiso = categoryPermisos.find(p => p.nombre === permisoName);
-        if (permiso) {
-          foundPermiso = permiso;
-          foundCategory = category;
-          break;
-        }
+      // Si la eliminación falló porque el rol no existe, actualizar la vista
+      if (deleteResult && !deleteResult.success && deleteResult.error?.includes('no existe')) {
+        // Opcional: podrías mostrar un mensaje adicional aquí
+        console.log('Rol eliminado o no encontrado, la lista se actualizará automáticamente');
       }
-      
-      // Si no se encuentra en permisosByCategory, buscar en permisos
-      if (!foundPermiso) {
-        foundPermiso = permisos.find(p => p.nombre === permisoName);
-        foundCategory = foundPermiso?.categoria || 'Sin categoría';
-      }
-      
-      if (foundPermiso && foundCategory) {
-        if (!grouped[foundCategory]) {
-          grouped[foundCategory] = [];
-        }
-        grouped[foundCategory].push(foundPermiso);
-      } else {
-        // Solo como último recurso, crear un permiso temporal con categoría normalizada
-        const tempPermiso = {
-          id: `temp-${permisoName}`,
-          nombre: permisoName,
-          descripcion: `Descripción de ${permisoName}`,
-          categoria: 'Sin categoría'
-        };
-        const category = 'Sin categoría';
-        if (!grouped[category]) {
-          grouped[category] = [];
-        }
-        grouped[category].push(tempPermiso);
-      }
-    });
-
-    return grouped;
-  };
-
-  // Función para renderizar la vista de cards
-  const renderCardsView = () => {
-    // Cargar permisos si hay roles con permisos para mostrar categorías
-    if (roles.some(role => role.permisos && role.permisos.length > 0)) {
-      ensurePermisosLoaded();
     }
-    
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {roles.map((role) => {
-          const groupedPermisos = groupPermisosByCategory(role.permisos || []);
-          const totalCategories = Object.keys(groupedPermisos).length;
-          
-          return (
-            <div key={role.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-              {/* Header de la card */}
-              <div className="p-6 border-b border-gray-100">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#4EB9FA]/10 rounded-lg">
-                      <MdSecurity className="text-[#4EB9FA]" size={24} />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-800 text-lg">{role.nombre}</h3>
-                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full border ${getRoleColor(role.nombre)}`}>
-                        {role.permisos?.length || 0} permisos
-                      </span>
-                    </div>
-                  </div>
-                  
-                  {/* Acciones */}
-                  <div className="flex items-center gap-1">
-                    {hasPermiso('rol:actualizar') && (
-                      <button
-                        onClick={() => handleEditRole(role)}
-                        className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                        title="Editar rol"
-                      >
-                        <MdEdit size={18} />
-                      </button>
-                    )}
-                    {hasPermiso('rol:eliminar') && (
-                      <button
-                        onClick={() => handleDeleteConfirm(role)}
-                        className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
-                        title="Eliminar rol"
-                      >
-                        <MdDelete size={18} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-                
-                <p className="text-gray-600 text-sm line-clamp-2">{role.descripcion}</p>
-              </div>
-
-              {/* Contenido de la card */}
-              <div className="p-6">
-                {totalCategories === 0 ? (
-                  <div className="text-center py-6 text-gray-500">
-                    <MdSecurity size={32} className="mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Sin permisos asignados</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Categorías de permisos:</span>
-                      <span className="font-medium text-[#4EB9FA]">{totalCategories}</span>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {Object.entries(groupedPermisos).slice(0, 3).map(([category, categoryPermisos]) => (
-                        <div key={category} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 bg-[#4EB9FA] rounded-full"></span>
-                            <span className="text-sm font-medium text-gray-700 truncate">{category}</span>
-                          </div>
-                          <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
-                            {categoryPermisos.length}
-                          </span>
-                        </div>
-                      ))}
-                      
-                      {totalCategories > 3 && (
-                        <div className="text-center">
-                          <span className="text-xs text-gray-500">
-                            +{totalCategories - 3} categorías más
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  // Función para renderizar la vista de lista
-  const renderListView = () => {
-    return (
-      <div className="space-y-4">
-        {roles.map((role) => {
-          const isExpanded = expandedRoles.has(role.id);
-          const groupedPermisos = groupPermisosByCategory(role.permisos || []);
-          
-          return (
-            <div key={role.id} className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              {/* Header del rol */}
-              <div className="p-4 border-b border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4 flex-1">
-                    <button
-                      onClick={() => toggleRoleExpansion(role.id)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {isExpanded ? <MdExpandLess size={24} /> : <MdExpandMore size={24} />}
-                    </button>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <MdSecurity className="text-[#4EB9FA]" size={20} />
-                        <h3 className="font-semibold text-gray-800">{role.nombre}</h3>
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full border ${getRoleColor(role.nombre)}`}>
-                          {role.permisos?.length || 0} permisos
-                        </span>
-                      </div>
-                      <p className="text-gray-600 text-sm">{role.descripcion}</p>
-                    </div>
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="flex items-center gap-2">
-                    {hasPermiso('rol:actualizar') && (
-                      <button
-                        onClick={() => handleEditRole(role)}
-                        className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                        title="Editar rol"
-                      >
-                        <MdEdit size={18} />
-                      </button>
-                    )}
-                    {hasPermiso('rol:eliminar') && (
-                      <button
-                        onClick={() => handleDeleteConfirm(role)}
-                        className="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
-                        title="Eliminar rol"
-                      >
-                        <MdDelete size={18} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Permisos expandidos */}
-              {isExpanded && (
-                <div className="p-4">
-                  {Object.keys(groupedPermisos).length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <MdSecurity size={32} className="mx-auto mb-2 opacity-50" />
-                      <p>Este rol no tiene permisos asignados</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {Object.entries(groupedPermisos).map(([category, categoryPermisos]) => (
-                        <div key={category} className="border border-gray-100 rounded-lg p-3">
-                          <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-[#4EB9FA] rounded-full"></span>
-                            {category}
-                            <span className="text-xs text-gray-500">({categoryPermisos.length})</span>
-                          </h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {categoryPermisos.map((permiso) => (
-                              <div
-                                key={permiso.id}
-                                className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg"
-                              >
-                                <MdCheck className="text-green-600 flex-shrink-0" size={16} />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-800 truncate">
-                                    {permiso.nombre}
-                                  </p>
-                                  <p className="text-xs text-gray-600 truncate">
-                                    {permiso.descripcion}
-                                  </p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    );
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4EB9FA]"></div>
-        <span className="ml-2 text-gray-600">Cargando roles...</span>
+        <BomberosLoader size="md" message="Cargando roles..." />
       </div>
     );
   }
 
-  // Mostrar estado de error
   if (error) {
     return (
       <div className="text-center py-12">
-        <div className="text-red-500 mb-4">
-          <MdClose size={48} className="mx-auto" />
+        <div className="text-red-600 mb-4">
+          <MdSecurity size={48} className="mx-auto mb-2" />
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Error al cargar roles</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <MdRefresh className="inline mr-2" />
+              Reintentar
+            </button>
+          )}
         </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Error al cargar roles</h3>
-        <p className="text-gray-600 mb-4">{error}</p>
-        <button
-          onClick={() => {
-            fetchRoles(true);
-          }}
-          className="bg-[#4EB9FA] hover:bg-[#3DA8E9] text-white px-4 py-2 rounded-lg transition-colors"
-          disabled={loading}
-        >
-          {loading ? 'Cargando...' : 'Reintentar'}
-        </button>
       </div>
     );
   }
-  
-  // Mostrar estado de carga inicial
-  if (loading && roles.length === 0) {
+
+  if (!roles || roles.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="text-[#4EB9FA] mb-4">
-          <MdRefresh size={48} className="mx-auto animate-spin" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Cargando roles</h3>
-        <p className="text-gray-600">Por favor espere...</p>
+      <div className="text-center py-12 bg-white rounded-lg shadow-sm border border-gray-200">
+        <MdSecurity size={48} className="mx-auto mb-4 text-gray-400" />
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">No hay roles disponibles</h3>
+        <p className="text-gray-600">No se encontraron roles en el sistema.</p>
       </div>
     );
   }
 
+  // Vista principal con datos
   return (
-    <div className="space-y-6">
-      {/* Contenido de roles */}
-      {roles.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-          <MdSecurity size={64} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay roles</h3>
-          <p className="text-gray-500 mb-4">
-            No se encontraron roles en el sistema.
-          </p>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredRoles.map((role) => (
+        <div key={role.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <div className="p-6">
+            {/* Header del card */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 h-10 w-10">
+                  <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                    <MdSecurity className="h-5 w-5 text-blue-600" />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-medium text-gray-900">{role.nombre}</h3>
+                  <p className="text-sm text-gray-500">{role.descripcion}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Información del rol */}
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center text-sm text-gray-600">
+                <MdPeople className="h-4 w-4 mr-2 text-gray-400" />
+                {Array.isArray(role.permisos) ? role.permisos.length : 0} permisos asignados
+              </div>
+              
+              {/* Información de creación */}
+              {role.creadoEl && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <MdAccessTime className="h-4 w-4 mr-2 text-gray-400" />
+                  Creado: {new Date(role.creadoEl).toLocaleDateString()}
+                  <span className="ml-2 text-gray-500">
+                    por {role.creador ? `${role.creador.nombres} ${role.creador.apellidos}` : 'Sistema'}
+                  </span>
+                </div>
+              )}
+
+              {/* Información de actualización */}
+              {role.actualizadoEl && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <MdUpdate className="h-4 w-4 mr-2 text-gray-400" />
+                  Actualizado: {new Date(role.actualizadoEl).toLocaleDateString()}
+                  <span className="ml-2 text-gray-500">
+                    por {role.actualizador ? `${role.actualizador.nombres} ${role.actualizador.apellidos}` : 'Sistema'}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Permisos expandibles */}
+            {Array.isArray(role.permisos) && role.permisos.length > 0 && (
+              <div className="mb-4">
+                <button
+                  onClick={() => toggleRoleExpansion(role.id)}
+                  className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {expandedRoles.has(role.id) ? (
+                    <>
+                      <MdExpandLess className="h-4 w-4 mr-1" />
+                      Ocultar permisos
+                    </>
+                  ) : (
+                    <>
+                      <MdExpandMore className="h-4 w-4 mr-1" />
+                      Ver permisos
+                    </>
+                  )}
+                </button>
+                {expandedRoles.has(role.id) && (
+                  <div className="mt-2 max-h-32 overflow-y-auto">
+                    <div className="flex flex-wrap gap-1">
+                      {role.permisos.map((permiso, index) => (
+                        <span
+                          key={index}
+                          className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800"
+                        >
+                          {permiso}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Acciones */}
+            <div className="flex items-center justify-end space-x-2 pt-4 border-t border-gray-200">
+              {hasPermiso('rol:actualizar') && (
+                <Tooltip id={`edit-${role.id}`} content="Editar">
+                  <button
+                    onClick={() => onEdit && onEdit(role)}
+                    className="text-yellow-600 hover:text-yellow-800 p-2 rounded-md hover:bg-yellow-50"
+                  >
+                    <MdEdit className="h-4 w-4" />
+                  </button>
+                </Tooltip>
+              )}
+              {hasPermiso('rol:eliminar') && (
+                <Tooltip id={`delete-${role.id}`} content="Eliminar">
+                  <button
+                    onClick={() => handleDelete(role)}
+                    className="text-red-600 hover:text-red-800 p-2 rounded-md hover:bg-red-50"
+                  >
+                    <MdDelete className="h-4 w-4" />
+                  </button>
+                </Tooltip>
+              )}
+              {renderActions && renderActions(role)}
+            </div>
+          </div>
         </div>
-      ) : (
-        viewMode === 'list' ? renderListView() : renderCardsView()
-      )}
-
-
-
-      {/* Modal para editar rol */}
-      <RoleFormModal
-        show={showModal}
-        setShow={setShowModal}
-        editingRole={editingRole}
-        onSuccess={fetchRoles}
-      />
+      ))}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { MdClose, MdSecurity, MdCheck, MdExpandMore, MdExpandLess, MdSelectAll, MdClear } from 'react-icons/md';
+import { MdClose, MdSecurity, MdCheck, MdExpandMore, MdExpandLess, MdSelectAll, MdClear, MdSave } from 'react-icons/md';
 import Form from '@components/Form';
 import { getPermisos } from '@services/permiso.service';
 import { useRoles } from '@hooks/roles/useRoles';
@@ -115,6 +115,35 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
 
     const handleSubmit = async (createdRoleData) => {
         if (createdRoleData) {
+            // Validaciones adicionales antes de enviar
+            const validationErrors = {};
+            
+            // Validar nombre según patrón del backend
+            const nombrePattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/;
+            if (!nombrePattern.test(createdRoleData.nombre)) {
+                validationErrors.nombre = "El nombre del rol solo puede contener letras, números, espacios, guiones o guiones bajos.";
+            }
+            
+            // Validar longitud de descripción
+            if (createdRoleData.descripcion && createdRoleData.descripcion.length > 500) {
+                validationErrors.descripcion = "La descripción del rol debe tener como máximo 500 caracteres.";
+            }
+            
+            // Validar permisos (deben ser strings válidos)
+            if (formData.permisos.length > 0) {
+                const permisoPattern = /^[a-zA-Z0-9_:]+$/;
+                const invalidPermisos = formData.permisos.filter(permiso => !permisoPattern.test(permiso));
+                if (invalidPermisos.length > 0) {
+                    validationErrors.permisos = "Algunos permisos contienen caracteres no permitidos.";
+                }
+            }
+            
+            // Si hay errores de validación, mostrarlos
+            if (Object.keys(validationErrors).length > 0) {
+                setErrors(validationErrors);
+                return;
+            }
+            
             setLoading(true);
             try {
                 // Combinar datos del formulario básico con los permisos seleccionados
@@ -164,19 +193,53 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                 <MdSecurity className="text-[#4EB9FA]" size={24} />
                                 <h2 className="text-2xl font-bold text-[#2C3E50]">Crear rol</h2>
                             </div>
-                            <button
-                                className="p-2 rounded-full bg-white border border-[#4EB9FA]/30 hover:bg-[#4EB9FA]/10 transition ml-2"
-                                onClick={handleClose}
-                                aria-label="Cerrar"
-                                style={{ lineHeight: 0 }}
-                            >
-                                <MdClose className="w-5 h-5" />
-                            </button>
+                            
+                            {/* Botones de acción en el header */}
+                            <div className="flex items-center gap-2">
+                                {/* Botón Guardar */}
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        // Activar el submit del formulario
+                                        const form = document.querySelector('form');
+                                        if (form) {
+                                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                                            form.dispatchEvent(submitEvent);
+                                        }
+                                    }}
+                                    disabled={loading || !formData.nombre.trim()}
+                                    className="flex items-center justify-center w-10 h-10 bg-[#4EB9FA] text-white shadow-lg hover:bg-[#3A9BD9] transition-all duration-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title={loading ? "Guardando..." : "Guardar rol"}
+                                >
+                                    {loading ? (
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <MdSave size={20} />
+                                    )}
+                                </button>
+                                
+                                {/* Botón Cerrar (X) */}
+                                <button
+                                    className="flex items-center justify-center w-10 h-10 bg-red-500 text-white shadow-lg hover:bg-red-600 transition-all duration-200 rounded-lg"
+                                    onClick={handleClose}
+                                    disabled={loading}
+                                    title="Cerrar"
+                                >
+                                    <MdClose size={20} />
+                                </button>
+                            </div>
                         </div>
                         
                         {/* Body con scroll interno si es necesario */}
                         <div className="px-4 sm:px-10 py-6 sm:py-10 pr-2 sm:pr-6 flex flex-col items-center flex-1 min-h-0 w-full overflow-y-auto scrollbar-thin">
                             <div className="w-full space-y-6">
+                                {/* Mostrar error general si existe */}
+                                {errors.general && (
+                                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <p className="text-sm text-red-600">{errors.general}</p>
+                                    </div>
+                                )}
+                                
                                 {/* Formulario básico */}
                                 <Form
                                     title={null}
@@ -192,8 +255,8 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                             required: true,
                                             minLength: 2,
                                             maxLength: 50,
-                                            pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑàèìòùÀÈÌÒÙ\s]+$/,
-                                            patternMessage: "Solo se permiten letras y espacios",
+                                            pattern: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/,
+                                            patternMessage: "Solo se permiten letras, números, espacios, guiones y guiones bajos",
                                             errorMessageData: errors.nombre,
                                             onChange: (e) => handleInputChange('nombre', e.target.value),
                                             autoComplete: "off",
@@ -206,7 +269,7 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                             fieldType: 'textarea',
                                             required: false,
                                             minLength: 0,
-                                            maxLength: 255,
+                                            maxLength: 500,
                                             errorMessageData: errors.descripcion,
                                             onChange: (e) => handleInputChange('descripcion', e.target.value),
                                             autoComplete: "off",
@@ -227,6 +290,13 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                             {formData.permisos.length} de {Object.values(permisosByCategory).flat().length} permisos seleccionados
                                         </span>
                                     </div>
+                                    
+                                    {/* Mostrar error de permisos si existe */}
+                                    {errors.permisos && (
+                                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                            <p className="text-sm text-red-600">{errors.permisos}</p>
+                                        </div>
+                                    )}
 
                                     <div className="space-y-3">
                                         {Object.entries(permisosByCategory).map(([category, categoryPermisos]) => {
@@ -315,40 +385,6 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                             );
                                         })}
                                     </div>
-                                </div>
-
-                                {/* Botones personalizados */}
-                                <div className="flex justify-end space-x-3 mt-6 w-full">
-                                    <button
-                                        type="button"
-                                        onClick={handleClose}
-                                        className="px-4 py-2 text-[#2C3E50] bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
-                                        disabled={loading}
-                                    >
-                                        Cancelar
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            // Activar el submit del formulario
-                                            const form = document.querySelector('form');
-                                            if (form) {
-                                                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                                                form.dispatchEvent(submitEvent);
-                                            }
-                                        }}
-                                        className={`px-4 py-2 bg-[#4EB9FA] text-white rounded-lg hover:bg-[#3A9BD9] transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        disabled={loading || !formData.nombre.trim()}
-                                    >
-                                        {loading ? (
-                                            <div className="flex items-center space-x-2">
-                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                <span>Creando...</span>
-                                            </div>
-                                        ) : (
-                                            'Crear Rol'
-                                        )}
-                                    </button>
                                 </div>
                             </div>
                         </div>

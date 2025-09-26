@@ -7,7 +7,8 @@ import {
   cerrarDisponibilidad,
   getDisponibilidadActiva
 } from '@services/disponibilidad.service.js';
-import { showErrorAlert, showSuccessAlert } from '@helpers/sweetAlert.js';
+import { showErrorAlert } from '@helpers/sweetAlert.js';
+import { disponibilidadCreatedToast, disponibilidadUpdatedToast, disponibilidadClosedToast } from '@helpers/toastHelper.jsx';
 
 export const useDisponibilidad = () => {
   const [disponibilidades, setDisponibilidades] = useState([]);
@@ -62,7 +63,7 @@ export const useDisponibilidad = () => {
       const response = await createDisponibilidad(disponibilidadData);
 
       if (response.status === 'Success') {
-        await showSuccessAlert('¡Éxito!', 'Disponibilidad creada correctamente');
+        disponibilidadCreatedToast('Disponibilidad creada correctamente');
         await fetchDisponibilidades(true);
         return { success: true, data: response.data };
       } else {
@@ -89,7 +90,7 @@ export const useDisponibilidad = () => {
       const response = await updateDisponibilidad(id, disponibilidadData);
 
       if (response.status === 'Success') {
-        await showSuccessAlert('¡Éxito!', 'Disponibilidad actualizada correctamente');
+        disponibilidadUpdatedToast('Disponibilidad actualizada correctamente');
         await fetchDisponibilidades(true);
         return { success: true, data: response.data };
       } else {
@@ -116,7 +117,7 @@ export const useDisponibilidad = () => {
       const response = await deleteDisponibilidad(id);
 
       if (response.status === 'Success') {
-        await showSuccessAlert('¡Éxito!', 'Disponibilidad eliminada correctamente');
+        fireSuccessToast('Disponibilidad eliminada correctamente');
         await fetchDisponibilidades(true);
         return { success: true };
       } else {
@@ -144,7 +145,7 @@ export const useDisponibilidad = () => {
       const response = await cerrarDisponibilidad({ idBombero });
 
       if (response.status === 'Success') {
-        await showSuccessAlert('¡Éxito!', 'Disponibilidad cerrada correctamente');
+        disponibilidadClosedToast('Disponibilidad cerrada correctamente');
         await fetchDisponibilidades(true);
         return { success: true, data: response.data };
       } else {
