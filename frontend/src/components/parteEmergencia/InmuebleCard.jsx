@@ -39,6 +39,22 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
 
       {/* Datos del inmueble */}
       <div className="grid sm:grid-cols-2 gap-3 mb-4">
+        {/* NUEVOS CAMPOS: Calle y Número */}
+        <input
+          className={baseInput}
+          placeholder="Calle"
+          value={value.calle || ''}
+          onChange={(e) => setField('calle', e.target.value)}
+        />
+        <input
+          className={baseInput}
+          placeholder="Número"
+          type="number"
+          min={0}
+          value={value.numero ?? ''}
+          onChange={(e) => setField('numero', e.target.value === '' ? '' : Number(e.target.value))}
+        />
+
         <input
           className={baseInput}
           placeholder="Tipo de construcción"
@@ -49,7 +65,7 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
           className={baseInput}
           placeholder="N° de pisos"
           type="number"
-          min={0}
+          min={1}                 // entero > 0 (según validación)
           value={value.n_pisos ?? ''}
           onChange={(e) => setField('n_pisos', e.target.value === '' ? '' : Number(e.target.value))}
         />
@@ -57,7 +73,7 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
           className={baseInput}
           placeholder="m² construcción"
           type="number"
-          min={0}
+          min={1}                 // > 0 (según validación)
           value={value.m2_construccion ?? ''}
           onChange={(e) => setField('m2_construccion', e.target.value === '' ? '' : Number(e.target.value))}
         />
@@ -65,7 +81,7 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
           className={baseInput}
           placeholder="m² afectado"
           type="number"
-          min={0}
+          min={1}                 // > 0 (según validación)
           value={value.m2_afectado ?? ''}
           onChange={(e) => setField('m2_afectado', e.target.value === '' ? '' : Number(e.target.value))}
         />
@@ -74,6 +90,12 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
           placeholder="Daños vivienda (breve)"
           value={value.danos_vivienda || ''}
           onChange={(e) => setField('danos_vivienda', e.target.value)}
+        />
+        <input
+          className={baseInput}
+          placeholder="Daños anexos (breve)"
+          value={value.danos_anexos || ''}
+          onChange={(e) => setField('danos_anexos', e.target.value)}
         />
       </div>
 
@@ -100,6 +122,7 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
               title="Dueño"
               value={value.dueno}
               onChange={(v) => onChange({ ...value, dueno: v })}
+              showEsEmpresa
             />
           </div>
         )}

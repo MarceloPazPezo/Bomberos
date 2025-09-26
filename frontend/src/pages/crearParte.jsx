@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 
 // Services
 import { getRegiones, getComunas } from '../services/direccion.service.js';
@@ -12,6 +12,7 @@ import { getCompanias } from '../services/compania.service.js';
 import { getCarrosByCompania } from '../services/carro.service.js';
 import { getBomberosPorCompania, getBomberosConLicencias } from '../services/bombero.service.js';
 import { getServicios } from '../services/servicios.service.js';
+import { crearParteEmergencia } from '../services/parteEmergencia.service.js';
 
 // UI
 import {
@@ -30,6 +31,8 @@ import VehicleCard from '../components/parteEmergencia/VehicleCard.jsx';
 import UnidadCard from '../components/parteEmergencia/UnidadCard.jsx';
 import AccidentadoCard from '../components/parteEmergencia/AccidentadoCard.jsx';
 import ServicioExternoCard from '../components/parteEmergencia/ServicioExternoCard.jsx';
+import { AuthContext } from '../context/AuthContext.jsx';
+
 
 /* ================================
    Helpers
@@ -48,6 +51,16 @@ const nombreBombero = (b) => {
   const n = [b.nombres, b.apellidos].filter(Boolean).join(' ').trim();
   return n || `Bombero ${b.id}`;
 };
+
+// HH:mm -> minutos (ya no se usa para validación de orden de horas, pero lo dejamos por si se reutiliza)
+const timeToMin = (t) => {
+  if (!t || typeof t !== 'string' || !t.includes(':')) return null;
+  const [h, m] = t.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+};
+const isInt = (v) => Number.isInteger(Number(v));
+const isPosInt = (v) => isInt(v) && Number(v) > 0;
 
 /* =========================================
    Hook: cachea bomberos por compañía on-demand
@@ -82,6 +95,8 @@ function useBomberosPorCompania() {
    Componente principal
 ================================ */
 const CrearParte = () => {
+  // Usuario autenticado (redactor)
+  const { bombero } = useContext(AuthContext);
   /* ---------- Catálogos / dependencias ---------- */
   // Dirección
   const [regiones, setRegiones] = useState([]);
@@ -138,7 +153,7 @@ const CrearParte = () => {
   const [errorServicios, setErrorServicios] = useState('');
 
   /* ---------- Secciones de detalle ---------- */
-  // Inmuebles
+  // Inmuebles (ahora con calle y numero)
   const [inmuebles, setInmuebles] = useState([]);
   const addInmueble = () =>
     setInmuebles((prev) => [...prev, {
@@ -148,6 +163,9 @@ const CrearParte = () => {
       m2_construccion: '',
       m2_afectado: '',
       danos_vivienda: '',
+      danos_anexos: '',
+      calle: '',
+      numero: '',
       dueno: null,
       habitantes: [],
     }]);
@@ -175,7 +193,7 @@ const CrearParte = () => {
   // Material mayor (sección 7)
   const [materialMayor, setMaterialMayor] = useState([]);
   const addUnidad = () => setMaterialMayor((prev) => [...prev, {
-    id: genId(), unidadId: '', conductorId: '', bomberoId: '', voluntarios: ''
+    id: genId(), unidadId: '', conductorId: '', bomberoId: '', voluntarios: '', kmSalida: '', kmLlegada: ''
   }]);
   const updateUnidad = (idx, next) => setMaterialMayor((prev) => prev.map((row, i) => (i === idx ? next : row)));
   const removeUnidad = (idx) => setMaterialMayor((prev) => prev.filter((_, i) => i !== idx));
@@ -219,31 +237,177 @@ const CrearParte = () => {
   // Cache de bomberos por compañía para Accidentados
   const { bomberosByCompania, loadingByCompania, errorByCompania, ensureLoaded } = useBomberosPorCompania();
 
+  /* ---------- Validación ---------- */
+  const [errors, setErrors] = useState({});
+  const hasError = (k) => !!errors[k];
+  const baseInput = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
+  const inputCls = (k) =>
+    `${baseInput} ${hasError(k) ? 'ring-2 ring-red-400 border-red-300' : ''}`;
+
+  const isPositiveInt = (x) => Number.isInteger(Number(x)) && Number(x) > 0;
+
+  /* ---------- Campos controlados (persisten entre pestañas) ---------- */
+  // Datos generales
+  const [fecha, setFecha] = useState('');
+  const [horaDespacho, setHoraDespacho] = useState('');
+  const [hora60, setHora60] = useState('');
+  const [hora63, setHora63] = useState('');
+  const [hora69, setHora69] = useState('');
+  const [hora610, setHora610] = useState('');
+  // Nuevos campos
+  const [descripcionPreliminar, setDescripcionPreliminar] = useState('');
+  const [bomberoACargoId, setBomberoACargoId] = useState('');
+  // Dirección
+  const [calleTxt, setCalleTxt] = useState('');
+  const [numeroTxt, setNumeroTxt] = useState('');
+  const [deptoTxt, setDeptoTxt] = useState('');
+  const [referenciaTxt, setReferenciaTxt] = useState('');
+
   /* ---------- Envío del formulario ---------- */
   const [submitting, setSubmitting] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const nextErrors = {};
+
+    // Requeridos simples
+    if (!companiaId) nextErrors.companiaId = 'Obligatorio.';
+    if (!fecha) nextErrors.fecha = 'Obligatorio.';
+    if (!horaDespacho) nextErrors.horadespacho = 'Obligatorio.';
+    if (!hora60) nextErrors.hora6_0 = 'Obligatorio.';
+    if (!hora63) nextErrors.hora6_3 = 'Obligatorio.';
+    if (!hora69) nextErrors.hora6_9 = 'Obligatorio.';
+    if (!hora610) nextErrors.hora6_10 = 'Obligatorio.';
+    if (!regionId && regionId !== 0) nextErrors.regionId = 'Obligatorio.';
+    if (!comunaId && comunaId !== 0) nextErrors.comunaId = 'Obligatorio.';
+    if (!calleTxt.trim()) nextErrors.calle = 'Obligatorio.';
+
+    // (Eliminadas) Validaciones de orden entre horas 6_0, 6_3, 6_9, 6_10
+
+    // Tipo de emergencia / Clave radial
+    if (!clasificacionId) nextErrors.clasificacionId = 'Seleccione una clasificación.';
+    if (!subtipoId) nextErrors.subtipoId = 'Seleccione una clave radial.';
+
+    // Material mayor: al menos 1 y completo
+    if (materialMayor.length === 0) {
+      nextErrors.materialMayor = 'Debe agregar al menos una unidad.';
+    } else {
+      const invalidRow = materialMayor.find(
+        (r) => !r.unidadId || !r.conductorId || !r.bomberoId || !isPositiveInt(r.voluntarios) || !isPositiveInt(r.kmSalida) || !isPositiveInt(r.kmLlegada)
+      );
+      if (invalidRow) {
+        nextErrors.materialMayor = 'Complete todos los campos de la(s) unidad(es). Voluntarios y KM deben ser enteros > 0.';
+      }
+    }
+
+    // Asistencia en el lugar: al menos 1
+    const anyLugar = Object.values(asistenciaLugar).some(Boolean);
+    if (!anyLugar) nextErrors.asistenciaLugar = 'Registre al menos 1 voluntario presente en el lugar.';
+
+    // Inmuebles: validaciones extra
+    const inmErrors = [];
+    inmuebles.forEach((inm, i) => {
+      if (inm.n_pisos !== '' && !isPosInt(inm.n_pisos)) {
+        inmErrors.push(`Inmueble #${i + 1}: "N° de pisos" debe ser entero > 0.`);
+      }
+      if (inm.m2_construccion !== '' && !(Number(inm.m2_construccion) > 0)) {
+        inmErrors.push(`Inmueble #${i + 1}: "m² construcción" debe ser > 0.`);
+      }
+      if (inm.m2_afectado !== '' && !(Number(inm.m2_afectado) > 0)) {
+        inmErrors.push(`Inmueble #${i + 1}: "m² afectado" debe ser > 0.`);
+      }
+      const edades = [];
+      if (inm.dueno?.edad !== undefined && inm.dueno?.edad !== '') edades.push(inm.dueno.edad);
+      (inm.habitantes || []).forEach(h => {
+        if (h?.edad !== undefined && h?.edad !== '') edades.push(h.edad);
+      });
+      const invalidEdad = edades.find(ed => !isPosInt(ed));
+      if (invalidEdad !== undefined) {
+        inmErrors.push(`Inmueble #${i + 1}: "Edad" debe ser entero positivo en los campos informados.`);
+      }
+    });
+    if (inmErrors.length > 0) {
+      nextErrors.inmuebles = inmErrors.join(' ');
+    }
+
+    // Vehículos: validaciones extra
+    const currentYear = new Date().getFullYear();
+    const vehErrors = [];
+    vehiculos.forEach((v, i) => {
+      if (v.anio !== '' && (!isPosInt(v.anio) || Number(v.anio) <= 1900 || Number(v.anio) >= currentYear)) {
+        vehErrors.push(`Vehículo #${i + 1}: "Año" debe ser entero > 1900 y menor que ${currentYear}.`);
+      }
+      const edades = [];
+      if (v.dueno?.edad !== undefined && v.dueno?.edad !== '') edades.push(v.dueno.edad);
+      if (v.chofer?.edad !== undefined && v.chofer?.edad !== '') edades.push(v.chofer.edad);
+      (v.pasajeros || []).forEach(p => {
+        if (p?.edad !== undefined && p?.edad !== '') edades.push(p.edad);
+      });
+      const invalidEdad = edades.find(ed => !isPosInt(ed));
+      if (invalidEdad !== undefined) {
+        vehErrors.push(`Vehículo #${i + 1}: "Edad" debe ser entero positivo en los campos informados.`);
+      }
+    });
+    if (vehErrors.length > 0) {
+      nextErrors.vehiculos = vehErrors.join(' ');
+    }
+
+    // Validar idRedactor (usuario autenticado)
+    const idRedactor = bombero?.id ? Number(bombero.id) : null;
+    if (!idRedactor) {
+      nextErrors.idRedactor = 'Sesión inválida: vuelva a iniciar sesión.';
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      const firstKey = Object.keys(nextErrors)[0];
+      const firstEl = document.querySelector(`[data-error-key="${firstKey}"]`);
+      if (firstEl?.scrollIntoView) firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     setSubmitting(true);
     try {
-      const fd = new FormData(e.currentTarget);
+      const fechaTrim = (fecha || '').trim();
+      const horaTrim = (horaDespacho || '').trim();
+      let fechaHoraDespacho = null;
+      if (fechaTrim && horaTrim && /^\d{4}-\d{2}-\d{2}$/.test(fechaTrim) && /^\d{2}:\d{2}$/.test(horaTrim)) {
+        // Construimos un ISO local sin Z para que el backend lo pueda parsear si quiere, y además un iso con Z
+        const [yy, mm, dd] = fechaTrim.split('-').map(Number);
+        const [hh, mi] = horaTrim.split(':').map(Number);
+        const localDate = new Date(yy, mm - 1, dd, hh, mi, 0, 0);
+        fechaHoraDespacho = localDate.toISOString(); // se envía en UTC
+      }
       const payload = {
         companiaId,
-        fecha: fd.get('fecha') || null,
-        horaDespacho: fd.get('horadespacho') || null,
-        hora6_0: fd.get('hora6_0') || null,
-        hora6_3: fd.get('hora6_3') || null,
-        hora6_9: fd.get('hora6_9') || null,
-        hora6_10: fd.get('hora6_10') || null,
+        fecha,
+        horaDespacho,
+        fechaHoraDespacho, // nuevo campo explícito
+        hora6_0: hora60,
+        hora6_3: hora63,
+        hora6_9: hora69,
+        hora6_10: hora610,
         regionId, comunaId,
+        calle: calleTxt,
+        numero: numeroTxt || null,
+        depto: deptoTxt || null,
+        referencia: referenciaTxt || '',
         clasificacionId, subtipoId, tipoIncendioId, faseId,
+        descripcionPreliminar: descripcionPreliminar || '',
+        bomberoACargoId: bomberoACargoId ? Number(bomberoACargoId) : null,
+        idRedactor, // agregado
         inmuebles, vehiculos, materialMayor, accidentados, otrosServicios,
         asistencia: {
-          lugar: Object.keys(asistenciaLugar).filter((id) => asistenciaLugar[id]),
-          cuartel: Object.keys(asistenciaCuartel).filter((id) => asistenciaCuartel[id]),
+          lugar: Object.keys(asistenciaLugar).filter((id) => asistenciaLugar[id]).map(Number),
+          cuartel: Object.keys(asistenciaCuartel).filter((id) => asistenciaCuartel[id]).map(Number),
         },
       };
-      console.log('Payload parte:', payload);
-      // await crearParte(payload)
+      console.log('Payload parte (con fechaHoraDespacho calculada):', payload);
+      // Envío al backend
+      const resp = await crearParteEmergencia(payload);
+      console.log('Parte creada:', resp);
+      alert('Parte creada con éxito.');
+    } catch (err) {
+      console.error('Error al crear parte:', err);
+      alert('Ocurrió un error al guardar el parte. Inténtalo nuevamente.');
     } finally {
       setSubmitting(false);
     }
@@ -428,9 +592,6 @@ const CrearParte = () => {
   }, [asistenciaLugar, asistenciaCuartel]);
 
   /* ---------- Derivados de UI ---------- */
-  const baseInput =
-    'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
-
   const selectedClasificacion = clasificaciones.find((c) => c.id === clasificacionId) || null;
   const selectedSubtipo = subtipos.find((s) => s.id === subtipoId) || null;
   const selectedTipoDano = tiposDano.find((t) => t.id === tipoIncendioId) || null;
@@ -457,15 +618,31 @@ const CrearParte = () => {
     { key: 'ex', label: 'Accidentados & Otros servicios' },      // 8 & 9
     { key: 'as', label: 'Asistencia' },                          // 10
   ];
+  // Mapear qué campos pertenecen a cada pestaña para mostrar indicador de error en el título
+  const tabErrorKeys = {
+    dg: ['idRedactor', 'companiaId', 'fecha', 'horadespacho', 'hora6_0', 'hora6_3', 'hora6_9', 'hora6_10', 'regionId', 'comunaId', 'calle'],
+    te: ['clasificacionId', 'subtipoId', 'inmuebles', 'vehiculos'],
+    mm: ['materialMayor'],
+    ex: [], // actualmente sin validaciones bloqueantes
+    as: ['asistenciaLugar'],
+  };
+
   const [activeTabIdx, setActiveTabIdx] = useState(0);
   const isFirst = activeTabIdx === 0;
-  const isLast  = activeTabIdx === tabs.length - 1;
-  const goPrev  = () => !isFirst && setActiveTabIdx((i) => i - 1);
-  const goNext  = () => !isLast && setActiveTabIdx((i) => i + 1);
+  const isLast = activeTabIdx === tabs.length - 1;
+  const goPrev = () => !isFirst && setActiveTabIdx((i) => i - 1);
+  const goNext = () => !isLast && setActiveTabIdx((i) => i + 1);
 
   /* ---------- Render ---------- */
   return (
     <form onSubmit={handleSubmit} noValidate>
+      {/* Mostrar error de idRedactor si aplica */}
+      {errors.idRedactor && (
+        <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="idRedactor">
+          {errors.idRedactor}
+        </div>
+      )}
+
       <main className="p-4 md:p-6">
         {/* Encabezado */}
         <div className="bg-white rounded-3xl shadow-sm p-6 mb-4 sticky top-0 z-40">
@@ -484,16 +661,24 @@ const CrearParte = () => {
                     key={t.key}
                     type="button"
                     onClick={() => setActiveTabIdx(i)}
-                    className={`relative py-2 text-sm whitespace-nowrap ${
-                      active ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                    title={t.label}
-                  >
-                    {t.label}
-                    <span
-                      className={`absolute left-0 right-0 -bottom-px h-0.5 transition-all ${
-                        active ? 'bg-blue-600' : 'bg-transparent'
+                    className={`relative py-2 text-sm whitespace-nowrap ${active ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-800'
                       }`}
+                    title={
+                      <>
+                        {t.label}
+                        {Object.keys(errors).some((k) => (tabErrorKeys[t.key] || []).includes(k)) && (
+                          <span
+                            aria-label="Errores"
+                            className="ml-1 inline-block align-middle h-2 w-2 rounded-full bg-red-500"
+                          />
+                        )}
+                      </>
+                    }
+                  >
+                    {t.label} {Object.keys(errors).some((k) => (tabErrorKeys[t.key] || []).includes(k)) && (<span aria-label="Errores" className="ml-1 inline-block align-middle h-2 w-2 rounded-full bg-red-500" />)}
+                    <span
+                      className={`absolute left-0 right-0 -bottom-px h-0.5 transition-all ${active ? 'bg-blue-600' : 'bg-transparent'
+                        }`}
                     />
                   </button>
                 );
@@ -508,16 +693,17 @@ const CrearParte = () => {
             {/* 1. Datos generales */}
             <Card title="1. Datos generales" titleIcon={<Users className="text-blue-600" />}>
               <div className="grid md:grid-cols-4 gap-3">
-                <div className="md:col-span-2">
+                <div className="md:col-span-2" data-error-key="companiaId">
                   <label htmlFor="compania" className="block text-sm font-medium text-gray-700 mb-1">Compañía:</label>
                   <select
                     id="compania"
-                    className={baseInput}
+                    className={inputCls('companiaId')}
                     value={companiaId}
                     onChange={(e) => {
                       const v = e.target.value;
                       const next = v === '' ? '' : Number(v);
                       setCompaniaId(Number.isNaN(next) ? '' : next);
+                      if (errors.companiaId) setErrors((prev) => ({ ...prev, companiaId: undefined }));
                     }}
                     disabled={loadingCompanias || !!errorCompanias}
                   >
@@ -525,54 +711,140 @@ const CrearParte = () => {
                     {errorCompanias && <option value="" disabled>{errorCompanias}</option>}
                     {companias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>
+                  {hasError('companiaId') && <p className="mt-1 text-xs text-red-600">{errors.companiaId}</p>}
                 </div>
 
-                <div>
+                <div data-error-key="fecha">
                   <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-1">Fecha:</label>
-                  <input type="date" id="fecha" name="fecha" className={baseInput} />
+                  <input
+                    type="date"
+                    id="fecha"
+                    name="fecha"
+                    className={inputCls('fecha')}
+                    value={fecha}
+                    onChange={(e) => { setFecha(e.target.value); if (errors.fecha) setErrors(p => ({ ...p, fecha: undefined })); }}
+                  />
+                  {hasError('fecha') && <p className="mt-1 text-xs text-red-600">{errors.fecha}</p>}
                 </div>
 
-                <div>
+                <div data-error-key="horadespacho">
                   <label htmlFor="horadespacho" className="block text-sm font-medium text-gray-700 mb-1">Hora Despacho:</label>
-                  <input type="time" id="horadespacho" name="horadespacho" className={baseInput} />
+                  <input
+                    type="time"
+                    id="horadespacho"
+                    name="horadespacho"
+                    className={inputCls('horadespacho')}
+                    value={horaDespacho}
+                    onChange={(e) => { setHoraDespacho(e.target.value); if (errors.horadespacho) setErrors(p => ({ ...p, horadespacho: undefined })); }}
+                  />
+                  {hasError('horadespacho') && <p className="mt-1 text-xs text-red-600">{errors.horadespacho}</p>}
                 </div>
 
-                <div>
+                <div data-error-key="hora6_0">
                   <label htmlFor="hora6_0" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_0</label>
-                  <input type="time" id="hora6_0" name="hora6_0" className={baseInput} />
+                  <input
+                    type="time"
+                    id="hora6_0"
+                    name="hora6_0"
+                    className={inputCls('hora6_0')}
+                    value={hora60}
+                    onChange={(e) => { setHora60(e.target.value); if (errors.hora6_0) setErrors(p => ({ ...p, hora6_0: undefined })); }}
+                  />
+                  {hasError('hora6_0') && <p className="mt-1 text-xs text-red-600">{errors.hora6_0}</p>}
                 </div>
 
-                <div>
+                <div data-error-key="hora6_3">
                   <label htmlFor="hora6_3" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_3</label>
-                  <input type="time" id="hora6_3" name="hora6_3" className={baseInput} />
+                  <input
+                    type="time"
+                    id="hora6_3"
+                    name="hora6_3"
+                    className={inputCls('hora6_3')}
+                    value={hora63}
+                    onChange={(e) => { setHora63(e.target.value); if (errors.hora6_3) setErrors(p => ({ ...p, hora6_3: undefined })); }}
+                  />
+                  {hasError('hora6_3') && <p className="mt-1 text-xs text-red-600">{errors.hora6_3}</p>}
                 </div>
 
-                <div>
+                <div data-error-key="hora6_9">
                   <label htmlFor="hora6_9" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_9</label>
-                  <input type="time" id="hora6_9" name="hora6_9" className={baseInput} />
+                  <input
+                    type="time"
+                    id="hora6_9"
+                    name="hora6_9"
+                    className={inputCls('hora6_9')}
+                    value={hora69}
+                    onChange={(e) => { setHora69(e.target.value); if (errors.hora6_9) setErrors(p => ({ ...p, hora6_9: undefined })); }}
+                  />
+                  {hasError('hora6_9') && <p className="mt-1 text-xs text-red-600">{errors.hora6_9}</p>}
                 </div>
 
-                <div>
+                <div data-error-key="hora6_10">
                   <label htmlFor="hora6_10" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_10</label>
-                  <input type="time" id="hora6_10" name="hora6_10" className={baseInput} />
+                  <input
+                    type="time"
+                    id="hora6_10"
+                    name="hora6_10"
+                    className={inputCls('hora6_10')}
+                    value={hora610}
+                    onChange={(e) => { setHora610(e.target.value); if (errors.hora6_10) setErrors(p => ({ ...p, hora6_10: undefined })); }}
+                  />
+                  {hasError('hora6_10') && <p className="mt-1 text-xs text-red-600">{errors.hora6_10}</p>}
                 </div>
+
+                {/* NUEVOS CAMPOS EN DATOS GENERALES */}
+                <div className="md:col-span-2">
+                  <label htmlFor="bomberoACargo" className="block text-sm font-medium text-gray-700 mb-1">
+                    Bombero a cargo:
+                  </label>
+                  <select
+                    id="bomberoACargo"
+                    className={baseInput}
+                    value={bomberoACargoId}
+                    onChange={(e) => setBomberoACargoId(e.target.value || '')}
+                    disabled={!companiaId || loadingBomberos}
+                  >
+                    <option value="">
+                      {!companiaId ? 'Seleccione compañía…' : loadingBomberos ? 'Cargando bomberos…' : 'Selecciona bombero…'}
+                    </option>
+                    {bomberos.map((b) => (
+                      <option key={b.id} value={b.id}>{nombreBombero(b)}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="md:col-span-4">
+                  <label htmlFor="descripcionPreliminar" className="block text-sm font-medium text-gray-700 mb-1">
+                    Descripción preliminar:
+                  </label>
+                  <textarea
+                    id="descripcionPreliminar"
+                    rows={3}
+                    className={baseInput}
+                    placeholder="Resumen breve de lo ocurrido…"
+                    value={descripcionPreliminar}
+                    onChange={(e) => setDescripcionPreliminar(e.target.value)}
+                  />
+                </div>
+                {/* FIN NUEVOS CAMPOS */}
               </div>
             </Card>
 
             {/* 2. Datos del Lugar */}
             <Card title="2. Datos del Lugar" titleIcon={<Home className="text-blue-600" />}>
               <div className="grid md:grid-cols-3 gap-3">
-                <div>
+                <div data-error-key="regionId">
                   <label htmlFor="region" className="block text-sm font-medium text-gray-700 mb-1">Región:</label>
                   <select
                     id="region"
-                    className={baseInput}
+                    className={inputCls('regionId')}
                     value={regionId}
                     onChange={(e) => {
                       const v = e.target.value;
                       const next = v === '' ? '' : Number(v);
                       setRegionId(Number.isNaN(next) ? '' : next);
                       setComunaId('');
+                      if (errors.regionId) setErrors((prev) => ({ ...prev, regionId: undefined }));
                     }}
                     disabled={loadingRegiones || !!errorRegiones}
                   >
@@ -580,18 +852,20 @@ const CrearParte = () => {
                     {errorRegiones && <option value="" disabled>{errorRegiones}</option>}
                     {regiones.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
                   </select>
+                  {hasError('regionId') && <p className="mt-1 text-xs text-red-600">{errors.regionId}</p>}
                 </div>
 
-                <div>
+                <div data-error-key="comunaId">
                   <label htmlFor="comuna" className="block text-sm font-medium text-gray-700 mb-1">Comuna:</label>
                   <select
                     id="comuna"
-                    className={baseInput}
+                    className={inputCls('comunaId')}
                     value={comunaId}
                     onChange={(e) => {
                       const v = e.target.value;
                       const next = v === '' ? '' : Number(v);
                       setComunaId(Number.isNaN(next) ? '' : next);
+                      if (errors.comunaId) setErrors((prev) => ({ ...prev, comunaId: undefined }));
                     }}
                     disabled={regionId === '' || loadingComunas || !!errorComunas}
                   >
@@ -601,26 +875,58 @@ const CrearParte = () => {
                     {errorComunas && <option value="" disabled>{errorComunas}</option>}
                     {comunas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>
+                  {hasError('comunaId') && <p className="mt-1 text-xs text-red-600">{errors.comunaId}</p>}
                 </div>
 
-                <div>
+                <div className="md:col-span-1" data-error-key="calle">
                   <label htmlFor="calle" className="block text-sm font-medium text-gray-700 mb-1">Calle:</label>
-                  <input type="text" id="calle" name="calle" className={baseInput} />
+                  <input
+                    type="text"
+                    id="calle"
+                    name="calle"
+                    className={inputCls('calle')}
+                    value={calleTxt}
+                    onChange={(e) => { setCalleTxt(e.target.value); if (errors.calle) setErrors(p => ({ ...p, calle: undefined })); }}
+                  />
+                  {hasError('calle') && <p className="mt-1 text-xs text-red-600">{errors.calle}</p>}
                 </div>
 
                 <div>
                   <label htmlFor="numero" className="block text-sm font-medium text-gray-700 mb-1">Número:</label>
-                  <input type="number" id="numero" name="numero" min={0} className={baseInput} />
+                  <input
+                    type="number"
+                    id="numero"
+                    name="numero"
+                    min={0}
+                    className={baseInput}
+                    value={numeroTxt}
+                    onChange={(e) => setNumeroTxt(e.target.value)}
+                  />
                 </div>
 
                 <div>
                   <label htmlFor="depto" className="block text-sm font-medium text-gray-700 mb-1">Número Departamento</label>
-                  <input type="text" id="depto" name="depto" placeholder="(opcional)" className={baseInput} />
+                  <input
+                    type="text"
+                    id="depto"
+                    name="depto"
+                    placeholder="(opcional)"
+                    className={baseInput}
+                    value={deptoTxt}
+                    onChange={(e) => setDeptoTxt(e.target.value)}
+                  />
                 </div>
 
                 <div className="md:col-span-3">
                   <label htmlFor="referencia" className="block text-sm font-medium text-gray-700 mb-1">Referencia:</label>
-                  <input type="text" id="referencia" name="referencia" className={baseInput} />
+                  <input
+                    type="text"
+                    id="referencia"
+                    name="referencia"
+                    className={baseInput}
+                    value={referenciaTxt}
+                    onChange={(e) => setReferenciaTxt(e.target.value)}
+                  />
                 </div>
               </div>
             </Card>
@@ -636,36 +942,41 @@ const CrearParte = () => {
               {loadingClasificaciones && <div className="text-sm text-gray-500 mb-3">Cargando clasificaciones…</div>}
               {errorClasificaciones && <div className="text-sm text-red-600 mb-3">{errorClasificaciones}</div>}
 
-              <div className="grid sm:grid-cols-3 gap-3 mb-4">
+              <div className="grid sm:grid-cols-3 gap-3 mb-4" data-error-key="clasificacionId">
                 {clasificaciones.map((cls) => (
                   <SelectableCard
                     key={cls.id}
                     selected={clasificacionId === cls.id}
-                    onClick={() => { setClasificacionId(cls.id); setSubtipoId(''); }}
+                    onClick={() => {
+                      setClasificacionId(cls.id);
+                      setSubtipoId('');
+                      if (errors.clasificacionId) setErrors(p => ({ ...p, clasificacionId: undefined }));
+                    }}
                     icon={Home}
                     label={cls.nombre ?? cls.label ?? `Clasificación ${cls.id}`}
                   />
                 ))}
               </div>
+              {hasError('clasificacionId') && <p className="mt-1 text-xs text-red-600">{errors.clasificacionId}</p>}
 
               {clasificacionId !== '' && (
                 <div className="grid sm:grid-cols-3 gap-3">
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-2" data-error-key="subtipoId">
                     {/* Renombrado a "Clave Radial" */}
                     <label htmlFor="subtipo" className="block text-sm font-medium text-gray-700 mb-1">
                       Clave Radial (según clasificación seleccionada):
                     </label>
                     <select
                       id="subtipo"
-                      className={baseInput}
+                      className={inputCls('subtipoId')}
                       value={subtipoId}
                       onChange={(e) => {
                         const v = e.target.value;
                         const next = v === '' ? '' : Number(v);
                         setSubtipoId(Number.isNaN(next) ? '' : next);
-                        // Opcional: limpiar campos dependientes
                         setTipoIncendioEnabled(false); setTipoIncendioId('');
                         setFaseEnabled(false); setFaseId('');
+                        if (errors.subtipoId) setErrors(p => ({ ...p, subtipoId: undefined }));
                       }}
                       disabled={loadingSubtipos || !!errorSubtipos}
                     >
@@ -677,6 +988,7 @@ const CrearParte = () => {
                         </option>
                       ))}
                     </select>
+                    {hasError('subtipoId') && <p className="mt-1 text-xs text-red-600">{errors.subtipoId}</p>}
                   </div>
                 </div>
               )}
@@ -786,7 +1098,12 @@ const CrearParte = () => {
 
               {/* Inmuebles: solo si la clave radial los contiene */}
               {hasInmuebles && (
-                <div className="mt-8">
+                <div className="mt-8" data-error-key="inmuebles">
+                  {hasError('inmuebles') && (
+                    <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+                      {errors.inmuebles}
+                    </div>
+                  )}
                   <div className="text-sm font-medium text-gray-900 mb-3">Inmuebles afectados</div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     {inmuebles.map((inm, idx) => (
@@ -815,10 +1132,13 @@ const CrearParte = () => {
 
               {/* Vehículos: solo si la clave radial los contiene */}
               {hasVehiculos && (
-                <>
-                  <div className="mt-10">
-                    <div className="text-sm font-medium text-gray-900 mb-3">Vehículos involucrados</div>
-                  </div>
+                <div className="mt-10" data-error-key="vehiculos">
+                  {hasError('vehiculos') && (
+                    <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
+                      {errors.vehiculos}
+                    </div>
+                  )}
+                  <div className="text-sm font-medium text-gray-900 mb-3">Vehículos involucrados</div>
                   <div className="grid sm:grid-cols-2 gap-4">
                     {vehiculos.map((veh, idx) => (
                       <VehicleCard
@@ -841,7 +1161,7 @@ const CrearParte = () => {
                       </div>
                     </button>
                   </div>
-                </>
+                </div>
               )}
             </Card>
           </>
@@ -850,18 +1170,26 @@ const CrearParte = () => {
         {/* ---------- TAB 2: Material mayor ---------- */}
         {activeTabIdx === 2 && (
           <Card title="7. Material mayor y bomberos a cargo" titleIcon={<Users className="text-blue-600" />}>
+            {hasError('materialMayor') && (
+              <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="materialMayor">
+                {errors.materialMayor}
+              </div>
+            )}
             <div className="grid sm:grid-cols-1 gap-4">
               {materialMayor.map((row, idx) => {
-                const usedUnidadIds = materialMayor.map(r => r.unidadId).filter(Boolean).map(String);
-                const usedConductorIds = materialMayor.map(r => r.conductorId).filter(Boolean).map(String);
-                const unidadesDisponibles = carros.filter(u => !usedUnidadIds.includes(String(u.id)) || String(row.unidadId) === String(u.id));
-                const conductoresDisponibles = conductores.filter(c => !usedConductorIds.includes(String(c.id)) || String(row.conductorId) === String(c.id));
+                const usedUnidadIdsLocal = materialMayor.map(r => r.unidadId).filter(Boolean).map(String);
+                const usedConductorIdsLocal = materialMayor.map(r => r.conductorId).filter(Boolean).map(String);
+                const unidadesDisponibles = carros.filter(u => !usedUnidadIdsLocal.includes(String(u.id)) || String(row.unidadId) === String(u.id));
+                const conductoresDisponibles = conductores.filter(c => !usedConductorIdsLocal.includes(String(c.id)) || String(row.conductorId) === String(c.id));
                 return (
                   <UnidadCard
                     key={row.id}
                     value={row}
                     index={idx}
-                    onChange={(next) => updateUnidad(idx, next)}
+                    onChange={(next) => {
+                      updateUnidad(idx, next);
+                      if (errors.materialMayor) setErrors(p => ({ ...p, materialMayor: undefined }));
+                    }}
                     onRemove={() => removeUnidad(idx)}
                     unidades={unidadesDisponibles}
                     loadingUnidades={loadingCarros}
@@ -965,6 +1293,11 @@ const CrearParte = () => {
         {/* ---------- TAB 4: Asistencia ---------- */}
         {activeTabIdx === 4 && (
           <Card title="10. Asistencia" titleIcon={<Users className="text-blue-600" />}>
+            {hasError('asistenciaLugar') && (
+              <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="asistenciaLugar">
+                {errors.asistenciaLugar}
+              </div>
+            )}
             <div className="grid md:grid-cols-2 gap-6">
               {/* A) En el lugar */}
               <div>
@@ -978,7 +1311,7 @@ const CrearParte = () => {
                     disabled={!companiaId || loadingBomberos}
                   />
                 </div>
-                <div className="relative overflow-visible rounded-xl ring-1 ring-gray-200 bg-white">
+                <div className={`relative overflow-visible rounded-xl ring-1 ring-gray-200 bg-white ${hasError('asistenciaLugar') ? 'ring-2 ring-red-400' : ''}`}>
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-sm">
                       <thead className="bg-gray-50 text-gray-600">
@@ -998,7 +1331,10 @@ const CrearParte = () => {
                                 <Switch
                                   id={`switch-lugar-${b.id}`}
                                   checked={present}
-                                  onChange={(val) => toggleLugar(b.id, val)}
+                                  onChange={(val) => {
+                                    toggleLugar(b.id, val);
+                                    if (errors.asistenciaLugar) setErrors(p => ({ ...p, asistenciaLugar: undefined }));
+                                  }}
                                   label={present ? 'Presente' : 'Ausente'}
                                   disabled={disabledRow}
                                 />

@@ -25,6 +25,11 @@ function UnidadCard({
     const n = Number(raw);
     if (Number.isFinite(n) && n >= 0) set('voluntarios', Math.trunc(n));
   };
+  const setKm = (k, raw) => {
+    if (raw === '') return set(k, '');
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) set(k, Math.trunc(n));
+  };
 
   const noCompania = !companiaSeleccionada;
 
@@ -44,7 +49,7 @@ function UnidadCard({
         <div className="font-medium text-teal-900">Unidad #{index + 1}</div>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+  <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div>
           <label className="block text-xs text-gray-600 mb-1">Unidad</label>
           <select
@@ -122,7 +127,7 @@ function UnidadCard({
           </select>
         </div>
 
-        <div>
+        <div className="col-span-2 lg:col-span-1">
           <label className="block text-xs text-gray-600 mb-1">N° total de voluntarios en unidad</label>
           <input
             type="number"
@@ -133,6 +138,33 @@ function UnidadCard({
             value={value.voluntarios ?? ''}
             onChange={(e) => setVoluntarios(e.target.value)}
             placeholder="0"
+          />
+        </div>
+
+        <div className="col-span-2 lg:col-span-1">
+          <label className="block text-xs text-gray-600 mb-1">KM salida</label>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            className={baseInput}
+            value={value.kmSalida ?? ''}
+            onChange={(e) => setKm('kmSalida', e.target.value)}
+            placeholder="Ej: 12345"
+          />
+        </div>
+        <div className="col-span-2 lg:col-span-1">
+          <label className="block text-xs text-gray-600 mb-1">KM llegada</label>
+          <input
+            type="number"
+            min={1}
+            step={1}
+            inputMode="numeric"
+            className={baseInput}
+            value={value.kmLlegada ?? ''}
+            onChange={(e) => setKm('kmLlegada', e.target.value)}
+            placeholder="Ej: 12350"
           />
         </div>
       </div>

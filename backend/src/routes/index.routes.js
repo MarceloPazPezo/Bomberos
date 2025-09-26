@@ -12,6 +12,7 @@ import direccionRoutes from "./direccion.routes.js";
 import subtipoIncidenteRoutes from "./subtipoIncidente.routes.js";
 import carroRoutes from "./carro.routes.js";
 import serviciosRoutes from "./servicios.routes.js";
+import parteEmergenciaRoutes from "./parteEmergencia.routes.js";
 
 
 const router = Router();
@@ -28,7 +29,8 @@ router
   .use("/direccion", direccionRoutes)
   .use("/subtipoIncidente", subtipoIncidenteRoutes)
   .use("/carro", carroRoutes)
-  .use("/servicios", serviciosRoutes);
+  .use("/servicios", serviciosRoutes)
+  .use("/parteEmergencia", parteEmergenciaRoutes);
 
 
 export default router;

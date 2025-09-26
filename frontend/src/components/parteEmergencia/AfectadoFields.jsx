@@ -1,7 +1,7 @@
 import { UserIcon } from '@heroicons/react/24/outline';
 
 // === Subcomponente: Campos de afectado (dueño / habitante / chofer / pasajero)
-function AfectadoFields({ value, onChange, title }) {
+function AfectadoFields({ value, onChange, title, showEsEmpresa = false }) {
   const baseInput =
     'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
 
@@ -40,16 +40,22 @@ function AfectadoFields({ value, onChange, title }) {
           value={value.edad ?? ''}
           onChange={(e) => set('edad', e.target.value === '' ? '' : Number(e.target.value))}
         />
-        <select
+        <input
           className={baseInput}
-          value={value.gravedad || ''}
-          onChange={(e) => set('gravedad', e.target.value)}
-        >
-          <option value="">Gravedad (opcional)</option>
-          <option value="LEVE">Leve</option>
-          <option value="MODERADA">Moderada</option>
-          <option value="GRAVE">Grave</option>
-        </select>
+          placeholder="Descripción de gravedad"
+          value={value.descripcionGravedad || ''}
+          onChange={(e) => set('descripcionGravedad', e.target.value)}
+        />
+        {showEsEmpresa && (
+          <label className="inline-flex items-center text-sm text-gray-700 gap-2">
+            <input
+              type="checkbox"
+              checked={!!value.esEmpresa}
+              onChange={(e) => set('esEmpresa', e.target.checked)}
+            />
+            Es empresa
+          </label>
+        )}
       </div>
     </div>
   );

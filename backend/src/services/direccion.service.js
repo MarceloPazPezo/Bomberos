@@ -18,4 +18,10 @@ export async function getComunasService(idRegion) {
         where: { region: { id: idRegion } },
     });
 }
+export async function crearDireccionService(direccionData, manager = null) {
+    const direccionRepository = (manager || AppDataSource).getRepository(Direccion);
+    const nuevaDireccion = direccionRepository.create(direccionData);
+    await direccionRepository.save(nuevaDireccion);
+    return nuevaDireccion.id;
+}
 
