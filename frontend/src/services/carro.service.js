@@ -3,8 +3,6 @@ import axios from './root.service.js';
 export const getCarrosByCompania = async (companiaId) => {
   try {
     const response = await axios.get(`/carro/compania/${companiaId}`);
-    console.log("carroooooo")
-    console.log(response.data);
     return response.data.data;
     } catch (error) {
     console.error('Error al obtener carros por compañía:', error);

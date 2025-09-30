@@ -6,9 +6,7 @@ export async function crearIncidenteService(incidenteData, manager = null) {
   try {
     const incidenteRepository = (manager || AppDataSource).getRepository(Incidente);
     const nuevoIncidente = incidenteRepository.create(incidenteData);
-    console.log('[crearIncidenteService] Pre-save FechaHoraDespacho:', nuevoIncidente.FechaHoraDespacho, 'tipo:', typeof nuevoIncidente.FechaHoraDespacho);
-    const incidenteGuardado = await incidenteRepository.save(nuevoIncidente);
-    console.log('[crearIncidenteService] Post-save FechaHoraDespacho:', incidenteGuardado.FechaHoraDespacho, 'tipo:', typeof incidenteGuardado.FechaHoraDespacho);
+       const incidenteGuardado = await incidenteRepository.save(nuevoIncidente);
     return incidenteGuardado; // devolver objeto completo para validar FechaHoraDespacho
   } catch (error) {
     console.error("Error al crear el incidente:", error);

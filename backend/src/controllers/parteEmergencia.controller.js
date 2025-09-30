@@ -16,6 +16,8 @@ import { crearEstadoEstablecidoService } from "../services/estadoEstablecido.ser
 import { crearAcudeServicioService } from "../services/acudeServicio.service.js";
 import { crearAsistenciaIncidenteService } from "../services/asistenciaIncidente.service.js";
 import { crearBomberoAccidentadoService } from "../services/bomberoAccidentado.service.js";
+import { obtenerPartePorIdService, actualizarParteCompletoService } from "../services/parteEmergencia.service.js";
+import { parteEmergenciaUpdateValidation } from "../validations/parteEmergenciaUpdate.validation.js";
 
 function toHHMMSS(v) {
   if (!v) return null;
@@ -29,6 +31,9 @@ export async function crearParteEmergencia(req, res) {
   if (!payload || typeof payload !== 'object') {
     return handleErrorClient(res, 400, "Payload inválido");
   }
+  // Normalizar campos opcionales que pueden venir como '' desde el front
+  if (payload && (payload.tipoIncendioId === '' || payload.tipoIncendioId === undefined)) payload.tipoIncendioId = null;
+  if (payload && (payload.faseId === '' || payload.faseId === undefined)) payload.faseId = null;
   const { error: parteError, value: parteData } = parteEmergenciaValidation.validate(payload, { abortEarly: true });
   if (parteError) {
     return handleErrorClient(res, 400, `Error validación parte: ${parteError.details[0].message}`);
@@ -37,7 +42,7 @@ export async function crearParteEmergencia(req, res) {
   await queryRunner.connect();
   await queryRunner.startTransaction();
   try {
-    const { companiaId, fecha, horaDespacho, fechaHoraDespacho: fechaHoraDespachoFront, hora6_0, hora6_3, hora6_9, hora6_10, comunaId, calle, numero, depto, referencia, descripcionPreliminar, bomberoACargoId, subtipoId: idSubtipoIncidente, tipoIncendioId, faseId, idRedactor, inmuebles = [], vehiculos = [], materialMayor = [], accidentados = [], otrosServicios = [], asistencia = { lugar: [], cuartel: [] } } = parteData;
+  const { companiaId, fecha, horaDespacho, fechaHoraDespacho: fechaHoraDespachoFront, hora6_0, hora6_3, hora6_9, hora6_10, comunaId, calle, numero, depto, referencia, descripcionPreliminar, bomberoACargoId, subtipoId: idSubtipoIncidente, tipoIncendioId, faseId, idRedactor, inmuebles = [], vehiculos = [], materialMayor = [], accidentados = [], otrosServicios = [], asistencia = { lugar: [], cuartel: [] } } = parteData;
     const dirPrincipal = { calle, numero: String(numero), depto: depto || null, referencia: referencia || null, idComuna: comunaId, creadoPor: idRedactor || null, actualizadoPor: null };
     const { error: dirError } = direccionCreateValidation.validate(dirPrincipal);
     if (dirError) { await queryRunner.rollbackTransaction(); return handleErrorClient(res, 400, `Error validación dirección: ${dirError.details[0].message}`); }
@@ -50,7 +55,7 @@ export async function crearParteEmergencia(req, res) {
       const d = new Date(fechaHoraDespachoFront);
       if (!isNaN(d.getTime())) {
         fechaHoraDespacho = d;
-        console.log('[crearParteEmergencia] Usando fechaHoraDespacho del front:', fechaHoraDespachoFront);
+    
       }
     }
     if (!fechaHoraDespacho && fecha && horaDespacho) {
@@ -63,7 +68,7 @@ export async function crearParteEmergencia(req, res) {
           fechaHoraDespacho = new Date(yy, mm - 1, dd, hh, mi, 0, 0);
         }
       } catch (e) { console.warn('[crearParteEmergencia] Error parse manual fecha/hora', e.message); }
-      console.log('[crearParteEmergencia] FechaHoraDespacho (fallback build):', fechaHoraDespacho);
+     
     }
     const incidenteData = {
       idCompania: companiaId,
@@ -84,8 +89,28 @@ export async function crearParteEmergencia(req, res) {
     if (incidenteErr) { await queryRunner.rollbackTransaction(); return handleErrorClient(res, 400, `Error validación incidente: ${incidenteErr.details[0].message}`); }
     const incidenteCreado = await crearIncidenteService(incidenteData, manager);
     const idIncidente = incidenteCreado.id;
-    console.log('[crearParteEmergencia] Incidente creado id:', idIncidente, 'FechaHoraDespacho:', incidenteCreado.FechaHoraDespacho);
-    if (tipoIncendioId && faseId) { await crearFaseYDanoService({ idIncidente, idFase: faseId, idTipoDano: tipoIncendioId }, manager); }
+   // Validación condicional: si el subtipo contiene fuego, exigir tipoIncendioId y faseId
+    if (idSubtipoIncidente) {
+      try {
+        const subRepo = manager.getRepository('SubtipoIncidente');
+        const subtipo = await subRepo.findOne({ where: { id: idSubtipoIncidente } });
+        const requiereFuego = !!subtipo?.contieneFuego;
+        if (requiereFuego) {
+          if (!tipoIncendioId || !faseId) {
+            await queryRunner.rollbackTransaction();
+            return handleErrorClient(res, 400, 'Para esta clave radial se requiere tipoIncendioId y faseId.');
+          }
+          await crearFaseYDanoService({ idIncidente, idFase: faseId, idTipoDano: tipoIncendioId }, manager);
+        } else {
+          // Si no requiere, pero llegaron valores, se ignoran sin error
+        }
+      } catch (sfErr) {
+        console.warn('No se pudo determinar contieneFuego del subtipo; continuar sin fase/daño. Detalle:', sfErr?.message);
+        if (tipoIncendioId && faseId) {
+          await crearFaseYDanoService({ idIncidente, idFase: faseId, idTipoDano: tipoIncendioId }, manager);
+        }
+      }
+    }
     // Preparar idVinculo por defecto para pasajeros (evitar FK inexistente). Nombre único para reuso.
     let defaultVinculoId = null;
     try {
@@ -114,7 +139,12 @@ export async function crearParteEmergencia(req, res) {
       let idPropietario = null;
       if (inm.dueno) { idPropietario = await crearAfectadoService({ nombreCompleto: inm.dueno.nombreCompleto, run: inm.dueno.run || null, telefono: inm.dueno.telefono || null, edad: inm.dueno.edad || null, descripcionGravedad: inm.dueno.descripcionGravedad || null, esEmpresa: !!inm.dueno.esEmpresa, idIncidente, idDireccion: idDireccionInmueble, idEstadoCivil: null }, manager); }
       const idInmueble = await crearInmuebleService({ tipoConstruccion: inm.tipo_construccion || null, nPisos: inm.n_pisos || null, m2Construccion: inm.m2_construccion || null, m2Afectados: inm.m2_afectado || null, danosVivienda: inm.danos_vivienda || null, danosAnexos: inm.danos_anexos || null, idIncidente, idPropietario: idPropietario || null, idDireccion: idDireccionInmueble || null }, manager);
-      if (Array.isArray(inm.habitantes)) { for (const hab of inm.habitantes) { const idAfectadoHab = await crearAfectadoService({ nombreCompleto: hab.nombreCompleto, run: hab.run || null, telefono: hab.telefono || null, edad: hab.edad || null, descripcionGravedad: hab.descripcionGravedad || null, esEmpresa: false, idIncidente, idDireccion: idDireccionInmueble, idEstadoCivil: null }, manager); await crearHabitaService({ idInmueble, idAfectado: idAfectadoHab }, manager); } }
+      if (Array.isArray(inm.habitantes)) {
+        for (const hab of inm.habitantes) {
+          const idAfectadoHab = await crearAfectadoService({ nombreCompleto: hab.nombreCompleto, run: hab.run || null, telefono: hab.telefono || null, edad: hab.edad || null, descripcionGravedad: hab.descripcionGravedad || null, esEmpresa: false, idIncidente, idDireccion: idDireccionInmueble, idEstadoCivil: null }, manager);
+          await crearHabitaService({ inmuebleId: idInmueble, afectadoId: idAfectadoHab }, manager);
+        }
+      }
     }
     for (const v of vehiculos) {
       let idDueno = null, idConductor = null;
@@ -154,4 +184,108 @@ export async function crearParteEmergencia(req, res) {
     console.error('Error creando parte emergencia:', err);
     return handleErrorServer(res, 500, err.message);
   } finally { await queryRunner.release(); }
+}
+
+export async function obtenerParteEmergenciaPorId(req, res) {
+  const { id } = req.params;
+  const idIncidente = Number(id);
+  if (!Number.isInteger(idIncidente) || idIncidente <= 0) {
+    return handleErrorClient(res, 400, "Id inválido");
+  }
+  try {
+    const data = await obtenerPartePorIdService(idIncidente);
+    if (!data) return handleErrorClient(res, 404, "Parte no encontrado");
+    return handleSuccess(res, 200, "Parte obtenido", data);
+  } catch (err) {
+    return handleErrorServer(res, 500, err.message);
+  }
+}
+
+export async function actualizarParteEmergencia(req, res) {
+  const { id } = req.params;
+  const idIncidente = Number(id);
+  if (!Number.isInteger(idIncidente) || idIncidente <= 0) {
+    return handleErrorClient(res, 400, "Id inválido");
+  }
+  const payload = req.body || {};
+  // Normalizar opcionales del front
+  if (payload && (payload.tipoIncendioId === '' || payload.tipoIncendioId === undefined)) payload.tipoIncendioId = null;
+  if (payload && (payload.faseId === '' || payload.faseId === undefined)) payload.faseId = null;
+  // Soportar alias idSubtipoIncidente, mapeándolo a subtipoId sólo si es numérico positivo
+  if (payload && payload.idSubtipoIncidente !== undefined && (payload.subtipoId === undefined || payload.subtipoId === null)) {
+    const alias = Number(payload.idSubtipoIncidente);
+    if (Number.isInteger(alias) && alias > 0) {
+      payload.subtipoId = alias;
+    }
+  }
+  // Coerciones defensivas: muchos selects envían strings numéricos
+  const toNum = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : v;
+  };
+  const toNumOrNull = (v) => {
+    if (v === '' || v === null || v === undefined) return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  try {
+    if (payload) {
+      if (payload.companiaId !== undefined) payload.companiaId = toNum(payload.companiaId);
+      if (payload.comunaId !== undefined) payload.comunaId = toNum(payload.comunaId);
+      if (payload.clasificacionId !== undefined && payload.clasificacionId !== null && payload.clasificacionId !== '') payload.clasificacionId = toNum(payload.clasificacionId);
+  // subtipoId: sólo numérico si viene un valor positivo; si viene null o '' conservar así
+  if (payload.subtipoId !== undefined && payload.subtipoId !== null && payload.subtipoId !== '') payload.subtipoId = toNum(payload.subtipoId);
+      if (payload.tipoIncendioId !== undefined) payload.tipoIncendioId = toNumOrNull(payload.tipoIncendioId);
+      if (payload.faseId !== undefined) payload.faseId = toNumOrNull(payload.faseId);
+      if (payload.bomberoACargoId !== undefined) payload.bomberoACargoId = toNumOrNull(payload.bomberoACargoId);
+      if (payload.idRedactor !== undefined) payload.idRedactor = toNumOrNull(payload.idRedactor);
+      if (Array.isArray(payload.materialMayor)) {
+        payload.materialMayor = payload.materialMayor.map((m) => ({
+          ...m,
+          unidadId: toNum(m.unidadId),
+          conductorId: toNum(m.conductorId),
+          bomberoId: toNum(m.bomberoId),
+          voluntarios: m.voluntarios === '' ? null : toNum(m.voluntarios),
+          kmSalida: m.kmSalida === '' ? null : toNum(m.kmSalida),
+          kmLlegada: m.kmLlegada === '' ? null : toNum(m.kmLlegada),
+        }));
+      }
+      if (Array.isArray(payload.accidentados)) {
+        payload.accidentados = payload.accidentados.map((a) => ({ ...a, bomberoId: toNum(a.bomberoId), companiaId: a.companiaId === '' ? null : toNum(a.companiaId) }));
+      }
+      if (Array.isArray(payload.otrosServicios)) {
+        payload.otrosServicios = payload.otrosServicios.map((s) => ({ ...s, servicioId: toNum(s.servicioId), personal: s.personal === '' ? null : toNum(s.personal) }));
+      }
+      if (payload.asistencia && Array.isArray(payload.asistencia.lugar)) {
+        payload.asistencia.lugar = payload.asistencia.lugar.map(toNum);
+      }
+      if (payload.asistencia && Array.isArray(payload.asistencia.cuartel)) {
+        payload.asistencia.cuartel = payload.asistencia.cuartel.map(toNum);
+      }
+      if (Array.isArray(payload.vehiculos)) {
+        payload.vehiculos = payload.vehiculos.map((v) => ({
+          ...v,
+          anio: v.anio === '' ? null : toNum(v.anio),
+          pasajeros: Array.isArray(v.pasajeros) ? v.pasajeros.map((p) => ({ ...p, idVinculo: p.idVinculo === '' ? null : toNum(p.idVinculo) })) : [],
+        }));
+      }
+    }
+  } catch (_) { /* ignorar coerciones fallidas */ }
+  const { error, value } = parteEmergenciaUpdateValidation.validate(payload, { abortEarly: true });
+  if (error) {
+    return handleErrorClient(res, 400, `Error validación update: ${error.details[0].message}`);
+  }
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+  try {
+    const result = await actualizarParteCompletoService(idIncidente, value, queryRunner.manager);
+    await queryRunner.commitTransaction();
+    return handleSuccess(res, 200, "Parte actualizado", result);
+  } catch (err) {
+    await queryRunner.rollbackTransaction();
+    return handleErrorServer(res, 500, err.message);
+  } finally {
+    await queryRunner.release();
+  }
 }

@@ -31,6 +31,10 @@ const AcudeServicioSchema = new EntitySchema({
             nullable: true,
         },
     },
+    indices: [
+        { name: "IDX_ACUDESERVICIO_IDINCIDENTE", columns: ["idIncidente"] },
+        { name: "IDX_ACUDESERVICIO_IDSERVICIO", columns: ["idServicio"] },
+    ],
     relations: {
         servicio: {
             target: "Servicio",
@@ -43,7 +47,6 @@ const AcudeServicioSchema = new EntitySchema({
             target: "Incidente",
             type: "many-to-one",
             joinColumn: { name: "idIncidente", referencedColumnName: "id" },
-            eager: true,
             onDelete: "CASCADE",
         }
     },

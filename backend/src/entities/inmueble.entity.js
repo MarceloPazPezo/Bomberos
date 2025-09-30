@@ -17,6 +17,11 @@ const InmuebleSchema = new EntitySchema({
         idDireccion: {type: "int", nullable: true},
 
     },
+    indices: [
+        { name: "IDX_INMUEBLE_IDINCIDENTE", columns: ["idIncidente"] },
+        { name: "IDX_INMUEBLE_IDPROPIETARIO", columns: ["idPropietario"] },
+        { name: "IDX_INMUEBLE_IDDIRECCION", columns: ["idDireccion"] },
+    ],
     relations: {
         incidente: {
             type: "many-to-one",

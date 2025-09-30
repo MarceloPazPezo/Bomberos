@@ -1,21 +1,20 @@
 "use strict";
 import Joi from "joi";
 
-// Reutilizamos patrones de hora HH:mm y convertiremos a HH:mm:ss en controlador
 const horaPattern = /^([0-1]\d|2[0-3]):([0-5]\d)$/;
 
 const afectadoSubSchema = Joi.object({
-  id: Joi.any().optional(), // id temporal front
+  id: Joi.number().integer().positive().optional(),
   nombreCompleto: Joi.string().max(200).required(),
   run: Joi.string().max(20).allow('', null),
   telefono: Joi.string().max(20).allow('', null),
   edad: Joi.number().integer().min(0).allow(null),
   descripcionGravedad: Joi.string().max(500).allow('', null),
   esEmpresa: Joi.boolean().optional()
-}).unknown(true); // permitir otros campos futuros
+}).unknown(true);
 
 const inmuebleSchema = Joi.object({
-  id: Joi.any().optional(),
+  id: Joi.number().integer().positive().optional(),
   tipo_construccion: Joi.string().max(100).allow('', null),
   n_pisos: Joi.number().integer().min(0).allow(null),
   m2_construccion: Joi.number().integer().min(0).allow(null),
@@ -29,7 +28,7 @@ const inmuebleSchema = Joi.object({
 }).unknown(false);
 
 const vehiculoSchema = Joi.object({
-  id: Joi.any().optional(),
+  id: Joi.number().integer().positive().optional(),
   patente: Joi.string().max(20).required(),
   marca: Joi.string().max(100).allow('', null),
   modelo: Joi.string().max(100).allow('', null),
@@ -41,7 +40,6 @@ const vehiculoSchema = Joi.object({
   pasajeros: Joi.array().items(afectadoSubSchema.keys({ idVinculo: Joi.number().integer().positive().optional() })).allow(null)
 }).unknown(false);
 
-// materialMayor: permitir id temporal del front (no se persiste, solo orden/UI)
 const materialMayorSchema = Joi.object({
   id: Joi.any().optional(),
   unidadId: Joi.number().integer().positive().required(),
@@ -56,7 +54,7 @@ const accidentadoSchema = Joi.object({
   id: Joi.any().optional(),
   companiaId: Joi.number().integer().positive().allow(null),
   bomberoId: Joi.number().integer().positive().required(),
-  rut: Joi.string().max(20).allow('', null).optional().strip(), // llega del front solo para mostrar, no se persiste
+  rut: Joi.string().max(20).allow('', null).optional().strip(),
   lesiones: Joi.string().max(500).allow('', null),
   constancia: Joi.string().max(100).allow('', null),
   comisaria: Joi.string().max(100).allow('', null),
@@ -77,13 +75,12 @@ const asistenciaSchema = Joi.object({
   cuartel: Joi.array().items(Joi.number().integer().positive()).default([])
 });
 
-export const parteEmergenciaValidation = Joi.object({
+export const parteEmergenciaUpdateValidation = Joi.object({
   companiaId: Joi.number().integer().positive().required(),
-  // regionId viene del front para selects jerárquicos pero no se persiste directamente: se ignora
   regionId: Joi.number().integer().positive().optional().strip(),
   fecha: Joi.string().isoDate().required(),
   horaDespacho: Joi.string().pattern(horaPattern).required(),
-  fechaHoraDespacho: Joi.string().isoDate().optional(), // nueva construcción desde el front
+  fechaHoraDespacho: Joi.string().isoDate().optional(),
   hora6_0: Joi.string().pattern(horaPattern).allow('', null),
   hora6_3: Joi.string().pattern(horaPattern).allow('', null),
   hora6_9: Joi.string().pattern(horaPattern).allow('', null),
@@ -95,16 +92,10 @@ export const parteEmergenciaValidation = Joi.object({
   referencia: Joi.string().max(255).allow('', null, ''),
   clasificacionId: Joi.number().integer().positive().allow(null),
   subtipoId: Joi.number().integer().positive().allow(null),
-  // Estos dos son condicionales: solo requeridos si el subtipo (clave radial) contieneFuego === true.
-  // Permitimos '', null u omitir cuando no aplique; el controlador validará condicionalmente.
-  tipoIncendioId: Joi.alternatives().try(
-    Joi.number().integer().positive(),
-    Joi.valid('', null)
-  ).optional(),
-  faseId: Joi.alternatives().try(
-    Joi.number().integer().positive(),
-    Joi.valid('', null)
-  ).optional(),
+  // Aceptar alias desde el front y eliminarlo del payload final
+  idSubtipoIncidente: Joi.alternatives().try(Joi.number().integer().positive(), Joi.valid('', null)).optional().strip(),
+  tipoIncendioId: Joi.alternatives().try(Joi.number().integer().positive(), Joi.valid('', null)).optional(),
+  faseId: Joi.alternatives().try(Joi.number().integer().positive(), Joi.valid('', null)).optional(),
   descripcionPreliminar: Joi.string().max(500).allow('', null),
   bomberoACargoId: Joi.number().integer().positive().allow(null),
   idRedactor: Joi.number().integer().positive().allow(null),
@@ -116,4 +107,4 @@ export const parteEmergenciaValidation = Joi.object({
   asistencia: asistenciaSchema.default({ lugar: [], cuartel: [] })
 }).unknown(false);
 
-export default { parteEmergenciaValidation };
+export default { parteEmergenciaUpdateValidation };

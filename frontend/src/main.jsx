@@ -13,6 +13,7 @@ import Profile from '@pages/Profile';
 import TestRoles from '@pages/TestRoles';
 import CrearParte from '@pages/crearParte';
 import TestPermisos from '@pages/TestPermisos';
+import EdiarParte from '@pages/editarParte';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
@@ -81,7 +82,7 @@ const router = createBrowserRouter([
         element: <TestPermisos />
       },
 
-            {
+      {
         path: '/crearparte',
         element: (
           <ProtectedRoute>
@@ -89,6 +90,15 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         )
       },
+      {
+        path: '/editarparte/:id',
+        element: (
+          <ProtectedRoute>
+            <EdiarParte />
+          </ProtectedRoute>
+        )
+      }
+
 
     ]
   },

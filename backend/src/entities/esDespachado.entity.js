@@ -12,6 +12,11 @@ const EsDespachadoSchema = new EntitySchema({
         kmLlegada: { type: "int", nullable: true },
         nPersonal: { type: "int", nullable: true },
     },
+    indices: [
+        { name: "IDX_ESDESPACHADO_IDINCIDENTE", columns: ["idIncidente"] },
+        { name: "IDX_ESDESPACHADO_IDCARRO", columns: ["idCarro"] },
+        { name: "IDX_ESDESPACHADO_IDMAQ", columns: ["idBomberoMaquinista"] },
+    ],
     relations: {
         bomberoMaquinista: {
             type: "many-to-one",

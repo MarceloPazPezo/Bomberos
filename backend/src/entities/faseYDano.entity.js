@@ -9,6 +9,11 @@ const FaseYDanoSchema = new EntitySchema({
         idFase: { type: "int", primary: true },
         idIncidente: { type: "int", primary: true },
     },
+    indices: [
+        { name: "IDX_FASEYDANO_IDINCIDENTE", columns: ["idIncidente"] },
+        { name: "IDX_FASEYDANO_IDTIPODANO", columns: ["idTipoDano"] },
+        { name: "IDX_FASEYDANO_IDFASE", columns: ["idFase"] },
+    ],
     relations: {
         tipoDano: {
             type: "many-to-one",
@@ -28,7 +33,6 @@ const FaseYDanoSchema = new EntitySchema({
             type: "many-to-one",
             target: "Incidente",
             joinColumn: { name: "idIncidente", referencedColumnName: "id" },
-            eager: true,
             onDelete: "CASCADE",
         },
     }

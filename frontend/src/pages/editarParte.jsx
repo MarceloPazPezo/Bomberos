@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 // Services
 import { getRegiones, getComunas } from '../services/direccion.service.js';
@@ -12,7 +13,7 @@ import { getCompanias } from '../services/compania.service.js';
 import { getCarrosByCompania } from '../services/carro.service.js';
 import { getBomberosPorCompania, getBomberosConLicencias } from '../services/bombero.service.js';
 import { getServicios } from '../services/servicios.service.js';
-import { crearParteEmergencia } from '../services/parteEmergencia.service.js';
+import { obtenerParteEmergenciaPorId, actualizarParteEmergencia } from '../services/parteEmergencia.service.js';
 
 // UI
 import { toast } from 'react-toastify';
@@ -62,6 +63,50 @@ const timeToMin = (t) => {
 };
 const isInt = (v) => Number.isInteger(Number(v));
 const isPosInt = (v) => isInt(v) && Number(v) > 0;
+// Normalizador a número para IDs en selects
+const toId = (v) => (v === '' || v === null || v === undefined ? '' : Number(v));
+// Normaliza una hora a HH:mm (recorta segundos si vienen)
+const toHHmm = (t) => {
+  if (!t || typeof t !== 'string') return '';
+  // t puede venir como 'HH:mm' o 'HH:mm:ss'
+  const m = t.match(/^([0-1]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
+  if (!m) return '';
+  const hh = m[1];
+  const mm = m[2];
+  return `${hh}:${mm}`;
+};
+
+// Helpers: Enviar sólo IDs de BD (numéricos positivos); eliminar IDs generados en UI
+const keepDbIdOrDrop = (val) => {
+  const n = Number(val);
+  return Number.isFinite(n) && n > 0 && String(n) === String(val) ? n : null;
+};
+function sanitizeIdShallow(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const out = { ...obj };
+  if (Object.prototype.hasOwnProperty.call(out, 'id')) {
+    const n = keepDbIdOrDrop(out.id);
+    if (n === null) delete out.id; else out.id = n;
+  }
+  return out;
+}
+function sanitizeDeepKnown(item) {
+  if (!item || typeof item !== 'object') return item;
+  let out = sanitizeIdShallow(item);
+  if (out.dueno && typeof out.dueno === 'object') {
+    out = { ...out, dueno: sanitizeIdShallow(out.dueno) };
+  }
+  if (Array.isArray(out.habitantes)) {
+    out = { ...out, habitantes: out.habitantes.map((h) => sanitizeIdShallow(h)) };
+  }
+  if (out.chofer && typeof out.chofer === 'object') {
+    out = { ...out, chofer: sanitizeIdShallow(out.chofer) };
+  }
+  if (Array.isArray(out.pasajeros)) {
+    out = { ...out, pasajeros: out.pasajeros.map((p) => sanitizeIdShallow(p)) };
+  }
+  return out;
+}
 
 /* =========================================
    Hook: cachea bomberos por compañía on-demand
@@ -96,8 +141,9 @@ function useBomberosPorCompania() {
    Componente principal
 ================================ */
 const CrearParte = () => {
-  // Usuario autenticado (redactor)
   const { bombero } = useContext(AuthContext);
+  const { id } = useParams();
+  const navigate = useNavigate();
   /* ---------- Catálogos / dependencias ---------- */
   // Dirección
   const [regiones, setRegiones] = useState([]);
@@ -263,6 +309,12 @@ const CrearParte = () => {
   const [numeroTxt, setNumeroTxt] = useState('');
   const [deptoTxt, setDeptoTxt] = useState('');
   const [referenciaTxt, setReferenciaTxt] = useState('');
+  // Carga del parte existente
+  const [loadingParte, setLoadingParte] = useState(false);
+  // Track de cambio real de compañía para evitar reset en carga inicial
+  const prevCompaniaIdRef = useRef(undefined);
+  // Pendientes a aplicar después de cargar catálogos dependientes (región/comunas y compañía)
+  const pendingInitRef = useRef({ appliedComuna: false, appliedCompaniaDeps: false });
 
   /* ---------- Envío del formulario ---------- */
   const [submitting, setSubmitting] = useState(false);
@@ -394,45 +446,52 @@ const CrearParte = () => {
         const localDate = new Date(yy, mm - 1, dd, hh, mi, 0, 0);
         fechaHoraDespacho = localDate.toISOString(); // se envía en UTC
       }
+      // Sanitizar arrays: eliminar ids generados en UI, conservar sólo IDs numéricos provenientes del GET
+      const cleanInmuebles = Array.isArray(inmuebles) ? inmuebles.map((x) => sanitizeDeepKnown(x)) : [];
+      const cleanVehiculos = Array.isArray(vehiculos) ? vehiculos.map((x) => sanitizeDeepKnown(x)) : [];
+      const cleanMaterialMayor = Array.isArray(materialMayor) ? materialMayor.map((x) => sanitizeIdShallow(x)) : [];
+      const cleanAccidentados = Array.isArray(accidentados) ? accidentados.map((x) => sanitizeIdShallow(x)) : [];
+      const cleanOtrosServicios = Array.isArray(otrosServicios) ? otrosServicios.map((x) => sanitizeIdShallow(x)) : [];
+
       const payload = {
         companiaId,
         fecha,
-        horaDespacho,
-        fechaHoraDespacho, // nuevo campo explícito
-        hora6_0: hora60,
-        hora6_3: hora63,
-        hora6_9: hora69,
-        hora6_10: hora610,
+        horaDespacho: toHHmm(horaDespacho),
+        fechaHoraDespacho,
+        hora6_0: toHHmm(hora60),
+        hora6_3: toHHmm(hora63),
+        hora6_9: toHHmm(hora69),
+        hora6_10: toHHmm(hora610),
         regionId, comunaId,
         calle: calleTxt,
         numero: numeroTxt || null,
         depto: deptoTxt || null,
         referencia: referenciaTxt || '',
-  clasificacionId,
-  subtipoId,
-  tipoIncendioId: tipoIncendioId ? Number(tipoIncendioId) : null,
-  faseId: faseId ? Number(faseId) : null,
+        clasificacionId,
+        subtipoId,
+        idSubtipoIncidente: subtipoId, // compatibilidad con backend
+        tipoIncendioId: tipoIncendioId ? Number(tipoIncendioId) : null,
+        faseId: faseId ? Number(faseId) : null,
         descripcionPreliminar: descripcionPreliminar || '',
         bomberoACargoId: bomberoACargoId ? Number(bomberoACargoId) : null,
-        idRedactor, // agregado
-        inmuebles, vehiculos, materialMayor, accidentados, otrosServicios,
+        idRedactor: bombero?.id ? Number(bombero.id) : null,
+        inmuebles: cleanInmuebles,
+        vehiculos: cleanVehiculos,
+        materialMayor: cleanMaterialMayor,
+        accidentados: cleanAccidentados,
+        otrosServicios: cleanOtrosServicios,
         asistencia: {
-          lugar: Object.keys(asistenciaLugar).filter((id) => asistenciaLugar[id]).map(Number),
-          cuartel: Object.keys(asistenciaCuartel).filter((id) => asistenciaCuartel[id]).map(Number),
+          lugar: Object.keys(asistenciaLugar).filter((k) => !!asistenciaLugar[k]).map((k) => Number(k)),
+          cuartel: Object.keys(asistenciaCuartel).filter((k) => !!asistenciaCuartel[k]).map((k) => Number(k)),
         },
       };
-      console.log('Payload parte (con fechaHoraDespacho calculada):', payload);
-      // Envío al backend
-      const resp = await crearParteEmergencia(payload);
-      console.log('Parte creada:', resp);
-      toast.success('🚒 Parte creada con éxito.', {
-        position: 'top-right', autoClose: 3500, hideProgressBar: false, closeOnClick: true,
-      });
+      // Envío update
+      const resp = await actualizarParteEmergencia(id, payload);
+      toast.success('🚒 Parte actualizado con éxito.', { position: 'top-right', autoClose: 3500 });
+      navigate(`/parte/${id}`);
     } catch (err) {
-      console.error('Error al crear parte:', err);
-      toast.error(err?.message || 'Ocurrió un error al guardar el parte. Inténtalo nuevamente.', {
-        position: 'top-right', autoClose: 5000,
-      });
+      console.error('Error al actualizar parte:', err);
+      toast.error(err?.message || 'Ocurrió un error al actualizar el parte. Inténtalo nuevamente.', { position: 'top-right', autoClose: 5000 });
     } finally {
       setSubmitting(false);
     }
@@ -530,6 +589,74 @@ const CrearParte = () => {
     })();
   }, []);
 
+  // Cargar parte por ID y poblar estados
+  useEffect(() => {
+    (async () => {
+      if (!id) return;
+      try {
+        setLoadingParte(true);
+        const resp = await obtenerParteEmergenciaPorId(id);
+        const data = resp?.data?.data ?? resp?.data ?? resp;
+        if (!data) return;
+
+  setCompaniaId(toId(data.companiaId));
+        setFecha(data.fecha ?? '');
+  setHoraDespacho(toHHmm(data.horaDespacho ?? ''));
+  setHora60(toHHmm(data.hora6_0 ?? data.hora60 ?? ''));
+  setHora63(toHHmm(data.hora6_3 ?? data.hora63 ?? ''));
+  setHora69(toHHmm(data.hora6_9 ?? data.hora69 ?? ''));
+  setHora610(toHHmm(data.hora6_10 ?? data.hora610 ?? ''));
+
+  setRegionId(toId(data.regionId));
+  // Guardar comuna pendiente para aplicar cuando carguen las comunas de la región
+  pendingInitRef.current.comunaId = toId(data.comunaId);
+  pendingInitRef.current.appliedComuna = false;
+        setCalleTxt(data.calle ?? '');
+        setNumeroTxt(data.numero ?? '');
+        setDeptoTxt(data.depto ?? '');
+        setReferenciaTxt(data.referencia ?? '');
+
+  // Asegurar que usamos IDs numéricos para los selects
+  setClasificacionId(toId(data.clasificacionId));
+  // Guardamos el subtipo esperado para re-aplicarlo tras cargar los subtipos
+  pendingInitRef.current.subtipoId = toId(data.subtipoId);
+  setSubtipoId(toId(data.subtipoId));
+  if (data.tipoIncendioId) { setTipoIncendioEnabled(true); setTipoIncendioId(toId(data.tipoIncendioId)); } else { setTipoIncendioEnabled(false); setTipoIncendioId(''); }
+  if (data.faseId) { setFaseEnabled(true); setFaseId(toId(data.faseId)); } else { setFaseEnabled(false); setFaseId(''); }
+
+        setDescripcionPreliminar(data.descripcionPreliminar ?? '');
+  // Guardar dependientes de compañía para aplicar cuando carguen las listas
+  pendingInitRef.current.bomberoACargoId = toId(data.bomberoACargoId);
+
+        const safeWithId = (arr) => (Array.isArray(arr) ? arr.map((x) => ({ id: x?.id ?? genId(), ...x })) : []);
+        setInmuebles(safeWithId(data.inmuebles));
+        setVehiculos(safeWithId((data.vehiculos || []).map(v => ({ pasajeros: [], ...v, pasajeros: Array.isArray(v.pasajeros) ? v.pasajeros : [] }))));
+        // Normaliza material mayor manteniendo ids numéricos para selects
+        pendingInitRef.current.materialMayor = safeWithId((data.materialMayor || []).map((m) => ({
+          ...m,
+          unidadId: toId(m?.unidadId ?? m?.carroId ?? m?.idCarro ?? m?.unidad ?? ''),
+          conductorId: toId(m?.conductorId ?? m?.idConductor ?? ''),
+          bomberoId: toId(m?.bomberoId ?? m?.idBombero ?? ''),
+        })));
+  // Accidentados: guardar y aplicar cuando se cargue la compañía específica si difiere
+  pendingInitRef.current.accidentados = safeWithId(data.accidentados || []);
+        setOtrosServicios(safeWithId(data.otrosServicios));
+
+        // Guardar asistencia pendiente para aplicar cuando carguen los bomberos de la compañía
+        const lugarMap = Object.fromEntries(((data.asistencia?.lugar) || []).map((bid) => [String(bid), true]));
+        const cuartelMap = Object.fromEntries(((data.asistencia?.cuartel) || []).map((bid) => [String(bid), true]));
+        pendingInitRef.current.asistenciaLugar = lugarMap;
+        pendingInitRef.current.asistenciaCuartel = cuartelMap;
+        pendingInitRef.current.appliedCompaniaDeps = false;
+      } catch (e) {
+        console.error('Error cargando parte:', e);
+        toast.error('No se pudo cargar el parte de emergencia.');
+      } finally {
+        setLoadingParte(false);
+      }
+    })();
+  }, [id]);
+
   /* ---------- Efectos dependientes ---------- */
   // Comunas por región
   useEffect(() => {
@@ -544,6 +671,18 @@ const CrearParte = () => {
       } finally { setLoadingComunas(false); }
     })();
   }, [regionId]);
+
+  // Aplicar comuna una vez que regionId haya cargado sus comunas
+  useEffect(() => {
+    if (!regionId) return;
+    if (loadingComunas) return;
+    if (pendingInitRef.current.appliedComuna) return;
+    const pendingComuna = pendingInitRef.current.comunaId;
+    if (pendingComuna) {
+      setComunaId(pendingComuna);
+    }
+    pendingInitRef.current.appliedComuna = true;
+  }, [regionId, loadingComunas, comunas.length]);
 
   // Subtipos por clasificación
   useEffect(() => {
@@ -562,12 +701,32 @@ const CrearParte = () => {
     })();
   }, [clasificacionId]);
 
+  // Re-aplicar subtipo una vez cargada la lista de subtipos para la clasificación seleccionada
+  useEffect(() => {
+    const pending = pendingInitRef.current.subtipoId;
+    if (!pending || !Array.isArray(subtipos) || subtipos.length === 0) return;
+    // Solo aplicar si el pendiente existe en la lista actual de subtipos
+    const exists = subtipos.some(s => s.id === pending);
+    if (exists) {
+      setSubtipoId(pending);
+      delete pendingInitRef.current.subtipoId;
+    }
+  }, [subtipos.length, loadingSubtipos]);
+
   // Bomberos / Conductores / Carros por compañía + Reset asistencia
   useEffect(() => {
-    // Limpia filas dependientes de compañía
-    setMaterialMayor((prev) => prev.map((row) => ({ ...row, unidadId: '', conductorId: '', bomberoId: '' })));
-    setAsistenciaLugar({});
-    setAsistenciaCuartel({});
+    // Detecta cambio real de compañía después de la carga inicial
+    const prev = prevCompaniaIdRef.current;
+    if (prev === undefined) {
+      // Primera vez: setear y NO resetear
+      prevCompaniaIdRef.current = companiaId;
+    } else if (prev !== companiaId) {
+      // Cambio de compañía por el usuario: reset dependientes
+      prevCompaniaIdRef.current = companiaId;
+      setMaterialMayor((prev) => prev.map((row) => ({ ...row, unidadId: '', conductorId: '', bomberoId: '' })));
+      setAsistenciaLugar({});
+      setAsistenciaCuartel({});
+    }
 
     if (!companiaId) {
       setConductores([]); setBomberos([]); setCarros([]); setErrorCarros('');
@@ -603,6 +762,38 @@ const CrearParte = () => {
       } finally { setLoadingCarros(false); }
     })();
   }, [companiaId]);
+
+  // Aplicar dependientes de compañía (bombero a cargo, material mayor, asistencia) cuando listas estén listas
+  useEffect(() => {
+    if (!companiaId) return;
+    if (loadingConductores || loadingBomberos || loadingCarros) return;
+    if (pendingInitRef.current.appliedCompaniaDeps) return;
+    // Aplicar bombero a cargo si viene
+    if (pendingInitRef.current.bomberoACargoId !== undefined) {
+      setBomberoACargoId(pendingInitRef.current.bomberoACargoId || '');
+    }
+    // Aplicar material mayor
+    if (Array.isArray(pendingInitRef.current.materialMayor)) {
+      setMaterialMayor(pendingInitRef.current.materialMayor);
+    }
+    // Aplicar asistencia
+    if (pendingInitRef.current.asistenciaLugar || pendingInitRef.current.asistenciaCuartel) {
+      setAsistenciaLugar(pendingInitRef.current.asistenciaLugar || {});
+      setAsistenciaCuartel(pendingInitRef.current.asistenciaCuartel || {});
+    }
+    pendingInitRef.current.appliedCompaniaDeps = true;
+  }, [companiaId, loadingConductores, loadingBomberos, loadingCarros, conductores.length, bomberos.length, carros.length]);
+
+  // Aplicar accidentados en cascada por compañía: primero setear companiaId de cada fila, luego setear bombero cuando existan opciones
+  useEffect(() => {
+    const pending = pendingInitRef.current.accidentados;
+    if (!Array.isArray(pending) || pending.length === 0) return;
+    // Si no hay bomberos cargados aún, esperar a que cargue la compañía general. Los accidentados pueden ser de otras compañías.
+    // Estrategia: aplicamos directamente las filas (con su companiaId y bomberoId). La UI ya reacciona a companiaId para filtrar el selector de bomberos si corresponde.
+    setAccidentados(pending);
+    // limpiar para no re-aplicar
+    delete pendingInitRef.current.accidentados;
+  }, [bomberos.length]);
 
   // Guards anti-HMR
   useEffect(() => {
@@ -723,7 +914,7 @@ const CrearParte = () => {
                   <select
                     id="compania"
                     className={inputCls('companiaId')}
-                    value={companiaId}
+                    value={companiaId === '' ? '' : Number(companiaId)}
                     onChange={(e) => {
                       const v = e.target.value;
                       const next = v === '' ? '' : Number(v);
@@ -734,7 +925,7 @@ const CrearParte = () => {
                   >
                     <option value="">{loadingCompanias ? 'Cargando compañías…' : 'Selecciona compañía…'}</option>
                     {errorCompanias && <option value="" disabled>{errorCompanias}</option>}
-                    {companias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    {companias.map((c) => <option key={c.id} value={Number(c.id)}>{c.nombre}</option>)}
                   </select>
                   {hasError('companiaId') && <p className="mt-1 text-xs text-red-600">{errors.companiaId}</p>}
                 </div>
@@ -863,7 +1054,7 @@ const CrearParte = () => {
                   <select
                     id="region"
                     className={inputCls('regionId')}
-                    value={regionId}
+                    value={regionId === '' ? '' : Number(regionId)}
                     onChange={(e) => {
                       const v = e.target.value;
                       const next = v === '' ? '' : Number(v);
@@ -875,7 +1066,7 @@ const CrearParte = () => {
                   >
                     <option value="">{loadingRegiones ? 'Cargando regiones…' : 'Selecciona región…'}</option>
                     {errorRegiones && <option value="" disabled>{errorRegiones}</option>}
-                    {regiones.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+                    {regiones.map((r) => <option key={r.id} value={Number(r.id)}>{r.nombre}</option>)}
                   </select>
                   {hasError('regionId') && <p className="mt-1 text-xs text-red-600">{errors.regionId}</p>}
                 </div>
@@ -885,7 +1076,7 @@ const CrearParte = () => {
                   <select
                     id="comuna"
                     className={inputCls('comunaId')}
-                    value={comunaId}
+                    value={comunaId === '' ? '' : Number(comunaId)}
                     onChange={(e) => {
                       const v = e.target.value;
                       const next = v === '' ? '' : Number(v);
@@ -898,7 +1089,7 @@ const CrearParte = () => {
                       {regionId === '' ? 'Selecciona primero una región…' : loadingComunas ? 'Cargando comunas…' : 'Selecciona comuna…'}
                     </option>
                     {errorComunas && <option value="" disabled>{errorComunas}</option>}
-                    {comunas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                    {comunas.map((c) => <option key={c.id} value={Number(c.id)}>{c.nombre}</option>)}
                   </select>
                   {hasError('comunaId') && <p className="mt-1 text-xs text-red-600">{errors.comunaId}</p>}
                 </div>
@@ -971,9 +1162,9 @@ const CrearParte = () => {
                 {clasificaciones.map((cls) => (
                   <SelectableCard
                     key={cls.id}
-                    selected={clasificacionId === cls.id}
+                    selected={Number(clasificacionId) === Number(cls.id)}
                     onClick={() => {
-                      setClasificacionId(cls.id);
+                      setClasificacionId(Number(cls.id));
                       setSubtipoId('');
                       if (errors.clasificacionId) setErrors(p => ({ ...p, clasificacionId: undefined }));
                     }}
@@ -994,7 +1185,7 @@ const CrearParte = () => {
                     <select
                       id="subtipo"
                       className={inputCls('subtipoId')}
-                      value={subtipoId}
+                      value={subtipoId === '' ? '' : Number(subtipoId)}
                       onChange={(e) => {
                         const v = e.target.value;
                         const next = v === '' ? '' : Number(v);
@@ -1008,7 +1199,7 @@ const CrearParte = () => {
                       <option value="">{loadingSubtipos ? 'Cargando claves…' : 'Selecciona clave radial…'}</option>
                       {errorSubtipos && <option value="" disabled>{errorSubtipos}</option>}
                       {subtipos.map((st) => (
-                        <option key={st.id} value={st.id}>
+                        <option key={st.id} value={Number(st.id)}>
                           {st.claveRadial ?? st.codigoRadial ?? `Clave ${st.id}`}
                         </option>
                       ))}
@@ -1065,8 +1256,8 @@ const CrearParte = () => {
                         {tiposDano.map((t) => (
                           <SelectableCard
                             key={t.id}
-                            selected={tipoIncendioId === t.id}
-                            onClick={() => setTipoIncendioId(t.id)}
+                            selected={Number(tipoIncendioId) === Number(t.id)}
+                            onClick={() => setTipoIncendioId(Number(t.id))}
                             icon={Home}
                             label={t.nombre ?? t.label ?? `Tipo ${t.id}`}
                           />
@@ -1093,8 +1284,8 @@ const CrearParte = () => {
                         {fasesIncidente.map((f) => (
                           <SelectableCard
                             key={f.id}
-                            selected={faseId === f.id}
-                            onClick={() => setFaseId(f.id)}
+                            selected={Number(faseId) === Number(f.id)}
+                            onClick={() => setFaseId(Number(f.id))}
                             icon={AlertTriangle}
                             label={f.nombre ?? f.label ?? `Fase ${f.id}`}
                           />
@@ -1469,9 +1660,9 @@ const CrearParte = () => {
             type="submit"
             disabled={submitting}
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
-            title="Guardar parte"
+            title="Actualizar parte"
           >
-            {submitting ? 'Guardando…' : 'Guardar parte'}
+            {submitting ? 'Actualizando…' : 'Actualizar parte'}
           </button>
         </div>
       </div>

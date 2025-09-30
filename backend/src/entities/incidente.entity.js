@@ -78,7 +78,7 @@ const IncidenteSchema = new EntitySchema({
             target: "BomberoAccidentado",
             inverseSide: "incidente",
             cascade: true,
-            eager: true,
+            // no eager: se consultará explícitamente cuando se necesite
         },
         EstadoEstablecido: {
             type: "one-to-many",
@@ -109,7 +109,7 @@ const IncidenteSchema = new EntitySchema({
             target: "Inmueble",
             inverseSide: "incidente",
             cascade: true,
-            eager: true,
+            // no eager: se consultará explícitamente cuando se necesite
         },
         afectados: {
             type: "one-to-many",

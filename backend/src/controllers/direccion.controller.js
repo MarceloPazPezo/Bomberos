@@ -6,7 +6,7 @@ import { getRegionesService,getComunasService } from "../services/direccion.serv
 export async function getRegiones(req, res) {
     try {
         const data = await getRegionesService();
-        console.log(data);
+        
 
         handleSuccess(res, 200, "Regiones obtenidas", data);
     } catch (error) {
@@ -23,7 +23,7 @@ export async function getComunas(req, res) {
 
 
         const data = await getComunasService(id);
-        console.log(data);
+       
 
         handleSuccess(res, 200, "Comunas obtenidas", data);
 

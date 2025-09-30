@@ -15,6 +15,11 @@ const VehiculoSchema = new EntitySchema({
         idConductor: {type: "int", nullable: true},
         idIncidente: {type: "int", nullable: true},
     },
+    indices: [
+        { name: "IDX_VEHICULO_IDINCIDENTE", columns: ["idIncidente"] },
+        { name: "IDX_VEHICULO_IDDUENO", columns: ["idDueno"] },
+        { name: "IDX_VEHICULO_IDCONDUCTOR", columns: ["idConductor"] },
+    ],
     relations: {
         dueno: {
             type: "many-to-one",

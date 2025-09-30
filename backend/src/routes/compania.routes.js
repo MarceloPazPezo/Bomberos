@@ -16,7 +16,11 @@ const router = Router();
 
 router.use(authenticateJwt);
 
-router.get("/", authorizePermisos(["compania:obtener"]), getCompanias);
+router.get("/", 
+  //authorizePermisos(["compania:obtener"]), 
+  getCompanias);
+
+
 router.get(
   "/detalle/:id",
   authorizePermisos(["compania:admin"]),
