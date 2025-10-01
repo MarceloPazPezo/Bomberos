@@ -25,6 +25,14 @@ export const ACCESS_TOKEN_SECRET =
   process.env.ACCESS_TOKEN_SECRET || process.env.B_ACCESS_TOKEN_SECRET;
 export const COOKIE_KEY = process.env.COOKIE_KEY || process.env.B_COOKIE_KEY;
 
+// Configuración de MinIO
+export const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'localhost';
+export const MINIO_PORT = process.env.MINIO_PORT || '9000';
+export const MINIO_USE_SSL = process.env.MINIO_USE_SSL || 'false';
+export const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'minioadmin';
+export const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minioadmin123';
+export const MINIO_BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'bomberos-uploads';
+export const SIGNED_URL_EXPIRY = process.env.SIGNED_URL_EXPIRY || '3600';
 
 export const NODE_ENV = env;
 

@@ -8,7 +8,7 @@ import {
   DB_PASSWORD,
   NODE_ENV,
 } from "./configEnv.js";
-import logger from "./logger.js";
+import logger from "./configLogger.js";
 
 export const AppDataSource = new DataSource({
   type: "postgres",

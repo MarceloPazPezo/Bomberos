@@ -1,6 +1,6 @@
 "use strict";
 import morgan from "morgan";
-import logger from "../config/logger.js";
+import logger from "../config/configLogger.js";
 import { NODE_ENV } from "../config/configEnv.js";
 
 // Configuración de Morgan con Winston

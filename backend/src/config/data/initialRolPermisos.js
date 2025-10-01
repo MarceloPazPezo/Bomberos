@@ -3,7 +3,7 @@ import Rol from "../../entities/rol.entity.js";
 import Permiso from "../../entities/permiso.entity.js";
 import { AppDataSource } from "../configDb.js";
 import { In } from "typeorm";
-import logger from "../logger.js";
+import logger from "../configLogger.js";
 
 async function crearPermisos() {
   try {
@@ -214,6 +214,41 @@ async function crearPermisos() {
         ruta: "*",
         metodo: "*",
       },
+      {
+        nombre: "tipo_sangre:obtener",
+        descripcion: "Permite obtener la lista de tipos de sangre",
+        categoria: "Tipos de Sangre",
+        ruta: "/api/tipo-sangre",
+        metodo: "GET",
+      },
+      {
+        nombre: "direccion:crear",
+        descripcion: "Permite crear direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "POST",
+      },
+      {
+        nombre: "direccion:obtener",
+        descripcion: "Permite obtener direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "GET",
+      },
+      {
+        nombre: "direccion:actualizar",
+        descripcion: "Permite actualizar direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "direccion:eliminar",
+        descripcion: "Permite eliminar direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "DELETE",
+      },
     ];
 
     const permisos = permisosData.map((p) => permisoRepository.create(p));
@@ -253,6 +288,11 @@ async function crearRoles() {
           "disponibilidad:obtener", // Permite obtener disponibilidades
           "disponibilidad:crear", // Permite crear su propia disponibilidad
           "disponibilidad:actualizar", // Permite cambiar su propio estado
+          "tipo_sangre:obtener", // Permite obtener tipos de sangre
+          "region:obtener", // Permite obtener regiones y comunas
+          "direccion:crear", // Permite crear direcciones
+          "direccion:obtener", // Permite obtener direcciones
+          "direccion:actualizar", // Permite actualizar direcciones
         ],
       },
       {
@@ -278,6 +318,12 @@ async function crearRoles() {
           "rol:admin",
           "region:admin",
           "comuna:admin",
+          "tipo_sangre:obtener",
+          "region:obtener",
+          "direccion:crear",
+          "direccion:obtener",
+          "direccion:actualizar",
+          "direccion:eliminar",
         ],
       },
     ];

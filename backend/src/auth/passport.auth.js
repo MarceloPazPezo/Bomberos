@@ -18,6 +18,11 @@ passport.use(
         where: {
           run: jwt_payload.run,
         },
+        relations: {
+          roles: {
+            permisos: true
+          }
+        }
       });
 
       if (bombero) {
