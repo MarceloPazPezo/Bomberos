@@ -19,6 +19,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const navLinks = [
         { to: "/home", label: "Inicio", icon: <MdHome size={20} className="mr-2" /> },
         { to: "/demo", label: "Demo", icon: <MdCode size={20} className="mr-2" /> },
+        { to: "/partesdeemergencias", label: "Partes de Emergencias", icon: <MdSecurity size={20} className="mr-2" /> },
     ];
 
     // Estado local para controlar el retraso del botón hamburger

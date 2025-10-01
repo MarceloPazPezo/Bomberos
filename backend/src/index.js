@@ -40,6 +40,8 @@ import {
   crearfaseIncidente
 } from "./config/data/initialSubTipoIncidente.js";
 
+import crearEstados from "./config/data/initialEstadoReporte.js";
+
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { handleSocketConnection } from "./sockets/activeUsers.socket.js";
@@ -153,6 +155,7 @@ async function setupAPI() {
     await crearTipoDano();
     await crearfaseIncidente();
     await crearServicios();
+    await crearEstados();
     
 
     logger.info("[CONFIG] Configuración inicial completada");
