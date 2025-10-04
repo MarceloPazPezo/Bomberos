@@ -170,6 +170,12 @@ const BomberoSchema = new EntitySchema({
       inverseSide: "bomberoMaquinista",
       cascade: true,
     },
+    fichaBombero: {
+      type: "one-to-one",
+      target: "FichaBombero",
+      inverseSide: "bombero",
+      cascade: true,
+    },
   },
 });
 

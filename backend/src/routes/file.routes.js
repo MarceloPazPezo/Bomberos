@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import fileController from '../controllers/file.controller.js';
-import { uploadSingle, uploadMultiple, validateUploadedFiles, logUploadedFiles } from '../middlewares/fileUpload.middleware.js';
+import { uploadSingle, uploadMultiple, validateUploadedFiles, logUploadedFiles } from '../middlewares/upload.middleware.js';
 import { authenticateJwt } from '../middlewares/authentication.middleware.js';
 import { authorizeRoles } from '../middlewares/authorization.middleware.js';
 

@@ -1,31 +1,67 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Form from '../Form';
 import LoadingSpinner from '@components/LoadingSpinner';
-import { MdClose, MdPersonAdd, MdSave } from 'react-icons/md';
+import ImageUploader from '@components/FileUpload/ImageUploader';
+import { MdClose, MdPersonAdd, MdSave, MdPhotoCamera, MdDriveEta, MdPerson, MdInfo } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useRoles } from '@hooks/roles/useRoles';
+import { useCompania } from '@hooks/compania/useCompania';
+import { createBomberoIntelligent } from '@services/bombero.service.js';
+import { bomberoCreatedToast } from '@helpers/toastHelper.jsx';
+import { showErrorAlert } from '@helpers/fireAlert.js';
 
 export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState('bombero'); // 'bombero' o 'ficha'
+    const [bomberoData, setBomberoData] = useState(null);
+    const [profileImage, setProfileImage] = useState(null);
+    const [profileImageError, setProfileImageError] = useState(null);
+    const [formData, setFormData] = useState({
+        // Datos del bombero
+        nombres: '',
+        apellidos: '',
+        run: '',
+        email: '',
+        password: '',
+        roles: [],
+        activo: true,
+        // Datos de la ficha
+        idCompania: '',
+        licenciaClaseF: false,
+        telefono: '',
+        fechaNacimiento: '',
+        fechaIngreso: '',
+        donante: false
+    });
     const formRef = useRef(null);
+
+    // Hooks para datos
+    const { roles, loading: rolesLoading } = useRoles();
+    const { companias, loading: companiasLoading, fetchCompanias } = useCompania();
+
+    // Preparar opciones para los selects
+    const rolesOptions = roles.map(role => ({
+        value: role.id,
+        label: role.nombre
+    }));
+
+    const companiasOptions = companias.map(compania => ({
+        value: compania.id,
+        label: compania.nombre
+    }));
 
     // Función para enfocar el primer campo con error
     const focusFirstErrorField = () => {
         const errorFields = Object.keys(errors);
         if (errorFields.length > 0) {
             const firstErrorField = errorFields[0];
-            
-            // Buscar el elemento del campo con error
             const fieldElement = document.querySelector(`[name="${firstErrorField}"]`);
             if (fieldElement) {
-                // Hacer scroll hasta el elemento
                 fieldElement.scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'center' 
                 });
-                
-                // Enfocar el elemento después de un pequeño delay para que el scroll termine
                 setTimeout(() => {
                     fieldElement.focus();
                 }, 300);
@@ -33,198 +69,284 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
         }
     };
 
-    // useEffect para enfocar automáticamente cuando hay errores
     useEffect(() => {
         if (Object.keys(errors).length > 0) {
             focusFirstErrorField();
         }
     }, [errors]);
 
-    // useEffect para manejar tecla Escape y scroll lock
+    // Cargar compañías cuando se abre el modal
     useEffect(() => {
-        const handleEscape = (event) => {
-            if (event.key === 'Escape' && show) {
-                handleClose();
-            }
-        };
-
-        if (show) {
-            // Bloquear scroll del body cuando el popup está abierto
-            document.body.style.overflow = 'hidden';
-            document.addEventListener('keydown', handleEscape);
-        } else {
-            // Restaurar scroll del body cuando el popup se cierra
-            document.body.style.overflow = 'unset';
+        if (show && companias.length === 0) {
+            fetchCompanias();
         }
+    }, [show, companias.length, fetchCompanias]);
 
-        return () => {
-            // Limpiar al desmontar el componente
-            document.body.style.overflow = 'unset';
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [show]);
-
-    // Función para manejar click fuera del modal
-    const handleBackdropClick = (e) => {
-        if (e.target === e.currentTarget) {
-            handleClose();
-        }
-    };
-    
-    const handleInputChange = (field, value) => {
-        // Limpiar error del campo cuando el usuario empiece a escribir
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: null }));
-        }
-        
-        // Para nombres y apellidos, convertir string a array
-        if (field === 'nombres' || field === 'apellidos') {
-            if (typeof value === 'string' && value.trim()) {
-                // Dividir por espacios y filtrar elementos vacíos
-                const arrayValue = value.split(' ').filter(item => item.trim() !== '');
-                // Retornar para uso posterior en transformedData
-                return arrayValue;
-            }
-        }
-    };
-
-    // Función para manejar cambios en la selección de roles
-    const handleRolesChange = (selectedRoles) => {
-        // Buscar el rol "Bombero" en la lista de roles disponibles
-        const bomberoRole = rolesOptions.find(role => role.label === 'Bombero');
-        
-        if (bomberoRole) {
-            // Asegurar que el rol "Bombero" siempre esté seleccionado
-            const hasBomberoRole = selectedRoles.some(role => role.value === bomberoRole.value);
-            
-            if (!hasBomberoRole) {
-                // Si no está seleccionado, agregarlo automáticamente
-                selectedRoles = [bomberoRole, ...selectedRoles];
-            }
-        }
-        
-        // Limpiar error del campo roles si existe
-        if (errors.roles) {
-            setErrors(prev => ({ ...prev, roles: null }));
-        }
-        
-        return selectedRoles;
-    };
-
-    // Hook para obtener roles
-    const { roles, loading: rolesLoading, fetchRoles } = useRoles();
-    
-    // Cargar roles cuando se abre el modal
-    useEffect(() => {
-        if (show && (!roles || roles.length === 0) && !rolesLoading) {
-            fetchRoles(true);
-        }
-    }, [show]);
-    
-    // Transformar roles para el multiselect - solo si hay roles disponibles
-    const rolesOptions = roles && roles.length > 0 ? roles
-        .filter(role => {
-            // Filtrar roles que tengan los campos necesarios
-            return role.id && role.nombre;
-        })
-        .map((role) => ({
-            value: role.id,
-            label: role.nombre,
-            isLocked: role.nombre === 'Bombero' // Marcar el rol Bombero como bloqueado
-        })) : [];
-
-    const errorData = (errorDetails) => {
-        setErrors(errorDetails || {});
-    };
-
-    const handleSubmit = async (createdUserData) => {
-        if (createdUserData && onBomberoCreated) {
-            setLoading(true);
-            try {
-                // Función para formatear RUT para API (remover puntos, mantener guión)
-                const formatRutForAPI = (rut) => {
-                    if (!rut) return '';
-                    return rut.replace(/\./g, '');
-                };
-
-                // Buscar el rol "Bombero" en la lista de roles disponibles
-                const bomberoRole = roles.find(role => role.nombre === 'Bombero');
-                const bomberoRoleId = bomberoRole ? bomberoRole.id : null;
-
-                // Transformar los datos para que coincidan con el formato esperado por el backend
-                const transformedData = {
-                    // Formatear RUT para API (sin puntos, solo guión)
-                    run: formatRutForAPI(createdUserData.run),
-                    // Convertir nombres y apellidos de string a array
-                    nombres: createdUserData.nombres ? createdUserData.nombres.split(' ').filter(name => name.trim() !== '') : [],
-                    apellidos: createdUserData.apellidos ? createdUserData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
-                    // Campos básicos requeridos
-                    email: createdUserData.email,
-                    password: createdUserData.password,
-                    // Forzar el rol "Bombero" + roles seleccionados por el usuario
-                    roles: [
-                        ...(bomberoRoleId ? [bomberoRoleId] : []), // Siempre incluir rol Bombero
-                        ...(createdUserData.roles ? createdUserData.roles.map(role => role.value) : [])
-                    ].filter((value, index, self) => self.indexOf(value) === index), // Eliminar duplicados
-                    // Estado activo
-                    activo: createdUserData.activo !== undefined ? createdUserData.activo : true
-                };
-
-                
-                const result = await onBomberoCreated(transformedData);
-                if (result.success) {
-                    setShow(false);
-                    setErrors({});
-                } else if (result.error && typeof result.error === 'object') {
-                    // Si el error es un objeto, son errores específicos por campo
-                    errorData(result.error);
-                } else if (result.error) {
-                    // Si el error es un string, es un error general
-                    console.error('Error general:', result.error);
-                }
-            } catch (error) {
-                console.error('Error creating user:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-    };
-
+    // Limpiar estado al cerrar
     const handleClose = () => {
         setShow(false);
+        setErrors({});
+        setActiveTab('bombero');
+        setBomberoData(null);
+        setProfileImage(null);
+        setProfileImageError(null);
+        setLoading(false);
+        setFormData({
+            nombres: '',
+            apellidos: '',
+            run: '',
+            email: '',
+            password: '',
+            roles: [],
+            activo: true,
+            idCompania: '',
+            licenciaClaseF: false,
+            telefono: '',
+            fechaNacimiento: '',
+            fechaIngreso: '',
+            donante: false
+        });
     };
+
+    // Manejar cambio de input
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+        setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[field];
+            return newErrors;
+        });
+    };
+
+    // Manejar cambio de roles
+    const handleRolesChange = (selectedRoles) => {
+        handleInputChange('roles', selectedRoles);
+    };
+
+    // Manejar selección de imagen
+    const handleImageSelect = (file) => {
+        setProfileImage(file);
+        setProfileImageError(null);
+    };
+
+    const handleImageRemove = () => {
+        setProfileImage(null);
+        setProfileImageError(null);
+    };
+
+    // Validar datos del bombero
+    const validateBomberoData = (data) => {
+        const newErrors = {};
+
+        if (!data.nombres || data.nombres.trim().length < 2) {
+            newErrors.nombres = 'Los nombres son requeridos (mínimo 2 caracteres)';
+        }
+
+        if (!data.apellidos || data.apellidos.trim().length < 2) {
+            newErrors.apellidos = 'Los apellidos son requeridos (mínimo 2 caracteres)';
+        }
+
+        if (!data.run || !/^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/.test(data.run)) {
+            newErrors.run = 'RUT inválido. Formato: 12.345.678-9';
+        }
+
+        if (!data.email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email)) {
+            newErrors.email = 'Email inválido';
+        }
+
+        if (!data.password || data.password.length < 8) {
+            newErrors.password = 'La contraseña debe tener al menos 8 caracteres';
+        }
+
+        if (!data.roles || data.roles.length === 0) {
+            newErrors.roles = 'Debe seleccionar al menos un rol';
+        }
+
+        return newErrors;
+    };
+
+    // Validar datos de la ficha (opcional)
+    const validateFichaData = (data) => {
+        const newErrors = {};
+
+        if (data.telefono && !/^\+?[\d\s\-\(\)]+$/.test(data.telefono)) {
+            newErrors.telefono = 'Formato de teléfono inválido';
+        }
+
+        return newErrors;
+    };
+
+    // Manejar submit completo
+    const handleSubmit = async () => {
+        setLoading(true);
+        setErrors({});
+
+        try {
+            // Validar datos del bombero
+            const bomberoErrors = validateBomberoData(formData);
+            const fichaErrors = validateFichaData(formData);
+            
+            if (Object.keys(bomberoErrors).length > 0 || Object.keys(fichaErrors).length > 0) {
+                setErrors({ ...bomberoErrors, ...fichaErrors });
+                setLoading(false);
+                return;
+            }
+
+            // Formatear RUT para API
+            const formatRutForAPI = (rut) => {
+                if (!rut) return '';
+                return rut.replace(/\./g, '');
+            };
+
+            // Buscar el rol "Bombero"
+            const bomberoRole = roles.find(role => role.nombre === 'Bombero');
+            const bomberoRoleId = bomberoRole ? bomberoRole.id : null;
+
+            // Transformar datos del bombero para el backend
+            const bomberoTransformedData = {
+                run: formatRutForAPI(formData.run),
+                nombres: formData.nombres ? formData.nombres.split(' ').filter(name => name.trim() !== '') : [],
+                apellidos: formData.apellidos ? formData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
+                email: formData.email,
+                password: formData.password,
+                roles: [
+                    ...(bomberoRoleId ? [bomberoRoleId] : []),
+                    ...(formData.roles ? formData.roles.map(role => role.value) : [])
+                ].filter((value, index, self) => self.indexOf(value) === index),
+                activo: formData.activo !== undefined ? formData.activo : true
+            };
+
+            // Preparar datos de ficha si existen
+            let fichaData = null;
+            if (formData.idCompania || profileImage || formData.licenciaClaseF || formData.telefono || formData.fechaNacimiento || formData.fechaIngreso || formData.donante) {
+                fichaData = {
+                    licenciaClaseF: formData.licenciaClaseF === 'true' || formData.licenciaClaseF === true,
+                    telefono: formData.telefono || null,
+                    fechaNacimiento: formData.fechaNacimiento || null,
+                    fechaIngreso: formData.fechaIngreso || null,
+                    donante: formData.donante === 'true' || formData.donante === true,
+                    idCompania: formData.idCompania ? parseInt(formData.idCompania) : null,
+                    idDireccion: formData.idDireccion ? parseInt(formData.idDireccion) : null,
+                    idTipoSangre: formData.idTipoSangre ? parseInt(formData.idTipoSangre) : null
+                };
+            }
+
+            // Crear bombero con ficha e imagen de forma inteligente
+            const result = await createBomberoIntelligent(bomberoTransformedData, fichaData, profileImage);
+
+            if (!result.success) {
+                setErrors({ general: result.message });
+                setLoading(false);
+                return;
+            }
+
+            bomberoCreatedToast();
+            handleClose();
+        } catch (error) {
+            console.error('Error creating bombero:', error);
+            setErrors({ general: 'Error al crear el bombero' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!show) return null;
+
     return (
-        <div>
-            {show && (
-                <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={handleBackdropClick}
-                >
-                    <div className="relative w-full max-w-xs sm:max-w-2xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white shadow-2xl border border-gray-200">
-                        {/* Header mejorado */}
-                        <div className="flex items-center px-4 sm:px-6 py-4 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
-                            <div className="flex items-center space-x-3 flex-1">
-                                <div className="p-2 bg-white/20 rounded-lg">
-                                    <MdPersonAdd className="w-6 h-6 text-white" />
-                                </div>
-                                <h2 className="text-xl font-bold text-white">Ingresar Bombero</h2>
-                            </div>
-                            <button
-                                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group"
-                                onClick={handleClose}
-                                aria-label="Cerrar (Esc)"
-                                title="Cerrar (Esc)"
-                            >
-                                <MdClose className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                            </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+                            <MdPersonAdd className="w-6 h-6 text-white" />
                         </div>
-                        {/* Contenido mejorado */}
-                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-h-[70vh] bg-gray-50/50">
+                        <div>
+                            <h2 className="text-xl font-bold text-white">
+                                Crear Bombero con Ficha
+                            </h2>
+                            <p className="text-blue-100 text-sm">
+                                Complete la información básica y opcionalmente la ficha del bombero
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleClose}
+                        className="p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-lg transition-colors"
+                        disabled={loading}
+                    >
+                        <MdClose className="w-6 h-6 text-red-300 hover:text-white" />
+                    </button>
+                </div>
+
+                {/* Pestañas */}
+                <div className="flex border-b border-gray-200 bg-gray-50">
+                    <button
+                        onClick={() => setActiveTab('bombero')}
+                        className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                            activeTab === 'bombero'
+                                ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                        disabled={loading}
+                    >
+                        <div className="flex items-center justify-center space-x-1">
+                            <MdPerson className="w-3 h-3" />
+                            <span>Datos Generales</span>
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('ficha')}
+                        className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                            activeTab === 'ficha'
+                                ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                        disabled={loading}
+                    >
+                        <div className="flex items-center justify-center space-x-1">
+                            <MdInfo className="w-3 h-3" />
+                            <span>Ficha Adicional</span>
+                        </div>
+                    </button>
+                </div>
+
+                {/* Contenido */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[65vh] bg-gray-50/50">
+                    {loading && (
+                        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                            <LoadingSpinner />
+                        </div>
+                    )}
+
+                    {activeTab === 'bombero' ? (
+                        // Pestaña 1: Datos básicos del bombero
+                        <div className="space-y-6">
+                            <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span className="text-blue-600 text-sm font-bold">📋</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-blue-900 text-sm">
+                                        Información Básica del Bombero
+                                    </h3>
+                                    <p className="text-blue-700 text-xs mt-1">
+                                        Complete los datos esenciales para crear la cuenta del bombero en el sistema.
+                                    </p>
+                                </div>
+                            </div>
+
                             <Form
                                 ref={formRef}
                                 title={null}
                                 autoComplete="off"
-                                size="max-w-xs sm:max-w-2xl"
+                                size="w-full"
+                                defaultValues={formData}
                                 fields={[
                                     {
                                         label: "Nombres",
@@ -267,7 +389,6 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                         patternMessage: "Formato válido: 12.345.678-9",
                                         errorMessageData: errors.run,
                                         onChange: (e) => {
-                                            // Formateo automático del RUT
                                             let value = e.target.value.replace(/[^\dkK]/g, '');
                                             if (value.length > 1) {
                                                 value = value.slice(0, -1).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.') + '-' + value.slice(-1);
@@ -287,7 +408,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                         minLength: 5,
                                         maxLength: 255,
                                         pattern: /^[a-zA-Z0-9._%+-]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|live\.com|msn\.com|icloud\.com|me\.com|[a-zA-Z0-9.-]+\.cl)$/,
-                                        patternMessage: "Debe usar un dominio permitido (ej. @gmail.com, @hotmail.com, @example.cl)",
+                                        patternMessage: "Debe usar un dominio permitido",
                                         errorMessageData: errors.email,
                                         onChange: (e) => handleInputChange('email', e.target.value),
                                         autoComplete: "new-email"
@@ -313,7 +434,6 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                         fieldType: 'multiselect',
                                         options: rolesOptions,
                                         defaultValue: (() => {
-                                            // Preseleccionar el rol "Bombero" automáticamente
                                             const bomberoRole = rolesOptions.find(role => role.label === 'Bombero');
                                             return bomberoRole ? [bomberoRole] : [];
                                         })(),
@@ -338,56 +458,170 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                         onChange: (e) => handleInputChange('activo', e.target.value === 'true')
                                     }
                                 ]}
-                                onSubmit={handleSubmit}
+                                onSubmit={() => {}} // No submit en esta pestaña
                                 backgroundColor={'#fff'}
                             />
                         </div>
+                    ) : (
+                        // Pestaña 2: Ficha del bombero (opcional)
+                        <div className="space-y-6">
+                            <div className="flex items-start space-x-3 p-3 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                        <span className="text-green-600 text-sm font-bold">📄</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-green-900 text-sm">
+                                        Información Adicional (Opcional)
+                                    </h3>
+                                    <p className="text-green-700 text-xs mt-1">
+                                        Complete información adicional del bombero como licencia de conducir, imagen de perfil y datos de contacto.
+                                    </p>
+                                </div>
+                            </div>
 
-                        {/* Botones mejorados */}
-                        <div className="flex justify-end space-x-3 px-4 sm:px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="flex items-center space-x-2 px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
-                                disabled={loading}
-                            >
-                                <MdClose className="w-4 h-4" />
-                                <span>Cancelar</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    // Activar el submit del formulario
-                                    const form = document.querySelector('form');
-                                    if (form) {
-                                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                                        form.dispatchEvent(submitEvent);
+                            {/* Imagen de perfil */}
+                            <div className="w-full">
+                                <label className="block text-sm font-semibold text-[#2C3E50] mb-1.5">
+                                    <div className="flex items-center gap-1">
+                                        <span>🖼️ Imagen de Perfil</span>
+                                        <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                                    </div>
+                                </label>
+                                <ImageUploader
+                                    onFileSelect={handleImageSelect}
+                                    onFileRemove={handleImageRemove}
+                                    value={profileImage}
+                                    error={profileImageError}
+                                    placeholder="Seleccionar imagen de perfil..."
+                                    className="w-full"
+                                    acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                                    maxSize={5 * 1024 * 1024} // 5MB
+                                    // cropSize={null} - Usar tamaño mínimo de la imagen automáticamente
+                                />
+                            </div>
+
+                            {/* Formulario de ficha */}
+                            <Form
+                                ref={formRef}
+                                title={null}
+                                autoComplete="off"
+                                size="w-full"
+                                defaultValues={formData}
+                                fields={[
+                                    {
+                                        label: "Compañía",
+                                        name: "idCompania",
+                                        fieldType: 'select',
+                                        placeholder: companiasLoading ? "Cargando compañías..." : "Seleccionar compañía (opcional)",
+                                        options: companiasOptions,
+                                        errorMessageData: errors.idCompania,
+                                        onChange: (e) => handleInputChange('idCompania', e.target.value),
+                                        isLoading: companiasLoading
+                                    },
+                                    {
+                                        label: "Licencia de Conducir Clase F",
+                                        name: "licenciaClaseF",
+                                        fieldType: 'select',
+                                        placeholder: "¿Tiene licencia de conducir?",
+                                        options: [
+                                            { value: 'true', label: 'Sí, tiene licencia Clase F' },
+                                            { value: 'false', label: 'No tiene licencia' }
+                                        ],
+                                        errorMessageData: errors.licenciaClaseF,
+                                        onChange: (e) => handleInputChange('licenciaClaseF', e.target.value)
+                                    },
+                                    {
+                                        label: "Teléfono",
+                                        name: "telefono",
+                                        placeholder: '+56 9 1234 5678',
+                                        fieldType: 'input',
+                                        type: "tel",
+                                        maxLength: 15,
+                                        errorMessageData: errors.telefono,
+                                        onChange: (e) => handleInputChange('telefono', e.target.value),
+                                        autoComplete: "tel"
+                                    },
+                                    {
+                                        label: "Fecha de Nacimiento",
+                                        name: "fechaNacimiento",
+                                        fieldType: 'input',
+                                        type: "date",
+                                        errorMessageData: errors.fechaNacimiento,
+                                        onChange: (e) => handleInputChange('fechaNacimiento', e.target.value)
+                                    },
+                                    {
+                                        label: "Fecha de Ingreso",
+                                        name: "fechaIngreso",
+                                        fieldType: 'input',
+                                        type: "date",
+                                        errorMessageData: errors.fechaIngreso,
+                                        onChange: (e) => handleInputChange('fechaIngreso', e.target.value)
+                                    },
+                                    {
+                                        label: "Es Donante de Órganos",
+                                        name: "donante",
+                                        fieldType: 'select',
+                                        placeholder: "Seleccionar",
+                                        options: [
+                                            { value: 'true', label: 'Sí, es donante de órganos' },
+                                            { value: 'false', label: 'No es donante de órganos' }
+                                        ],
+                                        errorMessageData: errors.donante,
+                                        onChange: (e) => handleInputChange('donante', e.target.value)
                                     }
-                                }}
-                                className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <>
-                                        <LoadingSpinner variant="spinner" size="sm" color="white" />
-                                        <span>Creando...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <MdSave className="w-4 h-4" />
-                                        <span>Ingresar Bombero</span>
-                                    </>
-                                )}
-                            </button>
+                                ]}
+                                onSubmit={() => {}} // No submit en esta pestaña
+                                backgroundColor={'#fff'}
+                            />
                         </div>
+                    )}
+
+                    {/* Error general */}
+                    {errors.general && (
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-700 text-sm">{errors.general}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Botones */}
+                <div className="flex justify-end px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
+                    <div className="flex space-x-3">
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-all duration-200 font-medium"
+                            disabled={loading}
+                        >
+                            <MdClose className="w-4 h-4 text-red-500" />
+                            <span>Cancelar</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <LoadingSpinner size="sm" />
+                            ) : (
+                                <>
+                                    <MdSave className="w-4 h-4" />
+                                    <span>Crear Bombero</span>
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
+
 CreateBomberoPopup.propTypes = {
     show: PropTypes.bool.isRequired,
     setShow: PropTypes.func.isRequired,
-    onBomberoCreated: PropTypes.func.isRequired,
+    onBomberoCreated: PropTypes.func.isRequired
 };

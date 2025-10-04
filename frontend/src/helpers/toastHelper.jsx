@@ -271,3 +271,134 @@ export const disponibilidadUpdatedToast = (message = "Disponibilidad actualizada
     }
   );
 };
+
+// Funciones específicas para perfil completo
+export const contactoEmergenciaCreatedToast = (contactoName = "Contacto de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{contactoName} agregado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const contactoEmergenciaUpdatedToast = (contactoName = "Contacto de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{contactoName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const contactoEmergenciaDeletedToast = (contactoName = "Contacto de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{contactoName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const capacitacionCreatedToast = (capacitacionName = "Capacitación") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{capacitacionName} agregada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const capacitacionUpdatedToast = (capacitacionName = "Capacitación") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{capacitacionName} actualizada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const capacitacionDeletedToast = (capacitacionName = "Capacitación") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{capacitacionName} eliminada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// Funciones específicas para actualización de perfil
+export const perfilActualizadoToast = (tipoActualizacion = "información personal") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>Perfil actualizado exitosamente - {tipoActualizacion}</span>
+    </div>,
+    {
+      ...toastConfig,
+      autoClose: 3000, // Un poco más rápido para actualizaciones de perfil
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const imagenPerfilActualizadaToast = () => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>Imagen de perfil actualizada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      autoClose: 3000,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const contraseñaCambiadaToast = () => {
+  toast.success(
+    <div className="flex items-center">
+      <MdSecurity className="text-green-600 text-xl mr-2" />
+      <span>Contraseña cambiada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      autoClose: 4000, // Un poco más tiempo para mensajes de seguridad
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};

@@ -14,6 +14,7 @@ const ComunaSchema = new EntitySchema({
             type: "varchar",
             length: 100,
             nullable: false,
+            unique: true,
         },
         idRegion: {
             type: "int",

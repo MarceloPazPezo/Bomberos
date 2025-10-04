@@ -29,6 +29,228 @@ export async function getBomberos() {
     }
 }
 
+// ==================== FUNCIONALIDADES POR COMPAÑÍA ====================
+
+/**
+ * Obtiene la compañía del usuario autenticado
+ */
+export const getMiCompania = async () => {
+  try {
+    const response = await axios.get('/bombero/mi-compania');
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener mi compañía:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al obtener información de la compañía'
+    };
+  }
+};
+
+/**
+ * Obtiene todos los bomberos de la compañía del usuario autenticado
+ */
+export const getBomberosMiCompania = async () => {
+  try {
+    const response = await axios.get('/bombero/mi-compania/bomberos');
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener bomberos de mi compañía:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al obtener bomberos de la compañía'
+    };
+  }
+};
+
+/**
+ * Obtiene estadísticas de bomberos de la compañía del usuario autenticado
+ */
+export const getEstadisticasMiCompania = async () => {
+  try {
+    const response = await axios.get('/bombero/mi-compania/estadisticas');
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener estadísticas de mi compañía:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al obtener estadísticas de la compañía'
+    };
+  }
+};
+
+/**
+ * Obtiene todos los bomberos de una compañía específica (solo para Administradores/Supervisores)
+ */
+export const getBomberosByCompania = async (idCompania) => {
+  try {
+    const response = await axios.get(`/bombero/compania/${idCompania}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener bomberos por compañía:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al obtener bomberos de la compañía'
+    };
+  }
+};
+
+/**
+ * Obtiene estadísticas de bomberos de una compañía específica (solo para Administradores/Supervisores)
+ */
+export const getEstadisticasBomberosCompania = async (idCompania) => {
+  try {
+    const response = await axios.get(`/bombero/compania/${idCompania}/estadisticas`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener estadísticas por compañía:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al obtener estadísticas de la compañía'
+    };
+  }
+};
+
+/**
+ * Obtiene bomberos de otras compañías (solo para Administradores/Supervisores)
+ */
+export const getBomberosOtrasCompanias = async () => {
+  try {
+    const response = await axios.get('/bombero/otras-companias');
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener bomberos de otras compañías:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || 'Error al obtener bomberos de otras compañías'
+    };
+  }
+};
+
+// ==================== DETALLES COMPLETOS ====================
+
+/**
+ * Obtiene todos los detalles de un bombero en una sola consulta
+ */
+export const getBomberoDetalles = async (idBombero) => {
+  try {
+    const response = await axios.get(`/bombero/${idBombero}/detalles`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener detalles completos del bombero:', error);
+    throw error;
+  }
+};
+
+// ==================== FUNCIONALIDADES UNIFICADAS ====================
+
+/**
+ * Crear bombero con ficha opcional (sin imagen)
+ */
+export async function createBomberoWithOptionalFicha(bomberoData, fichaData = null) {
+    try {
+        const response = await axios.post('/bombero/with-ficha', {
+            bomberoData,
+            fichaData
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating bombero with optional ficha:', error);
+        return error.response?.data || { success: false, message: 'Error de conexión con el servidor' };
+    }
+}
+
+/**
+ * Crear bombero con ficha opcional e imagen de perfil
+ */
+export async function createBomberoWithImage(bomberoData, fichaData = null, profileImage = null) {
+    try {
+        const formData = new FormData();
+        
+        // Agregar datos del bombero
+        formData.append('bomberoData', JSON.stringify(bomberoData));
+        
+        // Agregar datos de ficha si existen
+        if (fichaData) {
+            formData.append('fichaData', JSON.stringify(fichaData));
+        }
+        
+        // Agregar imagen si existe
+        if (profileImage) {
+            formData.append('profileImage', profileImage);
+        }
+
+        const response = await axios.post('/bombero/with-image', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error creating bombero with image:', error);
+        return error.response?.data || { success: false, message: 'Error de conexión con el servidor' };
+    }
+}
+
+/**
+ * Obtener bombero completo con ficha (si existe)
+ */
+export async function getBomberoComplete(bomberoId) {
+    try {
+        const response = await axios.get(`/bombero/${bomberoId}/complete`);
+        return response.data;
+    } catch (error) {
+        console.error('Error getting complete bombero:', error);
+        return error.response?.data || { success: false, message: 'Error de conexión con el servidor' };
+    }
+}
+
+/**
+ * Obtener todos los bomberos con información de ficha
+ */
+export async function getAllBomberosWithFicha() {
+    try {
+        const response = await axios.get('/bombero/complete');
+        return response.data;
+    } catch (error) {
+        console.error('Error getting all bomberos with ficha:', error);
+        return error.response?.data || { success: false, message: 'Error de conexión con el servidor' };
+    }
+}
+
+/**
+ * Agregar ficha a un bombero existente
+ */
+export async function addFichaToBombero(bomberoId, fichaData) {
+    try {
+        const response = await axios.post(`/bombero/${bomberoId}/add-ficha`, {
+            fichaData
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error adding ficha to bombero:', error);
+        return error.response?.data || { success: false, message: 'Error de conexión con el servidor' };
+    }
+}
+
+/**
+ * Función inteligente que decide qué endpoint usar según los datos
+ */
+export async function createBomberoIntelligent(bomberoData, fichaData = null, profileImage = null) {
+    // Si hay imagen de perfil, usar el endpoint con imagen
+    if (profileImage) {
+        return await createBomberoWithImage(bomberoData, fichaData, profileImage);
+    }
+    
+    // Si hay datos de ficha, usar el endpoint con ficha
+    if (fichaData) {
+        return await createBomberoWithOptionalFicha(bomberoData, fichaData);
+    }
+    
+    // Si solo hay datos básicos, usar el endpoint con ficha pero sin datos de ficha
+    return await createBomberoWithOptionalFicha(bomberoData, null);
+}
+
 export async function updateBombero(bomberoData, run, id = null) {
     try {
         const normalizedRut = normalizeRutForBackend(run);

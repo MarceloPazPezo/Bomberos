@@ -10,9 +10,8 @@ import Disponibilidad from '@pages/Disponibilidad';
 import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
-import TestRoles from '@pages/TestRoles';
 import CrearParte from '@pages/crearParte';
-import TestPermisos from '@pages/TestPermisos';
+import BomberosPage from '@pages/BomberosPage';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
@@ -73,15 +72,14 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/test-roles',
-        element: <TestRoles />
+        path: '/bomberos',
+        element: (
+          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+            <BomberosPage />
+          </ProtectedRoute>
+        ),
       },
       {
-        path: '/test-permisos',
-        element: <TestPermisos />
-      },
-
-            {
         path: '/crearparte',
         element: (
           <ProtectedRoute>

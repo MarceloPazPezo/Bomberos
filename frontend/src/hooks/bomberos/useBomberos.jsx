@@ -1,7 +1,36 @@
 import { useState, useCallback, useRef } from 'react';
 import { getBomberos, createBombero, updateBombero, deleteBombero, changeBomberoEstado } from '@services/bombero.service.js';
 import { showErrorAlert } from '@helpers/fireAlert.js';
-import { bomberoCreatedToast, bomberoUpdatedToast, bomberoDeletedToast, bomberoStatusChangedToast } from '@helpers/toastHelper.jsx';
+import { 
+  bomberoCreatedToast, 
+  bomberoUpdatedToast, 
+  bomberoDeletedToast
+} from '@helpers/toastHelper.jsx';
+import { toast } from 'react-toastify';
+import React from 'react';
+import { MdPerson } from 'react-icons/md';
+
+// Función temporal para resolver el problema de importación
+const bomberoStatusChangedToast = (status) => {
+  const statusText = status ? 'activado' : 'desactivado';
+  toast.success(
+    <div className="flex items-center">
+      <MdPerson className="text-indigo-600 text-xl mr-2" />
+      <span>Bombero {statusText} exitosamente</span>
+    </div>,
+    {
+      position: "bottom-right",
+      autoClose: 4000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
 
 export const useBomberos = () => {
   const [bomberos, setBomberos] = useState([]);

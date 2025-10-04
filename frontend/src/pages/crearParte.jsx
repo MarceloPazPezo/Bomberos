@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 // Services
-import { getRegiones, getComunas } from '../services/direccion.service.js';
+import { regionService } from '../services/region.service.js';
 import {
   getClasificacionesEmergencia,
   getSubtiposIncidente,
@@ -269,7 +269,7 @@ const CrearParte = () => {
     (async () => {
       try {
         setLoadingRegiones(true); setErrorRegiones('');
-        const res = await getRegiones();
+        const res = await regionService.getAllRegiones();
         setRegiones(normalizeArray(res));
       } catch {
         setErrorRegiones('No se pudieron cargar las regiones.'); setRegiones([]);
@@ -348,7 +348,7 @@ const CrearParte = () => {
       if (!regionId && regionId !== 0) { setComunas([]); setComunaId(''); return; }
       try {
         setLoadingComunas(true); setErrorComunas('');
-        const res = await getComunas(regionId);
+        const res = await regionService.getComunasByRegion(regionId);
         setComunas(normalizeArray(res));
       } catch {
         setErrorComunas('No se pudieron cargar las comunas de la región seleccionada.'); setComunas([]);

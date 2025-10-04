@@ -15,6 +15,12 @@ import serviciosRoutes from "./servicios.routes.js";
 import regionRoutes from "./region.routes.js";
 import comunaRoutes from "./comuna.routes.js";
 import debugRoutes from "./debug.routes.js";
+import fileRoutes from "./file.routes.js";
+import tilesRoutes from "./tiles.routes.js";
+import fichaBomberoRoutes from "./fichaBombero.routes.js";
+// Rutas de bomberos unificadas - ya incluidas en bombero.routes.js
+import perfilCompletoRoutes from "./perfilCompleto.routes.js";
+import tipoSangreRoutes from "./tipoSangre.routes.js";
 
 const router = Router();
 
@@ -34,6 +40,11 @@ router
   .use("/region", regionRoutes)
   .use("/comuna", comunaRoutes)
   .use("/debug", debugRoutes)
-  .use("/health", healthRoutes);
+  .use("/files", fileRoutes)
+  .use("/tiles", tilesRoutes)
+  .use("/fichaBombero", fichaBomberoRoutes)
+  // Rutas de bomberos unificadas - ya incluidas en /bombero
+  .use("/perfil-completo", perfilCompletoRoutes)
+  .use("/tipoSangre", tipoSangreRoutes);
 
 export default router;

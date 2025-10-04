@@ -25,6 +25,12 @@ export default defineConfig({
       '@styles': path.resolve(__dirname, './src/styles'),
     }
   },
+  optimizeDeps: {
+    include: ['maplibre-gl']
+  },
+  define: {
+    global: 'globalThis',
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,

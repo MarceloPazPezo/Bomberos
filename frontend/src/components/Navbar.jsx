@@ -79,7 +79,7 @@ const Navbar = () => {
                             <button
                                 onClick={() => {
                                     setIsMenuOpen(false);
-                                    navigate('/perfil');
+                                    navigate('/perfil-completo');
                                 }}
                                 className="w-full text-left text-gray-700 hover:bg-gray-100 block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"
                             >

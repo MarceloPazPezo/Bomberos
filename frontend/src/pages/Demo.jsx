@@ -19,13 +19,15 @@ import {
   MdAdd,
   MdEdit,
   MdDelete,
-  MdVisibility
+  MdVisibility,
+  MdWaterDrop
 } from 'react-icons/md';
 
 // Componentes para demostrar
 import BomberosLoader from '@components/BomberosLoader';
 import Tooltip from '@components/Tooltip.jsx';
 import FireAlertDemo from '@components/FireAlertDemo.jsx';
+import StaticValuesDemo from '@components/demo/StaticValuesDemo';
 import { showConfirmAlert, showInfoAlert, showErrorAlert, showWarningAlert, showConflictAlert, showSecurityAlert } from '@helpers/fireAlert.js';
 import { fireSuccessToast, roleCreatedToast, roleDeletedToast } from '@helpers/toastHelper.jsx';
 import usePermisos from '@hooks/permisos/usePermisos';
@@ -364,7 +366,21 @@ const Demo = () => {
             </div>
           </div>
 
-          {/* Sección 7: Paleta de Colores */}
+
+          {/* Sección 8: Valores Estáticos */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <MdWaterDrop className="h-6 w-6 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-800">Valores Estáticos</h2>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Componente demo para seleccionar y obtener valores estáticos como tipos de sangre y estados de reporte.
+            </p>
+            
+            <StaticValuesDemo />
+          </div>
+
+          {/* Sección 9: Paleta de Colores */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center space-x-2 mb-4">
               <MdSettings className="h-6 w-6 text-blue-600" />

@@ -3,7 +3,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
-import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode, MdSecurity } from 'react-icons/md';
+import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode, MdSecurity, MdPeople } from 'react-icons/md';
 import { FaUserCheck } from 'react-icons/fa';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
@@ -82,6 +82,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             className={getNavLinkClass}
                         >
                             <span className="flex items-center"><FaUserCheck size={20} className="mr-2" />Disponibilidad</span>
+                        </NavLink>
+                    )}
+                    {hasPermiso('bombero:obtener') && (
+                        <NavLink
+                            to="/bomberos"
+                            onClick={() => setSidebarOpen(false)}
+                            className={getNavLinkClass}
+                        >
+                            <span className="flex items-center"><MdPeople size={20} className="mr-2" />Bomberos</span>
                         </NavLink>
                     )}
                     {(hasPermiso('bombero:obtener') || hasPermiso('bombero:crear') || hasPermiso('bombero:obtener_especifico') || hasPermiso('bombero:actualizar') || hasPermiso('bombero:eliminar') || hasPermiso('bombero:cambiar_estado') || hasPermiso('bombero:asignar_rol') || hasPermiso('bombero:admin') ||
