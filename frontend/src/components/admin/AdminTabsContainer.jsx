@@ -6,7 +6,8 @@ import {
   MdVpnKey, 
   MdBusiness, 
   MdLocationOn,
-  MdPerson
+  MdPerson,
+  MdLocalHospital
 } from 'react-icons/md';
 
 // Importar componentes de pestañas
@@ -16,6 +17,7 @@ import AdminPermisosTab from './tabs/AdminPermisosTab';
 import AdminCompaniasTab from './tabs/AdminCompaniasTab';
 import AdminDireccionesTab from './tabs/AdminDireccionesTab';
 import AdminEstadoCivilTab from './tabs/AdminEstadoCivilTab';
+import AdminServicioTab from './tabs/AdminServicioTab';
 
 // Mapeo de iconos
 const iconMap = {
@@ -24,7 +26,8 @@ const iconMap = {
   MdVpnKey,
   MdBusiness,
   MdLocationOn,
-  MdPerson
+  MdPerson,
+  MdLocalHospital
 };
 
 /**
@@ -33,9 +36,13 @@ const iconMap = {
  */
 const AdminTabsContainer = () => {
   const { activeTab, availableTabs, handleTabChange } = useAdmin();
+  
+  console.log('[DEBUG] AdminTabsContainer - activeTab:', activeTab);
+  console.log('[DEBUG] AdminTabsContainer - availableTabs:', availableTabs);
 
   // Renderizar el componente de pestaña activa
   const renderActiveTab = () => {
+    console.log('[DEBUG] renderActiveTab - activeTab:', activeTab);
     switch (activeTab) {
       case 'bomberos':
         return <AdminBomberosTab />;
@@ -49,7 +56,11 @@ const AdminTabsContainer = () => {
         return <AdminDireccionesTab />;
       case 'estadoCivil':
         return <AdminEstadoCivilTab />;
+      case 'servicios':
+        console.log('[DEBUG] Rendering AdminServicioTab');
+        return <AdminServicioTab />;
       default:
+        console.log('[DEBUG] Default case - activeTab not found:', activeTab);
         return (
           <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-8 rounded-2xl text-center">
             <p className="text-gray-500">Pestaña no encontrada o sin permisos</p>

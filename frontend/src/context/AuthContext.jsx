@@ -131,8 +131,14 @@ export function AuthProvider({ children }) {
 
     // Función para verificar si el bombero tiene un permiso específico
     const hasPermiso = useCallback((permiso) => {
-        return bomberoPermisos.includes(permiso);
-    }, [bomberoPermisos]);
+        const hasPermission = bomberoPermisos.includes(permiso);
+        console.log(`[DEBUG] hasPermiso(${permiso}):`, {
+            hasPermission,
+            bomberoPermisos,
+            bombero: bombero?.nombre || 'No bombero'
+        });
+        return hasPermission;
+    }, [bomberoPermisos, bombero]);
 
     // Función para verificar si el bombero tiene alguno de los permisos
     const hasAnyPermisos = useCallback((permisos) => {

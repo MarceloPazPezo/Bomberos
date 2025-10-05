@@ -11,54 +11,23 @@ export class EstadoCivilController {
    */
   static async getAll(req, res) {
     try {
-      const { page, limit } = req.query;
-      logger.info('EstadoCivilController.getAll - Iniciando obtención de estados civiles con paginación');
+      logger.info('EstadoCivilController.getAll - Obteniendo todos los estados civiles');
       
-      const result = await estadoCivilService.getAll({ page, limit });
+      const estadosCiviles = await estadoCivilService.getAll();
       
-      if (!result.estadosCiviles || result.estadosCiviles.length === 0) {
+      if (!estadosCiviles || estadosCiviles.length === 0) {
         logger.info('EstadoCivilController.getAll - No se encontraron estados civiles');
-        return handleSuccess(res, 204, 'No se encontraron estados civiles');
+        return handleSuccess(res, 200, 'No se encontraron estados civiles', []);
       }
       
-      logger.info(`EstadoCivilController.getAll - Se obtuvieron ${result.estadosCiviles.length} estados civiles de ${result.total} total`);
-      return handleSuccess(res, 200, 'Estados civiles obtenidos exitosamente', {
-        estadosCiviles: result.estadosCiviles,
-        pagination: {
-          total: result.total,
-          page: parseInt(page) || 1,
-          limit: parseInt(limit) || 10,
-          totalPages: Math.ceil(result.total / (parseInt(limit) || 10))
-        }
-      });
+      logger.info(`EstadoCivilController.getAll - Se obtuvieron ${estadosCiviles.length} estados civiles`);
+      return handleSuccess(res, 200, 'Estados civiles obtenidos exitosamente', estadosCiviles);
     } catch (error) {
       logger.error('EstadoCivilController.getAll - Error:', error);
       return handleErrorServer(res, 500, 'Error al obtener estados civiles');
     }
   }
 
-  /**
-   * Obtener un estado civil por ID
-   */
-  static async getById(req, res) {
-    try {
-      const { id } = req.params;
-      logger.info(`EstadoCivilController.getById - Obteniendo estado civil con ID: ${id}`);
-      
-      const estadoCivil = await estadoCivilService.getById(parseInt(id));
-      
-      if (!estadoCivil) {
-        logger.warn(`EstadoCivilController.getById - Estado civil con ID ${id} no encontrado`);
-        return handleErrorClient(res, 404, 'Estado civil no encontrado');
-      }
-      
-      logger.info(`EstadoCivilController.getById - Estado civil obtenido: ${estadoCivil.nombre}`);
-      return handleSuccess(res, 200, 'Estado civil obtenido exitosamente', estadoCivil);
-    } catch (error) {
-      logger.error('EstadoCivilController.getById - Error:', error);
-      return handleErrorServer(res, 500, 'Error al obtener estado civil');
-    }
-  }
 
   /**
    * Crear un nuevo estado civil
@@ -83,34 +52,6 @@ export class EstadoCivilController {
     }
   }
 
-  /**
-   * Actualizar un estado civil
-   */
-  static async update(req, res) {
-    try {
-      const { id } = req.params;
-      const { nombre } = req.body;
-      logger.info(`EstadoCivilController.update - Actualizando estado civil ID: ${id} con nombre: ${nombre}`);
-      
-      const estadoCivilActualizado = await estadoCivilService.update(parseInt(id), { nombre });
-      
-      if (!estadoCivilActualizado) {
-        logger.warn(`EstadoCivilController.update - Estado civil con ID ${id} no encontrado`);
-        return handleErrorClient(res, 404, 'Estado civil no encontrado');
-      }
-      
-      logger.info(`EstadoCivilController.update - Estado civil actualizado exitosamente`);
-      return handleSuccess(res, 200, 'Estado civil actualizado exitosamente', estadoCivilActualizado);
-    } catch (error) {
-      logger.error('EstadoCivilController.update - Error:', error);
-      
-      if (error.code === 'ER_DUP_ENTRY' || error.message.includes('Ya existe un estado civil con ese nombre')) {
-        return handleErrorClient(res, 400, 'Ya existe un estado civil con ese nombre');
-      }
-      
-      return handleErrorServer(res, 500, 'Error al actualizar estado civil');
-    }
-  }
 
   /**
    * Eliminar un estado civil
@@ -140,20 +81,4 @@ export class EstadoCivilController {
     }
   }
 
-  /**
-   * Obtener estadísticas de uso de estados civiles
-   */
-  static async getUsageStats(req, res) {
-    try {
-      logger.info('EstadoCivilController.getUsageStats - Obteniendo estadísticas de uso');
-      
-      const stats = await estadoCivilService.getUsageStats();
-      
-      logger.info(`EstadoCivilController.getUsageStats - Estadísticas obtenidas para ${stats.length} estados civiles`);
-      return handleSuccess(res, 200, 'Estadísticas obtenidas exitosamente', stats);
-    } catch (error) {
-      logger.error('EstadoCivilController.getUsageStats - Error:', error);
-      return handleErrorServer(res, 500, 'Error al obtener estadísticas');
-    }
-  }
 }

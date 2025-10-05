@@ -1,15 +1,15 @@
 import rootService from './root.service.js';
 
-const API_BASE = '/estado-civil';
+const API_BASE = '/servicios';
 
-export const estadoCivilService = {
-  // Obtener todos los estados civiles con paginación
+export const servicioService = {
+  // Obtener todos los servicios con paginación
   async getAll(params = {}) {
     try {
       const response = await rootService.get(API_BASE, { params });
       return response.data;
     } catch (error) {
-      console.error('Error al obtener estados civiles:', error);
+      console.error('Error al obtener servicios:', error);
       
       // Mensaje de error más específico según el tipo de error
       let errorMessage = 'Error al conectar con el servidor';
@@ -34,39 +34,39 @@ export const estadoCivilService = {
   },
 
 
-  // Crear un nuevo estado civil
+  // Crear un nuevo servicio
   async create(data) {
     try {
       const response = await rootService.post(API_BASE, data);
       return response.data;
     } catch (error) {
-      console.error('Error al crear estado civil:', error);
+      console.error('Error al crear servicio:', error);
       throw error;
     }
   },
 
-  // Actualizar un estado civil
+  // Actualizar un servicio
   async update(id, data) {
     try {
       const response = await rootService.put(`${API_BASE}/${id}`, data);
       return response.data;
     } catch (error) {
-      console.error('Error al actualizar estado civil:', error);
+      console.error('Error al actualizar servicio:', error);
       throw error;
     }
   },
 
-  // Eliminar un estado civil
+  // Eliminar un servicio
   async delete(id) {
     try {
       const response = await rootService.delete(`${API_BASE}/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Error al eliminar estado civil:', error);
+      console.error('Error al eliminar servicio:', error);
       throw error;
     }
   },
 
 };
 
-export default estadoCivilService;
+export default servicioService;

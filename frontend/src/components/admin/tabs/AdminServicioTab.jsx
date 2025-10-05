@@ -1,43 +1,42 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAdmin } from '@context/AdminContext';
-import { useEstadoCivil } from '@hooks/estadoCivil/useEstadoCivil.jsx';
-import { MdAdd, MdPeople, MdRefresh } from 'react-icons/md';
+import { useServicio } from '@hooks/servicio/useServicio.jsx';
+import { MdAdd, MdLocalHospital, MdRefresh } from 'react-icons/md';
 import { showConfirmAlert } from '@helpers/fireAlert.js';
 import PrimeTableBasic from '@components/PrimeTableBasic.jsx';
 import BomberosLoader from '@components/BomberosLoader.jsx';
-import CreateEstadoCivilPopup from '@components/admin/popups/CreateEstadoCivilPopup.jsx';
+import CreateServicioPopup from '@components/admin/popups/CreateServicioPopup.jsx';
 import Tooltip from '@components/Tooltip';
 import { toStartCase } from '@helpers/textFormatters.js';
 
 /**
- * Pestaña de administración para estados civiles
+ * Pestaña de administración para servicios
  */
-const AdminEstadoCivilTab = () => {
+const AdminServicioTab = () => {
   const { hasPermiso, refreshTrigger } = useAdmin();
   
   const {
-    estadosCiviles,
+    servicios,
     loading,
     error,
-    pagination,
-    fetchEstadosCiviles,
-    createEstadoCivil,
-    deleteEstadoCivil
-  } = useEstadoCivil();
+    fetchServicios,
+    createServicio,
+    deleteServicio
+  } = useServicio();
 
   const [showCreatePopup, setShowCreatePopup] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
-    if (hasPermiso('estadoCivil:admin')) {
-      fetchEstadosCiviles({}, true); // Forzar carga inicial
+    if (hasPermiso('servicio:admin')) {
+      fetchServicios({}, true); // Forzar carga inicial - sin parámetros de paginación
     }
-  }, [refreshTrigger, hasPermiso, fetchEstadosCiviles]);
+  }, [refreshTrigger, hasPermiso, fetchServicios]);
 
   // Handlers
   const handleRefresh = () => {
-    fetchEstadosCiviles({}, true);
+    fetchServicios({}, true); // Sin parámetros de paginación
   };
 
   const handleCreate = () => {
@@ -45,15 +44,15 @@ const AdminEstadoCivilTab = () => {
   };
 
   // Manejar eliminación
-  const handleDelete = async (estado) => {
+  const handleDelete = async (servicio) => {
     const confirmed = await showConfirmAlert(
-      'Eliminar Estado Civil',
-      `¿Estás seguro de que quieres eliminar el estado civil "${toStartCase(estado.nombre)}"?`,
+      'Eliminar Servicio',
+      `¿Estás seguro de que quieres eliminar el servicio "${toStartCase(servicio.nombre)}"?`,
       'Esta acción no se puede deshacer.'
     );
     
     if (confirmed.isConfirmed) {
-      await deleteEstadoCivil(estado.id);
+      await deleteServicio(servicio.id);
       // El hook ya maneja los mensajes de éxito/error con fireAlert y toastify
     }
   };
@@ -78,15 +77,15 @@ const AdminEstadoCivilTab = () => {
       )
     },
     {
-      field: 'afectadosCount',
+      field: 'incidentesCount',
       header: 'Utilizado',
       sortable: true,
       style: { width: '120px' },
       body: (rowData) => {
-        const count = rowData.afectadosCount || 0;
+        const count = rowData.incidentesCount || 0;
         return (
-          <div className="flex items-center gap-2" title={`${count} personas utilizan este estado civil`}>
-            <MdPeople className="text-gray-400" size={16} />
+          <div className="flex items-center gap-2" title={`${count} incidentes utilizan este servicio`}>
+            <MdLocalHospital className="text-gray-400" size={16} />
             <span className="text-sm text-gray-600">{count}</span>
           </div>
         );
@@ -99,10 +98,10 @@ const AdminEstadoCivilTab = () => {
     }
   ], []);
 
-  if (loading && estadosCiviles.length === 0) {
+  if (loading && servicios.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
-        <BomberosLoader size="md" message="Cargando estados civiles..." />
+        <BomberosLoader size="md" message="Cargando servicios..." />
       </div>
     );
   }
@@ -113,22 +112,22 @@ const AdminEstadoCivilTab = () => {
         {/* Header de la sección */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-gray-800">Gestión de Estados Civiles</h2>
+            <h2 className="text-xl font-semibold text-gray-800">Gestión de Servicios</h2>
             <p className="text-gray-600 text-sm mt-1">
-              Administra los estados civiles disponibles para los afectados
+              Administra los servicios externos disponibles para los incidentes
             </p>
           </div>
           
           <div className="flex items-center gap-4">
             {/* Estadísticas */}
             <span className="text-sm text-gray-600">
-              Total: {estadosCiviles.length} estados civiles
+              Total: {servicios.length} servicios
             </span>
 
             {/* Botón refresh */}
             <Tooltip
-              id="refresh-estados-civiles-btn"
-              content="Actualizar lista de estados civiles"
+              id="refresh-servicios-btn"
+              content="Actualizar lista de servicios"
               place="top"
               variant="dark"
             >
@@ -148,11 +147,11 @@ const AdminEstadoCivilTab = () => {
               </button>
             </Tooltip>
 
-            {/* Botón crear estado civil */}
-            {hasPermiso('estadoCivil:admin') && (
+            {/* Botón crear servicio */}
+            {hasPermiso('servicio:admin') && (
               <Tooltip
-                id="create-estado-civil-btn"
-                content={isCreating ? "Creando estado civil..." : "Crear un nuevo estado civil en el sistema"}
+                id="create-servicio-btn"
+                content={isCreating ? "Creando servicio..." : "Crear un nuevo servicio en el sistema"}
                 place="top"
                 variant="dark"
               >
@@ -172,7 +171,7 @@ const AdminEstadoCivilTab = () => {
                       <MdAdd size={18} />
                     )}
                     <span className="hidden sm:inline">
-                      {isCreating ? 'Creando...' : 'Crear estado civil'}
+                      {isCreating ? 'Creando...' : 'Crear servicio'}
                     </span>
                   </span>
                 </button>
@@ -181,16 +180,16 @@ const AdminEstadoCivilTab = () => {
           </div>
         </div>
 
-        {/* Tabla de estados civiles con PrimeTableBasic */}
+        {/* Tabla de servicios con PrimeTableBasic */}
         <PrimeTableBasic
-          data={estadosCiviles}
+          data={servicios}
           columns={columns}
           loading={loading}
           onDelete={handleDelete}
           onRefresh={handleRefresh}
-          emptyMessage="No hay estados civiles registrados"
+          emptyMessage="No hay servicios registrados"
           rowsPerPage={10}
-          searchPlaceholder="Buscar estados civiles..."
+          searchPlaceholder="Buscar servicios..."
           showSearch={true}
         />
 
@@ -203,13 +202,13 @@ const AdminEstadoCivilTab = () => {
       </div>
 
       {/* Popups */}
-      <CreateEstadoCivilPopup
+      <CreateServicioPopup
         show={showCreatePopup}
         setShow={setShowCreatePopup}
-        onEstadoCivilCreated={() => {
+        onServicioCreated={() => {
           setIsCreating(false);
           // Forzar recarga para asegurar que la tabla se actualice
-          fetchEstadosCiviles({}, true);
+          fetchServicios({}, true);
         }}
         onCreatingChange={setIsCreating}
       />
@@ -217,4 +216,4 @@ const AdminEstadoCivilTab = () => {
   );
 };
 
-export default AdminEstadoCivilTab;
+export default AdminServicioTab;

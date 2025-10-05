@@ -4,7 +4,6 @@ import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
-import { Paginator } from 'primereact/paginator';
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { MdAdd, MdEdit, MdDelete, MdSearch, MdFilterList } from 'react-icons/md';
 import { useDebounce } from '@hooks/useDebounce.js';
@@ -144,36 +143,16 @@ const PrimeTableBasic = ({
     );
   };
 
-  // Footer de paginación
-  const footer = () => {
-    if (!pagination) return null;
-    
-    return (
-      <Paginator
-        first={first}
-        rows={rows}
-        totalRecords={data.length}
-        rowsPerPageOptions={[5, 10, 20, 50]}
-        onPageChange={(e) => {
-          setFirst(e.first);
-          setRows(e.rows);
-        }}
-        template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
-      />
-    );
-  };
 
   return (
     <div className={`card ${className}`}>
       <DataTable
         value={data}
-        paginator={false} // Usamos paginación personalizada
+        paginator={pagination}
         rows={rows}
         first={first}
         loading={loading}
         header={header()}
-        footer={footer()}
         emptyMessage={emptyMessage}
         filters={filters}
         filterDisplay="row"
@@ -183,6 +162,9 @@ const PrimeTableBasic = ({
         stripedRows
         showGridlines
         size="small"
+        rowsPerPageOptions={[5, 10, 20, 50]}
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
       >
         {renderColumns()}
       </DataTable>

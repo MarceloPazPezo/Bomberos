@@ -263,6 +263,20 @@ async function crearPermisos() {
         ruta: "/api/estado-civil/*",
         metodo: "*",
       },
+      {
+        nombre: "servicio:obtener",
+        descripcion: "Permite obtener información de todos los servicios",
+        categoria: "Servicios",
+        ruta: "/api/servicios",
+        metodo: "GET",
+      },
+      {
+        nombre: "servicio:admin",
+        descripcion: "Permite administración completa de servicios (crear, actualizar, eliminar)",
+        categoria: "Servicios",
+        ruta: "/api/servicios/*",
+        metodo: "*",
+      },
     ];
 
     const permisos = permisosData.map((p) => permisoRepository.create(p));
@@ -340,6 +354,8 @@ async function crearRoles() {
           "direccion:eliminar",
           "estadoCivil:obtener",
           "estadoCivil:admin",
+          "servicio:obtener",
+          "servicio:admin",
         ],
       },
     ];

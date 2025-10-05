@@ -11,7 +11,7 @@ import companiaRoutes from "./compania.routes.js";
 import direccionRoutes from "./direccion.routes.js";
 import subtipoIncidenteRoutes from "./subtipoIncidente.routes.js";
 import carroRoutes from "./carro.routes.js";
-import serviciosRoutes from "./servicios.routes.js";
+import servicioRoutes from "./servicio.routes.js";
 import regionRoutes from "./region.routes.js";
 import comunaRoutes from "./comuna.routes.js";
 import debugRoutes from "./debug.routes.js";
@@ -37,14 +37,13 @@ router
   .use("/direccion", direccionRoutes)
   .use("/subtipoIncidente", subtipoIncidenteRoutes)
   .use("/carro", carroRoutes)
-  .use("/servicios", serviciosRoutes)
+  .use("/servicios", servicioRoutes)
   .use("/region", regionRoutes)
   .use("/comuna", comunaRoutes)
   .use("/debug", debugRoutes)
   .use("/files", fileRoutes)
   .use("/tiles", tilesRoutes)
   .use("/fichaBombero", fichaBomberoRoutes)
-  // Rutas de bomberos unificadas - ya incluidas en /bombero
   .use("/perfil-completo", perfilCompletoRoutes)
   .use("/tipoSangre", tipoSangreRoutes)
   .use("/estado-civil", estadoCivilRoutes);

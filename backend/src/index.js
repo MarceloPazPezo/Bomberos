@@ -36,6 +36,9 @@ import {
 import {
   crearEstadosCiviles
 } from "./config/data/initialEstadoCivil.js";
+import {
+  crearServiciosExternos
+} from "./config/data/initialServicio.js";
 
 import {
   crearSubTipoIncidente,
@@ -154,6 +157,7 @@ async function setupAPI() {
     await crearPermisos();
     await crearRoles();
     await crearEstadosCiviles();
+    await crearServiciosExternos();
     
     await crearBomberos();
 

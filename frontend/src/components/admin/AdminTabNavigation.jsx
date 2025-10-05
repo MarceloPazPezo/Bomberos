@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MdPerson, MdSecurity, MdAdminPanelSettings, MdBusiness, MdLocationOn, MdHome } from 'react-icons/md';
+import { MdPerson, MdSecurity, MdAdminPanelSettings, MdBusiness, MdLocationOn, MdHome, MdLocalHospital } from 'react-icons/md';
 
 /**
  * Componente de navegación por pestañas para el panel de administración con slider animado
@@ -40,15 +40,33 @@ const AdminTabNavigation = ({ availableTabs, activeTab, onTabChange, hasPermiso 
       icon: MdLocationOn,
       label: 'Direcciones',
       permiso: 'region:obtener'
+    },
+    estadoCivil: {
+      icon: MdPerson,
+      label: 'Estados Civiles',
+      permiso: 'estadoCivil:obtener'
+    },
+    servicios: {
+      icon: MdLocalHospital,
+      label: 'Servicios',
+      permiso: 'servicio:obtener'
     }
   };
 
   // Memoizar las pestañas visibles para evitar recálculos innecesarios
   const visibleTabs = useMemo(() => {
-    return availableTabs.filter(tabKey => {
+    const filtered = availableTabs.filter(tabKey => {
       const tab = tabConfig[tabKey];
-      return tab && hasPermiso(tab.permiso);
+      const hasPermission = tab && hasPermiso(tab.permiso);
+      console.log(`[DEBUG] TabNavigation - ${tabKey}:`, {
+        tab: tab,
+        hasPermission,
+        permiso: tab?.permiso
+      });
+      return hasPermission;
     });
+    console.log('[DEBUG] TabNavigation - visibleTabs:', filtered);
+    return filtered;
   }, [availableTabs, hasPermiso]);
 
   // Función para actualizar la posición del slider

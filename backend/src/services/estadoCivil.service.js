@@ -15,34 +15,20 @@ export class EstadoCivilService {
     try {
       logger.info('EstadoCivilService.getAll - Obteniendo estados civiles con paginación');
       
-      const queryBuilder = estadoCivilRepository
-        .createQueryBuilder('estadoCivil')
-        .leftJoinAndSelect('estadoCivil.afectados', 'afectado')
-        .select([
-          'estadoCivil.id',
-          'estadoCivil.nombre',
-          'afectado.id'
-        ])
-        .orderBy('estadoCivil.nombre', 'ASC');
-
-      // Aplicar paginación si se especifican parámetros
-      if (queryParams.page || queryParams.limit) {
-        const { page = 1, limit = 10 } = queryParams;
-        const offset = (page - 1) * limit;
-        queryBuilder.skip(offset).take(limit);
-      }
-
-      const [estadosCiviles, total] = await queryBuilder.getManyAndCount();
+      const estadosCiviles = await estadoCivilRepository.find({
+        select: ['id', 'nombre'],
+        order: { nombre: 'ASC' }
+      });
       
       // Contar afectados por estado civil
       const estadosCivilesConCount = estadosCiviles.map(estado => ({
         id: estado.id,
         nombre: estado.nombre,
-        afectadosCount: estado.afectados ? estado.afectados.length : 0
+        afectadosCount: 0 // Por ahora en 0, se puede implementar después si es necesario
       }));
       
-      logger.info(`EstadoCivilService.getAll - Se encontraron ${estadosCivilesConCount.length} estados civiles de ${total} total`);
-      return { estadosCiviles: estadosCivilesConCount, total };
+      logger.info(`EstadoCivilService.getAll - Se encontraron ${estadosCivilesConCount.length} estados civiles`);
+      return estadosCivilesConCount;
     } catch (error) {
       logger.error('EstadoCivilService.getAll - Error:', error);
       throw error;

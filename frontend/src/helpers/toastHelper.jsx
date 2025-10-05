@@ -453,3 +453,47 @@ export const estadoCivilDeletedToast = (estadoCivilName = "Estado civil") => {
     }
   );
 };
+
+// ===== TOASTS PARA SERVICIOS =====
+
+export const servicioCreatedToast = (servicioName = "Servicio") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{servicioName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const servicioUpdatedToast = (servicioName = "Servicio") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{servicioName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const servicioDeletedToast = (servicioName = "Servicio") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{servicioName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};

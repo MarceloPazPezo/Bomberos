@@ -55,13 +55,28 @@ export const AdminProvider = ({ children }) => {
       description: 'Gestión de estados civiles',
       icon: 'MdPerson',
       permissions: ['estadoCivil:obtener', 'estadoCivil:admin']
+    },
+    {
+      id: 'servicios',
+      label: 'Servicios',
+      description: 'Gestión de servicios externos',
+      icon: 'MdLocalHospital',
+      permissions: ['servicio:obtener', 'servicio:admin']
     }
   ];
 
   // Obtener pestañas disponibles según permisos usando hasPermiso
-  const availableTabs = tabsConfig.filter(tab => 
-    tab.permissions.some(permission => hasPermiso(permission))
-  );
+  const availableTabs = tabsConfig.filter(tab => {
+    const hasPermission = tab.permissions.some(permission => hasPermiso(permission));
+    console.log(`[DEBUG] Tab ${tab.id}:`, {
+      permissions: tab.permissions,
+      hasPermission,
+      hasPermisoResults: tab.permissions.map(p => ({ permission: p, has: hasPermiso(p) }))
+    });
+    return hasPermission;
+  });
+  
+  console.log('[DEBUG] Available tabs:', availableTabs.map(t => t.id));
 
   // Función para cambiar pestaña activa
   const handleTabChange = useCallback((tabId) => {

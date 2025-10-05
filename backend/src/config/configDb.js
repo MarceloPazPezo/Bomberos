@@ -19,7 +19,7 @@ export const AppDataSource = new DataSource({
   database: `${DB_NAME}`,
   entities: ["src/entities/**/*.js"],
   synchronize: true,
-  logging: false, // desactivada por defecto   logging: ["error", "warn", "query", "schema"],
+  logging: true, // desactivada por defecto   logging: ["error", "warn", "query", "schema"],
   // logging: NODE_ENV === "development" ? ["query", "error"] : ["error"],
   // logger: "advanced-console",
 });

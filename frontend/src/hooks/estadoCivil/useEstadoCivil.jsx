@@ -51,24 +51,8 @@ export const useEstadoCivil = () => {
       if (response.status === 'Success') {
         const responseData = response.data || {};
         
-        // Manejar tanto array directo como estructura paginada
-        let estadosCivilesData;
-        let paginationData = null;
-        
-        if (Array.isArray(responseData)) {
-          // Array directo
-          estadosCivilesData = responseData;
-        } else if (responseData.estadosCiviles && Array.isArray(responseData.estadosCiviles)) {
-          // Estructura paginada: { estadosCiviles: [...], pagination: {...} }
-          estadosCivilesData = responseData.estadosCiviles;
-          paginationData = responseData.pagination;
-        } else {
-          // Asumir que es array directo si no tiene estructura paginada
-          estadosCivilesData = responseData;
-        }
-        
-        setEstadosCiviles(Array.isArray(estadosCivilesData) ? estadosCivilesData : []);
-        setPagination(paginationData);
+        // Ahora siempre recibimos un array directo
+        setEstadosCiviles(Array.isArray(responseData) ? responseData : []);
       } else if (response.status === 'Error') {
         setError(response.message || 'Error al cargar estados civiles');
       } else {
