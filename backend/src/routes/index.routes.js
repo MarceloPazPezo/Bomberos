@@ -21,6 +21,7 @@ import fichaBomberoRoutes from "./fichaBombero.routes.js";
 // Rutas de bomberos unificadas - ya incluidas en bombero.routes.js
 import perfilCompletoRoutes from "./perfilCompleto.routes.js";
 import tipoSangreRoutes from "./tipoSangre.routes.js";
+import estadoCivilRoutes from "./estadoCivil.routes.js";
 
 const router = Router();
 
@@ -45,6 +46,7 @@ router
   .use("/fichaBombero", fichaBomberoRoutes)
   // Rutas de bomberos unificadas - ya incluidas en /bombero
   .use("/perfil-completo", perfilCompletoRoutes)
-  .use("/tipoSangre", tipoSangreRoutes);
+  .use("/tipoSangre", tipoSangreRoutes)
+  .use("/estado-civil", estadoCivilRoutes);
 
 export default router;

@@ -249,6 +249,20 @@ async function crearPermisos() {
         ruta: "/api/direccion",
         metodo: "DELETE",
       },
+      {
+        nombre: "estadoCivil:obtener",
+        descripcion: "Permite obtener información de todos los estados civiles",
+        categoria: "Estados Civiles",
+        ruta: "/api/estado-civil",
+        metodo: "GET",
+      },
+      {
+        nombre: "estadoCivil:admin",
+        descripcion: "Permite administración completa de estados civiles (crear, actualizar, eliminar)",
+        categoria: "Estados Civiles",
+        ruta: "/api/estado-civil/*",
+        metodo: "*",
+      },
     ];
 
     const permisos = permisosData.map((p) => permisoRepository.create(p));
@@ -324,6 +338,8 @@ async function crearRoles() {
           "direccion:obtener",
           "direccion:actualizar",
           "direccion:eliminar",
+          "estadoCivil:obtener",
+          "estadoCivil:admin",
         ],
       },
     ];

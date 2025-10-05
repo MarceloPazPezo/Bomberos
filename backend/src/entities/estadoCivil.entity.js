@@ -6,7 +6,7 @@ const EstadoCivilSchema = new EntitySchema({
     tableName: "estadoCivil",
     columns: {
         id: {type: "int", primary: true, generated: true},
-        nombre: {type: "varchar", length: 100},
+        nombre: {type: "varchar", length: 50, unique: true},
     },
     relations: {
         afectados: {

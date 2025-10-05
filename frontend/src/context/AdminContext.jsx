@@ -48,6 +48,13 @@ export const AdminProvider = ({ children }) => {
       description: 'Gestión de direcciones',
       icon: 'MdLocationOn',
       permissions: ['region:obtener', 'region:admin', 'comuna:obtener', 'comuna:admin']
+    },
+    {
+      id: 'estadoCivil',
+      label: 'Estados Civiles',
+      description: 'Gestión de estados civiles',
+      icon: 'MdPerson',
+      permissions: ['estadoCivil:obtener', 'estadoCivil:admin']
     }
   ];
 

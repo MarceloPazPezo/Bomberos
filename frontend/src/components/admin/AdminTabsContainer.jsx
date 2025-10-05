@@ -5,7 +5,8 @@ import {
   MdSecurity, 
   MdVpnKey, 
   MdBusiness, 
-  MdLocationOn 
+  MdLocationOn,
+  MdPerson
 } from 'react-icons/md';
 
 // Importar componentes de pestañas
@@ -14,6 +15,7 @@ import AdminRolesTab from './tabs/AdminRolesTab';
 import AdminPermisosTab from './tabs/AdminPermisosTab';
 import AdminCompaniasTab from './tabs/AdminCompaniasTab';
 import AdminDireccionesTab from './tabs/AdminDireccionesTab';
+import AdminEstadoCivilTab from './tabs/AdminEstadoCivilTab';
 
 // Mapeo de iconos
 const iconMap = {
@@ -21,7 +23,8 @@ const iconMap = {
   MdSecurity,
   MdVpnKey,
   MdBusiness,
-  MdLocationOn
+  MdLocationOn,
+  MdPerson
 };
 
 /**
@@ -44,6 +47,8 @@ const AdminTabsContainer = () => {
         return <AdminCompaniasTab />;
       case 'direcciones':
         return <AdminDireccionesTab />;
+      case 'estadoCivil':
+        return <AdminEstadoCivilTab />;
       default:
         return (
           <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-8 rounded-2xl text-center">

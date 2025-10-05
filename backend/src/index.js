@@ -33,6 +33,9 @@ import {
   crearRegiones,
   crearComunas,
 } from "./config/data/initialRegionComuna.js";
+import {
+  crearEstadosCiviles
+} from "./config/data/initialEstadoCivil.js";
 
 import {
   crearSubTipoIncidente,
@@ -150,6 +153,7 @@ async function setupAPI() {
 
     await crearPermisos();
     await crearRoles();
+    await crearEstadosCiviles();
     
     await crearBomberos();
 

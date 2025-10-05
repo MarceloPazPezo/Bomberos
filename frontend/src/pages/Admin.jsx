@@ -24,6 +24,7 @@ const Admin = () => {
     'compania:obtener', 'compania:obtener_especifico', 'compania:admin',
     'region:obtener', 'region:admin',
     'comuna:obtener', 'comuna:admin',
+    'estadoCivil:obtener', 'estadoCivil:admin',
     'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin'
   ];
 

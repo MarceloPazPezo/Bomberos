@@ -48,6 +48,11 @@ const BomberoIcon = () => (
   <MdPerson className="text-indigo-600 text-xl mr-2" />
 );
 
+// Componente de icono para toast de estado civil
+const EstadoCivilIcon = () => (
+  <MdPerson className="text-purple-600 text-xl mr-2" />
+);
+
 // Componente de icono para toast de rol
 const RolIcon = () => (
   <MdSecurity className="text-purple-600 text-xl mr-2" />
@@ -397,6 +402,52 @@ export const contraseñaCambiadaToast = () => {
     {
       ...toastConfig,
       autoClose: 4000, // Un poco más tiempo para mensajes de seguridad
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ============================================================================
+// TOASTS PARA ESTADO CIVIL
+// ============================================================================
+
+export const estadoCivilCreatedToast = (estadoCivilName = "Estado civil") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{estadoCivilName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const estadoCivilUpdatedToast = (estadoCivilName = "Estado civil") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{estadoCivilName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const estadoCivilDeletedToast = (estadoCivilName = "Estado civil") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{estadoCivilName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
       className: 'toast-success',
       progressClassName: 'toast-progress-success',
     }
