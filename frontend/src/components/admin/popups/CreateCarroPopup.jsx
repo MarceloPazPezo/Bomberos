@@ -1,0 +1,328 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { MdClose, MdDirectionsCar, MdSave, MdError } from 'react-icons/md';
+import { carroCreatedToast } from '@helpers/toastHelper.jsx';
+import Form from '@components/Form.jsx';
+import LoadingSpinner from '@components/LoadingSpinner';
+import PropTypes from 'prop-types';
+import { getCompanias } from '@services/compania.service.js';
+import { useCarro } from '@hooks/carro/useCarro.jsx';
+
+/**
+ * Popup para crear un nuevo carro
+ */
+const CreateCarroPopup = ({ show, setShow, onCarroCreated, onCreatingChange }) => {
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+    const [companias, setCompanias] = useState([]);
+    const [loadingCompanias, setLoadingCompanias] = useState(false);
+    const [formData, setFormData] = useState({
+        patente: '',
+        capacidadPasajeros: '',
+        idCompania: ''
+    });
+    const formRef = useRef(null);
+    const { createCarro } = useCarro();
+
+    // Cargar compañías cuando se abre el popup
+    useEffect(() => {
+        if (show) {
+            loadCompanias();
+        }
+    }, [show]);
+
+    // Función para cargar compañías
+    const loadCompanias = async () => {
+        setLoadingCompanias(true);
+        try {
+            const response = await getCompanias();
+            if (response.status === 'Success' && response.data) {
+                const companiasData = Array.isArray(response.data) ? response.data : response.data.companias || [];
+                setCompanias(companiasData);
+            }
+        } catch (error) {
+            console.error('Error al cargar compañías:', error);
+            setCompanias([]);
+        } finally {
+            setLoadingCompanias(false);
+        }
+    };
+
+    // Limpiar formulario al cerrar
+    const handleClose = () => {
+        setFormData({
+            patente: '',
+            capacidadPasajeros: '',
+            idCompania: ''
+        });
+        setErrors({});
+        setLoading(false);
+        if (onCreatingChange) {
+            onCreatingChange(false);
+        }
+        setShow(false);
+    };
+
+    // Validar un campo específico
+    const validateField = (field, value) => {
+        if (field === 'patente') {
+            if (!value || value.trim() === '') {
+                return 'La patente es requerida';
+            } else if (value.trim().length < 2) {
+                return 'La patente debe tener al menos 2 caracteres';
+            } else if (value.trim().length > 20) {
+                return 'La patente no puede exceder 20 caracteres';
+            } else if (!/^[A-Z0-9\s-]+$/.test(value.trim())) {
+                return 'La patente solo puede contener letras mayúsculas, números, espacios y guiones';
+            }
+        } else if (field === 'capacidadPasajeros') {
+            if (value && value !== '') {
+                const num = parseInt(value);
+                if (isNaN(num)) {
+                    return 'La capacidad debe ser un número válido';
+                } else if (num < 1) {
+                    return 'La capacidad debe ser al menos 1';
+                } else if (num > 50) {
+                    return 'La capacidad no puede exceder 50';
+                }
+            }
+        } else if (field === 'idCompania') {
+            if (!value || value === '') {
+                return 'La compañía es requerida';
+            }
+        }
+        return null;
+    };
+
+    // Manejar cambios en los inputs
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+        
+        // Validar en tiempo real
+        const fieldError = validateField(field, value);
+        setErrors(prev => ({
+            ...prev,
+            [field]: fieldError
+        }));
+    };
+
+    // Validar formulario
+    const validateForm = () => {
+        const newErrors = {};
+
+        if (!formData.patente || formData.patente.trim() === '') {
+            newErrors.patente = 'La patente es requerida';
+        } else if (formData.patente.trim().length < 2) {
+            newErrors.patente = 'La patente debe tener al menos 2 caracteres';
+        } else if (formData.patente.trim().length > 20) {
+            newErrors.patente = 'La patente no puede exceder 20 caracteres';
+        } else if (!/^[A-Z0-9\s-]+$/.test(formData.patente.trim())) {
+            newErrors.patente = 'La patente solo puede contener letras mayúsculas, números, espacios y guiones';
+        }
+
+        if (formData.capacidadPasajeros && formData.capacidadPasajeros !== '') {
+            const num = parseInt(formData.capacidadPasajeros);
+            if (isNaN(num)) {
+                newErrors.capacidadPasajeros = 'La capacidad debe ser un número válido';
+            } else if (num < 1) {
+                newErrors.capacidadPasajeros = 'La capacidad debe ser al menos 1';
+            } else if (num > 50) {
+                newErrors.capacidadPasajeros = 'La capacidad no puede exceder 50';
+            }
+        }
+
+        if (!formData.idCompania || formData.idCompania === '') {
+            newErrors.idCompania = 'La compañía es requerida';
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // Manejar envío del formulario
+    const handleSubmit = async () => {
+        if (!validateForm()) {
+            return;
+        }
+
+        setLoading(true);
+        setErrors({});
+        if (onCreatingChange) {
+            onCreatingChange(true);
+        }
+
+        try {
+            const carroData = {
+                patente: formData.patente.trim().toUpperCase(),
+                capacidadPasajeros: formData.capacidadPasajeros ? parseInt(formData.capacidadPasajeros) : null,
+                idCompania: parseInt(formData.idCompania)
+            };
+
+            const result = await createCarro(carroData);
+            if (result.success) {
+                carroCreatedToast(formData.patente);
+                handleClose();
+                if (onCarroCreated) {
+                    onCarroCreated();
+                }
+            } else {
+                // Manejar error de unicidad del backend
+                if (result.message && result.message.includes('Ya existe un carro con esa patente')) {
+                    setErrors({ patente: 'Ya existe un carro con esa patente' });
+                }
+            }
+        } catch (error) {
+            console.error('Error al crear carro:', error);
+            
+            // Manejar error de unicidad del backend
+            if (error.response?.data?.message && error.response.data.message.includes('Ya existe un carro con esa patente')) {
+                setErrors({ patente: 'Ya existe un carro con esa patente' });
+            }
+        } finally {
+            setLoading(false);
+            if (onCreatingChange) {
+                onCreatingChange(false);
+            }
+        }
+    };
+
+    if (!show) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+                            <MdDirectionsCar className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white">
+                                Crear Carro
+                            </h2>
+                            <p className="text-blue-100 text-sm">
+                                Agregue un nuevo carro al sistema
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleClose}
+                        className="p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-lg transition-colors"
+                        disabled={loading}
+                    >
+                        <MdClose className="w-6 h-6 text-red-300 hover:text-white" />
+                    </button>
+                </div>
+
+                {/* Contenido */}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                    {/* Formulario */}
+                    <div className="space-y-6">
+                        <Form
+                            ref={formRef}
+                            fields={[
+                                {
+                                    label: "Patente del Carro",
+                                    name: "patente",
+                                    fieldType: 'input',
+                                    type: "text",
+                                    placeholder: "Ej: ABC-123, DEF-456",
+                                    required: true,
+                                    minLength: 2,
+                                    maxLength: 20,
+                                    pattern: "^[A-Z0-9\\s-]+$",
+                                    patternMessage: "Solo letras mayúsculas, números, espacios y guiones",
+                                    errorMessageData: errors.patente,
+                                    onChange: (e) => handleInputChange('patente', e.target.value.toUpperCase()),
+                                    value: formData.patente,
+                                    autoComplete: "off"
+                                },
+                                {
+                                    label: "Capacidad de Pasajeros",
+                                    name: "capacidadPasajeros",
+                                    fieldType: 'input',
+                                    type: "number",
+                                    placeholder: "Ej: 6, 8, 4 (opcional)",
+                                    min: 1,
+                                    max: 50,
+                                    errorMessageData: errors.capacidadPasajeros,
+                                    onChange: (e) => handleInputChange('capacidadPasajeros', e.target.value),
+                                    value: formData.capacidadPasajeros,
+                                    autoComplete: "off"
+                                },
+                                       {
+                                           label: "Compañía",
+                                           name: "idCompania",
+                                           fieldType: 'select',
+                                           required: true,
+                                           errorMessageData: errors.idCompania,
+                                           onChange: (e) => handleInputChange('idCompania', e.target.value),
+                                           value: formData.idCompania,
+                                           options: [
+                                               { value: '', label: loadingCompanias ? 'Cargando compañías...' : 'Seleccionar compañía...' },
+                                               ...companias.map(compania => ({
+                                                   value: compania.id.toString(),
+                                                   label: compania.nombre
+                                               }))
+                                           ]
+                                       }
+                            ]}
+                            onSubmit={() => {}} // No submit en el formulario, manejamos con botón
+                            backgroundColor={'#fff'}
+                        />
+                    </div>
+
+                    {/* Error de unicidad - más sutil */}
+                    {errors.patente && errors.patente.includes('Ya existe') && (
+                        <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2">
+                            <MdError className="text-amber-600 flex-shrink-0" size={18} />
+                            <p className="text-amber-700 text-sm">{errors.patente}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Botones */}
+                <div className="flex justify-end px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
+                    <div className="flex space-x-3">
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-all duration-200 font-medium"
+                            disabled={loading}
+                        >
+                            <MdClose className="w-4 h-4 text-red-500" />
+                            <span>Cancelar</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <LoadingSpinner size="sm" />
+                            ) : (
+                                <>
+                                    <MdSave className="w-4 h-4" />
+                                    <span>Crear Carro</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+CreateCarroPopup.propTypes = {
+    show: PropTypes.bool.isRequired,
+    setShow: PropTypes.func.isRequired,
+    onCarroCreated: PropTypes.func,
+    onCreatingChange: PropTypes.func
+};
+
+export default CreateCarroPopup;

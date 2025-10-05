@@ -62,6 +62,13 @@ export const AdminProvider = ({ children }) => {
       description: 'Gestión de servicios externos',
       icon: 'MdLocalHospital',
       permissions: ['servicio:obtener', 'servicio:admin']
+    },
+    {
+      id: 'carros',
+      label: 'Carros',
+      description: 'Gestión de carros',
+      icon: 'MdDirectionsCar',
+      permissions: ['carro:obtener', 'carro:admin']
     }
   ];
 

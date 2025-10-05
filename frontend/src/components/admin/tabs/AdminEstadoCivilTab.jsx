@@ -48,8 +48,9 @@ const AdminEstadoCivilTab = () => {
   const handleDelete = async (estado) => {
     const confirmed = await showConfirmAlert(
       'Eliminar Estado Civil',
-      `¿Estás seguro de que quieres eliminar el estado civil "${toStartCase(estado.nombre)}"?`,
-      'Esta acción no se puede deshacer.'
+      `¿Estás seguro de que quieres eliminar el estado civil "${toStartCase(estado.nombre)}"? Esta acción no se puede deshacer.`,
+      'Sí, eliminar',
+      'Cancelar'
     );
     
     if (confirmed.isConfirmed) {

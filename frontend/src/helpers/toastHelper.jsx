@@ -497,3 +497,47 @@ export const servicioDeletedToast = (servicioName = "Servicio") => {
     }
   );
 };
+
+// ===== TOASTS PARA CARROS =====
+
+export const carroCreatedToast = (carroName = "Carro") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{carroName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const carroUpdatedToast = (carroName = "Carro") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{carroName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const carroDeletedToast = (carroName = "Carro") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{carroName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};

@@ -39,6 +39,9 @@ import {
 import {
   crearServiciosExternos
 } from "./config/data/initialServicio.js";
+import {
+  crearCarrosPredeterminados
+} from "./config/data/initialCarro.js";
 
 import {
   crearSubTipoIncidente,
@@ -158,6 +161,7 @@ async function setupAPI() {
     await crearRoles();
     await crearEstadosCiviles();
     await crearServiciosExternos();
+    await crearCarrosPredeterminados();
     
     await crearBomberos();
 

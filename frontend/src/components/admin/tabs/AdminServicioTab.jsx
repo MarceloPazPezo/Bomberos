@@ -47,8 +47,9 @@ const AdminServicioTab = () => {
   const handleDelete = async (servicio) => {
     const confirmed = await showConfirmAlert(
       'Eliminar Servicio',
-      `¿Estás seguro de que quieres eliminar el servicio "${toStartCase(servicio.nombre)}"?`,
-      'Esta acción no se puede deshacer.'
+      `¿Estás seguro de que quieres eliminar el servicio "${toStartCase(servicio.nombre)}"? Esta acción no se puede deshacer.`,
+      'Sí, eliminar',
+      'Cancelar'
     );
     
     if (confirmed.isConfirmed) {

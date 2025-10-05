@@ -7,7 +7,8 @@ import {
   MdBusiness, 
   MdLocationOn,
   MdPerson,
-  MdLocalHospital
+  MdLocalHospital,
+  MdDirectionsCar
 } from 'react-icons/md';
 
 // Importar componentes de pestañas
@@ -18,6 +19,7 @@ import AdminCompaniasTab from './tabs/AdminCompaniasTab';
 import AdminDireccionesTab from './tabs/AdminDireccionesTab';
 import AdminEstadoCivilTab from './tabs/AdminEstadoCivilTab';
 import AdminServicioTab from './tabs/AdminServicioTab';
+import AdminCarroTab from './tabs/AdminCarroTab';
 
 // Mapeo de iconos
 const iconMap = {
@@ -27,7 +29,8 @@ const iconMap = {
   MdBusiness,
   MdLocationOn,
   MdPerson,
-  MdLocalHospital
+  MdLocalHospital,
+  MdDirectionsCar
 };
 
 /**
@@ -59,6 +62,9 @@ const AdminTabsContainer = () => {
       case 'servicios':
         console.log('[DEBUG] Rendering AdminServicioTab');
         return <AdminServicioTab />;
+      case 'carros':
+        console.log('[DEBUG] Rendering AdminCarroTab');
+        return <AdminCarroTab />;
       default:
         console.log('[DEBUG] Default case - activeTab not found:', activeTab);
         return (

@@ -277,6 +277,20 @@ async function crearPermisos() {
         ruta: "/api/servicios/*",
         metodo: "*",
       },
+      {
+        nombre: "carro:obtener",
+        descripcion: "Permite obtener información de todos los carros",
+        categoria: "Carros",
+        ruta: "/api/carros",
+        metodo: "GET",
+      },
+      {
+        nombre: "carro:admin",
+        descripcion: "Permite administración completa de carros (crear, actualizar, eliminar)",
+        categoria: "Carros",
+        ruta: "/api/carros/*",
+        metodo: "*",
+      },
     ];
 
     const permisos = permisosData.map((p) => permisoRepository.create(p));
@@ -356,6 +370,8 @@ async function crearRoles() {
           "estadoCivil:admin",
           "servicio:obtener",
           "servicio:admin",
+          "carro:obtener",
+          "carro:admin",
         ],
       },
     ];
