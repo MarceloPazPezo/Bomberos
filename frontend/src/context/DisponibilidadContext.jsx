@@ -6,6 +6,7 @@ import {
 } from '@services/disponibilidad.service';
 import dateHelper from '@helpers/dateHelper';
 import useSocket from '../hooks/useSocket';
+import { useGlobalAvailability } from './GlobalAvailabilityContext';
 
 const DisponibilidadContext = createContext();
 
@@ -16,10 +17,12 @@ const DisponibilidadContext = createContext();
 export const DisponibilidadProvider = ({ children }) => {
   const { bombero, hasPermiso } = useAuth();
   const { on, off } = useSocket();
+  const { updateAvailability, clearAvailability } = useGlobalAvailability();
   
   // Estados principales
   const [activeTab, setActiveTab] = useState('marcar');
-  const [disponibilidades, setDisponibilidades] = useState([]);
+  const [disponibilidades, setDisponibilidades] = useState([]); // Todas las disponibilidades (para personal disponible)
+  const [miHistorial, setMiHistorial] = useState([]); // Solo las del usuario actual (para historial)
   const [bomberos, setBomberos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,11 +38,9 @@ export const DisponibilidadProvider = ({ children }) => {
 
   // Estados para filtros del historial
   const [filtros, setFiltros] = useState({
-    bombero: '',
     fechaDesde: '',
     fechaHasta: '',
-    estado: 'todos',
-    busqueda: ''
+    estado: 'todos'
   });
 
   // Estados para paginación
@@ -102,13 +103,29 @@ export const DisponibilidadProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // Cargar disponibilidades solo si tiene permisos
+      // Cargar disponibilidades según permisos
       let disponibilidadesData = [];
+      let miHistorialData = [];
+      
       if (hasPermiso('disponibilidad:obtener') || hasPermiso('disponibilidad:admin')) {
-        const disponibilidadesResponse = await getDisponibilidades();
-        disponibilidadesData = Array.isArray(disponibilidadesResponse) ? disponibilidadesResponse : [];
+        if (hasPermiso('disponibilidad:admin')) {
+          // Administradores ven todas las disponibilidades
+          const disponibilidadesResponse = await getDisponibilidades();
+          disponibilidadesData = Array.isArray(disponibilidadesResponse) ? disponibilidadesResponse : [];
+          miHistorialData = disponibilidadesData; // Los admins ven todo en el historial también
+        } else {
+          // Usuarios normales: todas para personal disponible, solo las suyas para historial
+          const todasDisponibilidadesResponse = await getDisponibilidades();
+          disponibilidadesData = Array.isArray(todasDisponibilidadesResponse) ? todasDisponibilidadesResponse : [];
+          
+          // Para el historial, solo las del usuario actual
+          const miHistorialResponse = await getDisponibilidades(bombero?.id);
+          miHistorialData = Array.isArray(miHistorialResponse) ? miHistorialResponse : [];
+        }
       }
+      
       setDisponibilidades(disponibilidadesData);
+      setMiHistorial(miHistorialData);
 
       // Solo cargar bomberos si tiene permisos para leer todos los bomberos
       let bomberosData = [];
@@ -118,12 +135,19 @@ export const DisponibilidadProvider = ({ children }) => {
       }
       setBomberos(bomberosData);
 
-      // Buscar mi disponibilidad activa
-      if (bombero?.id && Array.isArray(disponibilidadesData)) {
-        const miDisponibilidadActiva = disponibilidadesData.find(d => 
-          d.idBombero === bombero.id && (!d.fechaTermino || new Date(d.fechaTermino) > new Date())
+      // Buscar mi disponibilidad activa (usar miHistorialData que ya está filtrado por usuario)
+      if (bombero?.id && Array.isArray(miHistorialData)) {
+        const miDisponibilidadActiva = miHistorialData.find(d => 
+          (!d.fechaTermino || new Date(d.fechaTermino) > new Date())
         );
         setMiDisponibilidad(miDisponibilidadActiva || null);
+        
+        // Sincronizar con el contexto global
+        if (miDisponibilidadActiva) {
+          updateAvailability(miDisponibilidadActiva);
+        } else {
+          clearAvailability();
+        }
       }
 
       calculateStats(disponibilidadesData);
@@ -241,8 +265,10 @@ export const DisponibilidadProvider = ({ children }) => {
         if (eventData.data.idBombero === bombero?.id) {
           if (eventData.type === 'created') {
             setMiDisponibilidad(eventData.data);
+            updateAvailability(eventData.data);
           } else if (eventData.type === 'closed') {
             setMiDisponibilidad(null);
+            clearAvailability();
           }
         }
         
@@ -267,6 +293,7 @@ export const DisponibilidadProvider = ({ children }) => {
     
     // Datos principales
     disponibilidades,
+    miHistorial,
     bomberos,
     loading,
     error,
@@ -307,7 +334,7 @@ export const DisponibilidadProvider = ({ children }) => {
     // Configuración
     tabsConfig
   }), [
-    activeTab, availableTabs, disponibilidades, bomberos, loading, error, stats,
+    activeTab, availableTabs, disponibilidades, miHistorial, bomberos, loading, error, stats,
     updatingMyStatus, miDisponibilidad, fechaInicio, fechaTermino, usarFechaTermino, autoAjustado,
     filtros, paginaActual, registrosPorPagina,
     handleTabChange, triggerRefresh, initializeFechas, loadData, calculateStats, getBomberoInfo,

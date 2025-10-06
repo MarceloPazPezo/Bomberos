@@ -3,6 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from '@hooks/auth/useAuth';
 import NotificationBell from '@components/NotificationBell';
 import BomberoProfile from '@components/bomberos/BomberoProfile';
+import DisponibilidadToggle from '@components/navbar/DisponibilidadToggle';
 import { MdMenu, MdClose } from 'react-icons/md';
 
 
@@ -40,8 +41,13 @@ const Navbar = () => {
                         </NavLink>
                     </div>
 
-                    {/* Sección derecha: Notificaciones y Perfil de Usuario */}
+                    {/* Sección derecha: Toggle Disponibilidad, Notificaciones y Perfil de Usuario */}
                     <div className="flex items-center space-x-4">
+                        {/* Toggle de Disponibilidad (visible en desktop) */}
+                        <div className="hidden md:block">
+                            <DisponibilidadToggle />
+                        </div>
+
                         {/* Notificaciones (ocultas en móvil) */}
                         <div className="hidden md:block">
                             <NotificationBell />
@@ -68,6 +74,11 @@ const Navbar = () => {
             {/* Menú Desplegable Móvil */}
             {isMenuOpen && (
                 <div className="md:hidden bg-white border-t border-gray-200">
+                    {/* Toggle de Disponibilidad en móvil */}
+                    <div className="px-4 py-2 border-b border-gray-200">
+                        <DisponibilidadToggle />
+                    </div>
+
                     {/* Notificaciones en móvil */}
                     <div className="px-4 py-2 border-b border-gray-200">
                         <NotificationBell />

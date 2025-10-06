@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import Layout from '@components/Layout';
 import { AuthProvider } from '@context/AuthContext';
+import { GlobalAvailabilityProvider } from '@context/GlobalAvailabilityContext';
 import { useAuth } from '@hooks/auth/useAuth';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
@@ -10,7 +11,9 @@ function Root() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <AuthProvider>
-      <AuthWrapper sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <GlobalAvailabilityProvider>
+        <AuthWrapper sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      </GlobalAvailabilityProvider>
     </AuthProvider>
   );
 }

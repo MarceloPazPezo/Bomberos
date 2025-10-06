@@ -1,12 +1,18 @@
 import axios from './root.service.js';
 
 /**
- * Obtiene todas las disponibilidades
+ * Obtiene todas las disponibilidades o las de un bombero específico
+ * @param {number} idBombero - ID del bombero (opcional, si no se proporciona obtiene todas)
  * @returns {Promise} Promesa que resuelve con la lista de disponibilidades
  */
-export const getDisponibilidades = async () => {
+export const getDisponibilidades = async (idBombero = null) => {
   try {
-    const response = await axios.get('/disponibilidad');
+    const params = {};
+    if (idBombero) {
+      params.idBombero = idBombero;
+    }
+    
+    const response = await axios.get('/disponibilidad', { params });
     return response.data.data; // Extraer el array de la propiedad data
   } catch (error) {
     console.error('Error al obtener disponibilidades:', error);

@@ -19,6 +19,7 @@ import {
   cerrarDisponibilidad 
 } from '@services/disponibilidad.service';
 import dateHelper from '@helpers/dateHelper';
+import { useGlobalAvailability } from '@context/GlobalAvailabilityContext';
 
 /**
  * Componente para marcar disponibilidad
@@ -26,6 +27,7 @@ import dateHelper from '@helpers/dateHelper';
  */
 const DisponibilidadMarcarTab = () => {
   const { fireError, fireWarning, fireConfirm } = useGlobalFireAlert();
+  const { updateAvailability, clearAvailability } = useGlobalAvailability();
   const {
     // Datos
     disponibilidades,
@@ -113,6 +115,11 @@ const DisponibilidadMarcarTab = () => {
         case 'ahora':
           descripcionPreset = 'disponibilidad inmediata';
           break;
+        case '15m':
+          fechaTerminoStr = dateHelper.toInputFormat(now.plus({ minutes: 15 }));
+          usarTermino = true;
+          descripcionPreset = 'disponibilidad por 15 minutos';
+          break;
         case '2h':
           fechaTerminoStr = dateHelper.toInputFormat(now.plus({ hours: 2 }));
           usarTermino = true;
@@ -155,6 +162,7 @@ const DisponibilidadMarcarTab = () => {
 
       const newDisponibilidad = await createDisponibilidad(disponibilidadData);
       setMiDisponibilidad(newDisponibilidad);
+      updateAvailability(newDisponibilidad);
       
       disponibilidadCreatedToast(`¡${descripcionPreset.charAt(0).toUpperCase() + descripcionPreset.slice(1)} creada correctamente!`);
       
@@ -178,6 +186,13 @@ const DisponibilidadMarcarTab = () => {
           tiempo: 'Indefinida',
           descripcion: 'Te marcarás como disponible inmediatamente sin hora de término específica.',
           icono: '🚨'
+        };
+      case '15m':
+        return {
+          titulo: 'Disponible 15 Minutos',
+          tiempo: `Hasta ${now.plus({ minutes: 15 }).toFormat('HH:mm')}`,
+          descripcion: 'Te marcarás como disponible por los próximos 15 minutos.',
+          icono: '⚡'
         };
       case '2h':
         return {
@@ -265,6 +280,7 @@ const DisponibilidadMarcarTab = () => {
 
       const newDisponibilidad = await createDisponibilidad(disponibilidadData);
       setMiDisponibilidad(newDisponibilidad);
+      updateAvailability(newDisponibilidad);
       
       // Reiniciar formulario
       initializeFechas();
@@ -293,6 +309,7 @@ const DisponibilidadMarcarTab = () => {
 
       await cerrarDisponibilidad(disponibilidadData);
       setMiDisponibilidad(null);
+      clearAvailability();
       
       disponibilidadClosedToast('Disponibilidad cerrada correctamente');
       
