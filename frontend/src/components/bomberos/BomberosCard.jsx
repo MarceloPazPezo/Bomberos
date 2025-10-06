@@ -12,10 +12,14 @@ import {
   MdCheckCircle,
   MdCancel,
   MdInfo,
-  MdBadge
+  MdBadge,
+  MdFavorite,
+  MdSecurity,
+  MdStar
 } from 'react-icons/md';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import BomberoAvatar from './BomberoAvatar';
 
 /**
  * Componente para mostrar la información de un bombero en formato de tarjeta estilo DNI
@@ -42,6 +46,21 @@ const BomberosCard = ({
     }
   };
 
+  // Función para obtener el nombre completo del bombero
+  const getNombreCompleto = () => {
+    if (bombero.nombreCompleto) return bombero.nombreCompleto;
+    
+    if (bombero.nombres && bombero.apellidos) {
+      const nombres = Array.isArray(bombero.nombres) ? bombero.nombres.join(' ') : bombero.nombres;
+      const apellidos = Array.isArray(bombero.apellidos) ? bombero.apellidos.join(' ') : bombero.apellidos;
+      return `${nombres} ${apellidos}`.trim();
+    }
+    
+    return bombero.ficha?.nombre || bombero.email?.split('@')[0] || `Bombero ${bombero.id}`;
+  };
+
+
+
   // Función para obtener el color del estado
   const getEstadoColor = (activo) => {
     return activo ? 'text-green-600' : 'text-red-600';
@@ -64,13 +83,17 @@ const BomberosCard = ({
           ? 'bg-gradient-to-r from-blue-500 to-blue-600' 
           : 'bg-gradient-to-r from-red-500 to-red-600'
       }`}>
-        {/* Estado en la esquina superior derecha */}
-        <div className="absolute top-2 right-2">
-          <div className="flex items-center space-x-1">
-            {React.createElement(getEstadoIcon(bombero.activo), {
-              className: `w-3 h-3 ${bombero.activo ? 'text-green-300' : 'text-red-300'}`
-            })}
-            <span className="text-xs font-medium text-white">
+        {/* Estado mejorado en la esquina superior derecha */}
+        <div className="absolute top-3 right-3">
+          <div className={`flex items-center space-x-1.5 px-2 py-1 rounded-full backdrop-blur-sm ${
+            bombero.activo 
+              ? 'bg-green-500/20 border border-green-300/30' 
+              : 'bg-red-500/20 border border-red-300/30'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${
+              bombero.activo ? 'bg-green-300 animate-pulse' : 'bg-red-300'
+            }`}></div>
+            <span className="text-xs font-semibold text-white">
               {bombero.activo ? 'ACTIVO' : 'INACTIVO'}
             </span>
           </div>
@@ -78,34 +101,20 @@ const BomberosCard = ({
 
         <div className="flex items-start space-x-4 pt-2">
           {/* Foto de perfil más grande */}
-          <div className="relative">
-            {bombero.ficha?.fotoPerfilURL ? (
-              <img
-                src={bombero.ficha.fotoPerfilURL}
-                alt={`Foto de ${bombero.nombreCompleto}`}
-                className="w-32 h-36 object-cover border-2 border-white shadow-md"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
-              />
-            ) : null}
-            <div 
-              className={`w-32 h-36 bg-gray-200 flex items-center justify-center border-2 border-white shadow-md ${bombero.ficha?.fotoPerfilURL ? 'hidden' : 'flex'}`}
-            >
-              <MdPerson className="w-14 h-14 text-gray-500" />
-            </div>
-          </div>
+          <BomberoAvatar
+            src={bombero.ficha?.fotoPerfilURL}
+            alt={`Foto de ${getNombreCompleto()}`}
+            nombre={getNombreCompleto()}
+            size="xl"
+            showBorder={true}
+            borderColor="border-white"
+            bombero={bombero}
+          />
 
           {/* Información básica */}
           <div className="flex-1 min-w-0 space-y-2">
             <h3 className="text-lg font-bold text-white truncate">
-              {bombero.nombreCompleto || 
-               (bombero.nombres && bombero.apellidos ? 
-                `${Array.isArray(bombero.nombres) ? bombero.nombres.join(' ') : bombero.nombres} ${Array.isArray(bombero.apellidos) ? bombero.apellidos.join(' ') : bombero.apellidos}`.trim() :
-                bombero.ficha?.nombre || 
-                bombero.email?.split('@')[0] || 
-                `Bombero ${bombero.id}`)}
+              {getNombreCompleto()}
             </h3>
             
             {/* RUN */}
@@ -131,6 +140,16 @@ const BomberosCard = ({
             ) : (
               <div className="text-base text-blue-200 italic">
                 Sin teléfono registrado
+              </div>
+            )}
+
+            {/* Solo tipo de sangre en el header si está disponible */}
+            {bombero.ficha?.tipoSangre && (
+              <div className="flex items-center space-x-3 mt-3">
+                <div className="flex items-center space-x-1 bg-pink-500/20 px-2 py-1 rounded-full border border-pink-300/30">
+                  <MdBloodtype className="w-4 h-4 text-pink-200" />
+                  <span className="text-xs font-semibold text-pink-100">{bombero.ficha.tipoSangre.nombre}</span>
+                </div>
               </div>
             )}
           </div>
@@ -174,71 +193,101 @@ const BomberosCard = ({
         </div>
 
         {/* Información adicional de la ficha */}
-        {bombero.tieneFicha && bombero.ficha ? (
-          <div className="space-y-3">
-            <div className="text-sm font-bold text-gray-700 mb-3">INFORMACIÓN ADICIONAL</div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+        {bombero.ficha ? (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <MdBadge className="w-5 h-5 text-blue-600" />
+              <div className="text-sm font-bold text-gray-700">INFORMACIÓN ADICIONAL</div>
+            </div>
+            
+            {/* Grid de información con mejor diseño */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {/* Licencia de conducir */}
               {bombero.ficha.licenciaClaseF && (
-                <div className="flex items-center space-x-2 bg-green-50 p-3 rounded">
-                  <MdDriveEta className="w-4 h-4 text-green-600 flex-shrink-0" />
-                  <span className="text-green-700 font-medium">Licencia F</span>
+                <div className="flex items-center space-x-3 bg-green-50 p-3 rounded-lg border border-green-200">
+                  <div className="bg-green-100 p-2 rounded-lg">
+                    <MdDriveEta className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-green-600 uppercase tracking-wide">Licencia</div>
+                    <div className="text-sm font-medium text-green-800">Clase F</div>
+                  </div>
                 </div>
               )}
 
               {/* Donante de órganos */}
               {bombero.ficha.donante && (
-                <div className="flex items-center space-x-2 bg-red-50 p-3 rounded">
-                  <MdBloodtype className="w-4 h-4 text-red-600 flex-shrink-0" />
-                  <span className="text-red-700 font-medium">Donante de órganos</span>
-                </div>
-              )}
-
-              {/* Tipo de sangre */}
-              {bombero.ficha.tipoSangre && (
-                <div className="flex items-center space-x-2 bg-pink-50 p-3 rounded col-span-2">
-                  <MdBloodtype className="w-4 h-4 text-pink-600 flex-shrink-0" />
-                  <span className="text-pink-700 font-medium">Tipo: {bombero.ficha.tipoSangre.nombre}</span>
+                <div className="flex items-center space-x-3 bg-red-50 p-3 rounded-lg border border-red-200">
+                  <div className="bg-red-100 p-2 rounded-lg">
+                    <MdFavorite className="w-4 h-4 text-red-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-red-600 uppercase tracking-wide">Donante</div>
+                    <div className="text-sm font-medium text-red-800">Órganos</div>
+                  </div>
                 </div>
               )}
 
               {/* Fecha de nacimiento */}
               {bombero.ficha.fechaNacimiento && (
-                <div className="flex items-center space-x-2 bg-blue-50 p-2 rounded">
-                  <MdDateRange className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                  <span className="text-blue-700 font-medium">Nac: {formatDate(bombero.ficha.fechaNacimiento)}</span>
+                <div className="flex items-center space-x-3 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <MdDateRange className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-blue-600 uppercase tracking-wide">Nacimiento</div>
+                    <div className="text-sm font-medium text-blue-800">{formatDate(bombero.ficha.fechaNacimiento)}</div>
+                  </div>
                 </div>
               )}
 
               {/* Fecha de ingreso */}
               {bombero.ficha.fechaIngreso && (
-                <div className="flex items-center space-x-2 bg-purple-50 p-3 rounded">
-                  <MdWork className="w-4 h-4 text-purple-600 flex-shrink-0" />
-                  <span className="text-purple-700 font-medium">Ingreso: {formatDate(bombero.ficha.fechaIngreso)}</span>
+                <div className="flex items-center space-x-3 bg-purple-50 p-3 rounded-lg border border-purple-200">
+                  <div className="bg-purple-100 p-2 rounded-lg">
+                    <MdWork className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-purple-600 uppercase tracking-wide">Ingreso</div>
+                    <div className="text-sm font-medium text-purple-800">{formatDate(bombero.ficha.fechaIngreso)}</div>
+                  </div>
                 </div>
               )}
 
-              {/* Mensaje si tiene ficha pero no hay información adicional */}
-              {!bombero.ficha.licenciaClaseF && !bombero.ficha.donante && !bombero.ficha.tipoSangre && !bombero.ficha.fechaNacimiento && !bombero.ficha.fechaIngreso && (
-                <div className="col-span-2 flex items-center space-x-2 text-gray-500 p-2">
+              {/* Tipo de sangre */}
+              {bombero.ficha.tipoSangre && (
+                <div className="flex items-center space-x-3 bg-pink-50 p-3 rounded-lg border border-pink-200">
+                  <div className="bg-pink-100 p-2 rounded-lg">
+                    <MdBloodtype className="w-4 h-4 text-pink-600" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-pink-600 uppercase tracking-wide">Tipo de Sangre</div>
+                    <div className="text-sm font-medium text-pink-800">{bombero.ficha.tipoSangre.nombre}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Mensaje si no hay información adicional */}
+              {!bombero.ficha.licenciaClaseF && !bombero.ficha.donante && !bombero.ficha.fechaNacimiento && !bombero.ficha.fechaIngreso && !bombero.ficha.tipoSangre && (
+                <div className="col-span-2 flex items-center justify-center space-x-2 text-gray-500 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <MdInfo className="w-4 h-4 text-gray-400" />
-                  <span className="italic">Ficha sin información adicional</span>
+                  <span className="text-sm italic">Información adicional disponible en el perfil completo</span>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="text-center py-4">
-            <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
-              <MdInfo className="w-4 h-4 text-gray-400" />
-              <span className="italic">Sin ficha de datos adicionales</span>
+          <div className="text-center py-6">
+            <div className="flex flex-col items-center space-y-2 text-gray-500">
+              <MdInfo className="w-8 h-8 text-gray-400" />
+              <span className="text-sm italic">Sin ficha de datos adicionales</span>
             </div>
           </div>
         )}
 
       </div>
 
-      {/* Footer con acciones */}
+      {/* Footer con acciones mejorado */}
       {showActions && (
         <div className={`px-6 py-4 flex justify-center ${
           bombero.activo 
@@ -247,13 +296,13 @@ const BomberosCard = ({
         }`}>
           <button
             onClick={() => onViewDetails && onViewDetails(bombero)}
-            className={`flex items-center space-x-2 px-6 py-3 text-base rounded-lg transition-colors font-medium ${
+            className={`group flex items-center space-x-2 px-6 py-3 text-base rounded-lg transition-all duration-200 font-medium shadow-sm hover:shadow-md ${
               bombero.activo 
-                ? 'text-blue-600 hover:text-blue-800 hover:bg-blue-100' 
-                : 'text-red-500 hover:text-red-700 hover:bg-red-100/50'
+                ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105' 
+                : 'bg-red-500 text-white hover:bg-red-600 hover:scale-105'
             }`}
           >
-            <MdVisibility className="w-5 h-5" />
+            <MdVisibility className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span>Ver Detalles</span>
           </button>
         </div>

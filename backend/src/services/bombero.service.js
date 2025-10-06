@@ -697,7 +697,7 @@ export async function getAllBomberosWithFichaService() {
       .createQueryBuilder("bombero")
       .leftJoinAndSelect("bombero.roles", "rol")
       .leftJoin("fichaBombero", "ficha", "ficha.idBombero = bombero.id")
-      .leftJoin("compania", "compania", "compania.id = ficha.idCompania")
+      .leftJoin("companias", "compania", "compania.id = ficha.idCompania")
       .select([
         "bombero.id",
         "bombero.nombres",
@@ -769,24 +769,9 @@ export async function getBomberosByCompaniaService(idCompania) {
     const bomberos = await bomberoRepository
       .createQueryBuilder("bombero")
       .leftJoinAndSelect("bombero.roles", "rol")
-      .leftJoin("fichaBombero", "ficha", "ficha.idBombero = bombero.id")
-      .leftJoin("compania", "compania", "compania.id = ficha.idCompania")
-      .select([
-        "bombero.id",
-        "bombero.nombres",
-        "bombero.apellidos",
-        "bombero.run",
-        "bombero.email",
-        "bombero.activo",
-        "rol.id",
-        "rol.nombre",
-        "ficha.id",
-        "ficha.nombre",
-        "ficha.telefono",
-        "ficha.licenciaClaseF",
-        "compania.id",
-        "compania.nombre"
-      ])
+      .leftJoinAndSelect("bombero.fichaBombero", "ficha")
+      .leftJoinAndSelect("ficha.compania", "compania")
+      .leftJoinAndSelect("ficha.tipoSangre", "tipoSangre")
       .where("bombero.activo = :activo", { activo: true })
       .andWhere("ficha.idCompania = :idCompania", { idCompania })
       .orderBy("bombero.apellidos", "ASC")
@@ -798,19 +783,31 @@ export async function getBomberosByCompaniaService(idCompania) {
     }
 
     // Formatear los datos
-    const bomberosData = bomberos.map((bombero) => ({
-      id: bombero.id,
-      nombres: bombero.nombres,
-      apellidos: bombero.apellidos,
-      run: bombero.run,
-      email: bombero.email,
-      activo: bombero.activo,
-      roles: bombero.roles ? bombero.roles.map((rol) => ({
-        id: rol.id,
-        nombre: rol.nombre
-      })) : [],
-      ficha: bombero.ficha || null
-    }));
+    const bomberosData = bomberos.map((bombero) => {
+      // Debug temporal - verificar datos de donante
+      if (bombero.fichaBombero) {
+        console.log(`[DEBUG] Bombero ${bombero.id} (${bombero.nombres} ${bombero.apellidos}):`, {
+          donante: bombero.fichaBombero.donante,
+          licenciaClaseF: bombero.fichaBombero.licenciaClaseF,
+          tipoSangre: bombero.fichaBombero.tipoSangre?.nombre
+        });
+      }
+
+      return {
+        id: bombero.id,
+        nombres: bombero.nombres,
+        apellidos: bombero.apellidos,
+        run: bombero.run,
+        email: bombero.email,
+        activo: bombero.activo,
+        roles: bombero.roles ? bombero.roles.map((rol) => ({
+          id: rol.id,
+          nombre: rol.nombre
+        })) : [],
+        ficha: bombero.fichaBombero || null,
+        tieneFicha: !!bombero.fichaBombero
+      };
+    });
 
     return [bomberosData, null];
   } catch (error) {
@@ -916,7 +913,7 @@ export async function getBomberosOtrasCompaniasService(idCompaniaUsuario) {
       .createQueryBuilder("bombero")
       .leftJoinAndSelect("bombero.roles", "rol")
       .leftJoin("fichaBombero", "ficha", "ficha.idBombero = bombero.id")
-      .leftJoin("compania", "compania", "compania.id = ficha.idCompania")
+      .leftJoin("companias", "compania", "compania.id = ficha.idCompania")
       .select([
         "bombero.id",
         "bombero.nombres",

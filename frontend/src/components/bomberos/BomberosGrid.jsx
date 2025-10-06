@@ -40,6 +40,7 @@ const BomberosGrid = ({
   });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
+
   // Filtrar bomberos basado en búsqueda y filtros
   const bomberosFiltrados = useMemo(() => {
     let resultado = [...bomberos];

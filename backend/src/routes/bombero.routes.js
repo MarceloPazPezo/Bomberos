@@ -32,6 +32,7 @@ import {
   getBomberoComplete,
   getAllBomberosWithFicha,
   addFichaToBombero,
+  getBomberoImagenPerfilUrl,
 } from "../controllers/bombero.controller.js";
 
 const router = Router();
@@ -108,5 +109,8 @@ router.get("/complete", authorizeRoles(['Administrador', 'Supervisor']), getAllB
 
 // Agregar ficha a un bombero existente
 router.post("/:id/add-ficha", authorizeRoles(['Administrador', 'Supervisor']), addFichaToBombero);
+
+// Obtener URL firmada de imagen de perfil de un bombero específico
+router.get("/:id/imagen-perfil-url", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getBomberoImagenPerfilUrl);
 
 export default router;

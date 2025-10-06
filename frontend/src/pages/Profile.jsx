@@ -27,7 +27,7 @@ import { es } from 'date-fns/locale';
 import { useBomberoDetalles } from '@hooks/bomberos/useBomberoDetalles';
 import { useAuth } from '@hooks/auth/useAuth';
 import BomberosLoader from '@components/BomberosLoader';
-import Avatar from '@components/Avatar';
+import BomberoAvatar from '@components/bomberos/BomberoAvatar';
 import EditPersonalInfoModal from '@components/bomberos/EditPersonalInfoModal';
 import EditContactoEmergenciaModal from '@components/bomberos/EditContactoEmergenciaModal';
 import EditCapacitacionModal from '@components/bomberos/EditCapacitacionModal';
@@ -380,11 +380,16 @@ const Profile = () => {
             
             {/* Imagen de perfil - 75% del espacio */}
             <div className="relative z-10 flex-1 flex items-center justify-center p-6">
-              <Avatar
+              <BomberoAvatar
                 src={informacionPersonal?.fotoPerfilURL || currentBombero?.ficha?.fotoPerfilURL}
                 alt={`Foto de ${getNombreCompleto()}`}
-                size="3xl"
-                className="w-full h-full max-w-sm max-h-[400px] aspect-square rounded-xl border-4 border-white shadow-2xl"
+                nombre={getNombreCompleto()}
+                size="profile"
+                isRound={false}
+                showBorder={true}
+                borderColor="border-white"
+                className="max-w-sm max-h-[400px] aspect-square rounded-xl border-4 border-white shadow-2xl"
+                bombero={bomberoData || currentBombero}
               />
             </div>
             

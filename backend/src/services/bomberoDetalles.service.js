@@ -16,11 +16,9 @@ export class BomberoDetallesService {
    */
   static async getBomberoDetallesCompletos(idBombero) {
     try {
-      console.log('🏠 BomberoDetallesService - getBomberoDetallesCompletos llamado con id:', idBombero);
       const bomberoRepository = AppDataSource.getRepository("Bombero");
       
       // Buscar bombero con todas las relaciones
-      console.log('🏠 BomberoDetallesService - Buscando bombero con relaciones...');
       const bombero = await bomberoRepository.findOne({
         where: { id: idBombero },
         relations: [
@@ -48,16 +46,8 @@ export class BomberoDetallesService {
       });
 
       if (!bombero) {
-        console.log('🏠 BomberoDetallesService - Bombero no encontrado');
         return [null, "Bombero no encontrado"];
       }
-
-      console.log('🏠 BomberoDetallesService - Bombero encontrado:', {
-        id: bombero.id,
-        nombre: bombero.nombres?.join(' ') + ' ' + bombero.apellidos?.join(' '),
-        tieneFicha: !!bombero.fichaBombero,
-        tieneDireccion: !!bombero.fichaBombero?.direccion
-      });
 
       // Formatear datos del bombero
       const bomberoFormateado = await this.formatearBomberoCompleto(bombero);
@@ -133,8 +123,6 @@ export class BomberoDetallesService {
 
         // Dirección completa
         direccion: (() => {
-          console.log('🏠 BomberoDetallesService - fichaBombero:', bombero.fichaBombero);
-          console.log('🏠 BomberoDetallesService - direccion en ficha:', bombero.fichaBombero?.direccion);
           
           if (bombero.fichaBombero?.direccion) {
             const direccion = {
@@ -150,10 +138,8 @@ export class BomberoDetallesService {
                 } : null
               } : null
             };
-            console.log('🏠 BomberoDetallesService - Dirección formateada:', direccion);
             return direccion;
           } else {
-            console.log('🏠 BomberoDetallesService - No hay dirección en ficha');
             return null;
           }
         })()

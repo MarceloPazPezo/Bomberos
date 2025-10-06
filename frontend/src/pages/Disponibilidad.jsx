@@ -48,7 +48,7 @@ const DisponibilidadPage = () => {
 
   return (
     <DisponibilidadProvider>
-      <div className="p-3 sm:p-4 lg:p-6">
+      <div>
         {/* Header principal con tabs integrados */}
         <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl mb-4 p-6">
           <div className="flex items-center justify-between">

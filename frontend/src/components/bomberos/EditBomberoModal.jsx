@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Form from '../Form';
 import LoadingSpinner from '@components/LoadingSpinner';
-import Avatar from '@components/Avatar';
+import BomberoAvatar from './BomberoAvatar';
 import ToggleSwitch from '@components/ToggleSwitch';
 import ImageUploader from '@components/FileUpload/ImageUploader';
 import DocumentUploader from '@components/FileUpload/DocumentUploader';

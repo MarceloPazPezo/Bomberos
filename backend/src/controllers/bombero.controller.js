@@ -1,4 +1,5 @@
 "use strict";
+import { AppDataSource } from '../config/configDb.js';
 import {
   // Servicios básicos
   getBomberoService,
@@ -660,5 +661,56 @@ export async function addFichaToBombero(req, res) {
     handleSuccess(res, 201, "Ficha agregada al bombero exitosamente", bombero);
   } catch (error) {
     handleErrorServer(res, 500, error.message);
+  }
+}
+
+/**
+ * Obtener URL firmada de imagen de perfil de un bombero específico
+ * GET /api/bombero/:id/imagen-perfil-url
+ */
+export async function getBomberoImagenPerfilUrl(req, res) {
+  try {
+    const { id } = req.params;
+    const idBombero = parseInt(id);
+
+    if (isNaN(idBombero)) {
+      return handleErrorClient(res, 400, "ID de bombero inválido");
+    }
+
+    // Importar servicios necesarios
+    const minioService = (await import('../services/minio.service.js')).default;
+    const { BUCKETS } = await import('../config/configMinIO.js');
+
+    // Verificar que el bombero existe
+    const bomberoRepository = AppDataSource.getRepository("Bombero");
+    const bombero = await bomberoRepository.findOne({
+      where: { id: idBombero }
+    });
+
+    if (!bombero) {
+      return handleErrorClient(res, 404, "Bombero no encontrado");
+    }
+
+    // Obtener la ficha del bombero
+    const fichaBomberoRepository = AppDataSource.getRepository("FichaBombero");
+    const ficha = await fichaBomberoRepository.findOne({
+      where: { idBombero: idBombero }
+    });
+
+    if (!ficha || !ficha.fotoPerfilKEY) {
+      return handleErrorClient(res, 404, "No hay imagen de perfil para este bombero");
+    }
+
+    // Generar URL firmada
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.PROFILES, ficha.fotoPerfilKEY);
+    
+    return handleSuccess(res, 200, "URL de imagen generada exitosamente", { 
+      url: signedUrl,
+      bomberoId: idBombero,
+      fileName: ficha.fotoPerfilKEY
+    });
+  } catch (error) {
+    console.error("Error en getBomberoImagenPerfilUrl:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@hooks/auth/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -6,11 +6,71 @@ import {
   MdLogout,
   MdKeyboardArrowDown 
 } from 'react-icons/md';
+import BomberoAvatar from './BomberoAvatar';
+import { getBomberoDetalles } from '@services/bombero.service.js';
+import { useImageCache } from '@hooks/useImageCache.jsx';
+import { imageUrlService } from '@services/imageUrl.service.js';
 
 const BomberoProfile = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [bomberoDetalles, setBomberoDetalles] = useState(null);
+  const [loadingDetalles, setLoadingDetalles] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState(null);
   const { bombero, logout: authLogout, hasPermiso } = useAuth();
   const navigate = useNavigate();
+  const { getCachedImageURL } = useImageCache();
+
+  // Cargar detalles del bombero para obtener la información de la ficha
+  useEffect(() => {
+    const loadBomberoDetalles = async () => {
+      if (!bombero?.id) return;
+      
+      try {
+        setLoadingDetalles(true);
+        const response = await getBomberoDetalles(bombero.id);
+        if (response.success) {
+          setBomberoDetalles(response.data);
+        }
+      } catch (error) {
+        console.error('Error al cargar detalles del bombero:', error);
+      } finally {
+        setLoadingDetalles(false);
+      }
+    };
+
+    loadBomberoDetalles();
+  }, [bombero?.id]);
+
+  // Cargar URL firmada de la imagen de perfil usando el mismo sistema que el perfil
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      if (!bombero?.id) return;
+      
+      try {
+        // Obtener detalles del bombero primero para tener el fotoPerfilKEY
+        const response = await getBomberoDetalles(bombero.id);
+        if (response.success && response.data?.informacionPersonal?.fotoPerfilKEY) {
+          const imageKey = response.data.informacionPersonal.fotoPerfilKEY;
+          const existingURL = response.data.informacionPersonal.fotoPerfilURL;
+          
+          // Usar el mismo sistema de caché que el perfil
+          const cachedURL = await getCachedImageURL(
+            imageKey,
+            existingURL,
+            imageUrlService.getProfileImageURL
+          );
+          
+          if (cachedURL) {
+            setProfileImageUrl(cachedURL);
+          }
+        }
+      } catch (error) {
+        console.error('Error al cargar imagen de perfil:', error);
+      }
+    };
+
+    loadProfileImage();
+  }, [bombero?.id, getCachedImageURL]);
 
   const handleLogout = async () => {
     try {
@@ -70,11 +130,16 @@ const BomberoProfile = () => {
         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
       >
         {/* Avatar */}
-        <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-          <span className="text-white font-semibold text-sm">
-            {getUserInitials()}
-          </span>
-        </div>
+        <BomberoAvatar
+          src={profileImageUrl || bomberoDetalles?.ficha?.fotoPerfilURL}
+          alt={`Foto de ${getFullName()}`}
+          nombre={getFullName()}
+          size="sm"
+          showBorder={true}
+          borderColor="border-white"
+          isRound={true}
+          bombero={bomberoDetalles || bombero}
+        />
         
         {/* Información del usuario (oculta en móvil) */}
         <div className="hidden md:block text-left">

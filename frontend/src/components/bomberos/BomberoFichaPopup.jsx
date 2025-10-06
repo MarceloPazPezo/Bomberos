@@ -15,13 +15,13 @@ import {
   MdHistory,
   MdCheckCircle,
   MdCancel,
-  MdRefresh,
   MdError
 } from 'react-icons/md';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useBomberoDetalles } from '@hooks/bomberos/useBomberoDetalles';
 import BomberosLoader from '@components/BomberosLoader';
+import BomberoAvatar from './BomberoAvatar';
 
 /**
  * Componente popup para mostrar la ficha completa del bombero
@@ -45,8 +45,7 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
     eppAcargo,
     estadisticas,
     loading,
-    error,
-    reloadData
+    error
   } = useBomberoDetalles(bombero?.id || null);
 
   // Función para formatear fechas
@@ -113,28 +112,20 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
   if (!isOpen || !bombero) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header del popup */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 relative">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
+            className="absolute top-4 right-4 p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-lg transition-colors"
           >
-            <MdClose className="w-6 h-6" />
+            <MdClose className="w-6 h-6 text-red-300 hover:text-white" />
           </button>
           
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Ficha de Bombero</h2>
             <div className="flex items-center space-x-2">
-              <button
-                onClick={() => reloadData()}
-                disabled={loading}
-                className="flex items-center space-x-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg transition-colors"
-              >
-                <MdRefresh className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                <span>Actualizar</span>
-              </button>
               {onEdit && (
                 <button
                   onClick={() => onEdit(bombero)}
@@ -154,22 +145,16 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
             <div className="flex items-start space-x-6">
               {/* Avatar */}
               <div className="flex-shrink-0">
-                {bombero.ficha?.fotoPerfilURL ? (
-                  <img
-                    src={bombero.ficha.fotoPerfilURL}
-                    alt={`Foto de ${getNombreCompleto()}`}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <div 
-                  className={`w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center border-4 border-gray-200 ${bombero.ficha?.fotoPerfilURL ? 'hidden' : 'flex'}`}
-                >
-                  <MdPerson className="w-12 h-12 text-blue-600" />
-                </div>
+                <BomberoAvatar
+                  src={bombero.ficha?.fotoPerfilURL}
+                  alt={`Foto de ${getNombreCompleto()}`}
+                  nombre={getNombreCompleto()}
+                  size="2xl"
+                  showBorder={true}
+                  borderColor="border-gray-200"
+                  isRound={true}
+                  bombero={bombero}
+                />
               </div>
 
               {/* Información principal */}
