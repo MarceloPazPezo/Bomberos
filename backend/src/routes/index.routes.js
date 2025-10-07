@@ -18,6 +18,8 @@ import debugRoutes from "./debug.routes.js";
 import fileRoutes from "./file.routes.js";
 import tilesRoutes from "./tiles.routes.js";
 import fichaBomberoRoutes from "./fichaBombero.routes.js";
+import notificationRoutes from "./notification.routes.js";
+import eppRoutes from "./epp.routes.js";
 // Rutas de bomberos unificadas - ya incluidas en bombero.routes.js
 import perfilCompletoRoutes from "./perfilCompleto.routes.js";
 import tipoSangreRoutes from "./tipoSangre.routes.js";
@@ -44,6 +46,8 @@ router
   .use("/files", fileRoutes)
   .use("/tiles", tilesRoutes)
   .use("/fichaBombero", fichaBomberoRoutes)
+  .use("/notifications", notificationRoutes)
+  .use("/epp", eppRoutes)
   .use("/perfil-completo", perfilCompletoRoutes)
   .use("/tipoSangre", tipoSangreRoutes)
   .use("/estado-civil", estadoCivilRoutes);

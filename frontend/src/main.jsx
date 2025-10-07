@@ -12,6 +12,7 @@ import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import CrearParte from '@pages/crearParte';
 import BomberosPage from '@pages/BomberosPage';
+import InventarioEpp from '@pages/InventarioEpp';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
@@ -86,6 +87,14 @@ const router = createBrowserRouter([
             <CrearParte />
           </ProtectedRoute>
         )
+      },
+      {
+        path: '/inventario-epp',
+        element: (
+          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+            <InventarioEpp />
+          </ProtectedRoute>
+        ),
       },
 
     ]

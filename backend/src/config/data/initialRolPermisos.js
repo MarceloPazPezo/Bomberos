@@ -291,6 +291,90 @@ async function crearPermisos() {
         ruta: "/api/carros/*",
         metodo: "*",
       },
+      {
+        nombre: "epp:obtener",
+        descripcion: "Permite obtener información de todos los EPP",
+        categoria: "EPP",
+        ruta: "/api/epp",
+        metodo: "GET",
+      },
+      {
+        nombre: "epp:crear",
+        descripcion: "Permite crear nuevos EPP",
+        categoria: "EPP",
+        ruta: "/api/epp",
+        metodo: "POST",
+      },
+      {
+        nombre: "epp:obtener_especifico",
+        descripcion: "Permite obtener información específica de un EPP",
+        categoria: "EPP",
+        ruta: "/api/epp/detalle/:id",
+        metodo: "GET",
+      },
+      {
+        nombre: "epp:actualizar",
+        descripcion: "Permite actualizar información de un EPP específico",
+        categoria: "EPP",
+        ruta: "/api/epp/detalle/:id",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "epp:eliminar",
+        descripcion: "Permite eliminar EPP",
+        categoria: "EPP",
+        ruta: "/api/epp/detalle/:id",
+        metodo: "DELETE",
+      },
+      {
+        nombre: "epp:cambiar_estado",
+        descripcion: "Permite cambiar el estado de un EPP",
+        categoria: "EPP",
+        ruta: "/api/epp/estado/:id",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "epp:asignar",
+        descripcion: "Permite asignar EPP a bomberos",
+        categoria: "EPP",
+        ruta: "/api/epp/asignar/:id",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "epp:admin",
+        descripcion: "Permite administración completa de EPP (crear, actualizar, eliminar, cambiar estado, asignar)",
+        categoria: "EPP",
+        ruta: "/api/epp/*",
+        metodo: "*",
+      },
+      {
+        nombre: "tipo_epp:obtener",
+        descripcion: "Permite obtener la lista de tipos de EPP",
+        categoria: "Tipos de EPP",
+        ruta: "/api/tipo-epp",
+        metodo: "GET",
+      },
+      {
+        nombre: "tipo_epp:admin",
+        descripcion: "Permite administración completa de tipos de EPP (crear, actualizar, eliminar)",
+        categoria: "Tipos de EPP",
+        ruta: "/api/tipo-epp/*",
+        metodo: "*",
+      },
+      {
+        nombre: "estado_epp:obtener",
+        descripcion: "Permite obtener la lista de estados de EPP",
+        categoria: "Estados de EPP",
+        ruta: "/api/estado-epp",
+        metodo: "GET",
+      },
+      {
+        nombre: "estado_epp:admin",
+        descripcion: "Permite administración completa de estados de EPP (crear, actualizar, eliminar)",
+        categoria: "Estados de EPP",
+        ruta: "/api/estado-epp/*",
+        metodo: "*",
+      },
     ];
 
     const permisos = permisosData.map((p) => permisoRepository.create(p));
@@ -335,6 +419,9 @@ async function crearRoles() {
           "direccion:crear", // Permite crear direcciones
           "direccion:obtener", // Permite obtener direcciones
           "direccion:actualizar", // Permite actualizar direcciones
+          "epp:obtener", // Permite ver EPP disponibles
+          "tipo_epp:obtener", // Permite obtener tipos de EPP
+          "estado_epp:obtener", // Permite obtener estados de EPP
         ],
       },
       {
@@ -372,6 +459,18 @@ async function crearRoles() {
           "servicio:admin",
           "carro:obtener",
           "carro:admin",
+          "epp:crear",
+          "epp:obtener",
+          "epp:obtener_especifico",
+          "epp:actualizar",
+          "epp:eliminar",
+          "epp:cambiar_estado",
+          "epp:asignar",
+          "epp:admin",
+          "tipo_epp:obtener",
+          "tipo_epp:admin",
+          "estado_epp:obtener",
+          "estado_epp:admin",
         ],
       },
     ];
