@@ -18,6 +18,7 @@ export async function loginService(bombero) {
       .createQueryBuilder("bombero")
       .leftJoinAndSelect("bombero.roles", "rol")
       .leftJoinAndSelect("rol.permisos", "permiso")
+      .leftJoinAndSelect("bombero.fichaBombero", "ficha")
       .select([
         "bombero.id",
         "bombero.nombres",
@@ -32,6 +33,7 @@ export async function loginService(bombero) {
         "rol.id",
         "rol.nombre",
         "permiso.nombre",
+        "ficha.idCompania",
       ])
       .addSelect("bombero.password")
       .where("bombero.run = :run", { run: run })
@@ -67,11 +69,13 @@ export async function loginService(bombero) {
       email: bomberoFound.email,
       run: bomberoFound.run,
       activo: bomberoFound.activo,
+      companiaId: bomberoFound.fichaBombero?.idCompania || null,
       creadoEl: bomberoFound.creadoEl,
       creadoPor: bomberoFound.creadoPor,
       actualizadoEl: bomberoFound.actualizadoEl,
       actualizadoPor: bomberoFound.actualizadoPor,
       roles: bomberoFound.roles.map((r) => ({
+        id: r.id,
         nombre: r.nombre,
         permisos: r.permisos ? r.permisos.map((p) => p.nombre) : [],
       })),

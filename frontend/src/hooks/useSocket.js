@@ -24,11 +24,16 @@ const useSocket = () => {
 
     socket.on('connect', () => {
       // Identificar al bombero en el servidor
-      socket.emit('bomberoActive', {
+      const bomberoData = {
         id: bombero.id,
         nombres: bombero.nombres,
         apellidos: bombero.apellidos,
-      });
+        companiaId: bombero.companiaId,
+        rolId: bombero.rolId
+      };
+      
+      console.log('[WEBSOCKET] Enviando datos del bombero:', bomberoData);
+      socket.emit('bomberoActive', bomberoData);
     });
 
     socket.on('disconnect', () => {

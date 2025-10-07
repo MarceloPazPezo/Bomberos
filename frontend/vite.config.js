@@ -30,6 +30,10 @@ export default defineConfig({
   },
   define: {
     global: 'globalThis',
+    'process.env': {},
+    'process.platform': '"browser"',
+    'process.version': '"v16.0.0"',
+    'process.versions': '{}',
   },
   server: {
     host: '0.0.0.0',

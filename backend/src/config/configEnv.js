@@ -34,6 +34,16 @@ export const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minioadmin123';
 export const MINIO_BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'bomberos-uploads';
 export const SIGNED_URL_EXPIRY = process.env.SIGNED_URL_EXPIRY || '3600';
 
+// Configuración de Redis
+export const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+export const REDIS_PORT = parseInt(process.env.REDIS_PORT, 10) || 6379;
+export const REDIS_PASSWORD = process.env.REDIS_PASSWORD || undefined;
+export const REDIS_DB = parseInt(process.env.REDIS_DB, 10) || 0;
+
+// Configuración de limpieza automática
+export const CLEANUP_INTERVAL = parseInt(process.env.CLEANUP_INTERVAL, 10) || 3600000; // 1 hora
+export const CLEANUP_BATCH_SIZE = parseInt(process.env.CLEANUP_BATCH_SIZE, 10) || 100;
+
 export const NODE_ENV = env;
 
 // Validación de seguridad en producción

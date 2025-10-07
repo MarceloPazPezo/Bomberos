@@ -20,7 +20,10 @@ import {
   MdEdit,
   MdDelete,
   MdVisibility,
-  MdWaterDrop
+  MdWaterDrop,
+  MdSend,
+  MdGroup,
+  MdPersonAdd
 } from 'react-icons/md';
 
 // Componentes para demostrar
@@ -31,9 +34,21 @@ import StaticValuesDemo from '@components/demo/StaticValuesDemo';
 import { showConfirmAlert, showInfoAlert, showErrorAlert, showWarningAlert, showConflictAlert, showSecurityAlert } from '@helpers/fireAlert.js';
 import { fireSuccessToast, roleCreatedToast, roleDeletedToast } from '@helpers/toastHelper.jsx';
 import usePermisos from '@hooks/permisos/usePermisos';
+import { useNotifications } from '@context/NotificationContext.jsx';
+import { useAuth } from '@hooks/auth/useAuth';
+import { NOTIFICATION_TYPES } from '@helpers/notificationTypes.js';
 
 const Demo = () => {
   const { permisos, permisosByCategory, loading: permisosLoading, refreshPermisos } = usePermisos();
+  const { 
+    sendIndividualNotification, 
+    sendSystemNotification, 
+    sendCompaniaNotification, 
+    loadNotifications,
+    unreadCount,
+    isConnected 
+  } = useNotifications();
+  const { bombero: user } = useAuth();
 
   // Funciones de demostración
   const showToastDemo = (type) => {
@@ -93,6 +108,145 @@ const Demo = () => {
     console.log('Permisos por categoría:', permisosByCategory);
     console.log('Categorías:', Object.keys(permisosByCategory));
     refreshPermisos(true);
+  };
+
+  // Funciones de demo para notificaciones
+  const sendNotificationDemo = async (type) => {
+    if (!user?.id) {
+      showErrorAlert('Error', 'Usuario no autenticado');
+      return;
+    }
+
+    const notifications = {
+      personal: {
+        type: NOTIFICATION_TYPES.PERSONAL,
+        title: 'Notificación Personal',
+        message: 'Esta es una notificación personal de prueba desde el Demo.',
+        data: { source: 'demo', timestamp: new Date().toISOString() }
+      },
+      recordatorio: {
+        type: NOTIFICATION_TYPES.RECORDATORIO,
+        title: 'Recordatorio de Reunión',
+        message: 'Recuerda que tienes una reunión programada para mañana a las 10:00 AM.',
+        data: { meetingId: 'DEMO-001', time: '10:00 AM' }
+      },
+      emergencia: {
+        type: NOTIFICATION_TYPES.EMERGENCIA,
+        title: 'Simulación de Emergencia',
+        message: 'Esta es una simulación de emergencia para pruebas del sistema.',
+        data: { simulation: true, level: 'critical' }
+      },
+      sistema: {
+        type: NOTIFICATION_TYPES.SISTEMA,
+        title: 'Mantenimiento del Sistema',
+        message: 'El sistema estará en mantenimiento el próximo domingo de 2:00 a 4:00 AM.',
+        data: { maintenanceType: 'scheduled', duration: '2 hours' }
+      },
+      compania: {
+        type: NOTIFICATION_TYPES.GRUPAL,
+        title: 'Comunicado de Compañía',
+        message: 'Mensaje importante para todos los miembros de la compañía.',
+        data: { companyId: user.companiaId || 1, broadcast: true }
+      }
+    };
+
+    try {
+      switch (type) {
+        case 'personal':
+          await sendIndividualNotification(
+            user.id,
+            notifications.personal.type,
+            notifications.personal.title,
+            notifications.personal.message,
+            notifications.personal.data
+          );
+          showInfoAlert('✅ Éxito', 'Notificación personal enviada correctamente');
+          break;
+
+        case 'recordatorio':
+          await sendIndividualNotification(
+            user.id,
+            notifications.recordatorio.type,
+            notifications.recordatorio.title,
+            notifications.recordatorio.message,
+            notifications.recordatorio.data
+          );
+          showInfoAlert('✅ Éxito', 'Recordatorio enviado correctamente');
+          break;
+
+        case 'emergencia':
+          await sendIndividualNotification(
+            user.id,
+            notifications.emergencia.type,
+            notifications.emergencia.title,
+            notifications.emergencia.message,
+            notifications.emergencia.data
+          );
+          showWarningAlert('⚠️ Simulación', 'Notificación de emergencia simulada enviada');
+          break;
+
+        case 'sistema':
+          await sendSystemNotification(
+            notifications.sistema.type,
+            notifications.sistema.title,
+            notifications.sistema.message,
+            notifications.sistema.data
+          );
+          showInfoAlert('✅ Éxito', 'Notificación del sistema enviada');
+          break;
+
+        case 'compania':
+          await sendCompaniaNotification(
+            user.companiaId || 1,
+            [], // Array vacío para que el backend obtenga todos los bomberos de la compañía
+            notifications.compania.type,
+            notifications.compania.title,
+            notifications.compania.message,
+            notifications.compania.data
+          );
+          showInfoAlert('✅ Éxito', 'Notificación de compañía enviada a todos los miembros');
+          break;
+
+        default:
+          showErrorAlert('Error', 'Tipo de notificación no válido');
+      }
+
+      // Recargar notificaciones para mostrar la nueva
+      await loadNotifications();
+      
+    } catch (error) {
+      console.error('Error enviando notificación:', error);
+      showErrorAlert('❌ Error', 'Error al enviar la notificación: ' + error.message);
+    }
+  };
+
+  // Función para probar Pub/Sub usando el servicio de notificaciones
+  const testPubSub = async () => {
+    try {
+      // Verificar que el usuario esté autenticado
+      if (!user?.id) {
+        showErrorAlert('❌ Error', 'Usuario no autenticado. Por favor, inicia sesión.');
+        return;
+      }
+
+      console.log('Usuario:', user.nombres, 'ID:', user.id);
+
+      // Importar el servicio de notificaciones
+      const { default: notificationService } = await import('@services/notification.service.js');
+      
+      // Usar el servicio que ya tiene la autenticación configurada
+      const response = await notificationService.testPubSub({
+        channel: `notifications:test:${user.id}`,
+        message: 'Mensaje de prueba de Pub/Sub desde Demo'
+      });
+
+      showInfoAlert('✅ Éxito', 'Mensaje de prueba publicado en Pub/Sub');
+      console.log('Resultado del test Pub/Sub:', response);
+      
+    } catch (error) {
+      console.error('Error probando Pub/Sub:', error);
+      showErrorAlert('❌ Error', 'Error al probar Pub/Sub: ' + error.message);
+    }
   };
 
   return (
@@ -287,7 +441,160 @@ const Demo = () => {
             </div>
           </div>
 
-          {/* Sección 5: Iconos y Elementos UI */}
+          {/* Sección 5: Sistema de Notificaciones */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <MdNotifications className="h-6 w-6 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-800">Sistema de Notificaciones</h2>
+              <div className="ml-auto flex items-center space-x-2">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  {isConnected ? 'Conectado' : 'Desconectado'}
+                </span>
+                {unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Sistema completo de notificaciones con diferentes tipos y canales de envío.
+            </p>
+            
+            <div className="space-y-4">
+              {/* Estado del sistema */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-2">Estado del Sistema:</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span>WebSocket: {isConnected ? 'Activo' : 'Inactivo'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">Usuario:</span>
+                    <span>{user?.nombres || 'No autenticado'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">ID:</span>
+                    <span>{user?.id || 'N/A'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium">No leídas:</span>
+                    <span className="font-bold text-red-600">{unreadCount}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botones de notificaciones */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <button
+                  onClick={() => sendNotificationDemo('personal')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg flex flex-col items-center space-y-2 transition-colors"
+                >
+                  <MdPerson className="h-6 w-6" />
+                  <span className="text-sm font-medium">Personal</span>
+                </button>
+                
+                <button
+                  onClick={() => sendNotificationDemo('recordatorio')}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-3 rounded-lg flex flex-col items-center space-y-2 transition-colors"
+                >
+                  <MdInfo className="h-6 w-6" />
+                  <span className="text-sm font-medium">Recordatorio</span>
+                </button>
+                
+                <button
+                  onClick={() => sendNotificationDemo('emergencia')}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg flex flex-col items-center space-y-2 transition-colors"
+                >
+                  <MdWarning className="h-6 w-6" />
+                  <span className="text-sm font-medium">Emergencia</span>
+                </button>
+                
+                <button
+                  onClick={() => sendNotificationDemo('sistema')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg flex flex-col items-center space-y-2 transition-colors"
+                >
+                  <MdSettings className="h-6 w-6" />
+                  <span className="text-sm font-medium">Sistema</span>
+                </button>
+                
+                <button
+                  onClick={() => sendNotificationDemo('compania')}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg flex flex-col items-center space-y-2 transition-colors"
+                >
+                  <MdGroup className="h-6 w-6" />
+                  <span className="text-sm font-medium">Compañía</span>
+                </button>
+              </div>
+
+              {/* Información adicional */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-2">Tipos de Notificación Disponibles:</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  <div className="bg-white p-2 rounded border">
+                    <strong>SISTEMA:</strong> Notificaciones del sistema
+                  </div>
+                  <div className="bg-white p-2 rounded border">
+                    <strong>EMERGENCIA:</strong> Emergencias críticas
+                  </div>
+                  <div className="bg-white p-2 rounded border">
+                    <strong>PERSONAL:</strong> Notificaciones personales
+                  </div>
+                  <div className="bg-white p-2 rounded border">
+                    <strong>RECORDATORIO:</strong> Recordatorios
+                  </div>
+                  <div className="bg-white p-2 rounded border">
+                    <strong>MENSAJE_DIRECTO:</strong> Mensajes directos
+                  </div>
+                  <div className="bg-white p-2 rounded border">
+                    <strong>GRUPAL:</strong> Notificaciones grupales
+                  </div>
+                  <div className="bg-white p-2 rounded border">
+                    <strong>INCIDENTE:</strong> Notificaciones de incidentes
+                  </div>
+                  <div className="bg-white p-2 rounded border">
+                    <strong>EVENTO:</strong> Notificaciones de eventos
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón de prueba de Pub/Sub */}
+              <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <h3 className="font-medium mb-2 text-purple-800">🔧 Pruebas de Sistema:</h3>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={testPubSub}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                  >
+                    <MdSettings className="h-4 w-4" />
+                    <span>Probar Pub/Sub</span>
+                  </button>
+                  <span className="text-sm text-purple-600">
+                    Prueba el sistema de mensajería en tiempo real de Redis
+                  </span>
+                </div>
+              </div>
+
+              {/* Instrucciones */}
+              <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <h3 className="font-medium mb-2 text-yellow-800">💡 Instrucciones:</h3>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  <li>• Haz clic en cualquier botón para enviar una notificación de prueba</li>
+                  <li>• Las notificaciones aparecerán en la campana de notificaciones (🔔) en la navbar</li>
+                  <li>• Cada tipo de notificación tiene un TTL (tiempo de vida) diferente</li>
+                  <li>• Las notificaciones se almacenan individualmente en Redis para cada usuario</li>
+                  <li>• El sistema soporta notificaciones individuales, de compañía y del sistema</li>
+                  <li>• Las notificaciones de compañía se envían automáticamente a todos los miembros de la compañía</li>
+                  <li>• Usa "Probar Pub/Sub" para verificar que Redis 7 esté funcionando correctamente</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección 7: Iconos y Elementos UI */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center space-x-2 mb-4">
               <MdViewModule className="h-6 w-6 text-blue-600" />
@@ -316,7 +623,7 @@ const Demo = () => {
             </div>
           </div>
 
-          {/* Sección 6: Testing de Permisos */}
+          {/* Sección 8: Testing de Permisos */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center space-x-2 mb-4">
               <MdSettings className="h-6 w-6 text-blue-600" />
@@ -367,7 +674,7 @@ const Demo = () => {
           </div>
 
 
-          {/* Sección 8: Valores Estáticos */}
+          {/* Sección 9: Valores Estáticos */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center space-x-2 mb-4">
               <MdWaterDrop className="h-6 w-6 text-blue-600" />
@@ -380,7 +687,7 @@ const Demo = () => {
             <StaticValuesDemo />
           </div>
 
-          {/* Sección 9: Paleta de Colores */}
+          {/* Sección 10: Paleta de Colores */}
           <div className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center space-x-2 mb-4">
               <MdSettings className="h-6 w-6 text-blue-600" />

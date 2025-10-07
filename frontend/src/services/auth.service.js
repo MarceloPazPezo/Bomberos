@@ -23,7 +23,9 @@ export async function login(dataBombero) {
                 email: decoded.email,
                 run: decoded.run,
                 activo: decoded.activo,
+                companiaId: decoded.companiaId,
                 roles: decoded.roles,
+                rolId: decoded.roles && decoded.roles.length > 0 ? decoded.roles[0].id : null,
                 permisos: allPermisos
             };
             sessionStorage.setItem('bombero', JSON.stringify(bomberoData));
