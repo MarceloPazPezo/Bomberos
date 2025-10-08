@@ -2,13 +2,21 @@
 import { AppDataSource } from "../config/configDb.js";
 import { In } from "typeorm";
 
-export async function obtenerPartePorIdService(idIncidente) {
+export async function obtenerPartePorIdService(idIncidente, options = {}) {
   const manager = AppDataSource.manager;
   const incidenteRepo = manager.getRepository('Incidente');
+  const estadoRepo = manager.getRepository('EstadoEstablecido');
 
   // 1) Carga base del incidente (evitar mega JOIN con muchas relaciones)
   const incidente = await incidenteRepo.findOne({ where: { id: idIncidente } });
   if (!incidente) return null;
+
+  // Validación de autoría: sólo el redactor (creador) puede obtenerlo si se pasa redactorId
+  if (options && Number.isInteger(options.redactorId)) {
+    if (Number(incidente.idRedactor) !== Number(options.redactorId)) {
+      return null; // no autorizado
+    }
+  }
 
   // 2) Cargar colecciones relacionadas en paralelo y sólo lo necesario
   const inmRepo = manager.getRepository('Inmueble');
@@ -29,6 +37,12 @@ export async function obtenerPartePorIdService(idIncidente) {
     asistRepo.find({ where: { idIncidente } }),
     faseRepo.find({ where: { idIncidente } }),
   ]);
+  // último estado
+  let estadoNombre = '';
+  try {
+    const ult = await estadoRepo.find({ where: { idIncidente }, relations: { estado: true }, order: { fechaHora: 'DESC' }, take: 1 });
+    estadoNombre = (ult?.[0]?.estado?.nombre || '').toString().trim().toUpperCase();
+  } catch {}
   // Ensamblar payload similar al front (crearParte/editarParte)
   const dir = incidente.direccion; // viene eager en entidad Incidente
   // Obtener regionId puntual sin join profundo
@@ -143,6 +157,7 @@ export async function obtenerPartePorIdService(idIncidente) {
   return {
     id: incidente.id,
     companiaId: incidente.idCompania,
+    estado: estadoNombre,
     fecha: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(0,10) : null,
     horaDespacho: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(11,16) : null,
     hora6_0: incidente.HoraOperativo6_0 || null,
@@ -166,6 +181,221 @@ export async function obtenerPartePorIdService(idIncidente) {
     bomberoACargoId: incidente.idBomberoACargo || null,
     idRedactor: incidente.idRedactor || null,
     inmuebles, vehiculos, materialMayor, accidentados, otrosServicios, asistencia,
+    createdAt: incidente.creadoEl,
+    updatedAt: incidente.actualizadoEl,
+  };
+}
+
+// Versión detallada: incluye nombres y objetos enriquecidos en lugar de sólo IDs
+export async function obtenerParteDetalladoPorIdService(idIncidente) {
+  const manager = AppDataSource.manager;
+  const incidenteRepo = manager.getRepository('Incidente');
+
+  // Cargar incidente con relaciones eager ya definidas (bomberoACargo, redactor, direccion, subtipo, compania)
+  const incidente = await incidenteRepo.findOne({ where: { id: idIncidente } });
+  if (!incidente) return null;
+
+  // Repositorios auxiliares
+  const inmRepo = manager.getRepository('Inmueble');
+  const vehRepo = manager.getRepository('Vehiculo');
+  const despRepo = manager.getRepository('EsDespachado');
+  const accRepo = manager.getRepository('BomberoAccidentado');
+  const acudeRepo = manager.getRepository('AcudeServicio');
+  const asistRepo = manager.getRepository('AsistenciaIncidente');
+  const faseRepo = manager.getRepository('FaseYDano');
+  const comunaRepo = manager.getRepository('Comuna');
+  const fichaRepo = manager.getRepository('FichaBombero');
+
+  const [
+    inmueblesRaw,
+    vehiculosRaw,
+    despachosRaw,
+    accidentadosRaw,
+    otrosServiciosRaw,
+    asistenciasRaw,
+    fases
+  ] = await Promise.all([
+    // Inmuebles con propietario y habitantes (ids) y su dirección
+    inmRepo.find({ where: { idIncidente }, relations: { habitaAfectados: true, propietario: true, direccion: true } }),
+    // Vehículos con dueño/chofer/pasajeros->afectado y vinculo
+    vehRepo.find({ where: { idIncidente }, relations: { dueno: true, conductor: true, pasajeros: { afectado: true, vinculo: true } } }),
+    // Despachos con carro y bombero maquinista
+    despRepo.find({ where: { idIncidente }, relations: { carro: true, bomberoMaquinista: true } }),
+    // Accidentados (luego completamos compañía via Ficha)
+    accRepo.find({ where: { idIncidente }, relations: { bombero: true } }),
+    // Otros servicios con nombre de servicio
+    acudeRepo.find({ where: { idIncidente }, relations: { servicio: true } }),
+    // Asistencia con bombero
+    asistRepo.find({ where: { idIncidente }, relations: { bombero: true } }),
+    // Fase y Tipo de daño con nombres
+    faseRepo.find({ where: { idIncidente }, relations: { faseIncidente: true, tipoDano: true } }),
+  ]);
+
+  // Comuna y Región de la dirección principal
+  let comuna = null;
+  let region = null;
+  if (incidente?.direccion?.idComuna) {
+    try {
+      const c = await comunaRepo.findOne({ where: { id: incidente.direccion.idComuna }, relations: { region: true } });
+      if (c) {
+        comuna = { id: c.id, nombre: c.nombre };
+        if (c.region) region = { id: c.region.id, nombre: c.region.nombre };
+      }
+    } catch {}
+  }
+
+  // Helper para nombre completo de bombero (usa arrays de nombres/apellidos)
+  const bomberoToPersona = (b) => {
+    if (!b) return null;
+    const nombres = Array.isArray(b.nombres) ? b.nombres.join(' ') : (b.nombres || '');
+    const apellidos = Array.isArray(b.apellidos) ? b.apellidos.join(' ') : (b.apellidos || '');
+    const nombreCompleto = `${nombres} ${apellidos}`.trim();
+    return { id: b.id, run: b.run || null, nombreCompleto: nombreCompleto || b.run || `Bombero #${b.id}` };
+  };
+
+  // Fase y tipo (tomar primera si hay varias)
+  const fy = Array.isArray(fases) && fases.length > 0 ? fases[0] : null;
+  const incendio = fy ? {
+    tipo: fy.tipoDano ? { id: fy.tipoDano.id, nombre: fy.tipoDano.nombre } : (fy.idTipoDano ? { id: fy.idTipoDano, nombre: null } : null),
+    fase: fy.faseIncidente ? { id: fy.faseIncidente.id, nombre: fy.faseIncidente.nombre } : (fy.idFase ? { id: fy.idFase, nombre: null } : null)
+  } : { tipo: null, fase: null };
+
+  // Inmuebles detallados
+  const inmuebles = (inmueblesRaw || []).map(inm => ({
+    id: inm.id,
+    tipo_construccion: inm.tipoConstruccion || '',
+    n_pisos: inm.nPisos || '',
+    m2_construccion: inm.m2Construccion || '',
+    m2_afectado: inm.m2Afectados || '',
+    danos_vivienda: inm.danosVivienda || '',
+    danos_anexos: inm.danosAnexos || '',
+    direccion: inm.direccion ? { calle: inm.direccion.calle || '', numero: inm.direccion.numero || '' } : null,
+    propietario: inm.propietario ? {
+      id: inm.propietario.id,
+      nombreCompleto: inm.propietario.nombreCompleto,
+      run: inm.propietario.run || null,
+      telefono: inm.propietario.telefono || null,
+      edad: inm.propietario.edad || null,
+      descripcionGravedad: inm.propietario.descripcionGravedad || null,
+      esEmpresa: !!inm.propietario.esEmpresa,
+    } : null,
+    habitantes: (inm.habitaAfectados || []).map(h => ({
+      id: h.afectado?.id ?? h.afectadoId ?? h.idAfectado ?? null,
+      nombreCompleto: h.afectado?.nombreCompleto || '',
+      run: h.afectado?.run || null,
+      telefono: h.afectado?.telefono || null,
+      edad: h.afectado?.edad || null,
+      descripcionGravedad: h.afectado?.descripcionGravedad || null,
+      esEmpresa: false,
+    }))
+  }));
+
+  // Vehículos detallados
+  const vehiculos = (vehiculosRaw || []).map(v => ({
+    id: v.id,
+    patente: v.patente,
+    marca: v.marca || '',
+    modelo: v.modelo || '',
+    anio: null,
+    color: v.color || '',
+    danos_vehiculo: v.descripciondanos || '',
+    dueno: v.dueno ? {
+      id: v.dueno.id, nombreCompleto: v.dueno.nombreCompleto, run: v.dueno.run || null, telefono: v.dueno.telefono || null, edad: v.dueno.edad || null, descripcionGravedad: v.dueno.descripcionGravedad || null, esEmpresa: !!v.dueno.esEmpresa,
+    } : null,
+    chofer: v.conductor ? {
+      id: v.conductor.id, nombreCompleto: v.conductor.nombreCompleto, run: v.conductor.run || null, telefono: v.conductor.telefono || null, edad: v.conductor.edad || null, descripcionGravedad: v.conductor.descripcionGravedad || null, esEmpresa: false,
+    } : null,
+    pasajeros: (v.pasajeros || []).map(p => ({
+      id: p.afectado?.id ?? null,
+      nombreCompleto: p.afectado?.nombreCompleto || '',
+      run: p.afectado?.run || null,
+      telefono: p.afectado?.telefono || null,
+      edad: p.afectado?.edad || null,
+      descripcionGravedad: p.afectado?.descripcionGravedad || null,
+      esEmpresa: false,
+      vinculo: p.vinculo ? { id: p.vinculo.id, nombre: p.vinculo.nombre } : (p.idVinculo ? { id: p.idVinculo, nombre: null } : null)
+    }))
+  }));
+
+  // Material mayor con unidad (carro) y conductor nombre
+  const materialMayor = (despachosRaw || []).map(e => ({
+    unidad: e.carro ? { id: e.carro.id, patente: e.carro.patente } : { id: e.idCarro, patente: null },
+    conductor: bomberoToPersona(e.bomberoMaquinista) || (e.idBomberoMaquinista ? { id: e.idBomberoMaquinista, nombreCompleto: null, run: null } : null),
+    voluntarios: e.nPersonal || 0,
+    kmSalida: e.kmSalida || null,
+    kmLlegada: e.kmLlegada || null,
+  }));
+
+  // Accidentados con nombre y compañía
+  let fichasByBombero = new Map();
+  if ((accidentadosRaw || []).length > 0) {
+    const idsBombero = Array.from(new Set(accidentadosRaw.map(a => a.idBombero).filter(Boolean)));
+    if (idsBombero.length > 0) {
+      try {
+        const fichas = await fichaRepo.find({ where: { idBombero: In(idsBombero) }, relations: { compania: true } });
+        fichasByBombero = new Map(fichas.map(f => [f.idBombero, f]));
+      } catch {}
+    }
+  }
+  const accidentados = (accidentadosRaw || []).map(a => ({
+    bombero: bomberoToPersona(a.bombero) || { id: a.idBombero, nombreCompleto: null, run: null },
+    compania: fichasByBombero.get(a.idBombero)?.compania ? { id: fichasByBombero.get(a.idBombero).compania.id, nombre: fichasByBombero.get(a.idBombero).compania.nombre } : null,
+    lesiones: a.lesiones || '',
+    constancia: a.constancia || '',
+    comisaria: a.comisaria || '',
+    acciones: a.AccionesRealizadas || ''
+  }));
+
+  // Otros servicios con nombre de servicio
+  const otrosServicios = (otrosServiciosRaw || []).map(s => ({
+    servicio: s.servicio ? { id: s.servicio.id, nombre: s.servicio.nombre } : { id: s.idServicio, nombre: null },
+    tipoUnidad: s.unidad || '',
+    responsable: s.nombrePersonalACargo || '',
+    personal: s.nPersonal || 0,
+    observaciones: s.observaciones || ''
+  }));
+
+  // Asistencia con nombres
+  const asistencia = {
+    lugar: (asistenciasRaw || []).map(a => bomberoToPersona(a.bombero) || { id: a.idBombero, nombreCompleto: null, run: null }),
+    cuartel: []
+  };
+
+  // Clasificación y subtipo (con nombre/descripcion)
+  const clasificacion = incidente.subtipo?.clasificacionEmergencia ? { id: incidente.subtipo.clasificacionEmergencia.id, nombre: incidente.subtipo.clasificacionEmergencia.nombre } : (incidente.subtipo?.clasificacion ? { id: incidente.subtipo.clasificacion, nombre: null } : null);
+  const subtipo = incidente.subtipo ? { id: incidente.subtipo.id, claveRadial: incidente.subtipo.claveRadial, descripcion: incidente.subtipo.descripcion } : (incidente.idSubtipoIncidente ? { id: incidente.idSubtipoIncidente } : null);
+
+  return {
+    id: incidente.id,
+    compania: incidente.compania ? { id: incidente.compania.id, nombre: incidente.compania.nombre } : (incidente.idCompania ? { id: incidente.idCompania, nombre: null } : null),
+    fecha: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(0,10) : null,
+    horaDespacho: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(11,16) : null,
+    hora6_0: incidente.HoraOperativo6_0 || null,
+    hora6_3: incidente.HoraOperativo6_3 || null,
+    hora6_9: incidente.HoraOperativo6_9 || null,
+    hora6_10: incidente.HoraOperativo6_10 || null,
+    direccion: {
+      calle: incidente.direccion?.calle || '',
+      numero: incidente.direccion?.numero || '',
+      depto: incidente.direccion?.depto || null,
+      referencia: incidente.direccion?.referencia || null,
+      comuna,
+      region,
+    },
+    clasificacion,
+    subtipo,
+    incendio,
+    descripcionPreliminar: incidente.descripcionPreliminar || '',
+    bomberoACargo: bomberoToPersona(incidente.bomberoACargo),
+    redactor: bomberoToPersona(incidente.redactor),
+    inmuebles,
+    vehiculos,
+    materialMayor,
+    accidentados,
+    otrosServicios,
+    asistencia,
+    createdAt: incidente.creadoEl,
+    updatedAt: incidente.actualizadoEl,
   };
 }
 

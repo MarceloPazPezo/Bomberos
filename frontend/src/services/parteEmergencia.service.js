@@ -2,7 +2,7 @@ import axios from './root.service.js';
 
 export const crearParteEmergencia = async (parteEmergenciaData) => {
     try {
-        console.log("Enviando datos al backend:", parteEmergenciaData);
+        if (import.meta.env?.DEV) console.log("Enviando datos al backend:", parteEmergenciaData);
         const response = await axios.post('/parteEmergencia', parteEmergenciaData);
         return response.data;
     } catch (error) {
@@ -11,11 +11,11 @@ export const crearParteEmergencia = async (parteEmergenciaData) => {
     }
 };
 
-export const obtenerParteEmergenciaPorId = async (id) => {
+export const obtenerParteEmergenciaPorId = async (id, params = {}) => {
     try {
-        console.log("Obteniendo datos del backend para ID:", id);
-        const response = await axios.get(`/parteEmergencia/${id}`);
-        console.log("Datos recibidos del backend:", response);
+
+        const response = await axios.get(`/parteEmergencia/${id}`, { params });
+        if (import.meta.env?.DEV) console.log("Datos del parte:", response);
         return response.data;
     } catch (error) {
         console.error('Error al obtener parte de emergencia:', error);
@@ -25,11 +25,30 @@ export const obtenerParteEmergenciaPorId = async (id) => {
 
 export const actualizarParteEmergencia = async (id, data) => {
     try {
-        console.log("Actualizando datos en el backend:", data);
+        if (import.meta.env?.DEV) console.log("Actualizando datos en el backend:", data);
         const response = await axios.put(`/parteEmergencia/${id}`, data);
         return response.data;
     } catch (error) {
         console.error('Error al actualizar parte de emergencia:', error);
+        throw error.response?.data || error;
+    }
+};
+
+export const obtenerParteEmergenciaDetallado = async (id) => {
+    try {
+        const response = await axios.get(`/parteEmergencia/${id}/detallado`);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
+export const obtenerUltimoEstadoIncidente = async (id) => {
+    try {
+        const response = await axios.get(`/parteEmergencia/${id}/estado`);
+        if (import.meta.env?.DEV) console.log("Último estado recibido del backend:", response);
+        return response.data;
+    } catch (error) {
         throw error.response?.data || error;
     }
 };

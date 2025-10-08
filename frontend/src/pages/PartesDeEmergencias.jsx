@@ -3,6 +3,7 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getEstadosReportes } from "../services/estadosParte.service.js";
 import { getIncidentesResumen } from "../services/incidentes.service.js";
+import { useAuth } from "@hooks/auth/useAuth";
 
 // 🔰 Iconos
 import {
@@ -193,17 +194,29 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
 ========================= */
 function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   const navigate = useNavigate();
-  const esc = useCallback((e) => e.key === "Escape" && onClose(), [onClose]);
+  const [visible, setVisible] = React.useState(false);
+  const handleClose = useCallback(() => {
+    setVisible(false);
+    // dar tiempo a la animación antes de desmontar
+    setTimeout(() => onClose(), 250);
+  }, [onClose]);
+  const esc = useCallback((e) => {
+    if (e.key === "Escape") handleClose();
+  }, [handleClose]);
   useEffect(() => {
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
   }, [esc]);
+  useEffect(() => {
+    if (parte) setVisible(true);
+  }, [parte]);
 
   if (!parte) return null;
   const idx = siblings.findIndex((x) => x.id === parte.id);
   const estadoKey = (parte?.estado || "").toUpperCase();
   const headerStyle = HEADER_STYLE_BY_ESTADO[estadoKey] || "bg-slate-600 text-white";
   const estadoChip = CHIP_STYLE_BY_ESTADO[estadoKey] || "bg-slate-100 text-slate-800 border border-slate-200";
+  const canEdit = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
 
   // Dirección resumida
   const getStreetNumber = (d) => {
@@ -220,8 +233,11 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   const prettyEstado = estadoKey ? estadoKey.charAt(0) + estadoKey.slice(1).toLowerCase() : "";
   return (
     <>
-      <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
-      <aside className="fixed right-0 top-0 h-full w-full sm:w-[560px] bg-white z-50 shadow-xl border-l border-gray-200 flex flex-col">
+      <div
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        onClick={handleClose}
+      />
+      <aside className={`fixed right-0 top-0 h-full w-full sm:w-[560px] bg-white z-50 shadow-xl border-l border-gray-200 flex flex-col transform transition-transform duration-300 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Header con color por estado */}
         <header className={`px-4 py-3 border-b flex items-center justify-between ${headerStyle}`}>
           <div className="text-sm font-semibold inline-flex items-center gap-2">
@@ -248,7 +264,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
             </button>
             <button
               className="rounded bg-white/10 hover:bg-white/20 text-white px-2 py-1 text-sm inline-flex items-center gap-1 border border-white/20"
-              onClick={onClose}
+              onClick={handleClose}
               title="Cerrar"
             >
               <X className="h-4 w-4" />
@@ -327,17 +343,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
             </div>
           </div>
 
-          {/* Detalles específicos */}
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-md border border-gray-200 bg-white p-3">
-              <div className="text-gray-500">Tipo de incendio</div>
-              <div className="mt-0.5">{parte.detalle?.tipoIncendio || ""}</div>
-            </div>
-            <div className="rounded-md border border-gray-200 bg-white p-3">
-              <div className="text-gray-500">Fase alcanzada</div>
-              <div className="mt-0.5">{parte.detalle?.faseAlcanzada || ""}</div>
-            </div>
-          </div>
+ 
 
           {/* Descripción */}
           <div className="mt-4">
@@ -351,15 +357,20 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
 
           {/* Acciones */}
           <div className="mt-6 grid grid-cols-2 gap-3">
-            <button className="rounded-md border border-gray-300 px-3 py-2 hover:bg-gray-50 inline-flex items-center justify-center gap-2">
+            <button
+              className="rounded-md border border-gray-300 px-3 py-2 hover:bg-gray-50 inline-flex items-center justify-center gap-2"
+              onClick={() => parte?.id && navigate(`/vistaparte/${parte.id}`)}
+            >
               <Eye className="h-4 w-4" /> Ver parte completo
             </button>
-            <button
-              className="rounded-md bg-blue-600 text-white px-3 py-2 hover:bg-blue-700 inline-flex items-center justify-center gap-2"
-              onClick={() => parte?.id && navigate(`/editarparte/${parte.id}`)}
-            >
-              <Pencil className="h-4 w-4" /> Actualizar parte
-            </button>
+            {canEdit && (
+              <button
+                className="rounded-md bg-blue-600 text-white px-3 py-2 hover:bg-blue-700 inline-flex items-center justify-center gap-2"
+                onClick={() => parte?.id && navigate(`/editarparte/${parte.id}`)}
+              >
+                <Pencil className="h-4 w-4" /> Actualizar parte
+              </button>
+            )}
           </div>
 
           <div className="mt-6 text-xs text-gray-500">
@@ -376,6 +387,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
 ========================= */
 export default function PartesDeEmergencias() {
   const navigate = useNavigate();
+  const { bombero } = useAuth();
   const [query, setQuery] = useState("");
   const [items, setItems] = useState(EMPTY_LIST);
   const [selected, setSelected] = useState(null);
@@ -451,7 +463,16 @@ export default function PartesDeEmergencias() {
       try {
         setLoadingItems(true);
         setErrorItems(null);
-        const data = await getIncidentesResumen();
+        const userId = Number(bombero?.id);
+        if (!Number.isInteger(userId)) {
+          // Si no hay id disponible aún, no consultamos y mostramos vacío temporalmente
+          if (mounted) {
+            setItems(EMPTY_LIST);
+            setLoadingItems(false);
+          }
+          return;
+        }
+        const data = await getIncidentesResumen({ redactorId: userId });
         if (!mounted) return;
         const norm = (Array.isArray(data) ? data : []).map(x => ({
           ...x,
@@ -469,7 +490,7 @@ export default function PartesDeEmergencias() {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [bombero?.id]);
 
   // agrupar + filtrar
   const grouped = useMemo(() => {

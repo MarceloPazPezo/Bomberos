@@ -1,4 +1,5 @@
 import { UserIcon } from '@heroicons/react/24/outline';
+import { formatRutForDisplay } from '@helpers/rutFormatter.js';
 
 // === Subcomponente: Campos de afectado (dueño / habitante / chofer / pasajero)
 function AfectadoFields({ value, onChange, title, showEsEmpresa = false }) {
@@ -24,7 +25,17 @@ function AfectadoFields({ value, onChange, title, showEsEmpresa = false }) {
           className={baseInput}
           placeholder="RUN"
           value={value.run || ''}
-          onChange={(e) => set('run', e.target.value)}
+          onChange={(e) => {
+            const formatted = formatRutForDisplay(e.target.value);
+            set('run', formatted);
+          }}
+          onPaste={(e) => {
+            e.preventDefault();
+            const pasted = (e.clipboardData || window.clipboardData).getData('text');
+            const formatted = formatRutForDisplay(pasted);
+            set('run', formatted);
+          }}
+          maxLength={12}
         />
         <input
           className={baseInput}

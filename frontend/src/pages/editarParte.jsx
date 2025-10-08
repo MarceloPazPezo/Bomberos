@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useContext, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useRoutes } from 'react-router-dom';
 
+
+// Flag simple de depuración (desactívalo en producción)
+const DEBUG_INIT = false;
 // Services
 import { getRegiones, getComunas } from '../services/direccion.service.js';
 import {
@@ -13,7 +16,7 @@ import { getCompanias } from '../services/compania.service.js';
 import { getCarrosByCompania } from '../services/carro.service.js';
 import { getBomberosPorCompania, getBomberosConLicencias } from '../services/bombero.service.js';
 import { getServicios } from '../services/servicios.service.js';
-import { obtenerParteEmergenciaPorId, actualizarParteEmergencia } from '../services/parteEmergencia.service.js';
+import { obtenerParteEmergenciaPorId, actualizarParteEmergencia, obtenerUltimoEstadoIncidente } from '../services/parteEmergencia.service.js';
 
 // UI
 import { toast } from 'react-toastify';
@@ -34,6 +37,7 @@ import UnidadCard from '../components/parteEmergencia/UnidadCard.jsx';
 import AccidentadoCard from '../components/parteEmergencia/AccidentadoCard.jsx';
 import ServicioExternoCard from '../components/parteEmergencia/ServicioExternoCard.jsx';
 import { AuthContext } from '../context/AuthContext.jsx';
+import { useCompaniaConfig } from '@hooks/compania/useCompaniaConfig';
 
 
 /* ================================
@@ -142,6 +146,7 @@ function useBomberosPorCompania() {
 ================================ */
 const CrearParte = () => {
   const { bombero } = useContext(AuthContext);
+  const { loading: configLoading, getConfigValue } = useCompaniaConfig();
   const { id } = useParams();
   const navigate = useNavigate();
   /* ---------- Catálogos / dependencias ---------- */
@@ -160,6 +165,70 @@ const CrearParte = () => {
   const [companiaId, setCompaniaId] = useState('');
   const [loadingCompanias, setLoadingCompanias] = useState(false);
   const [errorCompanias, setErrorCompanias] = useState('');
+
+  // Autoseleccionar compañía desde autenticación o configuración si no viene en el parte cargado
+  useEffect(() => {
+    if (companiaId) return; // Respetar la compañía ya establecida por la carga del parte
+    // 1) Preferir ID desde autenticación o config
+    const idCandidates = [
+      bombero?.companiaId,
+      bombero?.compania_id,
+      bombero?.compania?.id,
+      getConfigValue?.('company_id'),
+    ];
+    let picked = idCandidates.find((v) => v !== undefined && v !== null && v !== '');
+    // 3) Convertir a número si es posible
+    if (picked !== undefined && picked !== null && picked !== '') {
+      const n = Number(picked);
+      if (!Number.isNaN(n) && Number.isFinite(n) && n > 0) {
+        setCompaniaId(n);
+        return;
+      }
+    }
+    // 4) Fallback por nombre (auth o config) con carga si es necesario
+    const nameCandidates = [
+      bombero?.compania?.nombre,
+      getConfigValue?.('company_name'),
+    ]
+      .filter(Boolean)
+      .map((s) => (typeof s === 'string' ? s.trim().toLowerCase() : ''))
+      .filter(Boolean);
+
+    if (!companiaId && nameCandidates.length > 0) {
+      const tryResolveByName = (list) => {
+        const lowerList = Array.isArray(list) ? list : [];
+        for (const name of nameCandidates) {
+          const match = lowerList.find((c) => c?.nombre?.toLowerCase?.() === name);
+          if (match?.id) {
+            const n = Number(match.id);
+            if (!Number.isNaN(n) && n > 0) {
+              setCompaniaId(n);
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      if (companias.length > 0 && tryResolveByName(companias)) return;
+      if (!loadingCompanias) {
+        (async () => {
+          try {
+            setLoadingCompanias(true);
+            setErrorCompanias('');
+            const res = await getCompanias();
+            const arr = normalizeArray(res, 'companias').length > 0 ? normalizeArray(res, 'companias') : normalizeArray(res);
+            setCompanias(arr);
+            tryResolveByName(arr);
+          } catch {
+            setErrorCompanias('No se pudieron cargar las compañías.');
+          } finally {
+            setLoadingCompanias(false);
+          }
+        })();
+      }
+    }
+  }, [companiaId, bombero, companias, loadingCompanias, configLoading, getConfigValue]);
 
   // Bomberos (derivados de la compañía general)
   const [conductores, setConductores] = useState([]);
@@ -293,6 +362,13 @@ const CrearParte = () => {
 
   const isPositiveInt = (x) => Number.isInteger(Number(x)) && Number(x) > 0;
 
+  // Si ya tenemos companiaId válido, limpiar el error asociado
+  useEffect(() => {
+    if (companiaId) {
+      setErrors((prev) => (prev?.companiaId ? { ...prev, companiaId: undefined } : prev));
+    }
+  }, [companiaId]);
+
   /* ---------- Campos controlados (persisten entre pestañas) ---------- */
   // Datos generales
   const [fecha, setFecha] = useState('');
@@ -311,15 +387,33 @@ const CrearParte = () => {
   const [referenciaTxt, setReferenciaTxt] = useState('');
   // Carga del parte existente
   const [loadingParte, setLoadingParte] = useState(false);
+  const [estadoParte, setEstadoParte] = useState('');
   // Track de cambio real de compañía para evitar reset en carga inicial
   const prevCompaniaIdRef = useRef(undefined);
   // Pendientes a aplicar después de cargar catálogos dependientes (región/comunas y compañía)
-  const pendingInitRef = useRef({ appliedComuna: false, appliedCompaniaDeps: false });
+  // ready: indica que ya cargamos el parte y dejamos listos los pendientes
+  const pendingInitRef = useRef({ appliedComuna: false, appliedCompaniaDeps: false, ready: false });
+  // Gatillo para re-ejecutar efectos cuando 'ready' cambia (los refs no disparan efectos)
+  const [initGate, setInitGate] = useState(0);
 
   /* ---------- Envío del formulario ---------- */
   const [submitting, setSubmitting] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Verificación previa del último estado para bloquear actualización
+    try {
+      const estResp = await obtenerUltimoEstadoIncidente(id);
+      const estData = estResp?.data?.data ?? estResp?.data ?? estResp;
+      const estadoUpper = (estData?.estado || '').toString().trim().toUpperCase();
+      setEstadoParte(estadoUpper);
+      if (estadoUpper === 'ENVIADO' || estadoUpper === 'APROBADO') {
+        toast.error('Este parte no se puede modificar porque está ENVIADO o APROBADO.');
+        navigate('/404');
+        return;
+      }
+    } catch (_) {
+      // Si no se puede verificar, continuamos; el backend también valida
+    }
     const nextErrors = {};
 
     // Requeridos simples
@@ -593,13 +687,37 @@ const CrearParte = () => {
   useEffect(() => {
     (async () => {
       if (!id) return;
+      const userId = Number(bombero?.id);
+      if (!Number.isInteger(userId)) return; // esperar a tener el id del usuario
       try {
         setLoadingParte(true);
-        const resp = await obtenerParteEmergenciaPorId(id);
+        // Chequear último estado antes de cargar datos
+        try {
+          const estResp = await obtenerUltimoEstadoIncidente(id);
+          const estData = estResp?.data?.data ?? estResp?.data ?? estResp;
+          const estadoUpper = (estData?.estado || '').toString().trim().toUpperCase();
+          setEstadoParte(estadoUpper);
+          if (estadoUpper === 'ENVIADO' || estadoUpper === 'APROBADO') {
+            navigate('/404');
+            return;
+          }
+        } catch (_) {
+          // si falla, continuamos y el backend controlará permisos y update
+        }
+  const resp = await obtenerParteEmergenciaPorId(id, { idRedactor: userId });
         const data = resp?.data?.data ?? resp?.data ?? resp;
-        if (!data) return;
+        if (!data) {
+          navigate('/404');
+          return;
+        }
 
-  setCompaniaId(toId(data.companiaId));
+  // Precarga: marcar ready antes de setear companiaId para evitar reset y gatillar dependencias
+  pendingInitRef.current.appliedCompaniaDeps = false;
+  pendingInitRef.current.ready = true;
+  setInitGate((n) => n + 1);
+  if (DEBUG_INIT) console.debug('[EditarParte] precarga lista: ready=true (initGate++) antes de setear companiaId');
+
+        setCompaniaId(toId(data.companiaId));
         setFecha(data.fecha ?? '');
   setHoraDespacho(toHHmm(data.horaDespacho ?? ''));
   setHora60(toHHmm(data.hora6_0 ?? data.hora60 ?? ''));
@@ -626,36 +744,68 @@ const CrearParte = () => {
 
         setDescripcionPreliminar(data.descripcionPreliminar ?? '');
   // Guardar dependientes de compañía para aplicar cuando carguen las listas
-  pendingInitRef.current.bomberoACargoId = toId(data.bomberoACargoId);
+  // Sólo si hay un ID válido (>0)
+  {
+    const pac = toId(data.bomberoACargoId);
+    if (pac !== '' && Number.isFinite(Number(pac)) && Number(pac) > 0) {
+      pendingInitRef.current.bomberoACargoId = pac;
+    } else {
+      delete pendingInitRef.current.bomberoACargoId;
+    }
+  }
 
         const safeWithId = (arr) => (Array.isArray(arr) ? arr.map((x) => ({ id: x?.id ?? genId(), ...x })) : []);
         setInmuebles(safeWithId(data.inmuebles));
-        setVehiculos(safeWithId((data.vehiculos || []).map(v => ({ pasajeros: [], ...v, pasajeros: Array.isArray(v.pasajeros) ? v.pasajeros : [] }))));
-        // Normaliza material mayor manteniendo ids numéricos para selects
+        setVehiculos(safeWithId((data.vehiculos || []).map((v) => ({
+          ...v,
+          pasajeros: Array.isArray(v?.pasajeros) ? v.pasajeros : [],
+        }))));
+        // Normaliza material mayor extrayendo IDs aunque vengan como objetos anidados
+        const getId = (v) => {
+          if (v === null || v === undefined) return '';
+          if (typeof v === 'object') {
+            const cand = v.id ?? v.value ?? v.bomberoId ?? v.unidadId ?? v.conductorId ?? v.carroId ?? v.idCarro;
+            return getId(cand);
+          }
+          const n = Number(v);
+          return Number.isFinite(n) && n > 0 ? String(n) : '';
+        };
         pendingInitRef.current.materialMayor = safeWithId((data.materialMayor || []).map((m) => ({
           ...m,
-          unidadId: toId(m?.unidadId ?? m?.carroId ?? m?.idCarro ?? m?.unidad ?? ''),
-          conductorId: toId(m?.conductorId ?? m?.idConductor ?? ''),
-          bomberoId: toId(m?.bomberoId ?? m?.idBombero ?? ''),
+          unidadId: getId(m?.unidadId ?? m?.carroId ?? m?.idCarro ?? m?.unidad ?? m?.carro),
+          conductorId: getId(m?.conductorId ?? m?.idConductor ?? m?.conductor),
+          bomberoId: getId(m?.bomberoId ?? m?.idBombero ?? m?.bombero),
         })));
   // Accidentados: guardar y aplicar cuando se cargue la compañía específica si difiere
   pendingInitRef.current.accidentados = safeWithId(data.accidentados || []);
         setOtrosServicios(safeWithId(data.otrosServicios));
 
         // Guardar asistencia pendiente para aplicar cuando carguen los bomberos de la compañía
-        const lugarMap = Object.fromEntries(((data.asistencia?.lugar) || []).map((bid) => [String(bid), true]));
-        const cuartelMap = Object.fromEntries(((data.asistencia?.cuartel) || []).map((bid) => [String(bid), true]));
+        const toIdStr = (v) => {
+          if (v === null || v === undefined) return '';
+          if (typeof v === 'object') return toIdStr(v.id ?? v.value ?? v.bomberoId);
+          const n = Number(v);
+          return Number.isFinite(n) && n > 0 ? String(n) : '';
+        };
+        const lugarMap = Object.fromEntries(((data.asistencia?.lugar) || []).map((bid) => {
+          const k = toIdStr(bid);
+          return k ? [k, true] : null;
+        }).filter(Boolean));
+        const cuartelMap = Object.fromEntries(((data.asistencia?.cuartel) || []).map((bid) => {
+          const k = toIdStr(bid);
+          return k ? [k, true] : null;
+        }).filter(Boolean));
         pendingInitRef.current.asistenciaLugar = lugarMap;
-        pendingInitRef.current.asistenciaCuartel = cuartelMap;
-        pendingInitRef.current.appliedCompaniaDeps = false;
+  pendingInitRef.current.asistenciaCuartel = cuartelMap;
+  // (ready/applied ya se setearon arriba)
       } catch (e) {
         console.error('Error cargando parte:', e);
-        toast.error('No se pudo cargar el parte de emergencia.');
+        navigate('/404');
       } finally {
         setLoadingParte(false);
       }
     })();
-  }, [id]);
+  }, [id, bombero?.id]);
 
   /* ---------- Efectos dependientes ---------- */
   // Comunas por región
@@ -723,9 +873,13 @@ const CrearParte = () => {
     } else if (prev !== companiaId) {
       // Cambio de compañía por el usuario: reset dependientes
       prevCompaniaIdRef.current = companiaId;
-      setMaterialMayor((prev) => prev.map((row) => ({ ...row, unidadId: '', conductorId: '', bomberoId: '' })));
-      setAsistenciaLugar({});
-      setAsistenciaCuartel({});
+      // Si aún estamos en la aplicación inicial (ready true y applied false), no reseteamos para no perder la precarga
+      const isInitialApplicationPending = !pendingInitRef.current.appliedCompaniaDeps;
+      if (!isInitialApplicationPending) {
+        setMaterialMayor((prev) => prev.map((row) => ({ ...row, unidadId: '', conductorId: '', bomberoId: '' })));
+        setAsistenciaLugar({});
+        setAsistenciaCuartel({});
+      }
     }
 
     if (!companiaId) {
@@ -766,23 +920,30 @@ const CrearParte = () => {
   // Aplicar dependientes de compañía (bombero a cargo, material mayor, asistencia) cuando listas estén listas
   useEffect(() => {
     if (!companiaId) return;
+    // No aplicar hasta que el parte haya sido cargado y hayamos preparado los pendientes
+    if (!pendingInitRef.current.ready) return;
     if (loadingConductores || loadingBomberos || loadingCarros) return;
     if (pendingInitRef.current.appliedCompaniaDeps) return;
-    // Aplicar bombero a cargo si viene
+    if (DEBUG_INIT) console.debug('[EditarParte] aplicando dependientes de compañía…');
+    // Aplicar bombero a cargo si viene (ID válido)
     if (pendingInitRef.current.bomberoACargoId !== undefined) {
-      setBomberoACargoId(pendingInitRef.current.bomberoACargoId || '');
+      const bac = pendingInitRef.current.bomberoACargoId;
+      if (bac !== '' && Number.isFinite(Number(bac)) && Number(bac) > 0) {
+        setBomberoACargoId(bac);
+      }
     }
-    // Aplicar material mayor
+    // Aplicar material mayor manteniendo los IDs aunque no existan en las listas actuales
+    // La UI (UnidadCard) ya muestra un fallback cuando el ID no está disponible en la compañía seleccionada.
     if (Array.isArray(pendingInitRef.current.materialMayor)) {
       setMaterialMayor(pendingInitRef.current.materialMayor);
     }
-    // Aplicar asistencia
-    if (pendingInitRef.current.asistenciaLugar || pendingInitRef.current.asistenciaCuartel) {
-      setAsistenciaLugar(pendingInitRef.current.asistenciaLugar || {});
-      setAsistenciaCuartel(pendingInitRef.current.asistenciaCuartel || {});
-    }
+    // Aplicar asistencia directamente (usa IDs de bomberos)
+    setAsistenciaLugar(pendingInitRef.current.asistenciaLugar || {});
+    setAsistenciaCuartel(pendingInitRef.current.asistenciaCuartel || {});
+    // Marcar como aplicado para no reintentar
     pendingInitRef.current.appliedCompaniaDeps = true;
-  }, [companiaId, loadingConductores, loadingBomberos, loadingCarros, conductores.length, bomberos.length, carros.length]);
+    if (DEBUG_INIT) console.debug('[EditarParte] dependientes aplicados y appliedCompaniaDeps=true');
+  }, [companiaId, loadingConductores, loadingBomberos, loadingCarros, conductores.length, bomberos.length, carros.length, initGate]);
 
   // Aplicar accidentados en cascada por compañía: primero setear companiaId de cada fila, luego setear bombero cuando existan opciones
   useEffect(() => {
@@ -910,23 +1071,10 @@ const CrearParte = () => {
             <Card title="1. Datos generales" titleIcon={<Users className="text-blue-600" />}>
               <div className="grid md:grid-cols-4 gap-3">
                 <div className="md:col-span-2" data-error-key="companiaId">
-                  <label htmlFor="compania" className="block text-sm font-medium text-gray-700 mb-1">Compañía:</label>
-                  <select
-                    id="compania"
-                    className={inputCls('companiaId')}
-                    value={companiaId === '' ? '' : Number(companiaId)}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const next = v === '' ? '' : Number(v);
-                      setCompaniaId(Number.isNaN(next) ? '' : next);
-                      if (errors.companiaId) setErrors((prev) => ({ ...prev, companiaId: undefined }));
-                    }}
-                    disabled={loadingCompanias || !!errorCompanias}
-                  >
-                    <option value="">{loadingCompanias ? 'Cargando compañías…' : 'Selecciona compañía…'}</option>
-                    {errorCompanias && <option value="" disabled>{errorCompanias}</option>}
-                    {companias.map((c) => <option key={c.id} value={Number(c.id)}>{c.nombre}</option>)}
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Compañía:</label>
+                  <div className={`${inputCls('companiaId')} bg-gray-50 text-gray-700`}>
+                    {getConfigValue('company_name') || (companias.find(c => c.id === (companiaId === '' ? '' : Number(companiaId)))?.nombre) || bombero?.compania?.nombre || (loadingCompanias ? 'Cargando…' : '—')}
+                  </div>
                   {hasError('companiaId') && <p className="mt-1 text-xs text-red-600">{errors.companiaId}</p>}
                 </div>
 
@@ -1538,7 +1686,7 @@ const CrearParte = () => {
                       </thead>
                       <tbody>
                         {bomberosLugarFiltrados.map((b) => {
-                          const present = !!asistenciaLugar[b.id];
+                          const present = !!asistenciaLugar[String(b.id)];
                           const disabledRow = !companiaId || loadingBomberos;
                           return (
                             <tr key={b.id} className="border-t">
@@ -1596,7 +1744,7 @@ const CrearParte = () => {
                       </thead>
                       <tbody>
                         {bomberosCuartelFiltrados.map((b) => {
-                          const present = !!asistenciaCuartel[b.id];
+                          const present = !!asistenciaCuartel[String(b.id)];
                           const disabledRow = !companiaId || loadingBomberos;
                           return (
                             <tr key={b.id} className="border-t">

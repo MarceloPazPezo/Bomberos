@@ -13,10 +13,11 @@ import { crearVehiculoService } from "../services/vehiculo.service.js";
 import { crearPasajeroService } from "../services/pasajero.service.js";
 import { crearDespachoService } from "../services/esDespachado.service.js";
 import { crearEstadoEstablecidoService } from "../services/estadoEstablecido.service.js";
+import { obtenerUltimoEstadoPorIncidenteService } from "../services/estadoEstablecido.service.js";
 import { crearAcudeServicioService } from "../services/acudeServicio.service.js";
 import { crearAsistenciaIncidenteService } from "../services/asistenciaIncidente.service.js";
 import { crearBomberoAccidentadoService } from "../services/bomberoAccidentado.service.js";
-import { obtenerPartePorIdService, actualizarParteCompletoService } from "../services/parteEmergencia.service.js";
+import { obtenerPartePorIdService, actualizarParteCompletoService, obtenerParteDetalladoPorIdService } from "../services/parteEmergencia.service.js";
 import { parteEmergenciaUpdateValidation } from "../validations/parteEmergenciaUpdate.validation.js";
 
 function toHHMMSS(v) {
@@ -42,7 +43,7 @@ export async function crearParteEmergencia(req, res) {
   await queryRunner.connect();
   await queryRunner.startTransaction();
   try {
-  const { companiaId, fecha, horaDespacho, fechaHoraDespacho: fechaHoraDespachoFront, hora6_0, hora6_3, hora6_9, hora6_10, comunaId, calle, numero, depto, referencia, descripcionPreliminar, bomberoACargoId, subtipoId: idSubtipoIncidente, tipoIncendioId, faseId, idRedactor, inmuebles = [], vehiculos = [], materialMayor = [], accidentados = [], otrosServicios = [], asistencia = { lugar: [], cuartel: [] } } = parteData;
+    const { companiaId, fecha, horaDespacho, fechaHoraDespacho: fechaHoraDespachoFront, hora6_0, hora6_3, hora6_9, hora6_10, comunaId, calle, numero, depto, referencia, descripcionPreliminar, bomberoACargoId, subtipoId: idSubtipoIncidente, tipoIncendioId, faseId, idRedactor, inmuebles = [], vehiculos = [], materialMayor = [], accidentados = [], otrosServicios = [], asistencia = { lugar: [], cuartel: [] } } = parteData;
     const dirPrincipal = { calle, numero: String(numero), depto: depto || null, referencia: referencia || null, idComuna: comunaId, creadoPor: idRedactor || null, actualizadoPor: null };
     const { error: dirError } = direccionCreateValidation.validate(dirPrincipal);
     if (dirError) { await queryRunner.rollbackTransaction(); return handleErrorClient(res, 400, `Error validación dirección: ${dirError.details[0].message}`); }
@@ -55,7 +56,7 @@ export async function crearParteEmergencia(req, res) {
       const d = new Date(fechaHoraDespachoFront);
       if (!isNaN(d.getTime())) {
         fechaHoraDespacho = d;
-    
+
       }
     }
     if (!fechaHoraDespacho && fecha && horaDespacho) {
@@ -68,7 +69,7 @@ export async function crearParteEmergencia(req, res) {
           fechaHoraDespacho = new Date(yy, mm - 1, dd, hh, mi, 0, 0);
         }
       } catch (e) { console.warn('[crearParteEmergencia] Error parse manual fecha/hora', e.message); }
-     
+
     }
     const incidenteData = {
       idCompania: companiaId,
@@ -89,7 +90,7 @@ export async function crearParteEmergencia(req, res) {
     if (incidenteErr) { await queryRunner.rollbackTransaction(); return handleErrorClient(res, 400, `Error validación incidente: ${incidenteErr.details[0].message}`); }
     const incidenteCreado = await crearIncidenteService(incidenteData, manager);
     const idIncidente = incidenteCreado.id;
-   // Validación condicional: si el subtipo contiene fuego, exigir tipoIncendioId y faseId
+    // Validación condicional: si el subtipo contiene fuego, exigir tipoIncendioId y faseId
     if (idSubtipoIncidente) {
       try {
         const subRepo = manager.getRepository('SubtipoIncidente');
@@ -193,10 +194,49 @@ export async function obtenerParteEmergenciaPorId(req, res) {
     return handleErrorClient(res, 400, "Id inválido");
   }
   try {
-    const data = await obtenerPartePorIdService(idIncidente);
-    if (!data) return handleErrorClient(res, 404, "Parte no encontrado");
+    // Aceptar ambos nombres por compatibilidad: idRedactor (preferido) o redactorId
+    const redactorIdRaw = req.query?.idRedactor ?? req.query?.redactorId;
+    const redactorId = Number.parseInt(redactorIdRaw, 10);
+    if (!Number.isInteger(redactorId)) {
+      return handleErrorClient(res, 400, "Parámetro 'redactorId' es requerido y debe ser numérico");
+    }
+    const data = await obtenerPartePorIdService(idIncidente, { redactorId });
+    if (!data) return handleErrorClient(res, 403, "No autorizado para ver este parte");
     return handleSuccess(res, 200, "Parte obtenido", data);
   } catch (err) {
+    return handleErrorServer(res, 500, err.message);
+  }
+}
+
+export async function obtenerParteEmergenciaDetallado(req, res) {
+  const { id } = req.params;
+  const idIncidente = Number(id);
+  if (!Number.isInteger(idIncidente) || idIncidente <= 0) {
+    return handleErrorClient(res, 400, "Id inválido");
+  }
+  try {
+    const data = await obtenerParteDetalladoPorIdService(idIncidente);
+    if (!data) return handleErrorClient(res, 404, "Parte no encontrado");
+    return handleSuccess(res, 200, "Parte obtenido (detallado)", data);
+  } catch (err) {
+    return handleErrorServer(res, 500, err.message);
+  }
+}
+
+export async function obtenerUltimoEstadoIncidente(req, res) {
+  console.log(new Date());
+  const { id } = req.params;
+  const idIncidente = Number(id);
+  if (!Number.isInteger(idIncidente) || idIncidente <= 0) {
+    return handleErrorClient(res, 400, "Id inválido");
+  }
+  try {
+    console.log(new Date());
+    const data = await obtenerUltimoEstadoPorIncidenteService(idIncidente);
+    if (!data) return handleSuccess(res, 204);
+    return handleSuccess(res, 200, "Último estado", data);
+  } catch (err) {
+    console.error(err);
     return handleErrorServer(res, 500, err.message);
   }
 }
@@ -233,8 +273,8 @@ export async function actualizarParteEmergencia(req, res) {
       if (payload.companiaId !== undefined) payload.companiaId = toNum(payload.companiaId);
       if (payload.comunaId !== undefined) payload.comunaId = toNum(payload.comunaId);
       if (payload.clasificacionId !== undefined && payload.clasificacionId !== null && payload.clasificacionId !== '') payload.clasificacionId = toNum(payload.clasificacionId);
-  // subtipoId: sólo numérico si viene un valor positivo; si viene null o '' conservar así
-  if (payload.subtipoId !== undefined && payload.subtipoId !== null && payload.subtipoId !== '') payload.subtipoId = toNum(payload.subtipoId);
+      // subtipoId: sólo numérico si viene un valor positivo; si viene null o '' conservar así
+      if (payload.subtipoId !== undefined && payload.subtipoId !== null && payload.subtipoId !== '') payload.subtipoId = toNum(payload.subtipoId);
       if (payload.tipoIncendioId !== undefined) payload.tipoIncendioId = toNumOrNull(payload.tipoIncendioId);
       if (payload.faseId !== undefined) payload.faseId = toNumOrNull(payload.faseId);
       if (payload.bomberoACargoId !== undefined) payload.bomberoACargoId = toNumOrNull(payload.bomberoACargoId);

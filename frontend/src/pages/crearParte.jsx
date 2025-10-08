@@ -33,6 +33,7 @@ import UnidadCard from '../components/parteEmergencia/UnidadCard.jsx';
 import AccidentadoCard from '../components/parteEmergencia/AccidentadoCard.jsx';
 import ServicioExternoCard from '../components/parteEmergencia/ServicioExternoCard.jsx';
 import { AuthContext } from '../context/AuthContext.jsx';
+import { useCompaniaConfig } from '@hooks/compania/useCompaniaConfig';
 
 
 /* ================================
@@ -98,6 +99,7 @@ function useBomberosPorCompania() {
 const CrearParte = () => {
   // Usuario autenticado (redactor)
   const { bombero } = useContext(AuthContext);
+  const { loading: configLoading, getConfigValue } = useCompaniaConfig();
   /* ---------- Catálogos / dependencias ---------- */
   // Dirección
   const [regiones, setRegiones] = useState([]);
@@ -114,6 +116,73 @@ const CrearParte = () => {
   const [companiaId, setCompaniaId] = useState('');
   const [loadingCompanias, setLoadingCompanias] = useState(false);
   const [errorCompanias, setErrorCompanias] = useState('');
+
+  // Autoseleccionar compañía desde autenticación o configuración (como en Home.jsx)
+  useEffect(() => {
+    if (companiaId) return;
+    // 1) Preferir ID desde autenticación
+    const idCandidates = [
+      bombero?.companiaId,
+      bombero?.compania_id,
+      bombero?.compania?.id,
+      getConfigValue?.('company_id'),
+    ];
+    let picked = idCandidates.find((v) => v !== undefined && v !== null && v !== '');
+    // 3) Convertir a número si es posible
+    if (picked !== undefined && picked !== null && picked !== '') {
+      const n = Number(picked);
+      if (!Number.isNaN(n) && Number.isFinite(n) && n > 0) {
+        setCompaniaId(n);
+        return;
+      }
+    }
+    // 4) Fallback por nombre (auth o config): si no hay ID, intentar por nombre
+    const nameCandidates = [
+      bombero?.compania?.nombre,
+      getConfigValue?.('company_name'),
+    ]
+      .filter(Boolean)
+      .map((s) => (typeof s === 'string' ? s.trim().toLowerCase() : ''))
+      .filter(Boolean);
+
+    if (!companiaId && nameCandidates.length > 0) {
+      const tryResolveByName = (list) => {
+        const lowerList = Array.isArray(list) ? list : [];
+        for (const name of nameCandidates) {
+          const match = lowerList.find((c) => c?.nombre?.toLowerCase?.() === name);
+          if (match?.id) {
+            const n = Number(match.id);
+            if (!Number.isNaN(n) && n > 0) {
+              setCompaniaId(n);
+              return true;
+            }
+          }
+        }
+        return false;
+      };
+
+      // Intentar con las compañías ya cargadas
+      if (companias.length > 0 && tryResolveByName(companias)) return;
+
+      // Si aún no hay compañías cargadas y no estamos cargando, hacer fetch inmediato
+      if (!loadingCompanias) {
+        (async () => {
+          try {
+            setLoadingCompanias(true);
+            setErrorCompanias('');
+            const res = await getCompanias();
+            const arr = normalizeArray(res, 'companias').length > 0 ? normalizeArray(res, 'companias') : normalizeArray(res);
+            setCompanias(arr);
+            tryResolveByName(arr);
+          } catch {
+            setErrorCompanias('No se pudieron cargar las compañías.');
+          } finally {
+            setLoadingCompanias(false);
+          }
+        })();
+      }
+    }
+  }, [companiaId, bombero, companias, loadingCompanias, configLoading, getConfigValue]);
 
   // Bomberos (derivados de la compañía general)
   const [conductores, setConductores] = useState([]);
@@ -132,12 +201,10 @@ const CrearParte = () => {
   const [errorSubtipos, setErrorSubtipos] = useState('');
 
   // Características
-  const [tipoIncendioEnabled, setTipoIncendioEnabled] = useState(false);
   const [tipoIncendioId, setTipoIncendioId] = useState('');
   const [tiposDano, setTiposDano] = useState([]);
   const [loadingTiposDano, setLoadingTiposDano] = useState(false);
   const [errorTiposDano, setErrorTiposDano] = useState('');
-  const [faseEnabled, setFaseEnabled] = useState(false);
   const [faseId, setFaseId] = useState('');
   const [fasesIncidente, setFasesIncidente] = useState([]);
   const [loadingFases, setLoadingFases] = useState(false);
@@ -246,6 +313,13 @@ const CrearParte = () => {
     `${baseInput} ${hasError(k) ? 'ring-2 ring-red-400 border-red-300' : ''}`;
 
   const isPositiveInt = (x) => Number.isInteger(Number(x)) && Number(x) > 0;
+
+  // Si ya tenemos companiaId válido, limpiar el error asociado (por si se disparó antes)
+  useEffect(() => {
+    if (companiaId) {
+      setErrors((prev) => (prev?.companiaId ? { ...prev, companiaId: undefined } : prev));
+    }
+  }, [companiaId]);
 
   /* ---------- Campos controlados (persisten entre pestañas) ---------- */
   // Datos generales
@@ -408,10 +482,10 @@ const CrearParte = () => {
         numero: numeroTxt || null,
         depto: deptoTxt || null,
         referencia: referenciaTxt || '',
-  clasificacionId,
-  subtipoId,
-  tipoIncendioId: tipoIncendioId ? Number(tipoIncendioId) : null,
-  faseId: faseId ? Number(faseId) : null,
+        clasificacionId,
+        subtipoId,
+        tipoIncendioId: tipoIncendioId ? Number(tipoIncendioId) : null,
+        faseId: faseId ? Number(faseId) : null,
         descripcionPreliminar: descripcionPreliminar || '',
         bomberoACargoId: bomberoACargoId ? Number(bomberoACargoId) : null,
         idRedactor, // agregado
@@ -719,23 +793,10 @@ const CrearParte = () => {
             <Card title="1. Datos generales" titleIcon={<Users className="text-blue-600" />}>
               <div className="grid md:grid-cols-4 gap-3">
                 <div className="md:col-span-2" data-error-key="companiaId">
-                  <label htmlFor="compania" className="block text-sm font-medium text-gray-700 mb-1">Compañía:</label>
-                  <select
-                    id="compania"
-                    className={inputCls('companiaId')}
-                    value={companiaId}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const next = v === '' ? '' : Number(v);
-                      setCompaniaId(Number.isNaN(next) ? '' : next);
-                      if (errors.companiaId) setErrors((prev) => ({ ...prev, companiaId: undefined }));
-                    }}
-                    disabled={loadingCompanias || !!errorCompanias}
-                  >
-                    <option value="">{loadingCompanias ? 'Cargando compañías…' : 'Selecciona compañía…'}</option>
-                    {errorCompanias && <option value="" disabled>{errorCompanias}</option>}
-                    {companias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Compañía:</label>
+                  <div className={`${inputCls('companiaId')} bg-gray-50 text-gray-700`}> 
+                    {getConfigValue('company_name') || (companias.find(c => c.id === companiaId)?.nombre) || bombero?.compania?.nombre || (loadingCompanias ? 'Cargando…' : '—')}
+                  </div>
                   {hasError('companiaId') && <p className="mt-1 text-xs text-red-600">{errors.companiaId}</p>}
                 </div>
 
@@ -999,8 +1060,8 @@ const CrearParte = () => {
                         const v = e.target.value;
                         const next = v === '' ? '' : Number(v);
                         setSubtipoId(Number.isNaN(next) ? '' : next);
-                        setTipoIncendioEnabled(false); setTipoIncendioId('');
-                        setFaseEnabled(false); setFaseId('');
+                        setTipoIncendioId('');
+                        setFaseId('');
                         if (errors.subtipoId) setErrors(p => ({ ...p, subtipoId: undefined }));
                       }}
                       disabled={loadingSubtipos || !!errorSubtipos}
@@ -1047,77 +1108,43 @@ const CrearParte = () => {
               {/* Tipo de incendio + Fase SOLO si la clave radial contiene fuego */}
               {hasFuego && (
                 <>
-                  {/* Tipo de incendio */}
-                  <div className="flex items-center justify-between mb-2">
+                  {/* Tipo de incendio (sin switch) */}
+                  <div className="mb-2">
                     <h4 className="text-sm font-medium text-gray-900">Tipo de incendio</h4>
-                    <Switch
-                      id="switch-tipo-incendio"
-                      checked={tipoIncendioEnabled}
-                      onChange={(v) => { setTipoIncendioEnabled(v); if (!v) setTipoIncendioId(''); }}
-                      label={tipoIncendioEnabled ? 'Activo' : 'Inactivo'}
-                    />
                   </div>
-                  {tipoIncendioEnabled && (
-                    <>
-                      {loadingTiposDano && <div className="text-sm text-gray-500 mb-2">Cargando tipos…</div>}
-                      {errorTiposDano && <div className="text-sm text-red-600 mb-2">{errorTiposDano}</div>}
-                      <div className="grid sm:grid-cols-3 gap-3 mb-6">
-                        {tiposDano.map((t) => (
-                          <SelectableCard
-                            key={t.id}
-                            selected={tipoIncendioId === t.id}
-                            onClick={() => setTipoIncendioId(t.id)}
-                            icon={Home}
-                            label={t.nombre ?? t.label ?? `Tipo ${t.id}`}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  {loadingTiposDano && <div className="text-sm text-gray-500 mb-2">Cargando tipos…</div>}
+                  {errorTiposDano && <div className="text-sm text-red-600 mb-2">{errorTiposDano}</div>}
+                  <div className="grid sm:grid-cols-3 gap-3 mb-6">
+                    {tiposDano.map((t) => (
+                      <SelectableCard
+                        key={t.id}
+                        selected={tipoIncendioId === t.id}
+                        onClick={() => setTipoIncendioId(t.id)}
+                        icon={Home}
+                        label={t.nombre ?? t.label ?? `Tipo ${t.id}`}
+                      />
+                    ))}
+                  </div>
 
-                  {/* Fase */}
-                  <div className="flex items-center justify-between mb-2">
+                  {/* Fase (sin switch) */}
+                  <div className="mb-2">
                     <h4 className="text-sm font-medium text-gray-900">Fase</h4>
-                    <Switch
-                      id="switch-fase"
-                      checked={faseEnabled}
-                      onChange={(v) => { setFaseEnabled(v); if (!v) setFaseId(''); }}
-                      label={faseEnabled ? 'Activo' : 'Inactivo'}
-                    />
                   </div>
-                  {faseEnabled && (
-                    <>
-                      {loadingFases && <div className="text-sm text-gray-500 mb-2">Cargando fases…</div>}
-                      {errorFases && <div className="text-sm text-red-600 mb-2">{errorFases}</div>}
-                      <div className="grid sm:grid-cols-3 gap-3">
-                        {fasesIncidente.map((f) => (
-                          <SelectableCard
-                            key={f.id}
-                            selected={faseId === f.id}
-                            onClick={() => setFaseId(f.id)}
-                            icon={AlertTriangle}
-                            label={f.nombre ?? f.label ?? `Fase ${f.id}`}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  {loadingFases && <div className="text-sm text-gray-500 mb-2">Cargando fases…</div>}
+                  {errorFases && <div className="text-sm text-red-600 mb-2">{errorFases}</div>}
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {fasesIncidente.map((f) => (
+                      <SelectableCard
+                        key={f.id}
+                        selected={faseId === f.id}
+                        onClick={() => setFaseId(f.id)}
+                        icon={AlertTriangle}
+                        label={f.nombre ?? f.label ?? `Fase ${f.id}`}
+                      />
+                    ))}
+                  </div>
 
-                  {(tipoIncendioId || faseId) && (
-                    <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <div className="text-sm font-medium text-gray-900 mb-2">Resumen de características</div>
-                      <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <div className="text-xs text-gray-600">Tipo de incendio</div>
-                          <div className="text-gray-900">{(selectedTipoDano?.nombre ?? selectedTipoDano?.label) || '—'}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-600">Fase</div>
-                          <div className="text-gray-900">{(selectedFase?.nombre ?? selectedFase?.label) || '—'}</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
                 </>
               )}
 

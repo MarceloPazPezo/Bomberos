@@ -15,6 +15,9 @@ import CrearParte from '@pages/crearParte';
 import TestPermisos from '@pages/TestPermisos';
 import EdiarParte from '@pages/editarParte';
 import PartesDeEmergencias from '@pages/PartesDeEmergencias';
+import VistaParte from '@pages/vistaParte.jsx';
+import RevisionPartes from './pages/revisionPartes';
+import VistaParteRevision from '@pages/vistaParteRevision.jsx';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
@@ -107,6 +110,33 @@ const router = createBrowserRouter([
           </ProtectedRoute>
         )
       }
+      ,
+      {
+        path: '/vistaparte/:id',
+        element: (
+          <ProtectedRoute>
+            <VistaParte />
+          </ProtectedRoute>
+        )
+      }
+      ,
+      {
+        path: '/vistaparterev/:id',
+        element: (
+          <ProtectedRoute>
+            <VistaParteRevision />
+          </ProtectedRoute>
+        )
+      }
+      ,
+      {
+        path: '/revisionpartes',
+        element: (
+          <ProtectedRoute>
+            <RevisionPartes />
+          </ProtectedRoute>
+        )
+      }
 
 
 
@@ -119,12 +149,21 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />
+  },
+  {
+    path: '/404',
+    element: <Error404 />
   }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <FireAlertProvider>
-    <RouterProvider router={router} />
+    <RouterProvider
+      router={router}
+      future={{
+        v7_startTransition: true,
+      }}
+    />
     <ToastContainer
       position="bottom-right"
       autoClose={5000}
