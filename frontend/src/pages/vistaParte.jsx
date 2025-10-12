@@ -13,6 +13,14 @@ import { getServicios } from '@services/servicios.service.js';
 import DateDisplay from '@components/DateDisplay';
 import LoadingPage from '@components/LoadingPage';
 import { toast } from 'react-toastify';
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Card } from 'primereact/card';
+import { Divider } from 'primereact/divider';
+import { Timeline } from 'primereact/timeline';
+import { Avatar } from 'primereact/avatar';
+import { Badge } from 'primereact/badge';
+import { Button } from 'primereact/button';
 import {
   MapPin,
   Calendar,
@@ -89,7 +97,7 @@ const SmallTable = ({ headers = [], rows = [] }) => (
   </div>
 );
 
-export default function VistaParte() {
+export default function VistaParte({ showEnviarButton = true }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { bombero } = useContext(AuthContext);
@@ -98,6 +106,9 @@ export default function VistaParte() {
   const [parte, setParte] = useState(null);
   const [estadoActual, setEstadoActual] = useState('');
   const [enviando, setEnviando] = useState(false);
+  // Row expansion states
+  const [expandedInmuebles, setExpandedInmuebles] = useState(null);
+  const [expandedVehiculos, setExpandedVehiculos] = useState(null);
 
   // Utilidad local para formatear fecha a DD-MM-AAAA
   const formatDDMMYYYY = (value) => {
@@ -256,6 +267,23 @@ export default function VistaParte() {
   }, [parte?.direccion?.calle, parte?.direccion?.numero, parte?.direccion?.referencia]);
 
   const fechaIncidente = useMemo(() => formatDDMMYYYY(parte?.fecha) || (parte?.fecha ?? '-'), [parte?.fecha]);
+  // Formatea "HH:MM:SS" o "HH:MM" a solo "HH:MM"
+  const formatHHMM = (value) => {
+    if (!value) return '-';
+    const parts = String(value).split(':');
+    if (parts.length < 2) return String(value);
+    const h = parts[0]?.padStart(2, '0') ?? '';
+    const m = parts[1]?.padStart(2, '0') ?? '';
+    return `${h}:${m}`;
+  };
+  const timelineItems = useMemo(() => ([
+
+    { label: '6-0', time: parte?.hora6_0 || '-' },
+    { label: '6-3', time: parte?.hora6_3 || '-' },
+    { label: '6-9', time: parte?.hora6_9 || '-' },
+    { label: '6-10', time: parte?.hora6_10 || '-' },
+  ]), [parte?.horaDespacho, parte?.hora6_0, parte?.hora6_3, parte?.hora6_9, parte?.hora6_10]);
+
 
   if (loading) return <LoadingPage message="Cargando parte..." />;
   if (error) return (
@@ -327,7 +355,7 @@ export default function VistaParte() {
           </div>
           <div className="w-64">
             <DateDisplay fechaCreacion={parte?.createdAt || parte?.fechaHoraDespacho} fechaActualizacion={parte?.updatedAt} />
-            {(estadoActual === 'BORRADOR' || estadoActual === 'CORREGIR') && (
+            {showEnviarButton && (estadoActual === 'BORRADOR' || estadoActual === 'CORREGIR') && (
               <div className="mt-3">
                 <button
                   disabled={enviando}
@@ -357,231 +385,279 @@ export default function VistaParte() {
         </div>
       </div>
 
-      {/* 1. Antecedentes generales */}
-      <Section index={1} title="Antecedentes generales" subtitle="Datos operativos y ubicación" icon={<ClipboardList className="h-4 w-4 text-gray-700" />}>
-        <div className="grid sm:grid-cols-2 xl:grid-cols-6 gap-2">
-          <KeyStat label="Fecha del incidente" value={fechaIncidente} />
-          <KeyStat label="Despacho" value={parte.horaDespacho || '-'} />
-          <KeyStat label="6-0" value={parte.hora6_0 || '-'} />
-          <KeyStat label="6-3" value={parte.hora6_3 || '-'} />
-          <KeyStat label="6-9" value={parte.hora6_9 || '-'} />
-          <KeyStat label="6-10" value={parte.hora6_10 || '-'} />
-        </div>
-        <div className="mt-3 grid sm:grid-cols-2 xl:grid-cols-3 gap-2">
-          <KeyStat label="Bombero a cargo del incidente" value={parte?.bomberoACargo?.nombreCompleto || (parte?.bomberoACargo?.id ? `#${parte.bomberoACargo.id}` : '-')} />
-          <KeyStat label="Redactor" value={parte?.redactor?.nombreCompleto || (parte?.redactor?.id ? `#${parte.redactor.id}` : '-')} />
-        </div>
-        <div className="mt-3 grid sm:grid-cols-2 xl:grid-cols-5 gap-2">
-          <KeyStat label="Calle" value={parte?.direccion?.calle || '-'} />
-          <KeyStat label="Número" value={parte?.direccion?.numero || '-'} />
-          <KeyStat label="Comuna" value={parte?.direccion?.comuna?.nombre || (parte?.direccion?.comuna?.id ? `#${parte.direccion.comuna.id}` : '-')} />
-          <KeyStat label="N° Depto" value={parte?.direccion?.depto || '-'} />
-          <KeyStat label="Referencia" value={parte?.direccion?.referencia || '-'} />
-        </div>
-      </Section>
+      {/* 1. Antecedentes generales (PrimeReact, clave:valor) */}
+      <Card className="shadow-sm border border-gray-200">
+        <div className="flex items-center gap-3 mb-3">
+          <ClipboardList className="h-6 w-6 text-gray-800" />
+          <div className="text-lg font-bold tracking-tight text-gray-900">Antecedentes generales</div>
 
-      {/* 2. Características del incidente */}
-      <Section index={2} title="Características del incidente" subtitle="Clasificación, clave radial y fase" icon={<Shield className="h-4 w-4 text-gray-700" />}>
-        <div className="grid sm:grid-cols-2 xl:grid-cols-5 gap-2">
-          <KeyStat label="Clasificación" value={parte?.clasificacion?.nombre || (parte?.clasificacion?.id ? `#${parte.clasificacion.id}` : '-')} />
-          <KeyStat label="Clave radial" value={parte?.subtipo?.claveRadial || (parte?.subtipo?.id ? `#${parte.subtipo.id}` : '-')} />
-         
-          <KeyStat label="Tipo de incendio" value={parte?.incendio?.tipo?.nombre || (parte?.incendio?.tipo?.id ? `#${parte.incendio.tipo.id}` : '-')} />
-          <KeyStat label="Fase" value={parte?.incendio?.fase?.nombre || (parte?.incendio?.fase?.id ? `#${parte.incendio.fase.id}` : '-')} />
-         
         </div>
-        <div className='grid sm:grid-cols-2 xl:grid-cols-2 gap-2 mt-3'>
-           <KeyStat label="Descripción preliminar" value={parte?.descripcionPreliminar || '-'} />
-           <KeyStat label="Descripción clave" value={parte?.subtipo?.descripcion || '-'} />
+        <Divider />
+        <div className="flex items-stretch gap-4 text-base text-gray-900">
+          {/* Columna izquierda: datos generales */}
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="flex items-center gap-3"><i className="pi pi-building text-2xl text-gray-700" /><span className="font-semibold">Compañía:</span><span>{parte?.compania?.nombre || (parte?.compania?.id ? `#${parte?.compania?.id}` : '-')}</span></div>
+            <div className="flex items-center gap-3"><i className="pi pi-calendar text-2xl text-gray-700" /><span className="font-semibold">Fecha del despacho:</span><span>{fechaIncidente}</span></div>
+            <div className="flex items-center gap-3"><i className="pi pi-clock text-2xl text-gray-700" /><span className="font-semibold">Hora de despacho:</span><span>{parte?.horaDespacho || '-'}</span></div>
+          </div>
+          {/* Divisor vertical */}
+          <Divider layout="vertical" className="mx-2" />
+          {/* Columna derecha: ubicación */}
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="flex items-center gap-3"><i className="pi pi-map-marker text-2xl text-gray-700" /><span className="font-semibold">Dirección:</span><span>{direccion || '-'}</span></div>
+            <div className="flex items-center gap-3"><i className="pi pi-compass text-2xl text-gray-700" /><span className="font-semibold">Comuna:</span><span>{parte?.direccion?.comuna?.nombre || (parte?.direccion?.comuna?.id ? `#${parte.direccion.comuna.id}` : '-')}</span></div>
+            <div className="flex items-center gap-3"><i className="pi pi-building text-2xl text-gray-700" /><span className="font-semibold">Depto:</span><span>{parte?.direccion?.depto || '-'}</span></div>
+            <div className="flex items-center gap-3"><i className="pi pi-info-circle text-2xl text-gray-700" /><span className="font-semibold">Referencia:</span><span>{parte?.direccion?.referencia || '-'}</span></div>
+          </div>
         </div>
-      </Section>
+
+
+        <Divider align="left" type="solid">
+          <span className=" text-gray-600">Responsables</span>
+        </Divider>
+        <div className="grid sm:grid-cols-2 gap-4 mb-3">
+          <div className="flex items-center gap-3">
+            <Avatar label={(parte?.bomberoACargo?.nombreCompleto || 'B')[0]} className="bg-indigo-100 text-indigo-700" shape="circle" size="large" />
+            <div className="text-lg font-semibold text-gray-900">{parte?.bomberoACargo?.nombreCompleto || (parte?.bomberoACargo?.id ? `#${parte.bomberoACargo.id}` : '-')}</div>
+            <Badge value="A cargo" severity="info" className="ml-1" />
+          </div>
+          <div className="flex items-center gap-3">
+            <Avatar label={(parte?.redactor?.nombreCompleto || 'R')[0]} className="bg-emerald-100 text-emerald-700" shape="circle" size="large" />
+            <div className="text-lg font-semibold text-gray-900">{parte?.redactor?.nombreCompleto || (parte?.redactor?.id ? `#${parte.redactor.id}` : '-')}</div>
+            <Badge value="Redactor" severity="success" className="ml-1" />
+          </div>
+        </div>
+
+
+
+
+
+
+        <Divider align="left" type="solid">
+          <span className=" text-gray-600">Linea de Tiempo</span>
+        </Divider>
+        <div className="flex flex-col gap-2 mb-1">
+          <Timeline
+            value={timelineItems}
+            layout="horizontal"
+            align="bottom"
+            opposite={(item) => <span className="text-[16px] text-gray-600 font-medium">{formatHHMM(item.time)} </span>}
+            content={(item) => <span className="text-[14px] text-gray-900 font-semibold">{item.label}</span>}
+          />
+        </div>
+
+
+        <Divider align="left" type="solid">Descripción preliminar</Divider>
+        <div className="text-base text-gray-900 whitespace-pre-wrap">{parte?.descripcionPreliminar || '-'}</div>
+      </Card>
+
+      {/* 2. Características del incidente (PrimeReact) */}
+      <Card className="shadow-sm border border-gray-200">
+        <div className="flex items-center gap-3 mb-3">
+          <Shield className="h-6 w-6 text-gray-800" />
+          <div className="text-lg font-bold tracking-tight text-gray-900">Características del incidente</div>
+        </div>
+        {/* Formato tipo formulario en 2 columnas */}
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-base text-gray-900 mb-3">
+          {parte?.clasificacion && (
+            <div className="flex items-center gap-3">
+     
+              <span className="font-semibold">Clasificación:</span>
+              <span>{parte.clasificacion.nombre || `#${parte.clasificacion.id}`}</span>
+            </div>
+          )}
+          {parte?.subtipo && (
+            <div className="flex items-center gap-3">
+              <i className="pi pi-bolt text-2xl text-gray-700" />
+              <span className="font-semibold">Clave radial:</span>
+              <span>{parte.subtipo.claveRadial ? `${parte.subtipo.claveRadial} `.trim() : `Subtipo #${parte.subtipo.id}`}</span>
+            </div>
+          )}
+          {parte?.incendio?.tipo && (
+            <div className="flex items-center gap-3">
+        
+              <span className="font-semibold">Tipo de incendio:</span>
+              <span>{parte.incendio.tipo.nombre || `#${parte.incendio.tipo.id}`}</span>
+            </div>
+          )}
+          {parte?.incendio?.fase && (
+            <div className="flex items-center gap-3">
+              <i className="pi pi-flag text-2xl text-gray-700" />
+              <span className="font-semibold">Fase:</span>
+              <span>{parte.incendio.fase.nombre || `#${parte.incendio.fase.id}`}</span>
+            </div>
+          )}
+
+        </div>
+        <Divider align="left" type="solid">Descripción Tipo de Emergencia</Divider>
+        <div className="text-base text-gray-900 whitespace-pre-wrap">{parte.subtipo.descripcion || '-'}</div>
+
+
+
+
+      </Card>
 
       {/* 3. Inmuebles / Vehículos involucrados */}
       {(Array.isArray(parte.inmuebles) && parte.inmuebles.length > 0) || (Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0) ? (
         <Section index={3} title="Inmuebles / Vehículos involucrados" subtitle="Detalle de bienes afectados y su titularidad" icon={<Home className="h-4 w-4 text-gray-700" />}>
-          {Array.isArray(parte.inmuebles) && parte.inmuebles.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center gap-2 text-[13px] font-semibold text-gray-700 mb-2"><Building2 className="h-3.5 w-3.5" /> Inmuebles</div>
-              <div className="space-y-3">
-                {parte.inmuebles.map((inm, i) => {
-                  const direccionInm = [[inm?.direccion?.calle || inm?.calle, inm?.direccion?.numero || inm?.numero].filter(Boolean).join(' '), inm?.depto ? `Depto ${inm.depto}` : null].filter(Boolean).join(' · ');
-                  return (
-                    <div key={i} className="border-2 border-blue-300  rounded-lg p-3 space-y-2.5">
-                      <div className="font-medium text-gray-900">{direccionInm || `Inmueble #${i + 1}`}</div>
-                      <SmallTable headers={["Tipo", "Pisos", "m² constr.", "m² afect.", "Daños", "Daños Anexos"]} rows={[[inm.tipo_construccion || '-', inm.n_pisos ?? '-', inm.m2_construccion ?? '-', inm.m2_afectado ?? '-', inm.danos_vivienda ?? '-', inm.danos_anexos ?? '-']]} />
-
-                      <div>
-                        <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Dueño / Propietario</div>
-                        <SmallTable headers={["Nombre", "RUN", "Telefono", "Edad", "Descripcion de Gravedad"]} rows={[[(inm.propietario?.nombreCompleto || inm.dueno?.nombreCompleto) ?? '-', (inm.propietario?.run || inm.dueno?.run) ?? '-', inm.dueno?.telefono ?? '-', inm.dueno?.edad ?? '-', inm.dueno?.descripcionGravedad ?? '-',]]} />
-                      </div>
-
-
-                      <div>
-                        <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Habitantes</div>
-                        <SmallTable headers={["Nombre", "RUN", "Telefono", "Edad", "Descripcion de Gravedad"]} rows={(Array.isArray(inm.habitantes) ? inm.habitantes : []).map(h => [h?.nombreCompleto ?? '-', h?.run ?? '-', h?.telefono ?? '-', h?.edad ?? '-', h?.descripcionGravedad ?? '-'])} />
-                      </div>
-                    </div>
-                  );
-                })}
+          {Array.isArray(parte.inmuebles) && parte.inmuebles.length > 0 && (() => {
+            const inmueblesData = parte.inmuebles.map((inm, i) => ({ __id: i, ...inm }));
+            const direccionBody = (row) => {
+              const dir = [[row?.direccion?.calle || row?.calle, row?.direccion?.numero || row?.numero].filter(Boolean).join(' '), row?.depto ? `Depto ${row.depto}` : null].filter(Boolean).join(' · ');
+              return dir || `Inmueble #${(row.__id ?? 0) + 1}`;
+            };
+            const expansion = (row) => (
+              <div className="p-2 text-[13px] space-y-3">
+                <div>
+                  <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Dueño / Propietario</div>
+                  <SmallTable
+                    headers={["Nombre", "RUN", "Telefono", "Edad", "Descripcion de Gravedad"]}
+                    rows={[[
+                      (row.propietario?.nombreCompleto || row.dueno?.nombreCompleto) ?? '-',
+                      (row.propietario?.run || row.dueno?.run) ?? '-',
+                      row.dueno?.telefono ?? '-',
+                      row.dueno?.edad ?? '-',
+                      row.dueno?.descripcionGravedad ?? '-',
+                    ]]}
+                  />
+                </div>
+                <div>
+                  <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Habitantes</div>
+                  <SmallTable
+                    headers={["Nombre", "RUN", "Telefono", "Edad", "Descripcion de Gravedad"]}
+                    rows={(Array.isArray(row.habitantes) ? row.habitantes : []).map(h => [h?.nombreCompleto ?? '-', h?.run ?? '-', h?.telefono ?? '-', h?.edad ?? '-', h?.descripcionGravedad ?? '-'])}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            );
+            return (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-gray-700 mb-2"><Building2 className="h-3.5 w-3.5" /> Inmuebles</div>
+                <DataTable value={inmueblesData} dataKey="__id" expandedRows={expandedInmuebles} onRowToggle={(e) => setExpandedInmuebles(e.data)} rowExpansionTemplate={expansion} size="small" paginator rows={5} className="border rounded-md">
+                  <Column expander style={{ width: '2.5rem' }} />
+                  <Column header="Dirección" body={direccionBody} style={{ minWidth: '14rem' }} />
+                  <Column field="tipo_construccion" header="Tipo" style={{ minWidth: '8rem' }} />
+                  <Column field="n_pisos" header="Pisos" style={{ minWidth: '6rem' }} />
+                  <Column field="m2_construccion" header="m² constr." style={{ minWidth: '7rem' }} />
+                  <Column field="m2_afectado" header="m² afect." style={{ minWidth: '7rem' }} />
+                  <Column field="danos_vivienda" header="Daños" style={{ minWidth: '10rem' }} />
+                  <Column field="danos_anexos" header="Daños Anexos" style={{ minWidth: '10rem' }} />
+                </DataTable>
+              </div>
+            );
+          })()}
 
-          {Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0 && (
-            <div>
-              <div className="flex items-center gap-2 text-[13px] font-semibold text-gray-700 mb-2"><Car className="h-3.5 w-3.5" /> Vehículos</div>
-              <div className="space-y-3">
-                {parte.vehiculos.map((v, i) => (
-                  <div key={i} className="border border-gray-200 rounded-lg p-3 space-y-2.5">
-                    <div className="font-medium text-gray-900">{[v.marca, v.modelo, v.anio].filter(Boolean).join(' ') || `Vehículo #${i + 1}`}</div>
+          {Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0 && (() => {
+            const vehiculosData = parte.vehiculos.map((v, i) => ({ __id: i, ...v }));
+            const tituloBody = (row) => ([row.marca, row.modelo, row.anio].filter(Boolean).join(' ') || `Vehículo #${(row.__id ?? 0) + 1}`);
+            const expansionVeh = (row) => {
+              const pasajeros = Array.isArray(row.pasajeros) ? row.pasajeros : [];
+              const ocupantes = [
+                row.chofer ? { ...row.chofer, esChofer: true, vinculo: 'Chofer' } : null,
+                ...pasajeros.map(p => ({ ...p, esChofer: false }))
+              ].filter(Boolean);
+              return (
+                <div className="p-2 text-[13px] space-y-3">
+                  <div>
+                    <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Dueño</div>
                     <SmallTable
-                      headers={["Patente", "Marca", "Modelo", "Año", "Color", "Daños"]}
+                      headers={["Nombre", "RUN", "Teléfono", "Edad", "Descripción de Gravedad", "Es empresa"]}
                       rows={[[
-                        v.patente || '-',
-                        v.marca || '-',
-                        v.modelo || '-',
-                        (v.anio ?? '-'),
-                        v.color || '-',
-                        v.danos_vehiculo || '-'
+                        (row.dueno?.nombreCompleto ?? '-'),
+                        (row.dueno?.run ?? '-'),
+                        (row.dueno?.telefono ?? '-'),
+                        (row.dueno?.edad ?? '-'),
+                        (row.dueno?.descripcionGravedad ?? '-'),
+                        (typeof row.dueno?.esEmpresa === 'boolean' ? (row.dueno.esEmpresa ? 'Sí' : 'No') : '-')
                       ]]}
                     />
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Dueño</div>
-                        <SmallTable
-                          headers={["Nombre", "RUN", "Teléfono", "Edad", "Descripción de Gravedad", "Es empresa"]}
-                          rows={[[(v.dueno?.nombreCompleto ?? '-'), (v.dueno?.run ?? '-'), (v.dueno?.telefono ?? '-'), (v.dueno?.edad ?? '-'), (v.dueno?.descripcionGravedad ?? '-'), (typeof v.dueno?.esEmpresa === 'boolean' ? (v.dueno.esEmpresa ? 'Sí' : 'No') : '-')]]}
-                        />
-                      </div>
-                      <div>
-                        <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Ocupantes (Chofer y Pasajeros)</div>
-                        {(() => {
-                          const pasajeros = Array.isArray(v.pasajeros) ? v.pasajeros : [];
-                          const ocupantes = [
-                            v.chofer ? { ...v.chofer, esChofer: true, vinculo: 'Chofer' } : null,
-                            ...pasajeros.map(p => ({ ...p, esChofer: false }))
-                          ].filter(Boolean);
-                          return (
-                            <SmallTable
-                              headers={["Chofer", "Nombre", "RUN", "Teléfono", "Edad", "Descripción de Gravedad", "Vínculo", "Es empresa"]}
-                              rows={
-                                ocupantes.length
-                                  ? ocupantes.map(o => [
-                                      o.esChofer ? <Check className="h-4 w-4 text-emerald-600" /> : null,
-                                      o?.nombreCompleto ?? '-',
-                                      o?.run ?? '-',
-                                      o?.telefono ?? '-',
-                                      o?.edad ?? '-',
-                                      o?.descripcionGravedad ?? '-',
-                                      (o?.vinculo?.nombre ?? o?.vinculo ?? (o.esChofer ? 'Chofer' : 'Pasajero')),
-                                      (typeof o?.esEmpresa === 'boolean' ? (o.esEmpresa ? 'Sí' : 'No') : '-')
-                                    ])
-                                  : [[null, '-', '-', '-', '-', '-', '-', '-']]
-                              }
-                            />
-                          );
-                        })()}
-                      </div>
-                    </div>
                   </div>
-                ))}
+                  <div>
+                    <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Ocupantes (Chofer y Pasajeros)</div>
+                    <SmallTable
+                      headers={["Chofer", "Nombre", "RUN", "Teléfono", "Edad", "Descripción de Gravedad", "Vínculo", "Es empresa"]}
+                      rows={
+                        ocupantes.length
+                          ? ocupantes.map(o => [
+                            o.esChofer ? <Check className="h-4 w-4 text-emerald-600" /> : null,
+                            o?.nombreCompleto ?? '-',
+                            o?.run ?? '-',
+                            o?.telefono ?? '-',
+                            o?.edad ?? '-',
+                            o?.descripcionGravedad ?? '-',
+                            (o?.vinculo?.nombre ?? o?.vinculo ?? (o.esChofer ? 'Chofer' : 'Pasajero')),
+                            (typeof o?.esEmpresa === 'boolean' ? (o.esEmpresa ? 'Sí' : 'No') : '-')
+                          ])
+                          : [[null, '-', '-', '-', '-', '-', '-', '-']]
+                      }
+                    />
+                  </div>
+                </div>
+              );
+            };
+            return (
+              <div>
+                <div className="flex items-center gap-2 text-[13px] font-semibold text-gray-700 mb-2"><Car className="h-3.5 w-3.5" /> Vehículos</div>
+                <DataTable value={vehiculosData} dataKey="__id" expandedRows={expandedVehiculos} onRowToggle={(e) => setExpandedVehiculos(e.data)} rowExpansionTemplate={expansionVeh} size="small" paginator rows={5} className="border rounded-md">
+                  <Column expander style={{ width: '2.5rem' }} />
+                  <Column header="Vehículo" body={tituloBody} style={{ minWidth: '12rem' }} />
+                  <Column field="patente" header="Patente" style={{ minWidth: '8rem' }} />
+                  <Column field="color" header="Color" style={{ minWidth: '8rem' }} />
+                  <Column field="danos_vehiculo" header="Daños" style={{ minWidth: '10rem' }} />
+                </DataTable>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </Section>
       ) : null}
 
       {/* 4. Material mayor */}
       {Array.isArray(parte.materialMayor) && parte.materialMayor.length > 0 && (
         <Section index={4} title="Material mayor" subtitle="Recursos movilizados" icon={<Truck className="h-4 w-4 text-gray-700" />}>
-          <div className="overflow-auto">
-            <table className="min-w-full text-[13px]">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-2 py-1.5 text-left">Unidad</th>
-                  <th className="px-2 py-1.5 text-left">Conductor</th>
-                  <th className="px-2 py-1.5 text-left">Jefe de unidad</th>
-                  <th className="px-2 py-1.5 text-left">Voluntarios</th>
-                  <th className="px-2 py-1.5 text-left">KM salida</th>
-                  <th className="px-2 py-1.5 text-left">KM llegada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parte.materialMayor.map((r, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="px-2 py-1.5">{r.unidad?.patente || (r.unidad?.id ? `Unidad #${r.unidad.id}` : '-')}</td>
-                    <td className="px-2 py-1.5">{r.conductor?.nombreCompleto || (r.conductor?.id ? `Bombero #${r.conductor.id}` : '-')}</td>
-                    <td className="px-2 py-1.5">{r.jefeUnidad?.nombreCompleto || (r.jefeUnidad?.id ? `Bombero #${r.jefeUnidad.id}` : '-')}</td>
-                    <td className="px-2 py-1.5">{r.voluntarios ?? '-'}</td>
-                    <td className="px-2 py-1.5">{r.kmSalida ?? '-'}</td>
-                    <td className="px-2 py-1.5">{r.kmLlegada ?? '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SmallTable
+            headers={["Unidad", "Conductor", "Jefe de unidad", "Voluntarios", "KM salida", "KM llegada"]}
+            rows={parte.materialMayor.map(r => [
+              r.unidad?.patente || (r.unidad?.id ? `Unidad #${r.unidad.id}` : '-'),
+              r.conductor?.nombreCompleto || (r.conductor?.id ? `Bombero #${r.conductor.id}` : '-'),
+              r.jefeUnidad?.nombreCompleto || (r.jefeUnidad?.id ? `Bombero #${r.jefeUnidad.id}` : '-'),
+              r.voluntarios ?? '-',
+              r.kmSalida ?? '-',
+              r.kmLlegada ?? '-',
+            ])}
+          />
         </Section>
       )}
 
       {/* 5. Otros servicios de emergencia en el lugar */}
       {Array.isArray(parte.otrosServicios) && parte.otrosServicios.length > 0 && (
         <Section index={5} title="Otros servicios de emergencia en el lugar" subtitle="Apoyos externos" icon={<Siren className="h-4 w-4 text-gray-700" />}>
-          <div className="overflow-auto">
-            <table className="min-w-full text-[13px]">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-2 py-1.5 text-left">Servicio</th>
-                  <th className="px-2 py-1.5 text-left">Tipo unidad</th>
-                  <th className="px-2 py-1.5 text-left">Responsable</th>
-                  <th className="px-2 py-1.5 text-left">Personal</th>
-                  <th className="px-2 py-1.5 text-left">Observaciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parte.otrosServicios.map((s, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="px-2 py-1.5">{s.servicio?.nombre || `Servicio ${i + 1}`}</td>
-                    <td className="px-2 py-1.5">{s.tipoUnidad || '-'}</td>
-                    <td className="px-2 py-1.5">{s.responsable || '-'}</td>
-                    <td className="px-2 py-1.5">{s.personal ?? '-'}</td>
-                    <td className="px-2 py-1.5">{s.observaciones || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SmallTable
+            headers={["Servicio", "Tipo unidad", "Responsable", "Personal", "Observaciones"]}
+            rows={parte.otrosServicios.map(s => [
+              s.servicio?.nombre || '-',
+              s.tipoUnidad || '-',
+              s.responsable || '-',
+              s.personal ?? '-',
+              s.observaciones || '-',
+            ])}
+          />
         </Section>
       )}
 
       {/* 6. Bomberos accidentados */}
       {Array.isArray(parte.accidentados) && parte.accidentados.length > 0 && (
         <Section index={6} title="Bomberos accidentados" subtitle="Antecedentes del personal" icon={<Users className="h-4 w-4 text-gray-700" />}>
-          <div className="overflow-auto">
-            <table className="min-w-full text-[13px]">
-              <thead className="bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="px-2 py-1.5 text-left">Bombero</th>
-                  <th className="px-2 py-1.5 text-left">Compañía</th>
-                  <th className="px-2 py-1.5 text-left">Lesiones</th>
-                  <th className="px-2 py-1.5 text-left">Constancia</th>
-                  <th className="px-2 py-1.5 text-left">Comisaría</th>
-                  <th className="px-2 py-1.5 text-left">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {parte.accidentados.map((a, i) => (
-                  <tr key={i} className="border-t">
-                    <td className="px-2 py-1.5">{a.bombero?.nombreCompleto || (a.bombero?.id ? `Bombero #${a.bombero.id}` : '-')}</td>
-                    <td className="px-2 py-1.5">{a.compania?.nombre || (a.compania?.id ? `Compañía #${a.compania.id}` : '-')}</td>
-                    <td className="px-2 py-1.5">{a.lesiones || '-'}</td>
-                    <td className="px-2 py-1.5">{a.constancia || '-'}</td>
-                    <td className="px-2 py-1.5">{a.comisaria || '-'}</td>
-                    <td className="px-2 py-1.5">{a.acciones || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SmallTable
+            headers={["Bombero", "Compañía", "Lesiones", "Constancia", "Comisaría", "Acciones"]}
+            rows={parte.accidentados.map(a => [
+              a.bombero?.nombreCompleto || (a.bombero?.id ? `Bombero #${a.bombero.id}` : '-'),
+              a.compania?.nombre || (a.compania?.id ? `Compañía #${a.compania.id}` : '-'),
+              a.lesiones || '-',
+              a.constancia || '-',
+              a.comisaria || '-',
+              a.acciones || '-',
+            ])}
+          />
         </Section>
       )}
 

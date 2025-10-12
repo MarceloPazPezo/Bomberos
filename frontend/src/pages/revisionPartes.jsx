@@ -2,91 +2,146 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getIncidentesRevision, cambiarEstadoIncidente } from '@services/incidentes.service.js';
-import { Eye, Filter, CheckCircle2, Send, Edit3, FileText } from 'lucide-react';
+import { CheckCircle2, Edit3 } from 'lucide-react';
 import Card from '@components/Card.jsx';
-
-// Estilos coherentes con PartesDeEmergencias.jsx
-const CONTAINER_STYLE_BY_ESTADO = {
-  ENVIADO: 'border-blue-300 bg-blue-50',
-  APROBADO: 'border-green-300 bg-green-50',
-  CORREGIR: 'border-red-300 bg-red-50',
-};
-const HEADER_STYLE_BY_ESTADO = {
-  ENVIADO: 'bg-blue-600 text-white',
-  APROBADO: 'bg-green-600 text-white',
-  CORREGIR: 'bg-red-600 text-white',
-};
-const ICON_BY_ESTADO = {
-  ENVIADO: <Send className="h-4 w-4" />,
-  APROBADO: <CheckCircle2 className="h-4 w-4" />,
-  CORREGIR: <Edit3 className="h-4 w-4" />,
-};
+// PrimeReact
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { Tag } from 'primereact/tag';
+import { Button } from 'primereact/button';
+import { InputText } from 'primereact/inputtext';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
+import { MultiSelect } from 'primereact/multiselect';
+import { FilterMatchMode } from 'primereact/api';
 
 function TablaRevision({ rows, onOpen, onChangeEstado }) {
   const trim = (t, n) => (t && t.length > n ? `${t.slice(0, n)}…` : t || '');
-  return (
-    <div className={`overflow-auto rounded-md border border-gray-200 bg-white`}>
-      <table className="min-w-full text-sm">
-        <thead className="bg-gray-50 text-gray-600">
-          <tr>
-            <th className="px-3 py-2 text-left">Fecha</th>
-            <th className="px-3 py-2 text-left">Estado</th>
-            <th className="px-3 py-2 text-left">Clave radial</th>
-            <th className="px-3 py-2 text-left">Descripción</th>
-            <th className="px-3 py-2 text-left">Tipo</th>
-            <th className="px-3 py-2 text-left">Compañía</th>
-            <th className="px-3 py-2 text-left">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 && (
-            <tr>
-              <td className="px-3 py-3 text-gray-500 italic" colSpan={7}>
-                Sin registros
-              </td>
-            </tr>
-          )}
-          {rows.map((r) => (
-            <tr key={r.id} className="border-t">
-              <td className="px-3 py-2">{r.fecha}</td>
-              <td className="px-3 py-2">
-                <span className={`inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs border ${
-                  r.estado === 'APROBADO' ? 'bg-green-50 text-green-700 border-green-200' :
-                  r.estado === 'ENVIADO' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                  r.estado === 'CORREGIR' ? 'bg-red-50 text-red-700 border-red-200' :
-                  'bg-gray-50 text-gray-700 border-gray-200'
-                }`}>
-                  {ICON_BY_ESTADO[r.estado] || <FileText className="h-4 w-4" />}
-                  {r.estado}
-                </span>
-              </td>
-              <td className="px-3 py-2">{r.detalle?.claveRadial || ''}</td>
-              <td className="px-3 py-2" title={r.detalle?.descripcionPreliminar || r.titulo}>
-                {trim(r.detalle?.descripcionPreliminar || r.titulo, 50)}
-              </td>
-              <td className="px-3 py-2">{r.tipo}</td>
-              <td className="px-3 py-2">{r.compania}</td>
-              <td className="px-3 py-2">
-                <button
-                  className="inline-flex items-center gap-1 text-xs rounded border border-gray-300 px-2 py-1 hover:bg-gray-50"
-                  onClick={() => onOpen(r)}
-                >
-                  <Eye className="h-3.5 w-3.5" /> Ver
-                </button>
-                {r.estado === 'ENVIADO' && (
-                  <button
-                    className="ml-2 inline-flex items-center gap-1 text-xs rounded border border-indigo-300 px-2 py-1 hover:bg-indigo-50 text-indigo-700"
-                    onClick={() => onChangeEstado(r)}
-                  >
-                    <Edit3 className="h-3.5 w-3.5" /> Cambiar estado
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+
+  // Robust parsing para ordenar por fecha (intenta ISO y dd/MM/yyyy HH:mm)
+  const parseDateToTs = useCallback((s) => {
+    if (!s) return 0;
+    const t = Date.parse(s);
+    if (!Number.isNaN(t)) return t;
+    const m = typeof s === 'string' && s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (m) {
+      const [, d, mo, y, h = '0', mi = '0', se = '0'] = m;
+      const yyyy = (y?.length === 2 ? `20${y}` : y) * 1;
+      return new Date(yyyy, (mo * 1) - 1, d * 1, h * 1, mi * 1, se * 1).getTime();
+    }
+    return 0;
+  }, []);
+
+  // Normalizamos filas para DataTable (campos planos para filtrar/ordenar)
+  const tableRows = useMemo(() => {
+    const estadosPermitidos = new Set(['ENVIADO','CORREGIR','APROBADO']);
+    return (rows || []).filter(r => estadosPermitidos.has(String(r?.estado || '').toUpperCase())).map(r => ({
+      ...r,
+      descripcion: r?.detalle?.descripcionPreliminar || r?.titulo || '',
+      claveRadial: r?.detalle?.claveRadial ? String(r.detalle.claveRadial) : '',
+      fechaSort: parseDateToTs(r?.fecha)
+    }));
+  }, [rows, parseDateToTs]);
+
+  // Filtros controlados del DataTable
+  const [filters, setFilters] = useState({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    estado: { value: null, matchMode: FilterMatchMode.IN },
+    claveRadial: { value: null, matchMode: FilterMatchMode.IN },
+  });
+  const globalValue = filters.global?.value || '';
+
+  const estadosOptions = useMemo(() => {
+    const set = new Set(tableRows.map(r => r.estado).filter(Boolean));
+    return Array.from(set).map(v => ({ label: v, value: v }));
+  }, [tableRows]);
+
+  const clavesOptions = useMemo(() => {
+    const set = new Set(tableRows.map(r => r.claveRadial).filter(v => v !== '' && v != null));
+    return Array.from(set).map(v => ({ label: v, value: v }));
+  }, [tableRows]);
+
+  const header = (
+    <div className="flex items-center justify-between gap-2">
+      <IconField iconPosition="left">
+        <InputIcon className="pi pi-search" />
+        <InputText
+          value={globalValue}
+          onChange={(e) => setFilters((f) => ({ ...f, global: { value: e.target.value, matchMode: FilterMatchMode.CONTAINS } }))}
+          placeholder="Buscar en la tabla"
+          className="p-inputtext-sm w-64 md:w-80"
+        />
+      </IconField>
     </div>
+  );
+
+  const estadoBody = (row) => {
+    const e = String(row.estado || '').toUpperCase();
+    const sev = e === 'APROBADO' ? 'success' : e === 'ENVIADO' ? 'info' : e === 'CORREGIR' ? 'danger' : null;
+    return <Tag value={row.estado} severity={sev} />;
+  };
+
+  const descripcionBody = (row) => (
+    <span title={row.descripcion}>{trim(row.descripcion, 60)}</span>
+  );
+
+  const accionesBody = (row) => (
+    <div className="flex items-center gap-2">
+      <Button size="small" label="Ver" icon="pi pi-eye" outlined onClick={() => onOpen(row)} />
+      {row.estado === 'ENVIADO' && (
+        <Button size="small" label="Cambiar estado" icon="pi pi-pencil" severity="info" outlined onClick={() => onChangeEstado(row)} />
+      )}
+    </div>
+  );
+
+  const estadoFilterElement = (options) => (
+    <MultiSelect
+      value={options.value}
+      options={estadosOptions}
+      onChange={(e) => options.filterCallback(e.value)}
+      className="p-column-filter"
+      placeholder="Estados"
+      maxSelectedLabels={1}
+      display="chip"
+      showClear
+    />
+  );
+
+  const claveFilterElement = (options) => (
+    <MultiSelect
+      value={options.value}
+      options={clavesOptions}
+      onChange={(e) => options.filterCallback(e.value)}
+      className="p-column-filter"
+      placeholder="Clave radial"
+      maxSelectedLabels={1}
+      display="chip"
+      showClear
+    />
+  );
+
+  return (
+    <DataTable
+      value={tableRows}
+      dataKey="id"
+      paginator rows={10} rowsPerPageOptions={[10, 25, 50]}
+      sortField="fechaSort" sortOrder={-1}
+      filters={filters}
+      onFilter={(e) => setFilters(e.filters)}
+      filterDisplay="menu"
+      globalFilterFields={["estado", "claveRadial", "tipo", "compania", "descripcion"]}
+      emptyMessage="Sin registros"
+      header={header}
+      className="rounded-md border border-gray-200 bg-white"
+    >
+      <Column field="fechaSort" header="Fecha" sortable body={(row) => row.fecha} style={{ minWidth: '10rem' }} />
+      <Column field="estado" header="Estado" sortable body={estadoBody} filter filterElement={estadoFilterElement} showFilterMatchModes={false} style={{ minWidth: '10rem' }} />
+      <Column field="claveRadial" header="Clave radial" sortable filter body={(row) => row.claveRadial} filterElement={claveFilterElement} showFilterMatchModes={false} style={{ minWidth: '10rem' }} />
+      <Column field="descripcion" header="Descripción" body={descripcionBody} style={{ minWidth: '16rem' }} />
+      <Column field="tipo" header="Tipo" sortable style={{ minWidth: '8rem' }} />
+      <Column field="compania" header="Compañía" sortable style={{ minWidth: '10rem' }} />
+      <Column header="Acciones" body={accionesBody} exportable={false} style={{ minWidth: '14rem' }} />
+    </DataTable>
   );
 }
 
@@ -94,23 +149,20 @@ export default function RevisionPartes() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
-  const [filtros, setFiltros] = useState({ ENVIADO: true, APROBADO: true, CORREGIR: true });
   const [modal, setModal] = useState({ open: false, incidente: null });
-
-  const estadosSeleccionados = useMemo(
-    () => Object.entries(filtros).filter(([, v]) => v).map(([k]) => k),
-    [filtros]
-  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getIncidentesRevision(estadosSeleccionados);
-      setRows(Array.isArray(data) ? data : []);
+      // Mostrar solo BORRADOR, CORREGIR y APROBADO
+      const estadosPermitidos = ['ENVIADO', 'CORREGIR', 'APROBADO'];
+      const data = await getIncidentesRevision(estadosPermitidos);
+      const filtrados = (Array.isArray(data) ? data : []).filter(r => estadosPermitidos.includes(String(r?.estado || '').toUpperCase()));
+      setRows(filtrados);
     } finally {
       setLoading(false);
     }
-  }, [estadosSeleccionados]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -131,47 +183,9 @@ export default function RevisionPartes() {
 
   return (
     <div className="p-4 space-y-4">
-      <Card title="Revisión de Partes" titleIcon={<Filter className="h-5 w-5 text-gray-700" />}>
-        <div className="flex items-center justify-between">
-          <div className="inline-flex items-center gap-2 text-sm text-gray-700">
-            <label className="inline-flex items-center gap-1">
-              <input
-                type="checkbox"
-                className="accent-blue-600"
-                checked={filtros.ENVIADO}
-                onChange={(e) => setFiltros((f) => ({ ...f, ENVIADO: e.target.checked }))}
-              />
-              ENVIADO
-            </label>
-            <label className="inline-flex items-center gap-1">
-              <input
-                type="checkbox"
-                className="accent-green-600"
-                checked={filtros.APROBADO}
-                onChange={(e) => setFiltros((f) => ({ ...f, APROBADO: e.target.checked }))}
-              />
-              APROBADO
-            </label>
-            <label className="inline-flex items-center gap-1">
-              <input
-                type="checkbox"
-                className="accent-red-600"
-                checked={filtros.CORREGIR}
-                onChange={(e) => setFiltros((f) => ({ ...f, CORREGIR: e.target.checked }))}
-              />
-              CORREGIR
-            </label>
-          </div>
-          <button
-            onClick={fetchData}
-            className="text-sm rounded border border-gray-300 px-2 py-1 hover:bg-gray-50"
-          >
-            Actualizar
-          </button>
-        </div>
-      </Card>
+      {/* Card de filtros eliminada por solicitud; la DataTable provee búsqueda y filtros */}
 
-      <Card title={`Resultados (${rows.length})`}>
+      <Card title={`Revision de partes de emergencia (${rows.length})`}>
         {loading ? (
           <div className="text-sm text-gray-500">Cargando…</div>
         ) : (

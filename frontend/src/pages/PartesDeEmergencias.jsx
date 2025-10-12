@@ -3,7 +3,17 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getEstadosReportes } from "../services/estadosParte.service.js";
 import { getIncidentesResumen } from "../services/incidentes.service.js";
+import { borrarIncidente } from "../services/borrarParte.service.js";
 import { useAuth } from "@hooks/auth/useAuth";
+// PrimeReact
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { InputText } from 'primereact/inputtext';
+import { Calendar as PRCalendar } from 'primereact/calendar';
+import { Button } from 'primereact/button';
+import { Dropdown } from 'primereact/dropdown';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import Card from '@components/Card';
 
 // 🔰 Iconos
 import {
@@ -142,50 +152,130 @@ function KanbanCard({ parte, onClick }) {
    Tabla de registros (por estado) — NEUTRA
 ========================= */
 function EstadoTable({ rows, onOpen, containerClass = "" }) {
-  const trim = (t, n) => (t && t.length > n ? `${t.slice(0, n)}…` : t || "");
-  return (
-    <div className={`overflow-auto rounded-md border ${containerClass || "border-gray-200 bg-white"}`}>
-      <table className="min-w-full text-sm">
-        <thead className="bg-gray-50 text-gray-600">
-          <tr>
-            <th className="px-3 py-2 text-left">Fecha</th>
-            <th className="px-3 py-2 text-left">Clave radial</th>
-            <th className="px-3 py-2 text-left">Descripción</th>
-            <th className="px-3 py-2 text-left">Tipo</th>
-            <th className="px-3 py-2 text-left">Compañía</th>
-            <th className="px-3 py-2 text-left">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 && (
-            <tr>
-              <td className="px-3 py-3 text-gray-500 italic" colSpan={6}>
-                Sin registros
-              </td>
-            </tr>
-          )}
-          {rows.map((r) => (
-            <tr key={r.id} className="border-t">
-              <td className="px-3 py-2">{r.fecha}</td>
-              <td className="px-3 py-2">{r.detalle?.claveRadial || ""}</td>
-              <td className="px-3 py-2" title={r.detalle?.descripcionPreliminar || r.titulo}>
-                {trim((r.detalle?.descripcionPreliminar || r.titulo), 40)}
-              </td>
-              <td className="px-3 py-2">{r.tipo}</td>
-              <td className="px-3 py-2">{r.compania}</td>
-              <td className="px-3 py-2">
-                <button
-                  className="inline-flex items-center gap-1 text-xs rounded border border-gray-300 px-2 py-1 hover:bg-gray-50"
-                  onClick={() => onOpen(r)}
-                >
-                  <Eye className="h-3.5 w-3.5" /> Ver
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+  // Aplanar datos para filtros y sort
+  const data = useMemo(() => rows.map(r => ({
+    ...r,
+    fechaStr: r.fecha || '',
+    claveRadial: r?.detalle?.claveRadial || '',
+    descripcionText: r?.detalle?.descripcionPreliminar || r?.titulo || '',
+  })), [rows]);
+
+  // Filtros locales
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [claveFilter, setClaveFilter] = useState(null);
+  const [descFilter, setDescFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState(null);
+
+  // Opciones únicas para Dropdown de clave radial
+  const claveOptions = useMemo(() => {
+    const set = new Set();
+    for (const r of data) {
+      if (r.claveRadial) set.add(r.claveRadial);
+    }
+    return Array.from(set).sort().map(v => ({ label: v, value: v }));
+  }, [data]);
+
+  const header = (
+    <div className="flex flex-col gap-2 p-2 text-sm">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
+        <div className="flex items-center gap-2">
+          <i className="pi pi-calendar text-gray-500" />
+          <PRCalendar
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.value)}
+            dateFormat="yy-mm-dd"
+            placeholder="Buscar por fecha"
+            inputClassName="w-full"
+            showIcon
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <i className="pi pi-bolt text-gray-500" />
+          <Dropdown
+            value={claveFilter}
+            onChange={(e) => setClaveFilter(e.value)}
+            options={claveOptions}
+            placeholder="Filtrar por clave radial"
+            className="w-full"
+            showClear
+            filter
+          />
+        </div>
+        <div className="flex items-center gap-2 md:col-span-2">
+          <i className="pi pi-search text-gray-500" />
+          <InputText
+            value={descFilter}
+            onChange={(e) => setDescFilter(e.target.value)}
+            placeholder="Buscar por descripción"
+            className="w-full"
+          />
+        </div>
+      </div>
     </div>
+  );
+
+  const filtered = useMemo(() => {
+    let arr = data;
+    if (dateFilter) {
+      const y = dateFilter.getFullYear();
+      const m = String(dateFilter.getMonth() + 1).padStart(2, '0');
+      const d = String(dateFilter.getDate()).padStart(2, '0');
+      const s = `${y}-${m}-${d}`;
+      arr = arr.filter(r => (r.fechaStr || '').startsWith(s));
+    }
+    if (claveFilter) {
+      arr = arr.filter(r => (r.claveRadial || '') === claveFilter);
+    }
+    if (descFilter.trim()) {
+      const q = descFilter.toLowerCase();
+      arr = arr.filter(r => (r.descripcionText || '').toLowerCase().includes(q));
+    }
+    if (globalFilter.trim()) {
+      const q = globalFilter.toLowerCase();
+      arr = arr.filter(r =>
+        (r.fechaStr || '').toLowerCase().includes(q) ||
+        (r.claveRadial || '').toLowerCase().includes(q) ||
+        (r.descripcionText || '').toLowerCase().includes(q)
+      );
+    }
+    return arr;
+  }, [data, dateFilter, claveFilter, descFilter, globalFilter]);
+
+  const accionesBody = (row) => (
+    <div className="flex items-center gap-2">
+      <Button icon="pi pi-eye" className="p-button-sm p-button-text" onClick={() => onOpen(row)} tooltip="Ver" />
+    </div>
+  );
+
+  const descripcionBody = (row) => {
+    const txt = row.descripcionText || '';
+    const short = txt.length > 150 ? txt.slice(0, 150) + '…' : txt;
+    return <span title={txt}>{short}</span>;
+  };
+
+  return (
+    <Card title="Registros" titleIcon={<ClipboardList className="h-4 w-4" />}>
+      <div className={`rounded-md border ${containerClass || "border-gray-200 bg-white"}`}>
+        <DataTable
+          value={filtered}
+          dataKey="id"
+          paginator rows={8}
+          rowsPerPageOptions={[8, 15, 30]}
+          size="small"
+          sortMode="single"
+          sortField="fechaStr" sortOrder={-1}
+          header={header}
+          emptyMessage="Sin registros"
+        >
+          <Column field="fechaStr" header="Fecha" sortable style={{ minWidth: '8rem' }}></Column>
+          <Column field="claveRadial" header="Clave radial" sortable style={{ minWidth: '8rem' }}></Column>
+          <Column field="descripcionText" header="Descripción" body={descripcionBody} style={{ minWidth: '14rem' }}></Column>
+          <Column field="tipo" header="Tipo" style={{ minWidth: '7rem' }}></Column>
+          <Column field="compania" header="Compañía" style={{ minWidth: '9rem' }}></Column>
+          <Column header="Acciones" body={accionesBody} style={{ width: '7rem' }}></Column>
+        </DataTable>
+      </div>
+    </Card>
   );
 }
 
@@ -195,6 +285,7 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
 function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   const navigate = useNavigate();
   const [visible, setVisible] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
   const handleClose = useCallback(() => {
     setVisible(false);
     // dar tiempo a la animación antes de desmontar
@@ -231,6 +322,32 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   };
   const streetNumber = getStreetNumber(parte?.detalle?.direccion);
   const prettyEstado = estadoKey ? estadoKey.charAt(0) + estadoKey.slice(1).toLowerCase() : "";
+  const puedeBorrar = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
+  const onDelete = async () => {
+    if (!parte?.id || deleting) return;
+    confirmDialog({
+      message: '¿Estás seguro de eliminar este parte? Esta acción no se puede deshacer.',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'Cancelar',
+      acceptClassName: 'p-button-danger',
+      rejectClassName: 'p-button-text',
+      defaultFocus: 'reject',
+      accept: async () => {
+        try {
+          setDeleting(true);
+          await borrarIncidente(parte.id);
+          // quitar del listado actual
+          onClose();
+        } catch (e) {
+          alert(e?.message || 'No se pudo borrar el parte');
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
+  };
   return (
     <>
       <div
@@ -369,6 +486,16 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
                 onClick={() => parte?.id && navigate(`/editarparte/${parte.id}`)}
               >
                 <Pencil className="h-4 w-4" /> Actualizar parte
+              </button>
+            )}
+            {puedeBorrar && (
+              <button
+                className="col-span-2 rounded-md bg-red-600 text-white px-3 py-2 hover:bg-red-700 inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                onClick={onDelete}
+                disabled={deleting}
+                title="Eliminar parte (sólo estados Borrador o Corregir)"
+              >
+                <i className="pi pi-trash" /> {deleting ? 'Eliminando…' : 'Eliminar parte'}
               </button>
             )}
           </div>
@@ -525,6 +652,8 @@ export default function PartesDeEmergencias() {
 
   return (
     <div className="min-h-[80vh]">
+      {/* Confirmación global */}
+      <ConfirmDialog />
       {/* Header superior con tabs de filtro */}
       <div className="border-b border-gray-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 py-3">

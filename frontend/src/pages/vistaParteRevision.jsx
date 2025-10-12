@@ -6,6 +6,8 @@ import { obtenerUltimoEstadoIncidente } from '@services/parteEmergencia.service.
 import { cambiarEstadoIncidente } from '@services/incidentes.service.js';
 import { toast } from 'react-toastify';
 import VistaParte from './vistaParte.jsx';
+import { Button } from 'primereact/button';
+import { Dialog } from 'primereact/dialog';
 
 // Esta vista envuelve a VistaParte y añade controles para cambiar estado cuando corresponda.
 export default function VistaParteRevision() {
@@ -52,45 +54,58 @@ export default function VistaParteRevision() {
 
   return (
     <>
-      <VistaParte />
+  <VistaParte showEnviarButton={false} />
 
       {estadoActual === 'ENVIADO' && (
         <div className="fixed bottom-4 right-4 z-50">
-          <button
+          <Button
+            label="Revisar parte"
+            icon="pi pi-pencil"
+            severity="info"
+            className="shadow-lg"
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-indigo-300 bg-indigo-50 text-indigo-700 px-3 py-2 shadow hover:bg-indigo-100"
-          >
-            <Edit3 className="h-4 w-4" /> Revisar parte
-          </button>
+          />
         </div>
       )}
 
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/30 grid place-items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-4 w-80">
-            <div className="text-sm font-medium mb-2">Revisar incidente #{id}</div>
-            <div className="space-y-2">
-              <button
-                disabled={working}
-                className="w-full inline-flex items-center justify-center gap-2 rounded border border-green-200 bg-green-50 text-green-700 px-3 py-2 hover:bg-green-100 disabled:opacity-60"
-                onClick={() => doChange('APROBADO')}
-              >
-                <CheckCircle2 className="h-4 w-4" /> Aprobar
-              </button>
-              <button
-                disabled={working}
-                className="w-full inline-flex items-center justify-center gap-2 rounded border border-red-200 bg-red-50 text-red-700 px-3 py-2 hover:bg-red-100 disabled:opacity-60"
-                onClick={() => doChange('CORREGIR')}
-              >
-                <Edit3 className="h-4 w-4" /> Corregir
-              </button>
-            </div>
-            <div className="mt-3 text-right">
-              <button className="text-xs text-gray-700 hover:text-gray-900" onClick={() => setModalOpen(false)}>Cancelar</button>
-            </div>
+      <Dialog
+        header={`Revisar incidente #${id}`}
+        visible={modalOpen}
+        style={{ width: '24rem' }}
+        modal
+        onHide={() => !working && setModalOpen(false)}
+        footer={
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              label="Cancelar"
+              icon="pi pi-times"
+              text
+              onClick={() => setModalOpen(false)}
+              disabled={working}
+            />
+            <Button
+              label="Corregir"
+              icon="pi pi-pencil"
+              severity="danger"
+              onClick={() => doChange('CORREGIR')}
+              loading={working}
+              disabled={working}
+            />
+            <Button
+              label="Aprobar"
+              icon="pi pi-check"
+              severity="success"
+              onClick={() => doChange('APROBADO')}
+              loading={working}
+              disabled={working}
+            />
           </div>
+        }
+      >
+        <div className="text-sm text-gray-800">
+          Selecciona la acción que deseas aplicar a este parte de emergencia.
         </div>
-      )}
+      </Dialog>
     </>
   );
 }

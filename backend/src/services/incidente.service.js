@@ -25,3 +25,18 @@ export async function crearFaseYDanoService(faseData, manager = null) {
         throw error;
     }
 }
+
+export async function borrarIncidenteService(incidenteId, manager = null) {
+  try {
+    const incidenteRepository = (manager || AppDataSource).getRepository(Incidente);
+    const incidente = await incidenteRepository.findOneBy({ id: incidenteId });
+    if (!incidente) {
+      throw new Error("Incidente no encontrado");
+    }
+    await incidenteRepository.remove(incidente);
+    return true;
+  } catch (error) {
+    console.error("Error al borrar el incidente:", error);
+    throw error;
+  }
+}

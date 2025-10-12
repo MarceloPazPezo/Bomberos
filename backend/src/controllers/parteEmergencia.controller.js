@@ -19,6 +19,8 @@ import { crearAsistenciaIncidenteService } from "../services/asistenciaIncidente
 import { crearBomberoAccidentadoService } from "../services/bomberoAccidentado.service.js";
 import { obtenerPartePorIdService, actualizarParteCompletoService, obtenerParteDetalladoPorIdService } from "../services/parteEmergencia.service.js";
 import { parteEmergenciaUpdateValidation } from "../validations/parteEmergenciaUpdate.validation.js";
+import { borrarIncidenteService } from "../services/incidente.service.js";
+
 
 function toHHMMSS(v) {
   if (!v) return null;
@@ -322,6 +324,39 @@ export async function actualizarParteEmergencia(req, res) {
     const result = await actualizarParteCompletoService(idIncidente, value, queryRunner.manager);
     await queryRunner.commitTransaction();
     return handleSuccess(res, 200, "Parte actualizado", result);
+  } catch (err) {
+    await queryRunner.rollbackTransaction();
+    return handleErrorServer(res, 500, err.message);
+  } finally {
+    await queryRunner.release();
+  }
+}
+
+
+export async function borrarParteEmergencia(req, res) {
+  const { id } = req.params;
+  const idIncidente = Number(id);
+  if (!Number.isInteger(idIncidente) || idIncidente <= 0) {
+    return handleErrorClient(res, 400, "Id inválido");
+  }
+  // Validación de estado: sólo se puede borrar si último estado es BORRADOR o CORREGIR
+  try {
+    const ultimo = await obtenerUltimoEstadoPorIncidenteService(idIncidente);
+    const estado = (ultimo?.estado || '').toString().toUpperCase();
+    const permitido = estado === 'BORRADOR' || estado === 'CORREGIR';
+    if (!permitido) {
+      return handleErrorClient(res, 409, `No es posible borrar el incidente en estado '${estado || 'DESCONOCIDO'}'. Sólo se permite en BORRADOR o CORREGIR.`);
+    }
+  } catch (e) {
+    return handleErrorServer(res, 500, e?.message || 'Error al validar estado del incidente');
+  }
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+  try {
+    await borrarIncidenteService(idIncidente, queryRunner.manager);
+    await queryRunner.commitTransaction();
+    return handleSuccess(res, 200, "Parte de emergencia borrado");
   } catch (err) {
     await queryRunner.rollbackTransaction();
     return handleErrorServer(res, 500, err.message);
