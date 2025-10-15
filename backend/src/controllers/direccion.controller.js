@@ -1,7 +1,7 @@
 "use strict";
 import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 
-import { getRegionesService,getComunasService } from "../services/direccion.service.js";
+import { getRegionesService,getComunasService, getDireccionService } from "../services/direccion.service.js";
 
 export async function getRegiones(req, res) {
     try {
@@ -31,3 +31,22 @@ export async function getComunas(req, res) {
         handleErrorServer(res, 500, error.message);
     }
 }
+
+export async function getDireccion(req, res) {
+    try {
+        console.log("entrando")
+        const idDireccion = req.params.id;
+        
+        if (!idDireccion || isNaN(Number(idDireccion))) {
+            return handleErrorClient(res, 400, "ID de dirección inválido");
+        }
+        const data = await getDireccionService(idDireccion);
+        if (!data) {
+            return handleErrorClient(res, 404, "Dirección no encontrada");
+        }
+        handleSuccess(res, 200, "Dirección obtenida", data);
+    } catch (error) {
+        handleErrorServer(res, 500, error.message);
+    }
+}
+

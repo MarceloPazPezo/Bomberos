@@ -18,6 +18,8 @@ import PartesDeEmergencias from '@pages/PartesDeEmergencias';
 import VistaParte from '@pages/vistaParte.jsx';
 import RevisionPartes from './pages/revisionPartes';
 import VistaParteRevision from '@pages/vistaParteRevision.jsx';
+import CalendarioOperativo from '@pages/calendarioOperativoAdmin.jsx';
+import CalendarioOperativoBasic from '@pages/calendarioOperativoBasic.jsx';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
@@ -140,10 +142,23 @@ const router = createBrowserRouter([
             <RevisionPartes />
           </ProtectedRoute>
         )
+      },
+      {
+        path: '/calendariooperativo',
+        element: (
+          <ProtectedRoute>
+            <CalendarioOperativo />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/calendariooperativobasic',
+        element: (
+          <ProtectedRoute>
+            <CalendarioOperativoBasic />
+          </ProtectedRoute>
+        )
       }
-
-
-
     ]
   },
   {

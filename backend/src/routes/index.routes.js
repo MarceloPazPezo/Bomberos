@@ -20,6 +20,7 @@ import estadosParteRoutes from "./estadosParte.routes.js";
 import incidenteResumenRoutes from "./incidenteResumen.routes.js";
 import revisionPartesRoutes from "./revisionPartes.routes.js";
 import incidenteEstadoRoutes from "./incidenteEstado.routes.js";
+import eventoRoutes from "./evento.routes.js";
 
 
 const router = Router();
@@ -46,7 +47,8 @@ router
   .use("/estadosParte", estadosParteRoutes)
   .use("/incidentes", incidenteResumenRoutes)
   .use("/incidentes", revisionPartesRoutes)
-  .use("/incidentes", incidenteEstadoRoutes);
+  .use("/incidentes", incidenteEstadoRoutes)
+  .use("/calendario", eventoRoutes);
 
 
 export default router;

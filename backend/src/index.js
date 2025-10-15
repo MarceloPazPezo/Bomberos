@@ -39,6 +39,7 @@ import {
   crearTipoDano,
   crearfaseIncidente
 } from "./config/data/initialSubTipoIncidente.js";
+import crearTipoEvento from "./config/data/initialTipoEvento.js";
 
 import crearEstados from "./config/data/initialEstadoReporte.js";
 
@@ -156,6 +157,8 @@ async function setupAPI() {
     await crearfaseIncidente();
     await crearServicios();
     await crearEstados();
+    await crearTipoEvento();
+
     
 
     logger.info("[CONFIG] Configuración inicial completada");

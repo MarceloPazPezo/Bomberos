@@ -25,3 +25,52 @@ export async function crearDireccionService(direccionData, manager = null) {
     return nuevaDireccion.id;
 }
 
+export async function getDireccionService(idDireccion) {
+    try {
+        const direccionRepository = AppDataSource.getRepository(Direccion);
+        const dir = await direccionRepository.findOne({
+            where: { id: idDireccion },
+            relations: {
+                comuna: { region: true },
+            },
+        });
+        if (!dir) return null;
+        // Extra: exponer idRegion directamente para facilitar al frontend
+        const idRegion = dir?.comuna?.idRegion ?? dir?.comuna?.region?.id ?? null;
+        // Devolver objeto enriquecido sin romper compatibilidad
+        return { ...dir, idRegion };
+    } catch (error) {
+        throw new Error("Error al obtener la dirección");
+    }
+}
+
+export async function actualizarDireccionService(idDireccion, direccionData, manager = null) {
+    try {
+    const direccionRepository = (manager || AppDataSource).getRepository(Direccion);
+    const direccion = await direccionRepository.findOne({ where: { id: idDireccion } });
+    if (!direccion) {
+        throw new Error("Dirección no encontrada");
+    }
+    direccionRepository.merge(direccion, direccionData);
+    return await direccionRepository.save(direccion);
+    } catch (error) {
+        throw new Error("Error al actualizar la dirección");
+    }
+}
+
+
+
+export async function eliminarDireccionService(idDireccion, manager = null) {
+    try {
+    const direccionRepository = (manager || AppDataSource).getRepository(Direccion);
+    const direccion = await direccionRepository.findOne({ where: { id: idDireccion } });
+    if (!direccion) {
+        throw new Error("Dirección no encontrada");
+    }
+    return await direccionRepository.remove(direccion);
+    } catch (error) {
+        throw new Error("Error al eliminar la dirección");
+    }
+}
+
+
