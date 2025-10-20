@@ -63,6 +63,7 @@ export async function changeBomberoEstado(idBombero, activo) {
 //obtener bomberos por compañia
 export async function getBomberosPorCompania(idCompania) {
     try {
+
         const { data } = await axios.get(`/bombero/compania/${idCompania}`);
         const formattedData = data.data.map(formatBomberoData);
        

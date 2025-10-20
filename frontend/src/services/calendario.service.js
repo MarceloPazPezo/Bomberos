@@ -47,3 +47,31 @@ export const deleteEvento = async (id) => {
   }
 };
 
+export const getEventosRecurrentes = async () => {
+  try {
+    const response = await axios.get('/calendario/eventos-recurrentes');
+    console.log(response.data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const registrarAsistenciaEvento = async (idEvento, data) => {
+  try {
+    const response = await axios.post(`/calendario/eventos/registrar-asistencia/${idEvento}`, data);
+    console.log(response.data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const obtenerAsistenciaEvento = async (idEvento) => {
+  try {
+    const response = await axios.get(`/calendario/eventos/asistencia/${idEvento}`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

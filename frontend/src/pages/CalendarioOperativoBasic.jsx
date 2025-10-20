@@ -4,7 +4,7 @@ import localizedFormat from 'dayjs/plugin/localizedFormat';
 import 'dayjs/locale/es';
 
 // Servicios (solo lectura)
-import { getEventos, getTiposEvento } from '../services/calendario.service.js';
+import { getEventos, getTiposEvento, getEventosRecurrentes } from '../services/calendario.service.js';
 import { getDireccion } from '../services/direccion.service.js';
 
 // FullCalendar
@@ -14,14 +14,20 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import listPlugin from '@fullcalendar/list';
 import multiMonthPlugin from '@fullcalendar/multimonth';
+import rrulePlugin from '@fullcalendar/rrule';
 
 // PrimeReact
 import { Dialog } from 'primereact/dialog';
-import { MultiSelect } from 'primereact/multiselect';
-import { Accordion, AccordionTab } from 'primereact/accordion';
+import { TabView, TabPanel } from 'primereact/tabview';
 
 import { toast } from 'react-toastify';
-import tinycolor from 'tinycolor2';
+import CalendarToolbar from '@components/calendar/CalendarToolbar';
+import CalendarRecToolbar from '@components/calendar/CalendarRecToolbar';
+import ProximosEventosPanel from '@components/calendar/ProximosEventosPanel';
+import { FC_TRUNCATE_CSS } from '@helpers/calendarCss';
+import { buildTipoColorMap, getTipoBgFromMap } from '@helpers/calendarColors';
+import { formatHeaderFecha, mapEventosConColores } from '@helpers/calendarFormat';
+import { mapRecurrentesToEvents, computeProximosEventos, computeProximosRecurrentes } from '@helpers/calendarRecurrentes';
 
 dayjs.extend(localizedFormat);
 dayjs.locale('es');
@@ -35,6 +41,11 @@ const VISTAS = {
 
 const CalendarioOperativoBasic = () => {
 	const calendarRef = useRef(null);
+  const recCalendarRef = useRef(null);
+
+	// CSS truncado importado desde helper
+
+  const [activeIndex, setActiveIndex] = useState(0); // 0: Normal, 1: Recurrentes
 
 	const [loading, setLoading] = useState(false);
 	const [eventos, setEventos] = useState([]);
@@ -42,6 +53,7 @@ const CalendarioOperativoBasic = () => {
 	const [filtroTipos, setFiltroTipos] = useState([]);
 	const [detalleVisible, setDetalleVisible] = useState(false);
 	const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedIsRecurrent, setSelectedIsRecurrent] = useState(false);
 	const [direccionDetalle, setDireccionDetalle] = useState(null);
 	const [direccionLoading, setDireccionLoading] = useState(false);
 	const [direccionError, setDireccionError] = useState(null);
@@ -50,54 +62,20 @@ const CalendarioOperativoBasic = () => {
 	const dirSolicitadasRef = useRef(new Set());
 
 	const [vista, setVista] = useState(VISTAS.month);
+	// Recurrentes
+	const [recLoading, setRecLoading] = useState(false);
+	const [recEventos, setRecEventos] = useState([]);
+	const [recVista, setRecVista] = useState(VISTAS.month);
+		const [recFiltroTipos, setRecFiltroTipos] = useState(['cumple', 'ingreso', 'fundacion']);
 
 	// Selección de color de texto usando WCAG: intenta AA (isReadable) y si no, usa mayor contraste
-	const pickTextColor = (bgHex) => {
-		const dark = '#111827';
-		const light = '#ffffff';
-		const opts = { level: 'AA', size: 'small' };
-		const darkOk = tinycolor.isReadable(bgHex, dark, opts);
-		const lightOk = tinycolor.isReadable(bgHex, light, opts);
-		if (darkOk && !lightOk) return dark;
-		if (lightOk && !darkOk) return light;
-		// Si ambos pasan o ambos fallan, elegir el de mayor legibilidad
-		const darkScore = tinycolor.readability(bgHex, dark);
-		const lightScore = tinycolor.readability(bgHex, light);
-		return darkScore >= lightScore ? dark : light;
-	};
+		// colores manejados por helpers
 
 	// Mapa de colores por tipo (bg, border, text), basado en paleta triádica de #318CE7.
 	// Si hay más de 3 tipos, se varía el brillo (lighten/darken) por "anillos".
-	const tipoColorMap = useMemo(() => {
-		if (!tipos || tipos.length === 0) return {};
-		const triad = tinycolor('#318CE7').triad();
-		const tipoIndexMap = new Map((tipos || []).map((t, i) => [String(t.value), i]));
-		const colorForTipo = (tipoId) => {
-			const idx = tipoIndexMap.get(String(tipoId)) ?? 0;
-			const anchor = triad[idx % 3].clone();
-			const level = Math.floor(idx / 3);
-			let variant = anchor.clone();
-			if (level > 0) {
-				const brightAmt = Math.min(10 + (level - 1) * 8, 35);
-				const satAmt = Math.min(8 + (level - 1) * 4, 24);
-				variant = (level % 2 === 1) ? anchor.lighten(brightAmt) : anchor.darken(brightAmt);
-				if (level % 3 === 1) variant = variant.saturate(satAmt);
-				else if (level % 3 === 2) variant = variant.desaturate(satAmt);
-				else variant = variant.saturate(4);
-			}
-			const bg = variant.toHexString();
-			const border = variant.darken(14).toHexString();
-			const text = pickTextColor(bg);
-			return { bg, border, text };
-		};
-		const map = {};
-		for (const t of tipos) {
-			map[String(t.value)] = colorForTipo(t.value);
-		}
-		return map;
-	}, [tipos]);
+		const tipoColorMap = useMemo(() => buildTipoColorMap(tipos), [tipos]);
 
-	const getTipoBg = (id) => tipoColorMap[String(id)]?.bg || '#318CE7';
+		const getTipoBg = (id) => getTipoBgFromMap(tipoColorMap, id);
 
 	// Cargar tipos y eventos (solo lectura)
 	useEffect(() => {
@@ -109,56 +87,16 @@ const CalendarioOperativoBasic = () => {
 					getTiposEvento().catch(() => []),
 				]);
 
-				const tiposOpt = (tps?.data || tps || []).map((t) => ({
+						const tiposOpt = (tps?.data || tps || []).map((t) => ({
 					label: t?.nombre || t?.name || t?.label || 'General',
 					value: t?.id || t?.value || t?.codigo || 'general',
 					color: t?.color || undefined,
 				}));
 				setTipos(tiposOpt);
-
-				// Paleta triádica basada en #318CE7
-				const triad = tinycolor('#318CE7').triad();
-				const tipoIndexMap = new Map((tiposOpt || []).map((t, i) => [String(t.value), i]));
-				const colorForTipo = (tipoId) => {
-					const idx = tipoIndexMap.get(String(tipoId)) ?? 0;
-					const anchor = triad[idx % 3].clone();
-					const level = Math.floor(idx / 3); // anillos sobre triada
-					let variant = anchor.clone();
-					if (level > 0) {
-						const brightAmt = Math.min(10 + (level - 1) * 8, 35);
-						const satAmt = Math.min(8 + (level - 1) * 4, 24);
-						variant = (level % 2 === 1) ? anchor.lighten(brightAmt) : anchor.darken(brightAmt);
-						if (level % 3 === 1) variant = variant.saturate(satAmt);
-						else if (level % 3 === 2) variant = variant.desaturate(satAmt);
-						else variant = variant.saturate(4);
-					}
-					const bg = variant.toHexString();
-					const border = variant.darken(14).toHexString();
-					const text = pickTextColor(bg);
-					return { bg, border, text };
-				};
-
-				const tipoLabelMap = new Map((tiposOpt || []).map((t) => [String(t.value), t.label]));
-				const mapped = (ev?.data || ev || []).map((e) => {
-					const tipoId = e.idTipoEvento ?? e.tipoEvento?.id ?? e.tipoId ?? null;
-					const col = (tipoId != null) ? colorForTipo(tipoId) : undefined;
-					const tipoLabel = tipoId != null ? (tipoLabelMap.get(String(tipoId)) || 'General') : undefined;
-					return {
-						id: e.id ?? e._id ?? String(Math.random()),
-						title: e.nombre ?? e.title ?? 'NO CARGO',
-						start: e.fechaHoraInicio ? dayjs(e.fechaHoraInicio).toISOString() : dayjs(e.start).toISOString(),
-						end: e.fechaHoraFin ? dayjs(e.fechaHoraFin).toISOString() : (e.end ? dayjs(e.end).toISOString() : undefined),
-						allDay: Boolean(e.esTodoElDia ?? e.allDay),
-						tipoId: tipoId != null ? String(tipoId) : null,
-						tipoLabel,
-						descripcion: e.descripcion ?? e.description ?? '',
-						idDireccion: e.idDireccion ?? e.direccion?.id ?? null,
-						backgroundColor: col?.bg,
-						borderColor: col?.border,
-						textColor: col?.text,
-					};
-				});
-				setEventos(mapped);
+						const colorMap = buildTipoColorMap(tiposOpt);
+						const getColorForTipo = (tipoId) => colorMap[String(tipoId)];
+						const mapped = mapEventosConColores((ev?.data || ev || []), tiposOpt, getColorForTipo);
+						setEventos(mapped);
 			} catch (err) {
 				console.error('Error cargando calendario', err);
 				toast.error('No se pudieron cargar los eventos');
@@ -175,13 +113,7 @@ const CalendarioOperativoBasic = () => {
 		return eventos.filter((e) => set.has(String(e.tipoId)));
 	}, [eventos, filtroTipos]);
 
-	const proximosEventos = useMemo(() => {
-		const ahora = dayjs();
-		return [...eventosFiltrados]
-			.filter((e) => dayjs(e.start).isAfter(ahora))
-			.sort((a, b) => dayjs(a.start).valueOf() - dayjs(b.start).valueOf())
-			.slice(0, 5);
-	}, [eventosFiltrados]);
+		const proximosEventos = useMemo(() => computeProximosEventos(eventosFiltrados, 4), [eventosFiltrados]);
 
 	// Carga perezosa de direcciones de próximos eventos (si tienen idDireccion)
 	useEffect(() => {
@@ -211,6 +143,42 @@ const CalendarioOperativoBasic = () => {
 		api?.changeView(v);
 	};
 
+	// Navegar a una fecha específica en el calendario normal
+	const gotoFechaNormal = (date) => {
+		try {
+			if (activeIndex !== 0) {
+				setActiveIndex(0);
+				setTimeout(() => {
+					const api = calendarRef.current?.getApi?.();
+					if (api && date) api.gotoDate(date);
+				}, 0);
+			} else {
+				const api = calendarRef.current?.getApi?.();
+				if (api && date) api.gotoDate(date);
+			}
+		} catch {
+			void 0; // no-op
+		}
+	};
+
+	// Navegar a una fecha específica en el calendario recurrente
+	const gotoFechaRec = (date) => {
+		try {
+			if (activeIndex !== 1) {
+				setActiveIndex(1);
+				setTimeout(() => {
+					const api = recCalendarRef.current?.getApi?.();
+					if (api && date) api.gotoDate(date);
+				}, 0);
+			} else {
+				const api = recCalendarRef.current?.getApi?.();
+				if (api && date) api.gotoDate(date);
+			}
+		} catch {
+			void 0; // no-op
+		}
+	};
+
 	const onEventClick = async (info) => {
 		try {
 			const ev = info?.event;
@@ -231,6 +199,7 @@ const CalendarioOperativoBasic = () => {
 				idDireccion: ev.extendedProps?.idDireccion ?? null,
 			};
 			setSelectedEvent(data);
+			setSelectedIsRecurrent(false);
 			setDetalleVisible(true);
 
 			// limpiar estado de dirección y cargar si corresponde
@@ -242,223 +211,232 @@ const CalendarioOperativoBasic = () => {
 					const resp = await getDireccion(data.idDireccion);
 					const dir = resp?.data || resp || null;
 					setDireccionDetalle(dir);
-				} catch (e) {
+				} catch {
 					setDireccionError('No se pudo cargar la dirección');
 				} finally {
 					setDireccionLoading(false);
 				}
 			}
-		} catch (e) {
+		} catch {
 			setSelectedEvent(null);
 			setDetalleVisible(false);
 		}
 	};
 
-	// Formatea una línea de fecha para el header del detalle (estilo Google Calendar)
-	const formatHeaderFecha = (ev) => {
-		if (!ev || !ev.start) return '';
-		const start = dayjs(ev.start);
-		const end = ev.end ? dayjs(ev.end) : null;
-		if (ev.allDay) return start.format('dddd, D [de] MMMM');
-		if (end && start.isSame(end, 'day')) {
-			return start.format('dddd, D [de] MMMM');
+	// ====== ---------------- Recurrentes (solo ver) ---------------- ======
+		// recurrentes ahora con helper
+
+	const cargarRecurrentes = async () => {
+		setRecLoading(true);
+		try {
+			const resp = await getEventosRecurrentes();
+			const data = resp?.data || resp || {};
+			const mapped = mapRecurrentesToEvents(data);
+			setRecEventos(mapped);
+		} catch {
+			// noop
+			toast.error('No se pudieron cargar los eventos recurrentes');
+			setRecEventos([]);
+		} finally {
+			setRecLoading(false);
 		}
-		if (end) {
-			return `${start.format('ddd D MMM')} — ${end.format('ddd D MMM')}`;
-		}
-		return start.format('dddd, D [de] MMMM');
 	};
 
+	useEffect(() => {
+		if (activeIndex === 1 && recEventos.length === 0 && !recLoading) {
+			cargarRecurrentes();
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activeIndex]);
+
+	const cambiarVistaRec = (v) => {
+		setRecVista(v);
+		const api = recCalendarRef.current?.getApi?.();
+		api?.changeView(v);
+	};
+
+	const onRecEventClick = (info) => {
+		const ev = info?.event;
+		if (!ev) return;
+		const props = ev.extendedProps || {};
+		const data = {
+			id: ev.id,
+			title: ev.title,
+			start: ev.start ?? ev._instance?.range?.start ?? null,
+			end: ev.end ?? ev._instance?.range?.end ?? null,
+			allDay: ev.allDay,
+			backgroundColor: ev.backgroundColor,
+			borderColor: ev.borderColor,
+			textColor: ev.textColor,
+			tipoId: null,
+			tipoLabel:
+				props?.tipoRec === 'cumple' ? 'Cumpleaños' :
+				props?.tipoRec === 'ingreso' ? 'Ingreso' :
+				props?.tipoRec === 'fundacion' ? 'Fundación' : undefined,
+			descripcion: props?.descripcion || '',
+			idDireccion: null,
+			__recurrentExtras: {
+				tipoRec: props.tipoRec,
+				nombre: props.nombre,
+				apellido: props.apellido,
+				nombreCompania: props.nombreCompania,
+				email: props.email,
+				baseDate: props.baseDate,
+			},
+		};
+		setSelectedEvent(data);
+		setSelectedIsRecurrent(true);
+		setDetalleVisible(true);
+	};
+
+  // opciones de filtro para recurrentes gestionadas en CalendarRecToolbar
+
+	const recEventosFiltrados = useMemo(() => {
+		if (!recFiltroTipos || recFiltroTipos.length === 0) return [];
+		const set = new Set(recFiltroTipos);
+		return recEventos.filter((e) => set.has(e.extendedProps?.tipoRec));
+	}, [recEventos, recFiltroTipos]);
+
+		const proximosRecEventos = useMemo(() => computeProximosRecurrentes(recEventosFiltrados, 4), [recEventosFiltrados]);
+
+	// Formatea una línea de fecha para el header del detalle (estilo Google Calendar)
+		// usar helper formatHeaderFecha
+
 	const Toolbar = () => (
-		<div className="flex items-center justify-between py-4 px-2">
-			<h1 className="text-2xl font-semibold text-slate-800">Calendario Operativo</h1>
-			<div className="flex items-center gap-2">
-				<MultiSelect
-					value={filtroTipos}
-					onChange={(e) => setFiltroTipos(e.value)}
-					options={tipos}
-					optionLabel="label"
-					optionValue="value"
-					placeholder="Filtrar tipos"
-					display="chip"
-					className="w-64"
-					showClear
-					itemTemplate={(option) => (
-						<div className="flex items-center gap-2">
-							<span
-								className="inline-block h-2.5 w-2.5 rounded-full"
-								style={{ backgroundColor: getTipoBg(option.value) }}
-							/>
-							<span>{option.label}</span>
-						</div>
-					)}
-					selectedItemTemplate={(value) => {
-						const opt = tipos.find((t) => String(t.value) === String(value));
-						if (!opt) return null;
-						return (
-							<div className="flex items-center gap-1">
-								<span
-									className="inline-block h-2 w-2 rounded-full"
-									style={{ backgroundColor: getTipoBg(opt.value) }}
-								/>
-								<span className="text-xs">{opt.label}</span>
-							</div>
-						);
-					}}
-				/>
-				{[
-					{ key: VISTAS.year, label: 'Año' },
-					{ key: VISTAS.month, label: 'Mes' },
-					{ key: VISTAS.week, label: 'Semana' },
-					{ key: VISTAS.day, label: 'Día' },
-				].map((t) => (
-					<button
-						key={t.key}
-						onClick={() => cambiarVista(t.key)}
-						className={`px-3 py-1.5 rounded-md text-sm border transition ${
-							vista === t.key
-								? 'bg-blue-600 text-white border-blue-600'
-								: 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-						}`}
-					>
-						{t.label}
-					</button>
-				))}
-				{loading && <i className="pi pi-spinner pi-spin text-slate-500 ml-2" aria-label="Cargando" />}
-			</div>
-		</div>
+		<CalendarToolbar
+		  title="Calendario Operativo"
+		  tipos={tipos}
+		  filtroTipos={filtroTipos}
+		  onChangeFiltro={setFiltroTipos}
+		  vista={vista}
+		  VISTAS={VISTAS}
+		  onChangeVista={cambiarVista}
+		  loading={loading}
+		  getTipoBg={getTipoBg}
+		/>
 	);
 
 	return (
 		<div className="min-h-screen bg-slate-50">
+				<style>{FC_TRUNCATE_CSS}</style>
 			<div className="mx-auto px-4 sm:px-6 lg:px-1 ">
-				<Toolbar />
-
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-					{/* Calendario */}
-					<div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-4 fc-compact">
-						<FullCalendar
-							ref={calendarRef}
-							plugins={[interactionPlugin, dayGridPlugin, timeGridPlugin, listPlugin, multiMonthPlugin]}
-							initialView={vista}
-							headerToolbar={{ left: 'prev', center: 'title', right: 'next' }}
-							locale="es"
-							height="auto"
-							firstDay={1}
-							navLinks={true}
-							selectable={false}
-							dayMaxEvents={3}
-							events={eventosFiltrados}
-							eventClick={onEventClick}
-							eventDidMount={(info) => {
-								if (info.event.extendedProps?.textColor) {
-									info.el.style.color = info.event.extendedProps.textColor;
-								}
-							}}
-							eventTimeFormat={{ hour: '2-digit', minute: '2-digit', meridiem: false }}
-							slotMinTime="07:00:00"
-							slotMaxTime="23:00:00"
-							nowIndicator={true}
-							loading={(isLoading) => setLoading(isLoading)}
-							multiMonthMaxColumns={8}
-						/>
-					</div>
-
-					{/* Próximos eventos */}
-					<aside className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-						<h2 className="text-lg font-medium text-slate-800 mb-4">Próximos eventos</h2>
-						{proximosEventos.length === 0 ? (
-							<div className="text-sm text-slate-500">No hay eventos próximos</div>
-						) : (
-							<Accordion>
-								{proximosEventos.map((e) => (
-									<AccordionTab
-										key={e.id}
-										header={
-											<div className="flex items-center gap-3">
-												<span className="h-2 w-2 rounded-full" style={{ backgroundColor: e.backgroundColor || '#2563eb' }} />
-												<div className="text-sm">
-													<div className="font-medium text-slate-800">{e.title}</div>
-													<div className="text-xs text-slate-500">
-														{dayjs(e.start).format('ddd D MMM, HH:mm')} {e.end ? `- ${dayjs(e.end).format('HH:mm')}` : ''}
-													</div>
-												</div>
-											</div>
+				<TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
+					<TabPanel header="Calendario Operativo">
+						<Toolbar />
+						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+							<div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-4 fc-compact">
+								<FullCalendar
+									ref={calendarRef}
+									plugins={[interactionPlugin, dayGridPlugin, timeGridPlugin, listPlugin, multiMonthPlugin]}
+									initialView={vista}
+									headerToolbar={{ left: 'prev', center: 'title', right: 'next' }}
+									locale="es"
+									height="auto"
+									firstDay={1}
+									navLinks={true}
+									selectable={false}
+									dayMaxEvents={3}
+									events={eventosFiltrados}
+									eventClick={onEventClick}
+									eventDidMount={(info) => {
+										if (info.event.extendedProps?.textColor) {
+											info.el.style.color = info.event.extendedProps.textColor;
 										}
-									>
-										<div className="text-sm text-slate-700 space-y-2">
-											{/* Inicio / Fin */}
-											<div className="flex items-start gap-2">
-												<i className="pi pi-calendar text-slate-500 mt-0.5" />
-												<div>
-													{e.allDay ? (
-														<>
-															<div><span className="font-medium">Inicio: </span>{e.start ? dayjs(e.start).format('dddd D [de] MMMM') : '—'}</div>
-															<div><span className="font-medium">Fin: </span>{e.end ? dayjs(e.end).format('dddd D [de] MMMM') : '—'}</div>
-														</>
-													) : (
-														<>
-															<div><span className="font-medium">Inicio: </span>{e.start ? dayjs(e.start).format('ddd D MMM, HH:mm') : '—'}</div>
-															<div><span className="font-medium">Fin: </span>{e.end ? dayjs(e.end).format('ddd D MMM, HH:mm') : '—'}</div>
-														</>
-													)}
-												</div>
-											</div>
+									}}
+									eventTimeFormat={{ hour: '2-digit', minute: '2-digit', meridiem: false }}
+									slotMinTime="07:00:00"
+									slotMaxTime="23:00:00"
+									nowIndicator={true}
+									loading={(isLoading) => setLoading(isLoading)}
+									multiMonthMaxColumns={8}
+								/>
+							</div>
+											<ProximosEventosPanel
+												titulo="Próximos eventos"
+												items={proximosEventos}
+												dirCache={dirCache}
+												showDireccion="auto"
+												onVerEnCalendario={gotoFechaNormal}
+											/>
+						</div>
+					</TabPanel>
 
-											{/* Dirección */}
-											<div className="flex items-start gap-2">
-												<i className="pi pi-map-marker text-slate-500 mt-0.5" />
-												<div>
-													{e.idDireccion ? (
-														(() => {
-															const key = String(e.idDireccion);
-															const dir = dirCache[key];
-															if (dir === undefined) {
-																return <span className="text-slate-500 flex items-center gap-2"><i className="pi pi-spinner pi-spin" /> Cargando dirección...</span>;
-															}
-															if (dir && dir.__error) {
-																return <span className="text-red-600">No se pudo cargar la dirección</span>;
-															}
-															if (!dir) {
-																return <span className="text-slate-500">Sin datos de dirección</span>;
-															}
-															return (
-																<div>
-																	<div>{dir.calle || 'Calle'} {dir.numero || ''}</div>
-																	{dir.comuna?.nombre && (
-																		<div className="text-slate-500">{dir.comuna.nombre}</div>
-																	)}
-																	{dir.comuna?.region?.nombre && (
-																		<div className="text-slate-500">{dir.comuna.region.nombre}</div>
-																	)}
-																</div>
-															);
-														})()
-													) : (
-														<span className="text-slate-500">Sin dirección</span>
-													)}
-												</div>
-											</div>
+								<TabPanel header="Hitos de la institución">
+									<CalendarRecToolbar
+										recFiltroTipos={recFiltroTipos}
+										onChangeFiltro={setRecFiltroTipos}
+										recVista={recVista}
+										VISTAS={VISTAS}
+										onChangeVista={cambiarVistaRec}
+										recLoading={recLoading}
+									/>
 
-											{e.tipoLabel && (
-												<div className="flex items-center gap-2">
-													<i className="pi pi-bookmark text-slate-500" />
-													<span>{e.tipoLabel}</span>
-												</div>
-											)}
-											{e.descripcion && (
-												<div className="flex items-start gap-2">
-													<i className="pi pi-align-left text-slate-500 mt-0.5" />
-													<p className="whitespace-pre-line">{e.descripcion}</p>
-												</div>
-											)}
-										</div>
-									</AccordionTab>
-								))}
-							</Accordion>
-						)}
-					</aside>
-				</div>
+						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+							<div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-4 fc-compact">
+								<FullCalendar
+									ref={recCalendarRef}
+									plugins={[interactionPlugin, dayGridPlugin, timeGridPlugin, listPlugin, multiMonthPlugin, rrulePlugin]}
+									initialView={recVista}
+									headerToolbar={{ left: 'prev', center: 'title', right: 'next' }}
+									locale="es"
+									height="auto"
+									firstDay={1}
+									dayMaxEvents={3}
+									events={recEventosFiltrados}
+									eventClick={onRecEventClick}
+									eventContent={(arg) => {
+										try {
+											const ev = arg.event;
+											const props = ev.extendedProps || {};
+											let text = ev.title || '';
+											if (props?.tipoRec === 'fundacion' && props?.baseDate && ev.start) {
+												const base = dayjs(props.baseDate);
+												const occ = dayjs(ev.start);
+												if (base.isValid() && occ.isValid()) {
+													const years = occ.year() - base.year();
+													text = `Aniversario #${years} ${props.nombreCompania || ''}`.trim();
+												}
+											} else if (props?.tipoRec === 'ingreso' && props?.baseDate && ev.start) {
+												const base = dayjs(props.baseDate);
+												const occ = dayjs(ev.start);
+												if (base.isValid() && occ.isValid()) {
+													const years = occ.year() - base.year();
+													const nombre = [props.nombre, props.apellido].filter(Boolean).join(' ').trim();
+													text = `Aniversario de ingreso N°${years} ${nombre}`.trim();
+												}
+											}
+											return { domNodes: [document.createTextNode(text)] };
+										} catch {
+											return { domNodes: [document.createTextNode(arg.event.title || '')] };
+										}
+									}}
+									selectable={false}
+									editable={false}
+									eventStartEditable={false}
+									eventDurationEditable={false}
+									eventDidMount={(info) => {
+										const tc = info.event.extendedProps?.textColor || info.event.textColor;
+										if (tc) info.el.style.color = tc;
+										const tipoRec = info.event.extendedProps?.tipoRec;
+										if (tipoRec && !recFiltroTipos.includes(tipoRec)) {
+											info.el.style.display = 'none';
+										}
+									}}
+									eventTimeFormat={{ hour: '2-digit', minute: '2-digit', meridiem: false }}
+									multiMonthMaxColumns={8}
+									loading={(isLoading) => setRecLoading(isLoading)}
+								/>
+							</div>
+											<ProximosEventosPanel
+												titulo="Próximos eventos"
+												items={proximosRecEventos}
+												dirCache={{}}
+												showDireccion="none"
+												onVerEnCalendario={gotoFechaRec}
+											/>
+						</div>
+					</TabPanel>
+				</TabView>
 			</div>
 
 			{/* Diálogo detalle de evento (solo lectura) */}
@@ -472,7 +450,25 @@ const CalendarioOperativoBasic = () => {
 							/>
 							<div>
 								<div className="text-base font-semibold text-slate-800">
-									{selectedEvent?.title || 'Detalle de evento'}
+									{selectedIsRecurrent && selectedEvent?.__recurrentExtras?.baseDate && selectedEvent?.start ? (
+										(() => {
+											const base = dayjs(selectedEvent.__recurrentExtras.baseDate);
+											const occ = dayjs(selectedEvent.start);
+											if (base.isValid() && occ.isValid()) {
+												const years = occ.year() - base.year();
+												if (selectedEvent.__recurrentExtras?.tipoRec === 'fundacion') {
+													return `Aniversario N°${years} ${selectedEvent.__recurrentExtras?.nombreCompania || ''}`;
+												}
+												if (selectedEvent.__recurrentExtras?.tipoRec === 'ingreso') {
+													const nombre = [selectedEvent.__recurrentExtras?.nombre, selectedEvent.__recurrentExtras?.apellido].filter(Boolean).join(' ').trim();
+													return `Aniversario de ingreso N°${years} ${nombre}`.trim();
+												}
+											}
+											return selectedEvent?.title || 'Detalle de evento';
+										})()
+									) : (
+										selectedEvent?.title || 'Detalle de evento'
+									)}
 								</div>
 								<div className="text-sm text-slate-500">
 									{formatHeaderFecha(selectedEvent)}
@@ -493,7 +489,6 @@ const CalendarioOperativoBasic = () => {
 			>
 				{selectedEvent ? (
 					<div className="space-y-4">
-						{/* Inicio / Fin */}
 						<div className="flex items-start gap-2">
 							<i className="pi pi-calendar text-slate-500 mt-0.5" />
 							<div className="text-sm text-slate-700">
@@ -511,7 +506,6 @@ const CalendarioOperativoBasic = () => {
 							</div>
 						</div>
 
-						{/* Descripción */}
 						{selectedEvent.descripcion && (
 							<div className="flex items-start gap-2">
 								<i className="pi pi-align-left text-slate-500 mt-0.5" />
@@ -521,7 +515,6 @@ const CalendarioOperativoBasic = () => {
 							</div>
 						)}
 
-						{/* Tipo */}
 						{selectedEvent.tipoLabel && (
 							<div className="flex items-start gap-2">
 								<i className="pi pi-bookmark text-slate-500 mt-0.5" />
@@ -529,7 +522,6 @@ const CalendarioOperativoBasic = () => {
 							</div>
 						)}
 
-						{/* Dirección */}
 						<div className="flex items-start gap-2">
 							<i className="pi pi-map-marker text-slate-500 mt-0.5" />
 							<div className="flex-1">

@@ -28,6 +28,11 @@ export const useCompaniaConfig = () => {
         // Convertir los datos de la compañía al formato de configs esperado por el Home
         const companiaConfigs = [];
 
+        // ID de compañía para usos operativos en otras pantallas
+        if (compania.id) {
+          companiaConfigs.push({ key: 'company_id', value: compania.id });
+        }
+
         if (compania.nombre) {
           companiaConfigs.push({ key: 'company_name', value: compania.nombre });
         }

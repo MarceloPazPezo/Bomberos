@@ -17,6 +17,7 @@
     "@fullcalendar/list": "^6.1.19",
     "@fullcalendar/multimonth": "^6.1.19",
     "@fullcalendar/react": "^6.1.19",
+  "@fullcalendar/rrule": "^6.1.19",
     "@fullcalendar/timegrid": "^6.1.19",
     "@heroicons/react": "^2.2.0",
     "@tailwindcss/line-clamp": "^0.4.4",

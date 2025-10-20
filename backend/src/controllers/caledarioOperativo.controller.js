@@ -1,6 +1,17 @@
 "use strict";
 import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
-import { crearEventoService, obtenerEventosService, obtenerTiposEventoService, actualizarEventoService, eliminarEventoService, obtenerEventoPorIdService } from "../services/evento.service.js";
+import { crearEventoService, 
+    obtenerEventosService, 
+    obtenerTiposEventoService, 
+    actualizarEventoService, 
+    eliminarEventoService, 
+    obtenerEventoPorIdService,
+    obtenerCumpleanosYingresoService,
+    obtenerAniversarioService,
+    RegistrarAsistenciaEventoService,
+    obtenerAsistenciaEventoService
+} from "../services/evento.service.js";
+
 import { crearDireccionService, eliminarDireccionService, actualizarDireccionService } from "../services/direccion.service.js";
 import { AppDataSource } from "../config/configDb.js";
 import Direccion from "../entities/direccion.entity.js";
@@ -126,6 +137,65 @@ export async function eliminarEvento(req, res) {
 
 
         return handleSuccess(res, 200, "Evento eliminado exitosamente");
+    } catch (error) {
+        return handleErrorServer(res, 500, error.message);
+    }
+}
+
+export async function obtenerEventosRecurrentes(req, res) {
+    try {
+        const eventos = await obtenerCumpleanosYingresoService();
+        const companias = await obtenerAniversarioService();
+        if ((!eventos || eventos.length === 0) && (!companias || companias.length === 0)) return handleSuccess(res, 204);
+
+        return handleSuccess(res, 200, "Eventos recurrentes encontrados", { eventos, companias });
+    } catch (error) {
+        return handleErrorServer(res, 500, error.message);
+    }
+
+}
+
+export async function registrarAsistenciaEvento(req, res) {
+    try {
+        const { idEvento } = req.params;
+        if (!idEvento) {
+            return handleErrorClient(res, 400, "ID del evento es requerido");
+        }
+        const evento = await obtenerEventoPorIdService(idEvento); 
+        if (!evento) {
+            return handleErrorClient(res, 404, "Evento no encontrado");
+        }
+        const { idsBomberos } = req.body;
+
+        if (!idsBomberos || !Array.isArray(idsBomberos) || idsBomberos.length === 0) {
+            return handleErrorClient(res, 400, "IDs de bomberos son requeridos");
+        }
+
+        // Ejecutar en transacción; si algo falla en el proceso de registro, se hará rollback automáticamente
+        await AppDataSource.transaction(async (manager) => {
+            await RegistrarAsistenciaEventoService(idEvento, idsBomberos, manager);
+        });
+
+        return handleSuccess(res, 200, "Asistencia registrada exitosamente");
+    } catch (error) {
+        return handleErrorServer(res, 500, error.message);
+    }
+}
+
+export async function obtenerAsistenciaEvento(req, res) {
+    try {
+        const { idEvento } = req.params;
+        if (!idEvento) {
+            return handleErrorClient(res, 400, "ID del evento es requerido");
+        }
+        const evento = await obtenerEventoPorIdService(idEvento);
+        if (!evento) {
+            return handleErrorClient(res, 404, "Evento no encontrado");
+        }
+        const asistentes = await obtenerAsistenciaEventoService(idEvento);
+        // Devuelve ids de bomberos para facilitar el frontend
+        const ids = (asistentes || []).map(a => a.idBombero);
+        return handleSuccess(res, 200, "Asistencia del evento", ids);
     } catch (error) {
         return handleErrorServer(res, 500, error.message);
     }

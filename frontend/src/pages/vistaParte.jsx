@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useContext } from 'react';
+import { useEffect, useMemo, useState, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { obtenerParteEmergenciaPorId } from '../services/parteEmergencia.service.js';
 import { obtenerUltimoEstadoIncidente } from '@services/parteEmergencia.service.js';
@@ -20,7 +20,6 @@ import { Divider } from 'primereact/divider';
 import { Timeline } from 'primereact/timeline';
 import { Avatar } from 'primereact/avatar';
 import { Badge } from 'primereact/badge';
-import { Button } from 'primereact/button';
 import {
   MapPin,
   Calendar,
@@ -28,72 +27,19 @@ import {
   Building2,
   Car,
   Users,
-  ClipboardList,
   ArrowLeft,
   Shield,
   FlameKindling,
   Flag,
-  Truck,
   Home,
   Siren,
-  User as UserIcon,
-  Check
+  User as UserIcon
 } from 'lucide-react';
-
-/* -------------------------------------------------------------
-   UI helpers (versión compacta)
---------------------------------------------------------------*/
-const Section = ({ index, title, subtitle, icon, children, className = '' }) => (
-  <section className={`bg-white border border-gray-200 rounded-xl p-4 shadow-sm ${className}`}>
-    <div className="flex items-center gap-2 mb-3">
-      <div className="h-6 w-6 shrink-0 grid place-items-center rounded-full bg-gray-900 text-white text-[10px] font-semibold">
-        {index}
-      </div>
-      <div className="flex items-center gap-1.5">
-        {icon}
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 tracking-tight">{title}</h3>
-          {subtitle && <p className="text-[11px] text-gray-500">{subtitle}</p>}
-        </div>
-      </div>
-    </div>
-    <div className="text-[13px] text-gray-800">
-      {children}
-    </div>
-  </section>
-);
 
 const KeyStat = ({ label, value }) => (
   <div className="bg-gray-50 border border-gray-200 rounded-md p-2">
     <div className="text-[11px] text-gray-500">{label}</div>
     <div className="text-[13px] font-medium text-gray-900">{value ?? '-'}</div>
-  </div>
-);
-
-const SmallTable = ({ headers = [], rows = [] }) => (
-  <div className="overflow-auto border border-gray-200 rounded-md">
-    <table className="min-w-full text-[13px]">
-      <thead className="bg-gray-50 text-gray-600">
-        <tr>
-          {headers.map((h, i) => (
-            <th key={i} className="px-2 py-1.5 text-left whitespace-nowrap font-medium text-[12px]">{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.length ? rows.map((r, i) => (
-          <tr key={i} className="border-t">
-            {r.map((c, j) => (
-              <td key={j} className="px-2 py-1.5 align-top whitespace-pre-wrap">{c ?? '-'}</td>
-            ))}
-          </tr>
-        )) : (
-          <tr>
-            <td className="px-2 py-1.5 text-gray-500" colSpan={headers.length}>Sin datos</td>
-          </tr>
-        )}
-      </tbody>
-    </table>
   </div>
 );
 
@@ -264,7 +210,7 @@ export default function VistaParte({ showEnviarButton = true }) {
     const calle = parte?.direccion?.calle || '';
     const numero = parte?.direccion?.numero || '';
     return [[calle, numero].filter(Boolean).join(' ')].filter(Boolean).join('');
-  }, [parte?.direccion?.calle, parte?.direccion?.numero, parte?.direccion?.referencia]);
+  }, [parte?.direccion?.calle, parte?.direccion?.numero]);
 
   const fechaIncidente = useMemo(() => formatDDMMYYYY(parte?.fecha) || (parte?.fecha ?? '-'), [parte?.fecha]);
   // Formatea "HH:MM:SS" o "HH:MM" a solo "HH:MM"
@@ -277,12 +223,11 @@ export default function VistaParte({ showEnviarButton = true }) {
     return `${h}:${m}`;
   };
   const timelineItems = useMemo(() => ([
-
     { label: '6-0', time: parte?.hora6_0 || '-' },
     { label: '6-3', time: parte?.hora6_3 || '-' },
     { label: '6-9', time: parte?.hora6_9 || '-' },
     { label: '6-10', time: parte?.hora6_10 || '-' },
-  ]), [parte?.horaDespacho, parte?.hora6_0, parte?.hora6_3, parte?.hora6_9, parte?.hora6_10]);
+  ]), [parte?.hora6_0, parte?.hora6_3, parte?.hora6_9, parte?.hora6_10]);
 
 
   if (loading) return <LoadingPage message="Cargando parte..." />;
@@ -386,13 +331,9 @@ export default function VistaParte({ showEnviarButton = true }) {
       </div>
 
       {/* 1. Antecedentes generales (PrimeReact, clave:valor) */}
-      <Card className="shadow-sm border border-gray-200">
-        <div className="flex items-center gap-3 mb-3">
-          <ClipboardList className="h-6 w-6 text-gray-800" />
-          <div className="text-lg font-bold tracking-tight text-gray-900">Antecedentes generales</div>
+      <Card className="shadow-sm border border-gray-200" title="Antecedentes generales" >
 
-        </div>
-        <Divider />
+       
         <div className="flex items-stretch gap-4 text-base text-gray-900">
           {/* Columna izquierda: datos generales */}
           <div className="flex-1 flex flex-col gap-2">
@@ -452,11 +393,7 @@ export default function VistaParte({ showEnviarButton = true }) {
       </Card>
 
       {/* 2. Características del incidente (PrimeReact) */}
-      <Card className="shadow-sm border border-gray-200">
-        <div className="flex items-center gap-3 mb-3">
-          <Shield className="h-6 w-6 text-gray-800" />
-          <div className="text-lg font-bold tracking-tight text-gray-900">Características del incidente</div>
-        </div>
+      <Card className="shadow-sm border border-gray-200" title="Características del incidente" >
         {/* Formato tipo formulario en 2 columnas */}
         <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-base text-gray-900 mb-3">
           {parte?.clasificacion && (
@@ -499,7 +436,15 @@ export default function VistaParte({ showEnviarButton = true }) {
 
       {/* 3. Inmuebles / Vehículos involucrados */}
       {(Array.isArray(parte.inmuebles) && parte.inmuebles.length > 0) || (Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0) ? (
-        <Section index={3} title="Inmuebles / Vehículos involucrados" subtitle="Detalle de bienes afectados y su titularidad" icon={<Home className="h-4 w-4 text-gray-700" />}>
+        <Card className="shadow-sm border border-gray-200" 
+          title={
+            <div className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-gray-700" />
+              <span>Inmuebles / Vehículos involucrados</span>
+            </div>
+          }
+          subTitle={<span className="text-gray-600">Detalle de bienes afectados y su titularidad</span>}
+        >
           {Array.isArray(parte.inmuebles) && parte.inmuebles.length > 0 && (() => {
             const inmueblesData = parte.inmuebles.map((inm, i) => ({ __id: i, ...inm }));
             const direccionBody = (row) => {
@@ -510,30 +455,46 @@ export default function VistaParte({ showEnviarButton = true }) {
               <div className="p-2 text-[13px] space-y-3">
                 <div>
                   <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Dueño / Propietario</div>
-                  <SmallTable
-                    headers={["Nombre", "RUN", "Telefono", "Edad", "Descripcion de Gravedad"]}
-                    rows={[[
-                      (row.propietario?.nombreCompleto || row.dueno?.nombreCompleto) ?? '-',
-                      (row.propietario?.run || row.dueno?.run) ?? '-',
-                      row.dueno?.telefono ?? '-',
-                      row.dueno?.edad ?? '-',
-                      row.dueno?.descripcionGravedad ?? '-',
-                    ]]}
-                  />
+                  <div className="border border-gray-200 rounded-md">
+                    <DataTable value={[{ 
+                      nombre: (row.propietario?.nombreCompleto || row.dueno?.nombreCompleto) ?? '-',
+                      run: (row.propietario?.run || row.dueno?.run) ?? '-',
+                      telefono: row.dueno?.telefono ?? '-',
+                      edad: row.dueno?.edad ?? '-',
+                      gravedad: row.dueno?.descripcionGravedad ?? '-',
+                    }]} size="small">
+                      <Column field="nombre" header="Nombre" />
+                      <Column field="run" header="RUN" />
+                      <Column field="telefono" header="Telefono" />
+                      <Column field="edad" header="Edad" />
+                      <Column field="gravedad" header="Descripcion de Gravedad" />
+                    </DataTable>
+                  </div>
                 </div>
                 <div>
                   <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Habitantes</div>
-                  <SmallTable
-                    headers={["Nombre", "RUN", "Telefono", "Edad", "Descripcion de Gravedad"]}
-                    rows={(Array.isArray(row.habitantes) ? row.habitantes : []).map(h => [h?.nombreCompleto ?? '-', h?.run ?? '-', h?.telefono ?? '-', h?.edad ?? '-', h?.descripcionGravedad ?? '-'])}
-                  />
+                  <div className="border border-gray-200 rounded-md">
+                    <DataTable value={(Array.isArray(row.habitantes) ? row.habitantes : []).map(h => ({
+                      nombre: h?.nombreCompleto ?? '-',
+                      run: h?.run ?? '-',
+                      telefono: h?.telefono ?? '-',
+                      edad: h?.edad ?? '-',
+                      gravedad: h?.descripcionGravedad ?? '-',
+                    }))} size="small" emptyMessage="Sin datos">
+                      <Column field="nombre" header="Nombre" />
+                      <Column field="run" header="RUN" />
+                      <Column field="telefono" header="Telefono" />
+                      <Column field="edad" header="Edad" />
+                      <Column field="gravedad" header="Descripcion de Gravedad" />
+                    </DataTable>
+                  </div>
                 </div>
               </div>
             );
             return (
               <div className="mb-4">
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-gray-700 mb-2"><Building2 className="h-3.5 w-3.5" /> Inmuebles</div>
-                <DataTable value={inmueblesData} dataKey="__id" expandedRows={expandedInmuebles} onRowToggle={(e) => setExpandedInmuebles(e.data)} rowExpansionTemplate={expansion} size="small" paginator rows={5} className="border rounded-md">
+                <DataTable value={inmueblesData} dataKey="__id" expandedRows={expandedInmuebles} onRowToggle={(e) => setExpandedInmuebles(e.data)} rowExpansionTemplate={expansion} size="small" paginator rows={5} className="border border-gray-200 rounded-md">
                   <Column expander style={{ width: '2.5rem' }} />
                   <Column header="Dirección" body={direccionBody} style={{ minWidth: '14rem' }} />
                   <Column field="tipo_construccion" header="Tipo" style={{ minWidth: '8rem' }} />
@@ -560,37 +521,51 @@ export default function VistaParte({ showEnviarButton = true }) {
                 <div className="p-2 text-[13px] space-y-3">
                   <div>
                     <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Dueño</div>
-                    <SmallTable
-                      headers={["Nombre", "RUN", "Teléfono", "Edad", "Descripción de Gravedad", "Es empresa"]}
-                      rows={[[
-                        (row.dueno?.nombreCompleto ?? '-'),
-                        (row.dueno?.run ?? '-'),
-                        (row.dueno?.telefono ?? '-'),
-                        (row.dueno?.edad ?? '-'),
-                        (row.dueno?.descripcionGravedad ?? '-'),
-                        (typeof row.dueno?.esEmpresa === 'boolean' ? (row.dueno.esEmpresa ? 'Sí' : 'No') : '-')
-                      ]]}
-                    />
+                    <div className="border border-gray-200 rounded-md">
+                      <DataTable value={[{
+                        nombre: (row.dueno?.nombreCompleto ?? '-'),
+                        run: (row.dueno?.run ?? '-'),
+                        telefono: (row.dueno?.telefono ?? '-'),
+                        edad: (row.dueno?.edad ?? '-'),
+                        gravedad: (row.dueno?.descripcionGravedad ?? '-'),
+                        esEmpresa: (typeof row.dueno?.esEmpresa === 'boolean' ? (row.dueno.esEmpresa ? 'Sí' : 'No') : '-')
+                      }]} size="small">
+                        <Column field="nombre" header="Nombre" />
+                        <Column field="run" header="RUN" />
+                        <Column field="telefono" header="Teléfono" />
+                        <Column field="edad" header="Edad" />
+                        <Column field="gravedad" header="Descripción de Gravedad" />
+                        <Column field="esEmpresa" header="Es empresa" />
+                      </DataTable>
+                    </div>
                   </div>
                   <div>
                     <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Ocupantes (Chofer y Pasajeros)</div>
-                    <SmallTable
-                      headers={["Chofer", "Nombre", "RUN", "Teléfono", "Edad", "Descripción de Gravedad", "Vínculo", "Es empresa"]}
-                      rows={
+                    <div className="border border-gray-200 rounded-md">
+                      <DataTable value={
                         ocupantes.length
-                          ? ocupantes.map(o => [
-                            o.esChofer ? <Check className="h-4 w-4 text-emerald-600" /> : null,
-                            o?.nombreCompleto ?? '-',
-                            o?.run ?? '-',
-                            o?.telefono ?? '-',
-                            o?.edad ?? '-',
-                            o?.descripcionGravedad ?? '-',
-                            (o?.vinculo?.nombre ?? o?.vinculo ?? (o.esChofer ? 'Chofer' : 'Pasajero')),
-                            (typeof o?.esEmpresa === 'boolean' ? (o.esEmpresa ? 'Sí' : 'No') : '-')
-                          ])
-                          : [[null, '-', '-', '-', '-', '-', '-', '-']]
-                      }
-                    />
+                          ? ocupantes.map(o => ({
+                            chofer: o.esChofer ? 'Sí' : '',
+                            nombre: o?.nombreCompleto ?? '-',
+                            run: o?.run ?? '-',
+                            telefono: o?.telefono ?? '-',
+                            edad: o?.edad ?? '-',
+                            gravedad: o?.descripcionGravedad ?? '-',
+                            vinculo: (o?.vinculo?.nombre ?? o?.vinculo ?? (o.esChofer ? 'Chofer' : 'Pasajero')),
+                            esEmpresa: (typeof o?.esEmpresa === 'boolean' ? (o.esEmpresa ? 'Sí' : 'No') : '-')
+                          }))
+                          : [{ chofer: '', nombre: '-', run: '-', telefono: '-', edad: '-', gravedad: '-', vinculo: '-', esEmpresa: '-' }]
+                      } size="small" emptyMessage="Sin datos">
+                        <Column field="chofer" header="Chofer" />
+                        <Column field="nombre" header="Nombre" />
+                        <Column field="run" header="RUN" />
+                        <Column field="telefono" header="Teléfono" />
+                        <Column field="edad" header="Edad" />
+                        <Column field="gravedad" header="Descripción de Gravedad" />
+                        <Column field="vinculo" header="Vínculo" />
+                        <Column field="esEmpresa" header="Es empresa" />
+                      </DataTable>
+                    </div>
                   </div>
                 </div>
               );
@@ -598,7 +573,7 @@ export default function VistaParte({ showEnviarButton = true }) {
             return (
               <div>
                 <div className="flex items-center gap-2 text-[13px] font-semibold text-gray-700 mb-2"><Car className="h-3.5 w-3.5" /> Vehículos</div>
-                <DataTable value={vehiculosData} dataKey="__id" expandedRows={expandedVehiculos} onRowToggle={(e) => setExpandedVehiculos(e.data)} rowExpansionTemplate={expansionVeh} size="small" paginator rows={5} className="border rounded-md">
+                <DataTable value={vehiculosData} dataKey="__id" expandedRows={expandedVehiculos} onRowToggle={(e) => setExpandedVehiculos(e.data)} rowExpansionTemplate={expansionVeh} size="small" paginator rows={5} className="border border-gray-200 rounded-md">
                   <Column expander style={{ width: '2.5rem' }} />
                   <Column header="Vehículo" body={tituloBody} style={{ minWidth: '12rem' }} />
                   <Column field="patente" header="Patente" style={{ minWidth: '8rem' }} />
@@ -608,67 +583,93 @@ export default function VistaParte({ showEnviarButton = true }) {
               </div>
             );
           })()}
-        </Section>
+        </Card>
       ) : null}
 
       {/* 4. Material mayor */}
       {Array.isArray(parte.materialMayor) && parte.materialMayor.length > 0 && (
-        <Section index={4} title="Material mayor" subtitle="Recursos movilizados" icon={<Truck className="h-4 w-4 text-gray-700" />}>
-          <SmallTable
-            headers={["Unidad", "Conductor", "Jefe de unidad", "Voluntarios", "KM salida", "KM llegada"]}
-            rows={parte.materialMayor.map(r => [
-              r.unidad?.patente || (r.unidad?.id ? `Unidad #${r.unidad.id}` : '-'),
-              r.conductor?.nombreCompleto || (r.conductor?.id ? `Bombero #${r.conductor.id}` : '-'),
-              r.jefeUnidad?.nombreCompleto || (r.jefeUnidad?.id ? `Bombero #${r.jefeUnidad.id}` : '-'),
-              r.voluntarios ?? '-',
-              r.kmSalida ?? '-',
-              r.kmLlegada ?? '-',
-            ])}
-          />
-        </Section>
+        <Card title="Material mayor" subtitle="Recursos movilizados">
+          <div className="border border-gray-200 rounded-md">
+            <DataTable value={parte.materialMayor.map(r => ({
+              unidad: r.unidad?.patente || (r.unidad?.id ? `Unidad #${r.unidad.id}` : '-'),
+              conductor: r.conductor?.nombreCompleto || (r.conductor?.id ? `Bombero #${r.conductor.id}` : '-'),
+              jefeUnidad: r.jefeUnidad?.nombreCompleto || (r.jefeUnidad?.id ? `Bombero #${r.jefeUnidad.id}` : '-'),
+              voluntarios: r.voluntarios ?? '-',
+              kmSalida: r.kmSalida ?? '-',
+              kmLlegada: r.kmLlegada ?? '-',
+            }))} size="small">
+              <Column field="unidad" header="Unidad" />
+              <Column field="conductor" header="Conductor" />
+              <Column field="jefeUnidad" header="Jefe de unidad" />
+              <Column field="voluntarios" header="Voluntarios" />
+              <Column field="kmSalida" header="KM salida" />
+              <Column field="kmLlegada" header="KM llegada" />
+            </DataTable>
+          </div>
+        </Card>
       )}
 
       {/* 5. Otros servicios de emergencia en el lugar */}
       {Array.isArray(parte.otrosServicios) && parte.otrosServicios.length > 0 && (
-        <Section index={5} title="Otros servicios de emergencia en el lugar" subtitle="Apoyos externos" icon={<Siren className="h-4 w-4 text-gray-700" />}>
-          <SmallTable
-            headers={["Servicio", "Tipo unidad", "Responsable", "Personal", "Observaciones"]}
-            rows={parte.otrosServicios.map(s => [
-              s.servicio?.nombre || '-',
-              s.tipoUnidad || '-',
-              s.responsable || '-',
-              s.personal ?? '-',
-              s.observaciones || '-',
-            ])}
-          />
-        </Section>
+        <Card className="shadow-sm border border-gray-200"
+          title={<div className="flex items-center gap-2"><Siren className="h-4 w-4 text-gray-700" /> <span>Otros servicios de emergencia en el lugar</span></div>}
+          subTitle={<span className="text-gray-600">Apoyos externos</span>}
+        >
+          <div className="border border-gray-200 rounded-md">
+            <DataTable value={parte.otrosServicios.map(s => ({
+              servicio: s.servicio?.nombre || '-',
+              tipoUnidad: s.tipoUnidad || '-',
+              responsable: s.responsable || '-',
+              personal: s.personal ?? '-',
+              observaciones: s.observaciones || '-',
+            }))} size="small">
+              <Column field="servicio" header="Servicio" />
+              <Column field="tipoUnidad" header="Tipo unidad" />
+              <Column field="responsable" header="Responsable" />
+              <Column field="personal" header="Personal" />
+              <Column field="observaciones" header="Observaciones" />
+            </DataTable>
+          </div>
+        </Card>
       )}
 
       {/* 6. Bomberos accidentados */}
       {Array.isArray(parte.accidentados) && parte.accidentados.length > 0 && (
-        <Section index={6} title="Bomberos accidentados" subtitle="Antecedentes del personal" icon={<Users className="h-4 w-4 text-gray-700" />}>
-          <SmallTable
-            headers={["Bombero", "Compañía", "Lesiones", "Constancia", "Comisaría", "Acciones"]}
-            rows={parte.accidentados.map(a => [
-              a.bombero?.nombreCompleto || (a.bombero?.id ? `Bombero #${a.bombero.id}` : '-'),
-              a.compania?.nombre || (a.compania?.id ? `Compañía #${a.compania.id}` : '-'),
-              a.lesiones || '-',
-              a.constancia || '-',
-              a.comisaria || '-',
-              a.acciones || '-',
-            ])}
-          />
-        </Section>
+        <Card className="shadow-sm border border-gray-200"
+          title={<div className="flex items-center gap-2"><Users className="h-4 w-4 text-gray-700" /> <span>Bomberos accidentados</span></div>}
+          subTitle={<span className="text-gray-600">Antecedentes del personal</span>}
+        >
+          <div className="border border-gray-200 rounded-md">
+            <DataTable value={parte.accidentados.map(a => ({
+              bombero: a.bombero?.nombreCompleto || (a.bombero?.id ? `Bombero #${a.bombero.id}` : '-'),
+              compania: a.compania?.nombre || (a.compania?.id ? `Compañía #${a.compania.id}` : '-'),
+              lesiones: a.lesiones || '-',
+              constancia: a.constancia || '-',
+              comisaria: a.comisaria || '-',
+              acciones: a.acciones || '-',
+            }))} size="small">
+              <Column field="bombero" header="Bombero" />
+              <Column field="compania" header="Compañía" />
+              <Column field="lesiones" header="Lesiones" />
+              <Column field="constancia" header="Constancia" />
+              <Column field="comisaria" header="Comisaría" />
+              <Column field="acciones" header="Acciones" />
+            </DataTable>
+          </div>
+        </Card>
       )}
 
       {/* 7. Asistencia a la emergencia */}
       {parte.asistencia && (
-        <Section index={7} title="Asistencia a la emergencia" subtitle="Distribución de personal" icon={<Users className="h-4 w-4 text-gray-700" />}>
+        <Card className="shadow-sm border border-gray-200"
+          title={<div className="flex items-center gap-2"><Users className="h-4 w-4 text-gray-700" /> <span>Asistencia a la emergencia</span></div>}
+          subTitle={<span className="text-gray-600">Distribución de personal</span>}
+        >
           <div className="grid sm:grid-cols-2 gap-2">
             <KeyStat label="En el lugar" value={Array.isArray(parte.asistencia.lugar) ? parte.asistencia.lugar.map(x => x?.nombreCompleto || (x?.id ? `Bombero #${x.id}` : '')).filter(Boolean).join(', ') || '-' : '-'} />
             <KeyStat label="En cuartel" value={Array.isArray(parte.asistencia.cuartel) ? parte.asistencia.cuartel.map(x => x?.nombreCompleto || (x?.id ? `Bombero #${x.id}` : '')).filter(Boolean).join(', ') || '-' : '-'} />
           </div>
-        </Section>
+        </Card>
       )}
     </div>
   );

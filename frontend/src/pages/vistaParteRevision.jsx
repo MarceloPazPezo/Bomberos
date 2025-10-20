@@ -1,6 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Edit3, CheckCircle2 } from 'lucide-react';
+import { useContext, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { AuthContext } from '@context/AuthContext.jsx';
 import { obtenerUltimoEstadoIncidente } from '@services/parteEmergencia.service.js';
 import { cambiarEstadoIncidente } from '@services/incidentes.service.js';
@@ -12,7 +11,6 @@ import { Dialog } from 'primereact/dialog';
 // Esta vista envuelve a VistaParte y añade controles para cambiar estado cuando corresponda.
 export default function VistaParteRevision() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { bombero } = useContext(AuthContext);
   const [estadoActual, setEstadoActual] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
@@ -25,7 +23,7 @@ export default function VistaParteRevision() {
         const resp = await obtenerUltimoEstadoIncidente(id);
         const data = resp?.data ?? resp;
         if (mounted) setEstadoActual((data?.estado || '').toString().toUpperCase());
-      } catch (_) {
+      } catch {
         if (mounted) setEstadoActual('');
       }
     })();
@@ -44,7 +42,10 @@ export default function VistaParteRevision() {
         const resp = await obtenerUltimoEstadoIncidente(id);
         const data = resp?.data ?? resp;
         setEstadoActual((data?.estado || '').toString().toUpperCase());
-      } catch {}
+      } catch (e) {
+        // No es crítico si falla el refresco del estado
+        console.warn('No se pudo refrescar el estado del incidente:', e);
+      }
     } catch (e) {
       toast.error(e?.message || 'No se pudo cambiar el estado');
     } finally {
