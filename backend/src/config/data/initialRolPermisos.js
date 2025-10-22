@@ -375,6 +375,20 @@ async function crearPermisos() {
         ruta: "/api/estado-epp/*",
         metodo: "*",
       },
+      {
+        nombre: "tipoEvento:obtener",
+        descripcion: "Permite obtener la lista de tipos de evento",
+        categoria: "Tipos de Evento",
+        ruta: "/api/tipo-evento",
+        metodo: "GET",
+      },
+      {
+        nombre: "tipoEvento:admin",
+        descripcion: "Permite administración completa de tipos de evento (crear, actualizar, eliminar)",
+        categoria: "Tipos de Evento",
+        ruta: "/api/tipo-evento/*",
+        metodo: "*",
+      },
     ];
 
     const permisos = permisosData.map((p) => permisoRepository.create(p));
@@ -471,6 +485,8 @@ async function crearRoles() {
           "tipo_epp:admin",
           "estado_epp:obtener",
           "estado_epp:admin",
+          "tipoEvento:obtener",
+          "tipoEvento:admin",
         ],
       },
     ];

@@ -196,6 +196,29 @@ const Form = forwardRef(({
                 return acc;
             }, {})
         };
+        
+        // Hacer auto-focus en el primer campo con error después del submit
+        setTimeout(() => {
+            const firstErrorField = fields.find(field => 
+                errors[field.name] && fieldRefs.current[field.name]
+            );
+
+            if (firstErrorField && fieldRefs.current[firstErrorField.name]) {
+                const fieldElement = fieldRefs.current[firstErrorField.name];
+                
+                // Hacer scroll suave al campo
+                fieldElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                
+                // Hacer focus después de un pequeño delay para que el scroll termine
+                setTimeout(() => {
+                    fieldElement.focus();
+                }, 300);
+            }
+        }, 100);
+        
         onSubmit(formData);
     };
 

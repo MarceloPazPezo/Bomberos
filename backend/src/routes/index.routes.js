@@ -24,6 +24,7 @@ import eppRoutes from "./epp.routes.js";
 import perfilCompletoRoutes from "./perfilCompleto.routes.js";
 import tipoSangreRoutes from "./tipoSangre.routes.js";
 import estadoCivilRoutes from "./estadoCivil.routes.js";
+import tipoEventoRoutes from "./tipoEvento.routes.js";
 
 const router = Router();
 
@@ -50,6 +51,7 @@ router
   .use("/epp", eppRoutes)
   .use("/perfil-completo", perfilCompletoRoutes)
   .use("/tipoSangre", tipoSangreRoutes)
-  .use("/estado-civil", estadoCivilRoutes);
+  .use("/estado-civil", estadoCivilRoutes)
+  .use("/tipo-evento", tipoEventoRoutes);
 
 export default router;

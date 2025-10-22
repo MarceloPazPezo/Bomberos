@@ -541,3 +541,47 @@ export const carroDeletedToast = (carroName = "Carro") => {
     }
   );
 };
+
+// ===== TOASTS PARA TIPOS DE EVENTO =====
+
+export const tipoEventoCreatedToast = (tipoEventoName = "Tipo de evento") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{tipoEventoName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const tipoEventoUpdatedToast = (tipoEventoName = "Tipo de evento") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{tipoEventoName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const tipoEventoDeletedToast = (tipoEventoName = "Tipo de evento") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{tipoEventoName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};

@@ -25,7 +25,8 @@ const Admin = () => {
     'region:obtener', 'region:admin',
     'comuna:obtener', 'comuna:admin',
     'estadoCivil:obtener', 'estadoCivil:admin',
-    'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin'
+    'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin',
+    'tipoEvento:obtener', 'tipoEvento:admin'
   ];
 
   // Verificar si el usuario tiene al menos un permiso de administración

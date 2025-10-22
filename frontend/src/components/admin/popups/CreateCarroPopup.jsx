@@ -75,11 +75,13 @@ const CreateCarroPopup = ({ show, setShow, onCarroCreated, onCreatingChange }) =
                 return 'La patente solo puede contener letras mayúsculas, números, espacios y guiones';
             }
         } else if (field === 'capacidadPasajeros') {
-            if (value && value !== '') {
+            if (!value || value.trim() === '') {
+                return 'La capacidad de pasajeros es requerida';
+            } else if (!/^\d+$/.test(value.trim())) {
+                return 'La capacidad debe contener solo números';
+            } else {
                 const num = parseInt(value);
-                if (isNaN(num)) {
-                    return 'La capacidad debe ser un número válido';
-                } else if (num < 1) {
+                if (num < 1) {
                     return 'La capacidad debe ser al menos 1';
                 } else if (num > 50) {
                     return 'La capacidad no puede exceder 50';
@@ -245,11 +247,30 @@ const CreateCarroPopup = ({ show, setShow, onCarroCreated, onCreatingChange }) =
                                     name: "capacidadPasajeros",
                                     fieldType: 'input',
                                     type: "number",
-                                    placeholder: "Ej: 6, 8, 4 (opcional)",
+                                    placeholder: "Ej: 6, 8, 4",
                                     min: 1,
                                     max: 50,
+                                    step: 1,
+                                    required: true,
                                     errorMessageData: errors.capacidadPasajeros,
-                                    onChange: (e) => handleInputChange('capacidadPasajeros', e.target.value),
+                                    onChange: (e) => {
+                                        const value = e.target.value;
+                                        // El input type="number" ya previene letras automáticamente
+                                        // Solo validar que esté en el rango correcto
+                                        if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 50)) {
+                                            handleInputChange('capacidadPasajeros', value);
+                                        }
+                                    },
+                                    onKeyDown: (e) => {
+                                        // Prevenir teclas no numéricas (excepto backspace, delete, tab, escape, enter, arrow keys)
+                                        const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+                                        const isNumber = e.key >= '0' && e.key <= '9';
+                                        const isAllowedKey = allowedKeys.includes(e.key);
+                                        
+                                        if (!isNumber && !isAllowedKey) {
+                                            e.preventDefault();
+                                        }
+                                    },
                                     value: formData.capacidadPasajeros,
                                     autoComplete: "off"
                                 },

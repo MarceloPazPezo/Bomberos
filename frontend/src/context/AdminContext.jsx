@@ -69,6 +69,13 @@ export const AdminProvider = ({ children }) => {
       description: 'Gestión de carros',
       icon: 'MdDirectionsCar',
       permissions: ['carro:obtener', 'carro:admin']
+    },
+    {
+      id: 'tiposEvento',
+      label: 'Tipos de Evento',
+      description: 'Gestión de tipos de evento',
+      icon: 'MdEvent',
+      permissions: ['tipoEvento:obtener', 'tipoEvento:admin']
     }
   ];
 
@@ -79,6 +86,9 @@ export const AdminProvider = ({ children }) => {
       console.log('[DEBUG] No hay permisos disponibles');
       return [];
     }
+
+    console.log('[DEBUG] Permisos del bombero:', bomberoPermisos);
+    console.log('[DEBUG] Buscando permisos tipoEvento:', bomberoPermisos.filter(p => p.includes('tipoEvento')));
 
     const filtered = tabsConfig.filter(tab => {
       const hasPermission = tab.permissions.some(permission => bomberoPermisos.includes(permission));
