@@ -10,6 +10,8 @@ import {
   updateCompania,
   deleteCompania,
   getCompaniaBombero,
+  getCompaniaLogoUrl,
+  getCompaniaBannerUrl,
 } from "../controllers/compania.controller.js";
 
 const router = Router();
@@ -26,6 +28,16 @@ router.get(
   "/bombero/:idBombero",
   authorizePermisos(["compania:bombero_pertenece"]),
   getCompaniaBombero,
+);
+router.get(
+  "/:id/logo-url",
+  authorizePermisos(["compania:obtener"]),
+  getCompaniaLogoUrl,
+);
+router.get(
+  "/:id/banner-url",
+  authorizePermisos(["compania:obtener"]),
+  getCompaniaBannerUrl,
 );
 router.post(
   "/",

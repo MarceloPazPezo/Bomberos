@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '@hooks/auth/useAuth';
 
 const AdminContext = createContext();
@@ -8,7 +8,7 @@ const AdminContext = createContext();
  * Maneja el estado global de las pestañas y funciones comunes
  */
 export const AdminProvider = ({ children }) => {
-  const { hasPermiso } = useAuth();
+  const { hasPermiso, bomberoPermisos } = useAuth();
   const [activeTab, setActiveTab] = useState('bomberos');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -72,18 +72,27 @@ export const AdminProvider = ({ children }) => {
     }
   ];
 
-  // Obtener pestañas disponibles según permisos usando hasPermiso
-  const availableTabs = tabsConfig.filter(tab => {
-    const hasPermission = tab.permissions.some(permission => hasPermiso(permission));
-    console.log(`[DEBUG] Tab ${tab.id}:`, {
-      permissions: tab.permissions,
-      hasPermission,
-      hasPermisoResults: tab.permissions.map(p => ({ permission: p, has: hasPermiso(p) }))
+  // Obtener pestañas disponibles según permisos usando hasPermiso (memoizado)
+  const availableTabs = useMemo(() => {
+    // Solo evaluar permisos si hay permisos disponibles
+    if (!bomberoPermisos || bomberoPermisos.length === 0) {
+      console.log('[DEBUG] No hay permisos disponibles');
+      return [];
+    }
+
+    const filtered = tabsConfig.filter(tab => {
+      const hasPermission = tab.permissions.some(permission => bomberoPermisos.includes(permission));
+      console.log(`[DEBUG] Tab ${tab.id}:`, {
+        permissions: tab.permissions,
+        hasPermission,
+        hasPermisoResults: tab.permissions.map(p => ({ permission: p, has: bomberoPermisos.includes(p) }))
+      });
+      return hasPermission;
     });
-    return hasPermission;
-  });
-  
-  console.log('[DEBUG] Available tabs:', availableTabs.map(t => t.id));
+    
+    console.log('[DEBUG] Available tabs:', filtered.map(t => t.id));
+    return filtered;
+  }, [bomberoPermisos]); // Solo recalcular cuando los permisos cambien
 
   // Función para cambiar pestaña activa
   const handleTabChange = useCallback((tabId) => {

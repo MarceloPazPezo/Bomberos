@@ -33,14 +33,7 @@ const NotificationCenter = React.memo(({ isOpen, onClose }) => {
     clearError
   } = useNotifications();
 
-  // Debug log
-  console.log('[NOTIFICATION_CENTER] Props recibidas:', {
-    isOpen,
-    notifications: notifications?.length || 0,
-    unreadCount,
-    isLoading,
-    error
-  });
+  // Debug log removido para producción
 
   const [selectedNotifications, setSelectedNotifications] = useState(new Set());
 

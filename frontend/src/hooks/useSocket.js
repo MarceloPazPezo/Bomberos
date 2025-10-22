@@ -32,7 +32,7 @@ const useSocket = () => {
         rolId: bombero.rolId
       };
       
-      console.log('[WEBSOCKET] Enviando datos del bombero:', bomberoData);
+      // Debug log removido para producción
       socket.emit('bomberoActive', bomberoData);
     });
 

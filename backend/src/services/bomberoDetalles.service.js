@@ -118,7 +118,8 @@ export class BomberoDetallesService {
         compania: bombero.fichaBombero?.compania ? {
           id: bombero.fichaBombero.compania.id,
           nombre: bombero.fichaBombero.compania.nombre,
-          logoURL: bombero.fichaBombero.compania.logoURL
+          logoKEY: bombero.fichaBombero.compania.logoKEY,
+          bannerKEY: bombero.fichaBombero.compania.bannerKEY
         } : null,
 
         // Dirección completa

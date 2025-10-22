@@ -53,7 +53,7 @@ async function crearBomberos() {
           fechaNacimiento: "1985-03-15",
           fechaIngreso: "2020-01-15",
           idCompania: 1,
-          fotoPerfilKEY: "admin_profile_test.jpg" // Agregar KEY de imagen para testing
+          // fotoPerfilKEY: "admin_profile_test.jpg" // Removido para evitar errores de imagen
         }
       },
       {

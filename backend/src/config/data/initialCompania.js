@@ -19,8 +19,8 @@ async function crearCompañia() {
         fechaFundacion: "1884-06-24",
         email: "contacto@primeracompania.cl",
         telefono: "+56 2 2345 6789",
-        logoURL: null,
         logoKEY: null,
+        bannerKEY: null,
         idDireccion: null,
       },
       {
@@ -28,8 +28,8 @@ async function crearCompañia() {
         fechaFundacion: "1890-03-15",
         email: "contacto@segundacompania.cl",
         telefono: "+56 2 3456 7890",
-        logoURL: null,
         logoKEY: null,
+        bannerKEY: null,
         idDireccion: null,
       },
       {
@@ -37,8 +37,8 @@ async function crearCompañia() {
         fechaFundacion: "1895-08-20",
         email: "contacto@terceracompania.cl",
         telefono: "+56 32 4567 8901",
-        logoURL: null,
         logoKEY: null,
+        bannerKEY: null,
         idDireccion: null,
       },
       {
@@ -46,8 +46,8 @@ async function crearCompañia() {
         fechaFundacion: "1900-12-10",
         email: "contacto@cuartacompania.cl",
         telefono: "+56 41 5678 9012",
-        logoURL: null,
         logoKEY: null,
+        bannerKEY: null,
         idDireccion: null,
       },
       {
@@ -55,8 +55,8 @@ async function crearCompañia() {
         fechaFundacion: "1905-05-25",
         email: "contacto@quintacompania.cl",
         telefono: "+56 55 6789 0123",
-        logoURL: null,
         logoKEY: null,
+        bannerKEY: null,
         idDireccion: null,
       }
     ];

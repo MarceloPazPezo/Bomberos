@@ -46,8 +46,7 @@ function notificationReducer(state, action) {
       return { ...state, error: action.payload, isLoading: false };
 
     case ACTION_TYPES.SET_NOTIFICATIONS:
-      console.log('[NOTIFICATION_REDUCER] SET_NOTIFICATIONS:', action.payload);
-      console.log('[NOTIFICATION_REDUCER] Notificaciones a establecer:', action.payload.notifications?.length || 0);
+      // Debug logs removidos para producción
       return { 
         ...state, 
         notifications: action.payload.notifications || [],
@@ -133,7 +132,7 @@ export const NotificationProvider = ({ children }) => {
 
     // Eventos del socket
     socket.on('connect', () => {
-      console.log('[NOTIFICATION] Conectado al servidor WebSocket');
+      // Debug log removido para producción
       dispatch({ type: ACTION_TYPES.SET_CONNECTED, payload: true });
 
       // Enviar datos del usuario activo para suscribirse a notificaciones
@@ -145,17 +144,17 @@ export const NotificationProvider = ({ children }) => {
         rolId: user.rolId
       };
       
-      console.log('[NOTIFICATION_CONTEXT] Enviando datos del usuario para WebSocket:', userData);
+      // Debug log removido para producción
       socket.emit('bomberoActive', userData);
     });
 
     socket.on('disconnect', () => {
-      console.log('[NOTIFICATION] Desconectado del servidor WebSocket');
+      // Debug log removido para producción
       dispatch({ type: ACTION_TYPES.SET_CONNECTED, payload: false });
     });
 
     socket.on('notification', (notification) => {
-      console.log('[NOTIFICATION] Nueva notificación recibida:', notification);
+      // Debug log removido para producción
       dispatch({ type: ACTION_TYPES.ADD_NOTIFICATION, payload: notification });
 
       // Mostrar notificación del navegador si está permitido
@@ -169,7 +168,7 @@ export const NotificationProvider = ({ children }) => {
     });
 
     socket.on('system_notification', (notification) => {
-      console.log('[NOTIFICATION] Notificación del sistema recibida:', notification);
+      // Debug log removido para producción
       dispatch({ type: ACTION_TYPES.ADD_NOTIFICATION, payload: notification });
 
       // Mostrar notificación del navegador
@@ -198,14 +197,11 @@ export const NotificationProvider = ({ children }) => {
       dispatch({ type: ACTION_TYPES.SET_LOADING, payload: true });
       const response = await notificationService.getUserNotifications(limit, offset);
       
-      console.log('[NOTIFICATION_CONTEXT] Respuesta del servicio:', response);
+      // Debug logs removidos para producción
       
       // Extraer datos de la respuesta del API
       const notifications = response.data?.notifications || response.notifications || [];
       const unreadCount = response.data?.unreadCount || response.unreadCount || 0;
-      
-      console.log('[NOTIFICATION_CONTEXT] Notificaciones extraídas:', notifications.length);
-      console.log('[NOTIFICATION_CONTEXT] Contador extraído:', unreadCount);
       
       dispatch({
         type: ACTION_TYPES.SET_NOTIFICATIONS,

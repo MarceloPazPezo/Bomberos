@@ -33,12 +33,12 @@ const CompaniaSchema = new EntitySchema({
       type: "int",
       nullable: true,
     },
-    logoURL: {
+    logoKEY: {
       type: "varchar",
       length: 255,
       nullable: true,
     },
-    logoKEY: {
+    bannerKEY: {
       type: "varchar",
       length: 255,
       nullable: true,

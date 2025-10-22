@@ -97,6 +97,49 @@ export const DisponibilidadProvider = ({ children }) => {
     setAutoAjustado(false);
   }, []);
 
+  // Calcular estadísticas
+  const calculateStats = useCallback((data) => {
+    const dataArray = Array.isArray(data) ? data : [];
+
+    // Filtrar disponibilidades activas (sin fechaTermino o fechaTermino futura)
+    const filteredData = dataArray
+      .filter((disponibilidad) => {
+        if (!disponibilidad.fechaTermino) {
+          return true;
+        }
+
+        try {
+          return new Date(disponibilidad.fechaTermino) > new Date();
+        } catch {
+          return false;
+        }
+      })
+      .reduce((unique, disponibilidad) => {
+        // Eliminar duplicados por idBombero, manteniendo el más reciente
+        const existingIndex = unique.findIndex(d => d.idBombero === disponibilidad.idBombero);
+        if (existingIndex === -1) {
+          unique.push(disponibilidad);
+        } else {
+          // Si el actual es más reciente, reemplazar
+          const existing = unique[existingIndex];
+          const currentDate = new Date(disponibilidad.fechaInicio);
+          const existingDate = new Date(existing.fechaInicio);
+          
+          if (currentDate > existingDate) {
+            unique[existingIndex] = disponibilidad;
+          }
+        }
+        return unique;
+      }, []);
+
+    const stats = {
+      disponibles: filteredData.length,
+      inactivos: dataArray.filter(d => d.fechaTermino && new Date(d.fechaTermino) <= new Date()).length,
+      total: dataArray.length
+    };
+    setStats(stats);
+  }, []);
+
   // Cargar datos
   const loadData = useCallback(async () => {
     try {
@@ -141,13 +184,6 @@ export const DisponibilidadProvider = ({ children }) => {
           (!d.fechaTermino || new Date(d.fechaTermino) > new Date())
         );
         setMiDisponibilidad(miDisponibilidadActiva || null);
-        
-        // Sincronizar con el contexto global
-        if (miDisponibilidadActiva) {
-          updateAvailability(miDisponibilidadActiva);
-        } else {
-          clearAvailability();
-        }
       }
 
       calculateStats(disponibilidadesData);
@@ -157,50 +193,7 @@ export const DisponibilidadProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [bombero?.id, hasPermiso]);
-
-  // Calcular estadísticas
-  const calculateStats = useCallback((data) => {
-    const dataArray = Array.isArray(data) ? data : [];
-
-    // Filtrar disponibilidades activas (sin fechaTermino o fechaTermino futura)
-    const filteredData = dataArray
-      .filter((disponibilidad) => {
-        if (!disponibilidad.fechaTermino) {
-          return true;
-        }
-
-        try {
-          return new Date(disponibilidad.fechaTermino) > new Date();
-        } catch {
-          return false;
-        }
-      })
-      .reduce((unique, disponibilidad) => {
-        // Eliminar duplicados por idBombero, manteniendo el más reciente
-        const existingIndex = unique.findIndex(d => d.idBombero === disponibilidad.idBombero);
-        if (existingIndex === -1) {
-          unique.push(disponibilidad);
-        } else {
-          // Si el actual es más reciente, reemplazar
-          const existing = unique[existingIndex];
-          const currentDate = new Date(disponibilidad.fechaInicio);
-          const existingDate = new Date(existing.fechaInicio);
-          
-          if (currentDate > existingDate) {
-            unique[existingIndex] = disponibilidad;
-          }
-        }
-        return unique;
-      }, []);
-
-    const stats = {
-      disponibles: filteredData.length,
-      inactivos: dataArray.filter(d => d.fechaTermino && new Date(d.fechaTermino) <= new Date()).length,
-      total: dataArray.length
-    };
-    setStats(stats);
-  }, []);
+  }, [bombero?.id, hasPermiso, calculateStats]);
 
   // Función para cambiar pestaña activa
   const handleTabChange = useCallback((tabId) => {
@@ -236,7 +229,55 @@ export const DisponibilidadProvider = ({ children }) => {
   useEffect(() => {
     initializeFechas();
     loadData();
-  }, [initializeFechas, loadData, refreshTrigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]); // Solo recargar cuando refreshTrigger cambie
+
+  // Efecto para sincronizar con el contexto global
+  useEffect(() => {
+    if (miDisponibilidad) {
+      updateAvailability(miDisponibilidad);
+    } else {
+      clearAvailability();
+    }
+  }, [miDisponibilidad, updateAvailability, clearAvailability]);
+
+  // Efecto para verificar si mi disponibilidad ha expirado
+  useEffect(() => {
+    if (!miDisponibilidad?.fechaTermino) return;
+
+    const checkExpiration = () => {
+      const now = new Date();
+      const fechaTermino = new Date(miDisponibilidad.fechaTermino);
+      
+      if (fechaTermino <= now) {
+        console.log('⏰ Mi disponibilidad expiró, limpiando estado...');
+        setMiDisponibilidad(null);
+        clearAvailability();
+      }
+    };
+
+    // Calcular cuánto tiempo falta para que expire
+    const fechaTermino = new Date(miDisponibilidad.fechaTermino);
+    const now = new Date();
+    const timeUntilExpiration = fechaTermino.getTime() - now.getTime();
+
+    // Si ya expiró, limpiar inmediatamente
+    if (timeUntilExpiration <= 0) {
+      checkExpiration();
+      return;
+    }
+
+    // Configurar timeout para cuando expire
+    const timeout = setTimeout(checkExpiration, timeUntilExpiration + 1000); // +1 segundo de margen
+
+    // También verificar cada minuto por si acaso
+    const interval = setInterval(checkExpiration, 60000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [miDisponibilidad, clearAvailability]);
 
   // Efecto para manejar eventos de socket
   useEffect(() => {
@@ -265,10 +306,8 @@ export const DisponibilidadProvider = ({ children }) => {
         if (eventData.data.idBombero === bombero?.id) {
           if (eventData.type === 'created') {
             setMiDisponibilidad(eventData.data);
-            updateAvailability(eventData.data);
           } else if (eventData.type === 'closed') {
             setMiDisponibilidad(null);
-            clearAvailability();
           }
         }
         

@@ -8,7 +8,8 @@ import {
   FaTimes
 } from 'react-icons/fa';
 import LoadingPage from '@components/LoadingPage';
-import DateTimePicker from '@components/DateTimePicker';
+import DatePicker from '@components/DatePicker';
+import TimePicker from '@components/TimePicker';
 import PrimeTableBasic from '@components/PrimeTableBasic';
 import dateHelper from '@helpers/dateHelper';
 
@@ -299,38 +300,38 @@ const DisponibilidadHistorialTab = () => {
             </select>
           </div>
 
-          {/* Filtro Fecha Desde - Usando DateTimePicker */}
+          {/* Filtro Fecha Desde - Usando DatePicker */}
           <div className="w-40">
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Desde
             </label>
-            <DateTimePicker
-              value={filtros.fechaDesde ? new Date(filtros.fechaDesde) : null}
-              onChange={(date) => {
-                const fechaStr = date ? dateHelper.format(dateHelper.fromJSDate(date), 'yyyy-MM-dd') : '';
+            <DatePicker
+              value={filtros.fechaDesde || ''}
+              onChange={(e) => {
+                const fechaStr = e.target.value || '';
                 setFiltros(prev => ({ ...prev, fechaDesde: fechaStr }));
               }}
               placeholder="Fecha desde"
-              maxDate={new Date()}
-              className="w-full text-sm"
+              maxDate={new Date().toISOString().split('T')[0]}
+              className="w-full"
             />
           </div>
 
-          {/* Filtro Fecha Hasta - Usando DateTimePicker */}
+          {/* Filtro Fecha Hasta - Usando DatePicker */}
           <div className="w-40">
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Hasta
             </label>
-            <DateTimePicker
-              value={filtros.fechaHasta ? new Date(filtros.fechaHasta) : null}
-              onChange={(date) => {
-                const fechaStr = date ? dateHelper.format(dateHelper.fromJSDate(date), 'yyyy-MM-dd') : '';
+            <DatePicker
+              value={filtros.fechaHasta || ''}
+              onChange={(e) => {
+                const fechaStr = e.target.value || '';
                 setFiltros(prev => ({ ...prev, fechaHasta: fechaStr }));
               }}
               placeholder="Fecha hasta"
-              minDate={filtros.fechaDesde ? new Date(filtros.fechaDesde) : null}
-              maxDate={new Date()}
-              className="w-full text-sm"
+              minDate={filtros.fechaDesde || new Date().toISOString().split('T')[0]}
+              maxDate={new Date().toISOString().split('T')[0]}
+              className="w-full"
             />
           </div>
         </div>

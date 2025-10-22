@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as companiaService from '@services/compania.service.js';
 
 /**
@@ -12,7 +12,7 @@ export const useCompania = () => {
   const [pagination, setPagination] = useState(null);
 
   // Obtener todas las compañías
-  const fetchCompanias = async (params = {}) => {
+  const fetchCompanias = useCallback(async (params = {}) => {
     try {
       setLoading(true);
       setError(null);
@@ -33,10 +33,10 @@ export const useCompania = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Obtener compañía por ID
-  const fetchCompaniaById = async (id) => {
+  const fetchCompaniaById = useCallback(async (id) => {
     try {
       setLoading(true);
       setError(null);
@@ -55,10 +55,10 @@ export const useCompania = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Obtener compañía del bombero
-  const fetchCompaniaBombero = async (idBombero) => {
+  const fetchCompaniaBombero = useCallback(async (idBombero) => {
     try {
       setLoading(true);
       setError(null);
@@ -80,15 +80,15 @@ export const useCompania = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Crear nueva compañía
-  const createCompania = async (companiaData) => {
+  const createCompania = useCallback(async (companiaData, logoImage = null, bannerImage = null) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await companiaService.createCompania(companiaData);
+      const response = await companiaService.createCompaniaIntelligent(companiaData, logoImage, bannerImage);
       
       if (response.status === 'Client error') {
         throw new Error(response.message);
@@ -103,15 +103,15 @@ export const useCompania = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Actualizar compañía
-  const updateCompania = async (id, companiaData) => {
+  const updateCompania = useCallback(async (id, companiaData, logoImage = null, bannerImage = null) => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await companiaService.updateCompania(id, companiaData);
+      const response = await companiaService.updateCompaniaWithImage(id, companiaData, logoImage, bannerImage);
       
       if (response.status === 'Client error') {
         throw new Error(response.message);
@@ -131,10 +131,10 @@ export const useCompania = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [compania]);
 
   // Eliminar compañía
-  const deleteCompania = async (id) => {
+  const deleteCompania = useCallback(async (id) => {
     try {
       setLoading(true);
       setError(null);
@@ -157,7 +157,7 @@ export const useCompania = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     // Estados

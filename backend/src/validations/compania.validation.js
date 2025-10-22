@@ -115,16 +115,6 @@ export const companiaCreateValidation = Joi.object({
       "number.integer": "El ID de dirección debe ser un número entero.",
       "number.positive": "El ID de dirección debe ser un número positivo.",
     }),
-  logoURL: Joi.string()
-    .uri()
-    .max(255)
-    .optional()
-    .allow(null, "")
-    .messages({
-      "string.base": "La URL del logo debe ser de tipo string.",
-      "string.uri": "La URL del logo debe ser una URL válida.",
-      "string.max": "La URL del logo debe tener como máximo {#limit} caracteres.",
-    }),
   logoKEY: Joi.string()
     .max(255)
     .optional()
@@ -132,6 +122,14 @@ export const companiaCreateValidation = Joi.object({
     .messages({
       "string.base": "La clave del logo debe ser de tipo string.",
       "string.max": "La clave del logo debe tener como máximo {#limit} caracteres.",
+    }),
+  bannerKEY: Joi.string()
+    .max(255)
+    .optional()
+    .allow(null, "")
+    .messages({
+      "string.base": "La clave del banner debe ser de tipo string.",
+      "string.max": "La clave del banner debe tener como máximo {#limit} caracteres.",
     }),
 })
   .unknown(false)
@@ -191,16 +189,6 @@ export const companiaUpdateValidation = Joi.object({
       "number.integer": "El ID de dirección debe ser un número entero.",
       "number.positive": "El ID de dirección debe ser un número positivo.",
     }),
-  logoURL: Joi.string()
-    .uri()
-    .max(255)
-    .optional()
-    .allow(null, "")
-    .messages({
-      "string.base": "La URL del logo debe ser de tipo string.",
-      "string.uri": "La URL del logo debe ser una URL válida.",
-      "string.max": "La URL del logo debe tener como máximo {#limit} caracteres.",
-    }),
   logoKEY: Joi.string()
     .max(255)
     .optional()
@@ -208,6 +196,14 @@ export const companiaUpdateValidation = Joi.object({
     .messages({
       "string.base": "La clave del logo debe ser de tipo string.",
       "string.max": "La clave del logo debe tener como máximo {#limit} caracteres.",
+    }),
+  bannerKEY: Joi.string()
+    .max(255)
+    .optional()
+    .allow(null, "")
+    .messages({
+      "string.base": "La clave del banner debe ser de tipo string.",
+      "string.max": "La clave del banner debe tener como máximo {#limit} caracteres.",
     }),
 })
   .min(1)
