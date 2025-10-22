@@ -2,6 +2,8 @@
 import DireccionService from "../services/direccion.service.js";
 import { handleSuccess, handleErrorClient, handleErrorServer } from "../handlers/responseHandlers.js";
 
+import { getRegionesService,getComunasService, getDireccionService } from "../services/direccion.service.js";
+
 class DireccionController {
   /**
    * Crea una nueva dirección

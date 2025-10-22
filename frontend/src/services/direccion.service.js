@@ -81,3 +81,14 @@ export const direccionService = {
     }
   }
 };
+export const getDireccion = async (idDireccion) => {
+  try {
+    const response = await axios.get('/direccion/' + idDireccion);
+    console.log("direccion:    ",response.data)
+    
+    return response.data.data;
+  } catch (error) {
+    console.error('Error al obtener la dirección:', error);
+    throw error.response?.data || error;
+  }
+};

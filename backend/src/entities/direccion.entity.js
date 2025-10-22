@@ -30,11 +30,6 @@ const DireccionSchema = new EntitySchema({
             length: 255,
             nullable: true,
         },
-        codigoPostal: {
-            type: "varchar",
-            length: 20,
-            nullable: true,
-        },
         creadoEl: {
             type: "timestamp",
             createDate: true,

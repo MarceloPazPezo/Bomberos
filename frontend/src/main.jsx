@@ -14,12 +14,24 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
 import CrearParte from '@pages/crearParte';
+import TestPermisos from '@pages/TestPermisos';
+import EdiarParte from '@pages/editarParte';
+import PartesDeEmergencias from '@pages/PartesDeEmergencias';
+import VistaParte from '@pages/vistaParte.jsx';
+import RevisionPartes from './pages/revisionPartes';
+import VistaParteRevision from '@pages/vistaParteRevision.jsx';
+import CalendarioOperativo from '@pages/calendarioOperativoAdmin.jsx';
+import CalendarioOperativoBasic from '@pages/calendarioOperativoBasic.jsx';
 import BomberosPage from '@pages/BomberosPage';
 import InventarioEpp from '@pages/InventarioEpp';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
 import '@styles/styles.css';
+// Estilos de PrimeReact
+import 'primereact/resources/themes/lara-light-blue/theme.css';
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
 
 const router = createBrowserRouter([
   {
@@ -84,10 +96,73 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: '/test-permisos',
+        element: <TestPermisos />
+      },
+      {
         path: '/crearparte',
         element: (
           <ProtectedRoute>
             <CrearParte />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/editarparte/:id',
+        element: (
+          <ProtectedRoute>
+            <EdiarParte />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/partesdeemergencias',
+        element: (
+          <ProtectedRoute>
+            <PartesDeEmergencias />
+          </ProtectedRoute>
+        )
+      }
+      ,
+      {
+        path: '/vistaparte/:id',
+        element: (
+          <ProtectedRoute>
+            <VistaParte />
+          </ProtectedRoute>
+        )
+      }
+      ,
+      {
+        path: '/vistaparterev/:id',
+        element: (
+          <ProtectedRoute>
+            <VistaParteRevision />
+          </ProtectedRoute>
+        )
+      }
+      ,
+      {
+        path: '/revisionpartes',
+        element: (
+          <ProtectedRoute>
+            <RevisionPartes />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/calendariooperativo',
+        element: (
+          <ProtectedRoute>
+            <CalendarioOperativo />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/calendariooperativobasic',
+        element: (
+          <ProtectedRoute>
+            <CalendarioOperativoBasic />
           </ProtectedRoute>
         )
       },
@@ -98,8 +173,7 @@ const router = createBrowserRouter([
             <InventarioEpp />
           </ProtectedRoute>
         ),
-      },
-
+      }
     ]
   },
   {
@@ -109,12 +183,21 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />
+  },
+  {
+    path: '/404',
+    element: <Error404 />
   }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <FireAlertProvider>
-    <RouterProvider router={router} />
+    <RouterProvider
+      router={router}
+      future={{
+        v7_startTransition: true,
+      }}
+    />
     <ToastContainer
       position="bottom-right"
       autoClose={5000}

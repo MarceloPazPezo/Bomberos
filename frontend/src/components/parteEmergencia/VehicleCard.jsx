@@ -104,6 +104,7 @@ function VehicleCard({ value, onChange, onRemove, index }) {
               title="Dueño del vehículo"
               value={value.dueno}
               onChange={(v) => onChange({ ...value, dueno: v })}
+              showEsEmpresa
             />
           </div>
         )}

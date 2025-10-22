@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
 import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode, MdSecurity, MdPeople } from 'react-icons/md';
+import { LuCalendarDays, LuClipboardCheck, LuClipboard } from "react-icons/lu";
 import { FaUserCheck } from 'react-icons/fa';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 
@@ -20,6 +21,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const navLinks = [
         { to: "/home", label: "Inicio", icon: <MdHome size={20} className="mr-2" /> },
         { to: "/demo", label: "Demo", icon: <MdCode size={20} className="mr-2" /> },
+        { to: "/partesdeemergencias", label: "Partes de Emergencias", icon: <LuClipboard size={30} className="mr-2" /> },
+        { to: "/revisionpartes", label: "Revisar Partes de Emergencias", icon: <LuClipboardCheck size={40} className="mr-2" /> },
+        { to: "/calendariooperativo", label: "Calendario Operativo vista admin", icon: <LuCalendarDays size={30} className="mr-2" /> },
+        { to: "/calendariooperativobasic", label: "Calendario Operativo vista básica", icon: <LuCalendarDays size={30} className="mr-2" /> }
     ];
 
     // Estado local para controlar el retraso del botón hamburger

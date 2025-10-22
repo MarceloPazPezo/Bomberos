@@ -8,12 +8,15 @@ const AsistenciaIncidenteSchema = new EntitySchema({
         idBombero: { type: "int", primary: true },
         idIncidente: { type: "int", primary: true },
     },
+    indices: [
+        { name: "IDX_ASISTENCIAINCIDENTE_IDINCIDENTE", columns: ["idIncidente"] },
+        { name: "IDX_ASISTENCIAINCIDENTE_IDBOMBERO", columns: ["idBombero"] },
+    ],
     relations: {
         bombero: {
             type: "many-to-one",
             target: "Bombero",
             joinColumn: { name: "idBombero", referencedColumnName: "id" },
-            eager: true,
             onDelete: "RESTRICT",},
 
         incidente: {

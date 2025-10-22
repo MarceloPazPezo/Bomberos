@@ -18,7 +18,6 @@ const BomberoAccidentadoSchema = new EntitySchema({
             type: "many-to-one",
             target: "Bombero",
             joinColumn: { name: "idBombero", referencedColumnName: "id" },
-            eager: true,
             onDelete: "RESTRICT",},
         incidente: {
             type: "many-to-one",

@@ -73,7 +73,14 @@ const CompaniaSchema = new EntitySchema({
       target: "Carro",
       inverseSide: "compania",
       cascade: true,
-    }
+    },
+    incidentes: {
+      type: "one-to-many",
+      target: "Incidente",
+      inverseSide: "compania",
+      cascade: true,
+    },
+    
 
   },
 });

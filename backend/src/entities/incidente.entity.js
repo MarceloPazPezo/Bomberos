@@ -8,15 +8,17 @@ const IncidenteSchema = new EntitySchema({
         id: { type: "int", primary: true, generated: "increment" },
         descripcionPreliminar: { type: "varchar", length: 500, nullable: true },
 
-        fechaHoraOperativo6_0: { type: "timestamp", nullable: true },
-        fechaHoraOperativo6_3: { type: "timestamp", nullable: true },
-        fechaHoraOperativo6_9: { type: "timestamp", nullable: true },
-        fechaHoraOperativo6_10: { type: "timestamp", nullable: true },
+        FechaHoraDespacho: { type: "timestamp", nullable: true },
+        HoraOperativo6_0: { type: "time", nullable: true },
+        HoraOperativo6_3: { type: "time", nullable: true },
+        HoraOperativo6_9: { type: "time", nullable: true },
+        HoraOperativo6_10: { type: "time", nullable: true },
 
         idBomberoACargo: { type: "int", nullable: true },
         idDireccion: { type: "int", nullable: true },
         idRedactor: { type: "int", nullable: true },
         idSubtipoIncidente: { type: "int", nullable: true },
+        idCompania: { type: "int", nullable: true },
 
         creadoEl: { type: "timestamp", createDate: true },
         creadoPor: { type: "int", nullable: true },
@@ -76,7 +78,7 @@ const IncidenteSchema = new EntitySchema({
             target: "BomberoAccidentado",
             inverseSide: "incidente",
             cascade: true,
-            eager: true,
+            // no eager: se consultará explícitamente cuando se necesite
         },
         EstadoEstablecido: {
             type: "one-to-many",
@@ -107,7 +109,7 @@ const IncidenteSchema = new EntitySchema({
             target: "Inmueble",
             inverseSide: "incidente",
             cascade: true,
-            eager: true,
+            // no eager: se consultará explícitamente cuando se necesite
         },
         afectados: {
             type: "one-to-many",
@@ -121,9 +123,14 @@ const IncidenteSchema = new EntitySchema({
             inverseSide: "incidente",
             cascade: true,
         },
+        compania: {
+            type: "many-to-one",
+            target: "Compania",
+            joinColumn: { name: "idCompania", referencedColumnName: "id" },
+            eager: true,
+            onDelete: "RESTRICT",
+        },
         
-        
-
 
 
     }

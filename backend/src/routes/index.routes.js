@@ -15,12 +15,18 @@ import servicioRoutes from "./servicio.routes.js";
 import regionRoutes from "./region.routes.js";
 import comunaRoutes from "./comuna.routes.js";
 import debugRoutes from "./debug.routes.js";
+import parteEmergenciaRoutes from "./parteEmergencia.routes.js";
+import estadosParteRoutes from "./estadosParte.routes.js";
+import incidenteResumenRoutes from "./incidenteResumen.routes.js";
+import revisionPartesRoutes from "./revisionPartes.routes.js";
+import incidenteEstadoRoutes from "./incidenteEstado.routes.js";
+import eventoRoutes from "./evento.routes.js";
+
 import fileRoutes from "./file.routes.js";
 import tilesRoutes from "./tiles.routes.js";
 import fichaBomberoRoutes from "./fichaBombero.routes.js";
 import notificationRoutes from "./notification.routes.js";
 import eppRoutes from "./epp.routes.js";
-// Rutas de bomberos unificadas - ya incluidas en bombero.routes.js
 import perfilCompletoRoutes from "./perfilCompleto.routes.js";
 import tipoSangreRoutes from "./tipoSangre.routes.js";
 import estadoCivilRoutes from "./estadoCivil.routes.js";
@@ -44,6 +50,14 @@ router
   .use("/region", regionRoutes)
   .use("/comuna", comunaRoutes)
   .use("/debug", debugRoutes)
+  .use("/health", healthRoutes)
+  .use("/servicios", serviciosRoutes)
+  .use("/parteEmergencia", parteEmergenciaRoutes)
+  .use("/estadosParte", estadosParteRoutes)
+  .use("/incidentes", incidenteResumenRoutes)
+  .use("/incidentes", revisionPartesRoutes)
+  .use("/incidentes", incidenteEstadoRoutes)
+  .use("/calendario", eventoRoutes)
   .use("/files", fileRoutes)
   .use("/tiles", tilesRoutes)
   .use("/fichaBombero", fichaBomberoRoutes)

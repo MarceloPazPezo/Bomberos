@@ -37,7 +37,6 @@ export async function getCompaniaService(query) {
         "direccion.numero",
         "direccion.depto",
         "direccion.referencia",
-        "direccion.codigoPostal",
         "direccion.idComuna",
       ]);
 
@@ -107,7 +106,6 @@ export async function getCompaniasService(queryParams = {}) {
         "direccion.numero",
         "direccion.depto",
         "direccion.referencia",
-        "direccion.codigoPostal",
         "direccion.idComuna",
       ])
       .orderBy("compania.id", "ASC");

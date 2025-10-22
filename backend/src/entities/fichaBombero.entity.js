@@ -6,7 +6,6 @@ const FichaBomberoSchema = new EntitySchema({
   tableName: "fichaBombero",
   columns: {
     id: { type: "int", primary: true, generated: "increment" },
-    nombre: { type: "varchar", length: 100, nullable: false },
     licenciaClaseF: { type: "boolean", nullable: true, default: false },
     telefono: { type: "varchar", length: 15, nullable: true, unique: true },
     fechaNacimiento: { type: "date", nullable: true },

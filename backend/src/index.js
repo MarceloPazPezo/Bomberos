@@ -189,6 +189,7 @@ async function setupAPI() {
     await crearTipoDano();
     await crearfaseIncidente();
     await crearServicios();
+    await crearTipoEvento();
     await crearTiposSangre();
     await crearEstadosReporte();
     await inicializarEpp();

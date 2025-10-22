@@ -37,3 +37,24 @@ body {
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Compactar tipografías de FullCalendar en páginas que usen el wrapper fc-compact */
+.fc-compact .fc {
+  font-size: 0.85rem; /* base */
+}
+.fc-compact .fc .fc-toolbar-title {
+  font-size: 2rem;
+}
+.fc-compact .fc .fc-daygrid-day-number,
+.fc-compact .fc .fc-col-header-cell-cushion,
+.fc-compact .fc .fc-timegrid-slot-label {
+  font-size: 0.9rem;
+}
+.fc-compact .fc .fc-event,
+.fc-compact .fc .fc-event-title,
+.fc-compact .fc .fc-event-time {
+  font-size: 0.7rem;
+}
+.fc-compact .fc .fc-multimonth-title {
+  font-size: 1rem;
+}
