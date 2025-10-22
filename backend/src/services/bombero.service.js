@@ -5,6 +5,7 @@ import Rol from "../entities/rol.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 import { comparePassword, encryptPassword } from "../helpers/bcrypt.helper.js";
 import { Brackets } from "typeorm";
+import { createFichaBomberoService } from "./fichaBombero.service.js";
 
 export async function getBomberoService(query) {
   try {
@@ -292,10 +293,22 @@ export async function changeBomberoStatusService(idBombero, activo, updatedBy = 
 
     const bomberoFound = await bomberoRepository.findOne({
       where: { id: idBombero },
+      relations: ["roles"], // Incluir roles para validación
     });
 
     if (!bomberoFound) {
       return [null, "Bombero no encontrado"];
+    }
+
+    // Validar que el bombero no tenga roles protegidos (Administrador o Capitán)
+    if (bomberoFound.roles && bomberoFound.roles.length > 0) {
+      const hasProtectedRole = bomberoFound.roles.some(role => 
+        role.nombre === 'Administrador' || role.nombre === 'Capitán'
+      );
+      
+      if (hasProtectedRole) {
+        return [null, "No se puede cambiar el estado de bomberos con roles Administrador o Capitán"];
+      }
     }
     
     // Actualizar el estado
@@ -310,7 +323,6 @@ export async function changeBomberoStatusService(idBombero, activo, updatedBy = 
 
     return [bomberoResult, null];
   } catch (error) {
-    console.error("Error al cambiar el estado del bombero:", error);
     return [null, "Error interno del servidor"];
   }
 }
@@ -482,5 +494,475 @@ export async function getBomberosPorCompaniaService(idCompania) {
     return [null, "Error interno del servidor al obtener bomberos por compañía."];
   }
 }
+
+// ==================== SERVICIOS UNIFICADOS ====================
+
+/**
+ * Agregar ficha a un bombero existente
+ */
+export async function addFichaToBomberoService(bomberoId, fichaData, createdBy = null) {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
     
+    // Verificar que el bombero existe
+    const bombero = await bomberoRepository.findOne({
+      where: { id: bomberoId }
+    });
+
+    if (!bombero) {
+      return [null, "Bombero no encontrado"];
+    }
+
+    // Verificar que no existe ya una ficha para este bombero
+    const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
+    const existingFicha = await fichaBomberoRepository.findOne({
+      where: { idBombero: bomberoId }
+    });
+
+    if (existingFicha) {
+      return [null, "Ya existe una ficha para este bombero"];
+    }
+
+    // Crear la ficha usando el servicio existente
+    const fichaDataWithBombero = {
+      ...fichaData,
+      idBombero: bomberoId
+    };
+
+    const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy);
+    
+    if (fichaError) {
+      return [null, fichaError];
+    }
+
+    // Retornar el bombero con la ficha creada
+    const [bomberoComplete, error] = await getBomberoCompleteService(bomberoId);
+    
+    if (error) {
+      return [bombero, null]; // Retornar al menos el bombero si no se puede obtener completo
+    }
+
+    return [bomberoComplete, null];
+  } catch (error) {
+    console.error("Error al agregar ficha al bombero:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+/**
+ * Crear bombero con ficha opcional
+ */
+export async function createBomberoWithOptionalFichaService(bomberoData, fichaData = null, createdBy = null) {
+  try {
+    // Crear el bombero primero
+    const [bombero, bomberoError] = await createBomberoService(bomberoData, createdBy);
+    
+    if (bomberoError) {
+      return [null, bomberoError, null];
+    }
+
+    let fichaResult = null;
+
+    // Si se proporcionan datos de ficha, crearla
+    if (fichaData) {
+      const fichaDataWithBombero = {
+        ...fichaData,
+        idBombero: bombero.id
+      };
+
+      const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy);
+      
+      fichaResult = {
+        ficha,
+        error: fichaError
+      };
+    }
+
+    return [bombero, null, fichaResult];
+  } catch (error) {
+    console.error("Error al crear bombero con ficha opcional:", error);
+    return [null, "Error interno del servidor", null];
+  }
+}
+
+/**
+ * Crear bombero con imagen de perfil
+ */
+export async function createBomberoWithImageService(bomberoData, fichaData = null, profileImage = null, createdBy = null) {
+  try {
+    // Crear el bombero primero
+    const [bombero, bomberoError] = await createBomberoService(bomberoData, createdBy);
+    
+    if (bomberoError) {
+      return [null, bomberoError, null];
+    }
+
+    let fichaResult = null;
+
+    // Si se proporcionan datos de ficha, crearla
+    if (fichaData) {
+      const fichaDataWithBombero = {
+        ...fichaData,
+        idBombero: bombero.id
+      };
+
+      // Si hay imagen, agregar los datos de la imagen a la ficha
+      if (profileImage) {
+        fichaDataWithBombero.fotoPerfilURL = profileImage.location || profileImage.path;
+        fichaDataWithBombero.fotoPerfilKEY = profileImage.key || profileImage.filename;
+      }
+
+      const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy);
+      
+      fichaResult = {
+        ficha,
+        error: fichaError
+      };
+    }
+
+    return [bombero, null, fichaResult];
+  } catch (error) {
+    console.error("Error al crear bombero con imagen:", error);
+    return [null, "Error interno del servidor", null];
+  }
+}
+
+/**
+ * Obtener bombero completo con ficha
+ */
+export async function getBomberoCompleteService(bomberoId) {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+    const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
+
+    // Obtener el bombero con sus roles
+    const bombero = await bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoinAndSelect("bombero.roles", "rol")
+      .select([
+        "bombero.id",
+        "bombero.nombres",
+        "bombero.apellidos",
+        "bombero.run",
+        "bombero.email",
+        "bombero.activo",
+        "bombero.creadoEl",
+        "bombero.creadoPor",
+        "bombero.actualizadoEl",
+        "bombero.actualizadoPor",
+        "rol.id",
+        "rol.nombre",
+      ])
+      .where("bombero.id = :id", { id: bomberoId })
+      .getOne();
+
+    if (!bombero) {
+      return [null, "Bombero no encontrado"];
+    }
+
+    // Obtener la ficha del bombero si existe
+    const ficha = await fichaBomberoRepository
+      .createQueryBuilder("ficha")
+      .leftJoinAndSelect("ficha.compania", "compania")
+      .leftJoinAndSelect("ficha.direccion", "direccion")
+      .leftJoinAndSelect("ficha.tipoSangre", "tipoSangre")
+      .where("ficha.idBombero = :idBombero", { idBombero: bomberoId })
+      .getOne();
+
+    // Formatear los roles
+    const bomberoData = {
+      ...bombero,
+      roles: bombero.roles ? bombero.roles.map((rol) => ({
+        id: rol.id,
+        nombre: rol.nombre
+      })) : [],
+      ficha: ficha || null
+    };
+
+    return [bomberoData, null];
+  } catch (error) {
+    console.error("Error al obtener bombero completo:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+/**
+ * Obtener todos los bomberos con información de ficha
+ */
+export async function getAllBomberosWithFichaService() {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+
+    const bomberos = await bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoinAndSelect("bombero.roles", "rol")
+      .leftJoin("fichaBombero", "ficha", "ficha.idBombero = bombero.id")
+      .leftJoin("companias", "compania", "compania.id = ficha.idCompania")
+      .select([
+        "bombero.id",
+        "bombero.nombres",
+        "bombero.apellidos",
+        "bombero.run",
+        "bombero.email",
+        "bombero.activo",
+        "bombero.creadoEl",
+        "bombero.creadoPor",
+        "bombero.actualizadoEl",
+        "bombero.actualizadoPor",
+        "rol.id",
+        "rol.nombre",
+        "ficha.id",
+        "ficha.nombre",
+        "ficha.telefono",
+        "ficha.fechaNacimiento",
+        "ficha.fechaIngreso",
+        "ficha.licenciaClaseF",
+        "ficha.donante",
+        "ficha.fotoPerfilURL",
+        "compania.id",
+        "compania.nombre"
+      ])
+      .orderBy("bombero.apellidos", "ASC")
+      .addOrderBy("bombero.nombres", "ASC")
+      .getMany();
+
+    if (!bomberos || bomberos.length === 0) {
+      return [[], null];
+    }
+
+    // Formatear los datos
+    const bomberosData = bomberos.map((bombero) => ({
+      id: bombero.id,
+      nombres: bombero.nombres,
+      apellidos: bombero.apellidos,
+      run: bombero.run,
+      email: bombero.email,
+      activo: bombero.activo,
+      creadoEl: bombero.creadoEl,
+      creadoPor: bombero.creadoPor,
+      actualizadoEl: bombero.actualizadoEl,
+      actualizadoPor: bombero.actualizadoPor,
+      roles: bombero.roles ? bombero.roles.map((rol) => ({
+        id: rol.id,
+        nombre: rol.nombre
+      })) : [],
+      hasFicha: !!bombero.ficha,
+      ficha: bombero.ficha || null
+    }));
+
+    return [bomberosData, null];
+  } catch (error) {
+    console.error("Error al obtener bomberos con ficha:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+// ==================== SERVICIOS POR COMPAÑÍA ====================
+
+/**
+ * Obtener bomberos por compañía específica
+ */
+export async function getBomberosByCompaniaService(idCompania) {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+
+    const bomberos = await bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoinAndSelect("bombero.roles", "rol")
+      .leftJoinAndSelect("bombero.fichaBombero", "ficha")
+      .leftJoinAndSelect("ficha.compania", "compania")
+      .leftJoinAndSelect("ficha.tipoSangre", "tipoSangre")
+      .where("bombero.activo = :activo", { activo: true })
+      .andWhere("ficha.idCompania = :idCompania", { idCompania })
+      .orderBy("bombero.apellidos", "ASC")
+      .addOrderBy("bombero.nombres", "ASC")
+      .getMany();
+
+    if (!bomberos || bomberos.length === 0) {
+      return [[], null];
+    }
+
+    // Formatear los datos
+    const bomberosData = bomberos.map((bombero) => {
+      // Debug temporal - verificar datos de donante
+      if (bombero.fichaBombero) {
+        console.log(`[DEBUG] Bombero ${bombero.id} (${bombero.nombres} ${bombero.apellidos}):`, {
+          donante: bombero.fichaBombero.donante,
+          licenciaClaseF: bombero.fichaBombero.licenciaClaseF,
+          tipoSangre: bombero.fichaBombero.tipoSangre?.nombre
+        });
+      }
+
+      return {
+        id: bombero.id,
+        nombres: bombero.nombres,
+        apellidos: bombero.apellidos,
+        run: bombero.run,
+        email: bombero.email,
+        activo: bombero.activo,
+        roles: bombero.roles ? bombero.roles.map((rol) => ({
+          id: rol.id,
+          nombre: rol.nombre
+        })) : [],
+        ficha: bombero.fichaBombero || null,
+        tieneFicha: !!bombero.fichaBombero
+      };
+    });
+
+    return [bomberosData, null];
+  } catch (error) {
+    console.error("Error al obtener bomberos por compañía:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+/**
+ * Obtener la compañía de un usuario/bombero
+ */
+export async function getCompaniaUsuarioService(idBombero) {
+  try {
+    const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
+
+    const ficha = await fichaBomberoRepository
+      .createQueryBuilder("ficha")
+      .leftJoinAndSelect("ficha.compania", "compania")
+      .select([
+        "ficha.id",
+        "ficha.idCompania",
+        "compania.id",
+        "compania.nombre",
+        "compania.direccion",
+        "compania.telefono"
+      ])
+      .where("ficha.idBombero = :idBombero", { idBombero })
+      .getOne();
+
+    if (!ficha || !ficha.compania) {
+      return [null, "No se encontró compañía para este bombero"];
+    }
+
+    return [ficha.compania, null];
+  } catch (error) {
+    console.error("Error al obtener compañía del usuario:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+/**
+ * Obtener estadísticas de bomberos de una compañía
+ */
+export async function getEstadisticasBomberosCompaniaService(idCompania) {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+
+    // Obtener estadísticas básicas
+    const queryBuilder = bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoin("fichaBombero", "ficha", "ficha.idBombero = bombero.id")
+      .where("ficha.idCompania = :idCompania", { idCompania });
+
+    const totalBomberos = await queryBuilder.getCount();
+    
+    const bomberosActivos = await queryBuilder
+      .clone()
+      .andWhere("bombero.activo = :activo", { activo: true })
+      .getCount();
+
+    const bomberosInactivos = totalBomberos - bomberosActivos;
+
+    // Bomberos con licencia clase F
+    const bomberosConLicencia = await queryBuilder
+      .clone()
+      .andWhere("bombero.activo = :activo", { activo: true })
+      .andWhere("ficha.licenciaClaseF = :licencia", { licencia: true })
+      .getCount();
+
+    // Bomberos donantes
+    const bomberosDonantes = await queryBuilder
+      .clone()
+      .andWhere("bombero.activo = :activo", { activo: true })
+      .andWhere("ficha.donante = :donante", { donante: true })
+      .getCount();
+
+    const estadisticas = {
+      totalBomberos,
+      bomberosActivos,
+      bomberosInactivos,
+      bomberosConLicencia,
+      bomberosDonantes,
+      porcentajeActivos: totalBomberos > 0 ? Math.round((bomberosActivos / totalBomberos) * 100) : 0,
+      porcentajeConLicencia: bomberosActivos > 0 ? Math.round((bomberosConLicencia / bomberosActivos) * 100) : 0,
+      porcentajeDonantes: bomberosActivos > 0 ? Math.round((bomberosDonantes / bomberosActivos) * 100) : 0
+    };
+
+    return [estadisticas, null];
+  } catch (error) {
+    console.error("Error al obtener estadísticas de bomberos:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+/**
+ * Obtener bomberos de otras compañías (excluyendo la del usuario)
+ */
+export async function getBomberosOtrasCompaniasService(idCompaniaUsuario) {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+
+    const bomberos = await bomberoRepository
+      .createQueryBuilder("bombero")
+      .leftJoinAndSelect("bombero.roles", "rol")
+      .leftJoin("fichaBombero", "ficha", "ficha.idBombero = bombero.id")
+      .leftJoin("companias", "compania", "compania.id = ficha.idCompania")
+      .select([
+        "bombero.id",
+        "bombero.nombres",
+        "bombero.apellidos",
+        "bombero.run",
+        "bombero.email",
+        "bombero.activo",
+        "rol.id",
+        "rol.nombre",
+        "ficha.id",
+        "ficha.nombre",
+        "ficha.telefono",
+        "compania.id",
+        "compania.nombre"
+      ])
+      .where("bombero.activo = :activo", { activo: true })
+      .andWhere("ficha.idCompania != :idCompaniaUsuario", { idCompaniaUsuario })
+      .andWhere("ficha.idCompania IS NOT NULL")
+      .orderBy("compania.nombre", "ASC")
+      .addOrderBy("bombero.apellidos", "ASC")
+      .addOrderBy("bombero.nombres", "ASC")
+      .getMany();
+
+    if (!bomberos || bomberos.length === 0) {
+      return [[], null];
+    }
+
+    // Formatear los datos
+    const bomberosData = bomberos.map((bombero) => ({
+      id: bombero.id,
+      nombres: bombero.nombres,
+      apellidos: bombero.apellidos,
+      run: bombero.run,
+      email: bombero.email,
+      activo: bombero.activo,
+      roles: bombero.roles ? bombero.roles.map((rol) => ({
+        id: rol.id,
+        nombre: rol.nombre
+      })) : [],
+      compania: bombero.compania ? {
+        id: bombero.compania.id,
+        nombre: bombero.compania.nombre
+      } : null
+    }));
+
+    return [bomberosData, null];
+  } catch (error) {
+    console.error("Error al obtener bomberos de otras compañías:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
 

@@ -48,6 +48,11 @@ const BomberoIcon = () => (
   <MdPerson className="text-indigo-600 text-xl mr-2" />
 );
 
+// Componente de icono para toast de estado civil
+const EstadoCivilIcon = () => (
+  <MdPerson className="text-purple-600 text-xl mr-2" />
+);
+
 // Componente de icono para toast de rol
 const RolIcon = () => (
   <MdSecurity className="text-purple-600 text-xl mr-2" />
@@ -214,6 +219,21 @@ export const bomberoDeletedToast = () => {
   );
 };
 
+export const bomberoStatusChangedToast = (status) => {
+  const statusText = status ? 'activado' : 'desactivado';
+  toast.success(
+    <div className="flex items-center">
+      <BomberoIcon />
+      <span>Bombero {statusText} exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
 // Funciones específicas para disponibilidad
 export const disponibilidadCreatedToast = (message = "Disponibilidad creada correctamente") => {
   toast.success(
@@ -248,6 +268,315 @@ export const disponibilidadUpdatedToast = (message = "Disponibilidad actualizada
     <div className="flex items-center">
       <UpdateIcon />
       <span>{message}</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// Funciones específicas para perfil completo
+export const contactoEmergenciaCreatedToast = (contactoName = "Contacto de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{contactoName} agregado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const contactoEmergenciaUpdatedToast = (contactoName = "Contacto de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{contactoName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const contactoEmergenciaDeletedToast = (contactoName = "Contacto de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{contactoName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const capacitacionCreatedToast = (capacitacionName = "Capacitación") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{capacitacionName} agregada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const capacitacionUpdatedToast = (capacitacionName = "Capacitación") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{capacitacionName} actualizada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const capacitacionDeletedToast = (capacitacionName = "Capacitación") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{capacitacionName} eliminada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// Funciones específicas para actualización de perfil
+export const perfilActualizadoToast = (tipoActualizacion = "información personal") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>Perfil actualizado exitosamente - {tipoActualizacion}</span>
+    </div>,
+    {
+      ...toastConfig,
+      autoClose: 3000, // Un poco más rápido para actualizaciones de perfil
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const imagenPerfilActualizadaToast = () => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>Imagen de perfil actualizada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      autoClose: 3000,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const contraseñaCambiadaToast = () => {
+  toast.success(
+    <div className="flex items-center">
+      <MdSecurity className="text-green-600 text-xl mr-2" />
+      <span>Contraseña cambiada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      autoClose: 4000, // Un poco más tiempo para mensajes de seguridad
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ============================================================================
+// TOASTS PARA ESTADO CIVIL
+// ============================================================================
+
+export const estadoCivilCreatedToast = (estadoCivilName = "Estado civil") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{estadoCivilName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const estadoCivilUpdatedToast = (estadoCivilName = "Estado civil") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{estadoCivilName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const estadoCivilDeletedToast = (estadoCivilName = "Estado civil") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{estadoCivilName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA SERVICIOS =====
+
+export const servicioCreatedToast = (servicioName = "Servicio") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{servicioName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const servicioUpdatedToast = (servicioName = "Servicio") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{servicioName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const servicioDeletedToast = (servicioName = "Servicio") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{servicioName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA CARROS =====
+
+export const carroCreatedToast = (carroName = "Carro") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{carroName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const carroUpdatedToast = (carroName = "Carro") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{carroName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const carroDeletedToast = (carroName = "Carro") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{carroName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA TIPOS DE EVENTO =====
+
+export const tipoEventoCreatedToast = (tipoEventoName = "Tipo de evento") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{tipoEventoName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const tipoEventoUpdatedToast = (tipoEventoName = "Tipo de evento") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{tipoEventoName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const tipoEventoDeletedToast = (tipoEventoName = "Tipo de evento") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{tipoEventoName} eliminado exitosamente</span>
     </div>,
     {
       ...toastConfig,

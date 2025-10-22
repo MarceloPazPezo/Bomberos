@@ -1,38 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import Form from '../Form';
+import LoadingSpinner from '@components/LoadingSpinner';
+import { MdClose, MdSecurity, MdSave, MdCheck, MdExpandMore, MdExpandLess, MdSelectAll, MdClear } from 'react-icons/md';
 import PropTypes from 'prop-types';
-import { MdClose, MdSecurity, MdCheck, MdExpandMore, MdExpandLess, MdSelectAll, MdClear, MdSave } from 'react-icons/md';
-import Form from '@components/Form';
-import { getPermisos } from '@services/permiso.service';
-import { useRoles } from '@hooks/roles/useRoles';
 import usePermisos from '@hooks/permisos/usePermisos';
 
-export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
+export default function CreateRolPopup({ show, setShow, onRoleCreated }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
-    const { permisos, permisosByCategory, refreshPermisosByCategory } = usePermisos();
+    const formRef = useRef(null);
     
-    const [formData, setFormData] = useState({
-        nombre: '',
-        descripcion: '',
-        permisos: []
-    });
-    
+    // Estado para los permisos seleccionados
+    const [selectedPermisos, setSelectedPermisos] = useState([]);
     const [expandedCategories, setExpandedCategories] = useState(new Set());
-    
-    const { handleCreateRole } = useRoles();
 
-    // Cargar permisos cuando se muestra el modal
-    useEffect(() => {
-        if (show) {
-            refreshPermisosByCategory();
+    // Hook para permisos
+    const { permisosByCategory, loading: permisosLoading, refreshPermisosByCategory } = usePermisos();
+
+    // Función para enfocar el primer campo con error
+    const focusFirstErrorField = () => {
+        const errorFields = Object.keys(errors);
+        if (errorFields.length > 0) {
+            const firstErrorField = errorFields[0];
+            
+            // Buscar el elemento del campo con error
+            const fieldElement = document.querySelector(`[name="${firstErrorField}"]`);
+            if (fieldElement) {
+                // Hacer scroll hasta el elemento
+                fieldElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                
+                // Enfocar el elemento después de un pequeño delay para que el scroll termine
+                setTimeout(() => {
+                    fieldElement.focus();
+                }, 300);
+            }
         }
-    }, [show]); // Removido refreshPermisosByCategory de las dependencias
+    };
 
-    // useEffect para manejar scroll lock
+    // useEffect para enfocar automáticamente cuando hay errores
     useEffect(() => {
+        if (Object.keys(errors).length > 0) {
+            focusFirstErrorField();
+        }
+    }, [errors]);
+
+    // useEffect para manejar tecla Escape y scroll lock
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape' && show) {
+                handleClose();
+            }
+        };
+
         if (show) {
             // Bloquear scroll del body cuando el popup está abierto
             document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', handleEscape);
         } else {
             // Restaurar scroll del body cuando el popup se cierra
             document.body.style.overflow = 'unset';
@@ -41,18 +67,18 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
         return () => {
             // Limpiar al desmontar el componente
             document.body.style.overflow = 'unset';
+            document.removeEventListener('keydown', handleEscape);
         };
     }, [show]);
 
-    // Inicializar cuando se abre el modal
+    // Cargar permisos cuando se abre el modal
     useEffect(() => {
         if (show) {
-            setFormData({
-                nombre: '',
-                descripcion: '',
-                permisos: []
-            });
-            setErrors({});
+            refreshPermisosByCategory();
+            // Expandir todas las categorías por defecto
+            if (Object.keys(permisosByCategory).length > 0) {
+                setExpandedCategories(new Set(Object.keys(permisosByCategory)));
+            }
         }
     }, [show]);
 
@@ -63,43 +89,39 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
         }
     }, [show, permisosByCategory]);
 
+    // Función para manejar click fuera del modal
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+            handleClose();
+        }
+    };
+    
     const handleInputChange = (field, value) => {
         // Limpiar error del campo cuando el usuario empiece a escribir
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: null }));
         }
-        
-        setFormData(prev => ({
-            ...prev,
-            [field]: value
-        }));
-    };
-
-    const errorData = (errorDetails) => {
-        setErrors(errorDetails || {});
     };
 
     // Manejar selección/deselección de permisos
     const handlePermisoToggle = (permisoName) => {
-        setFormData(prev => ({
-            ...prev,
-            permisos: prev.permisos.includes(permisoName)
-                ? prev.permisos.filter(p => p !== permisoName)
-                : [...prev.permisos, permisoName]
-        }));
+        setSelectedPermisos(prev => 
+            prev.includes(permisoName)
+                ? prev.filter(p => p !== permisoName)
+                : [...prev, permisoName]
+        );
     };
 
     // Seleccionar/deseleccionar todos los permisos de una categoría
     const handleCategoryToggle = (category) => {
         const categoryPermisos = permisosByCategory[category].map(p => p.nombre);
-        const allSelected = categoryPermisos.every(p => formData.permisos.includes(p));
+        const allSelected = categoryPermisos.every(p => selectedPermisos.includes(p));
         
-        setFormData(prev => ({
-            ...prev,
-            permisos: allSelected
-                ? prev.permisos.filter(p => !categoryPermisos.includes(p))
-                : [...new Set([...prev.permisos, ...categoryPermisos])]
-        }));
+        setSelectedPermisos(prev => 
+            allSelected
+                ? prev.filter(p => !categoryPermisos.includes(p))
+                : [...new Set([...prev, ...categoryPermisos])]
+        );
     };
 
     // Alternar expansión de categoría
@@ -113,65 +135,67 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
         setExpandedCategories(newExpanded);
     };
 
+    const errorData = (errorDetails) => {
+        setErrors(errorDetails || {});
+    };
+
     const handleSubmit = async (createdRoleData) => {
         if (createdRoleData) {
-            // Validaciones adicionales antes de enviar
-            const validationErrors = {};
-            
-            // Validar nombre según patrón del backend
-            const nombrePattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/;
-            if (!nombrePattern.test(createdRoleData.nombre)) {
-                validationErrors.nombre = "El nombre del rol solo puede contener letras, números, espacios, guiones o guiones bajos.";
-            }
-            
-            // Validar longitud de descripción
-            if (createdRoleData.descripcion && createdRoleData.descripcion.length > 500) {
-                validationErrors.descripcion = "La descripción del rol debe tener como máximo 500 caracteres.";
-            }
-            
-            // Validar permisos (deben ser strings válidos)
-            if (formData.permisos.length > 0) {
-                const permisoPattern = /^[a-zA-Z0-9_:]+$/;
-                const invalidPermisos = formData.permisos.filter(permiso => !permisoPattern.test(permiso));
-                if (invalidPermisos.length > 0) {
-                    validationErrors.permisos = "Algunos permisos contienen caracteres no permitidos.";
-                }
-            }
-            
-            // Si hay errores de validación, mostrarlos
-            if (Object.keys(validationErrors).length > 0) {
-                setErrors(validationErrors);
-                return;
-            }
-            
             setLoading(true);
             try {
+                // Validaciones adicionales antes de enviar
+                const validationErrors = {};
+                
+                // Validar nombre según patrón del backend
+                const nombrePattern = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/;
+                if (!nombrePattern.test(createdRoleData.nombre)) {
+                    validationErrors.nombre = "El nombre del rol solo puede contener letras, números, espacios, guiones o guiones bajos.";
+                }
+                
+                // Validar longitud de descripción
+                if (createdRoleData.descripcion && createdRoleData.descripcion.length > 500) {
+                    validationErrors.descripcion = "La descripción del rol debe tener como máximo 500 caracteres.";
+                }
+                
+                // Validar permisos (deben ser strings válidos)
+                if (selectedPermisos.length > 0) {
+                    const permisoPattern = /^[a-zA-Z0-9_:]+$/;
+                    const invalidPermisos = selectedPermisos.filter(permiso => !permisoPattern.test(permiso));
+                    if (invalidPermisos.length > 0) {
+                        validationErrors.permisos = "Algunos permisos contienen caracteres no permitidos.";
+                    }
+                }
+                
+                // Si hay errores de validación, mostrarlos
+                if (Object.keys(validationErrors).length > 0) {
+                    setErrors(validationErrors);
+                    setLoading(false);
+                    return;
+                }
+
                 // Combinar datos del formulario básico con los permisos seleccionados
                 const roleData = {
                     ...createdRoleData,
-                    permisos: formData.permisos
+                    permisos: selectedPermisos
                 };
                 
-                const result = await handleCreateRole(roleData);
-                if (result.success) {
-                    setShow(false);
-                    setErrors({});
-                    setFormData({
-                        nombre: '',
-                        descripcion: '',
-                        permisos: []
-                    });
-                    if (onRoleCreated) {
-                        onRoleCreated();
+                // Pasar los datos al callback para que el componente padre maneje la creación
+                if (onRoleCreated) {
+                    const result = await onRoleCreated(roleData);
+                    if (result.success) {
+                        setShow(false);
+                        setErrors({});
+                        setSelectedPermisos([]);
+                    } else if (result.error && typeof result.error === 'object') {
+                        // Si el error es un objeto, son errores específicos por campo
+                        errorData(result.error);
+                    } else if (result.error) {
+                        // Si el error es un string, es un error general
+                        console.error('Error general:', result.error);
                     }
-                } else if (result.error && typeof result.error === 'object') {
-                    setErrors(result.error);
-                } else {
-                    setErrors({ general: result.error || 'Error al crear el rol' });
                 }
             } catch (error) {
                 console.error('Error creating role:', error);
-                setErrors({ general: 'Error inesperado al crear el rol' });
             } finally {
                 setLoading(false);
             }
@@ -180,129 +204,114 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
 
     const handleClose = () => {
         setShow(false);
+        setSelectedPermisos([]);
+        setErrors({});
     };
 
     return (
         <div>
             {show && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="relative w-full max-w-xs sm:max-w-4xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl max-h-[90vh]">
-                        {/* Header */}
-                        <div className="flex items-center px-4 sm:px-10 pt-6 pb-4 border-b border-[#4EB9FA]/20 relative flex-shrink-0">
-                            <div className="flex items-center gap-3 flex-1">
-                                <MdSecurity className="text-[#4EB9FA]" size={24} />
-                                <h2 className="text-2xl font-bold text-[#2C3E50]">Crear rol</h2>
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                    onClick={handleBackdropClick}
+                >
+                    <div className="relative w-full max-w-xs sm:max-w-4xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white shadow-2xl border border-gray-200 max-h-[90vh]">
+                        {/* Header mejorado */}
+                        <div className="flex items-center px-4 sm:px-6 py-4 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
+                            <div className="flex items-center space-x-3 flex-1">
+                                <div className="p-2 bg-white/20 rounded-lg">
+                                    <MdSecurity className="w-6 h-6 text-white" />
+                                </div>
+                                <h2 className="text-xl font-bold text-white">Crear Rol</h2>
                             </div>
-                            
-                            {/* Botones de acción en el header */}
-                            <div className="flex items-center gap-2">
-                                {/* Botón Guardar */}
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        // Activar el submit del formulario
-                                        const form = document.querySelector('form');
-                                        if (form) {
-                                            const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                                            form.dispatchEvent(submitEvent);
-                                        }
-                                    }}
-                                    disabled={loading || !formData.nombre.trim()}
-                                    className="flex items-center justify-center w-10 h-10 bg-[#4EB9FA] text-white shadow-lg hover:bg-[#3A9BD9] transition-all duration-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title={loading ? "Guardando..." : "Guardar rol"}
-                                >
-                                    {loading ? (
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    ) : (
-                                        <MdSave size={20} />
-                                    )}
-                                </button>
-                                
-                                {/* Botón Cerrar (X) */}
-                                <button
-                                    className="flex items-center justify-center w-10 h-10 bg-red-500 text-white shadow-lg hover:bg-red-600 transition-all duration-200 rounded-lg"
-                                    onClick={handleClose}
-                                    disabled={loading}
-                                    title="Cerrar"
-                                >
-                                    <MdClose size={20} />
-                                </button>
-                            </div>
+                            <button
+                                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group"
+                                onClick={handleClose}
+                                aria-label="Cerrar (Esc)"
+                                title="Cerrar (Esc)"
+                            >
+                                <MdClose className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                            </button>
                         </div>
-                        
-                        {/* Body con scroll interno si es necesario */}
-                        <div className="px-4 sm:px-10 py-6 sm:py-10 pr-2 sm:pr-6 flex flex-col items-center flex-1 min-h-0 w-full overflow-y-auto scrollbar-thin">
-                            <div className="w-full space-y-6">
-                                {/* Mostrar error general si existe */}
-                                {errors.general && (
-                                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                                        <p className="text-sm text-red-600">{errors.general}</p>
+
+                        {/* Contenido mejorado */}
+                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-h-[70vh] bg-gray-50/50">
+                            {/* Mostrar error general si existe */}
+                            {errors.general && (
+                                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                    <p className="text-sm text-red-600">{errors.general}</p>
+                                </div>
+                            )}
+
+                            {/* Formulario básico */}
+                            <Form
+                                ref={formRef}
+                                title={null}
+                                autoComplete="off"
+                                size="max-w-xs sm:max-w-4xl"
+                                fields={[
+                                    {
+                                        label: "Nombre del rol",
+                                        name: "nombre",
+                                        placeholder: 'Ej: Supervisor, Moderador, etc.',
+                                        fieldType: 'input',
+                                        type: "text",
+                                        required: true,
+                                        minLength: 2,
+                                        maxLength: 50,
+                                        pattern: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/,
+                                        patternMessage: "Solo se permiten letras, números, espacios, guiones y guiones bajos",
+                                        errorMessageData: errors.nombre,
+                                        onChange: (e) => handleInputChange('nombre', e.target.value),
+                                        autoComplete: "off"
+                                    },
+                                    {
+                                        label: "Descripción",
+                                        name: "descripcion",
+                                        placeholder: 'Describe las responsabilidades de este rol...',
+                                        fieldType: 'textarea',
+                                        required: false,
+                                        minLength: 0,
+                                        maxLength: 500,
+                                        errorMessageData: errors.descripcion,
+                                        onChange: (e) => handleInputChange('descripcion', e.target.value),
+                                        autoComplete: "off",
+                                        rows: 3
+                                    }
+                                ]}
+                                onSubmit={handleSubmit}
+                                backgroundColor={'#fff'}
+                                hideSubmitButton={true}
+                            />
+
+                            {/* Selección de permisos */}
+                            <div className="mt-6 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-medium text-gray-800">Permisos del Rol</h3>
+                                    <span className="text-sm text-gray-600">
+                                        {selectedPermisos.length} de {Object.values(permisosByCategory).flat().length} permisos seleccionados
+                                    </span>
+                                </div>
+                                
+                                {/* Mostrar error de permisos si existe */}
+                                {errors.permisos && (
+                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                                        <p className="text-sm text-red-600">{errors.permisos}</p>
                                     </div>
                                 )}
-                                
-                                {/* Formulario básico */}
-                                <Form
-                                    title={null}
-                                    autoComplete="off"
-                                    size="max-w-xs sm:max-w-4xl"
-                                    fields={[
-                                        {
-                                            label: "Nombre del rol",
-                                            name: "nombre",
-                                            placeholder: 'Ej: Supervisor, Moderador, etc.',
-                                            fieldType: 'input',
-                                            type: "text",
-                                            required: true,
-                                            minLength: 2,
-                                            maxLength: 50,
-                                            pattern: /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s-_]+$/,
-                                            patternMessage: "Solo se permiten letras, números, espacios, guiones y guiones bajos",
-                                            errorMessageData: errors.nombre,
-                                            onChange: (e) => handleInputChange('nombre', e.target.value),
-                                            autoComplete: "off",
-                                            value: formData.nombre
-                                        },
-                                        {
-                                            label: "Descripción",
-                                            name: "descripcion",
-                                            placeholder: 'Describe las responsabilidades de este rol...',
-                                            fieldType: 'textarea',
-                                            required: false,
-                                            minLength: 0,
-                                            maxLength: 500,
-                                            errorMessageData: errors.descripcion,
-                                            onChange: (e) => handleInputChange('descripcion', e.target.value),
-                                            autoComplete: "off",
-                                            value: formData.descripcion,
-                                            rows: 3
-                                        }
-                                    ]}
-                                    onSubmit={handleSubmit}
-                                    backgroundColor={'#fff'}
-                                    hideSubmitButton={true}
-                                />
 
-                                {/* Selección de permisos */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-lg font-medium text-gray-800">Permisos del Rol</h3>
-                                        <span className="text-sm text-gray-600">
-                                            {formData.permisos.length} de {Object.values(permisosByCategory).flat().length} permisos seleccionados
-                                        </span>
+                                {/* Loading state para permisos */}
+                                {permisosLoading ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <LoadingSpinner variant="spinner" size="md" color="blue" />
+                                        <span className="ml-2 text-gray-600">Cargando permisos...</span>
                                     </div>
-                                    
-                                    {/* Mostrar error de permisos si existe */}
-                                    {errors.permisos && (
-                                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                            <p className="text-sm text-red-600">{errors.permisos}</p>
-                                        </div>
-                                    )}
-
+                                ) : (
                                     <div className="space-y-3">
                                         {Object.entries(permisosByCategory).map(([category, categoryPermisos]) => {
                                             const isExpanded = expandedCategories.has(category);
                                             const selectedCount = categoryPermisos.filter(p => 
-                                                formData.permisos.includes(p.nombre)
+                                                selectedPermisos.includes(p.nombre)
                                             ).length;
                                             const allSelected = selectedCount === categoryPermisos.length;
 
@@ -342,7 +351,7 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                                     {isExpanded && (
                                                         <div className="p-3 space-y-2">
                                                             {categoryPermisos.map((permiso) => {
-                                                                const isSelected = formData.permisos.includes(permiso.nombre);
+                                                                const isSelected = selectedPermisos.includes(permiso.nombre);
                                                                 
                                                                 return (
                                                                     <label
@@ -385,8 +394,46 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
                                             );
                                         })}
                                     </div>
-                                </div>
+                                )}
                             </div>
+                        </div>
+
+                        {/* Botones mejorados */}
+                        <div className="flex justify-end space-x-3 px-4 sm:px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
+                            <button
+                                type="button"
+                                onClick={handleClose}
+                                className="flex items-center space-x-2 px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
+                                disabled={loading}
+                            >
+                                <MdClose className="w-4 h-4" />
+                                <span>Cancelar</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Activar el submit del formulario
+                                    const form = document.querySelector('form');
+                                    if (form) {
+                                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                                        form.dispatchEvent(submitEvent);
+                                    }
+                                }}
+                                className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <>
+                                        <LoadingSpinner variant="spinner" size="sm" color="white" />
+                                        <span>Creando...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <MdSave className="w-4 h-4" />
+                                        <span>Crear Rol</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -395,7 +442,7 @@ export default function CreateRolePopup({ show, setShow, onRoleCreated }) {
     );
 }
 
-CreateRolePopup.propTypes = {
+CreateRolPopup.propTypes = {
     show: PropTypes.bool.isRequired,
     setShow: PropTypes.func.isRequired,
     onRoleCreated: PropTypes.func.isRequired,

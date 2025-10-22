@@ -102,11 +102,10 @@ const DireccionSchema = new EntitySchema({
             inverseSide: "direccion",
             cascade: true,
         },
-        fichasBomberos: {
-            type: "one-to-many",
+        fichaBombero: {
+            type: "one-to-one",
             target: "FichaBombero",
             inverseSide: "direccion",
-            cascade: true,
         },
         
     },

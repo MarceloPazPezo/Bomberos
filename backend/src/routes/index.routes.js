@@ -11,7 +11,7 @@ import companiaRoutes from "./compania.routes.js";
 import direccionRoutes from "./direccion.routes.js";
 import subtipoIncidenteRoutes from "./subtipoIncidente.routes.js";
 import carroRoutes from "./carro.routes.js";
-import serviciosRoutes from "./servicios.routes.js";
+import servicioRoutes from "./servicio.routes.js";
 import regionRoutes from "./region.routes.js";
 import comunaRoutes from "./comuna.routes.js";
 import debugRoutes from "./debug.routes.js";
@@ -22,6 +22,15 @@ import revisionPartesRoutes from "./revisionPartes.routes.js";
 import incidenteEstadoRoutes from "./incidenteEstado.routes.js";
 import eventoRoutes from "./evento.routes.js";
 
+import fileRoutes from "./file.routes.js";
+import tilesRoutes from "./tiles.routes.js";
+import fichaBomberoRoutes from "./fichaBombero.routes.js";
+import notificationRoutes from "./notification.routes.js";
+import eppRoutes from "./epp.routes.js";
+import perfilCompletoRoutes from "./perfilCompleto.routes.js";
+import tipoSangreRoutes from "./tipoSangre.routes.js";
+import estadoCivilRoutes from "./estadoCivil.routes.js";
+import tipoEventoRoutes from "./tipoEvento.routes.js";
 
 const router = Router();
 
@@ -37,7 +46,7 @@ router
   .use("/direccion", direccionRoutes)
   .use("/subtipoIncidente", subtipoIncidenteRoutes)
   .use("/carro", carroRoutes)
-  .use("/servicios", serviciosRoutes)
+  .use("/servicios", servicioRoutes)
   .use("/region", regionRoutes)
   .use("/comuna", comunaRoutes)
   .use("/debug", debugRoutes)
@@ -48,7 +57,15 @@ router
   .use("/incidentes", incidenteResumenRoutes)
   .use("/incidentes", revisionPartesRoutes)
   .use("/incidentes", incidenteEstadoRoutes)
-  .use("/calendario", eventoRoutes);
-
+  .use("/calendario", eventoRoutes)
+  .use("/files", fileRoutes)
+  .use("/tiles", tilesRoutes)
+  .use("/fichaBombero", fichaBomberoRoutes)
+  .use("/notifications", notificationRoutes)
+  .use("/epp", eppRoutes)
+  .use("/perfil-completo", perfilCompletoRoutes)
+  .use("/tipoSangre", tipoSangreRoutes)
+  .use("/estado-civil", estadoCivilRoutes)
+  .use("/tipo-evento", tipoEventoRoutes);
 
 export default router;

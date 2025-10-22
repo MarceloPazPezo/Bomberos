@@ -1,6 +1,36 @@
 import { useState, useCallback, useRef } from 'react';
 import { getBomberos, createBombero, updateBombero, deleteBombero, changeBomberoEstado } from '@services/bombero.service.js';
-import { showErrorAlert, showSuccessAlert } from '@helpers/sweetAlert.js';
+import { showErrorAlert } from '@helpers/fireAlert.js';
+import { 
+  bomberoCreatedToast, 
+  bomberoUpdatedToast, 
+  bomberoDeletedToast
+} from '@helpers/toastHelper.jsx';
+import { toast } from 'react-toastify';
+import React from 'react';
+import { MdPerson } from 'react-icons/md';
+
+// Función temporal para resolver el problema de importación
+const bomberoStatusChangedToast = (status) => {
+  const statusText = status ? 'activado' : 'desactivado';
+  toast.success(
+    <div className="flex items-center">
+      <MdPerson className="text-indigo-600 text-xl mr-2" />
+      <span>Bombero {statusText} exitosamente</span>
+    </div>,
+    {
+      position: "bottom-right",
+      autoClose: 4000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
 
 export const useBomberos = () => {
   const [bomberos, setBomberos] = useState([]);
@@ -78,7 +108,7 @@ export const useBomberos = () => {
       const response = await createBombero(bomberoData);
 
       if (response.status === 'Success') {
-        showSuccessAlert('¡Éxito!', 'Bombero creado correctamente');
+        bomberoCreatedToast();
         await fetchBomberos(true); // Recargar la lista
         return { success: true, data: response.data };
       } else {
@@ -118,12 +148,16 @@ export const useBomberos = () => {
   }, []); // Sin dependencias para evitar bucles
 
   // Función para actualizar un bombero
-  const handleUpdateBombero = useCallback(async (bomberoData, run) => {
+  const handleUpdateBombero = useCallback(async (bomberoData, run, id = null) => {
     try {
-      const response = await updateBombero(bomberoData, run);
+      console.log('DEBUG - handleUpdateBombero - bomberoData:', bomberoData);
+      console.log('DEBUG - handleUpdateBombero - run:', run);
+      console.log('DEBUG - handleUpdateBombero - id:', id);
+      const response = await updateBombero(bomberoData, run, id);
+      console.log('DEBUG - handleUpdateBombero - response:', response);
 
       if (response.status === 'Success' || response.run) {
-        showSuccessAlert('¡Éxito!', 'Bombero actualizado correctamente');
+        bomberoUpdatedToast();
         await fetchBomberos(true); // Recargar la lista
         return { success: true, data: response };
       } else {
@@ -139,15 +173,29 @@ export const useBomberos = () => {
   }, []); // Sin dependencias para evitar bucles
 
   // Función para eliminar un bombero
-  const handleDeleteBombero = useCallback(async (run) => {
+  const handleDeleteBombero = useCallback(async (run, id = null) => {
     try {
-      const response = await deleteBombero(run);
+      console.log('DEBUG - handleDeleteBombero - run:', run);
+      console.log('DEBUG - handleDeleteBombero - id:', id);
+      const response = await deleteBombero(run, id);
+      console.log('DEBUG - handleDeleteBombero - response:', response);
+      console.log('DEBUG - handleDeleteBombero - response.status:', response.status);
+      console.log('DEBUG - handleDeleteBombero - response.message:', response.message);
 
-      if (response.status === 'Success') {
-        showSuccessAlert('¡Éxito!', 'Bombero eliminado correctamente');
+      // Verificar si la eliminación fue exitosa
+      const isSuccess = response.status === 'Success' || 
+                       response.message?.includes('eliminado') || 
+                       response.message?.includes('correctamente');
+      
+      if (isSuccess) {
+        console.log('DEBUG - handleDeleteBombero - mostrando toast de éxito');
+        bomberoDeletedToast();
+        console.log('DEBUG - handleDeleteBombero - toast ejecutado');
         await fetchBomberos(true); // Recargar la lista
+        console.log('DEBUG - handleDeleteBombero - lista recargada');
         return { success: true };
       } else {
+        console.log('DEBUG - handleDeleteBombero - mostrando error');
         showErrorAlert('Error', response.message || 'Error al eliminar el bombero');
         return { success: false, error: response.message };
       }
@@ -165,8 +213,7 @@ export const useBomberos = () => {
       const response = await changeBomberoEstado(idBombero, activo);
 
       if (response.status === 'Success') {
-        const statusText = activo ? 'activado' : 'desactivado';
-        showSuccessAlert('¡Éxito!', `Bombero ${statusText} correctamente`);
+        bomberoStatusChangedToast(activo);
         await fetchBomberos(true); // Recargar la lista
         return { success: true, data: response.data };
       } else {

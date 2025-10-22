@@ -150,7 +150,9 @@ export async function createRol(req, res) {
 
     const { value, error } = rolCreateValidation.validate(body);
 
-    if (error) return handleErrorClient(res, 400, error.message);
+    if (error) {
+      return handleErrorClient(res, 400, error.message);
+    }
 
     const [rol, errorRol] = await createRolService(value);
 

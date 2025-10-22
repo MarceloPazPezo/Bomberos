@@ -7,7 +7,7 @@ import passport from "passport";
 import express, { json, urlencoded } from "express";
 
 import indexRoutes from "./routes/index.routes.js";
-import logger from "./config/logger.js";
+import logger from "./config/configLogger.js";
 import {
   morganMiddleware,
   requestLogger,
@@ -17,6 +17,10 @@ import {
 import { COOKIE_KEY, HOST, PORT } from "./config/configEnv.js";
 import { connectDB } from "./config/configDb.js";
 import { passportJwtSetup } from "./auth/passport.auth.js";
+import { initializeMinIO } from "./config/configMinIO.js";
+import { initializeRedis } from "./config/configRedis.js";
+import { initializeNotificationSocket } from "./sockets/notifications.socket.js";
+import notificationService from "./services/notification.service.js";
 
 import {
   crearCompañia
@@ -32,16 +36,28 @@ import {
   crearRegiones,
   crearComunas,
 } from "./config/data/initialRegionComuna.js";
+import {
+  crearEstadosCiviles
+} from "./config/data/initialEstadoCivil.js";
+import {
+  crearServiciosExternos
+} from "./config/data/initialServicio.js";
+import {
+  crearCarrosPredeterminados
+} from "./config/data/initialCarro.js";
 
 import {
   crearSubTipoIncidente,
   crearClasificacionEmergencia,
   crearTipoDano,
-  crearfaseIncidente
-} from "./config/data/initialSubTipoIncidente.js";
-import crearTipoEvento from "./config/data/initialTipoEvento.js";
-
-import crearEstados from "./config/data/initialEstadoReporte.js";
+  crearfaseIncidente,
+  crearServicios,
+  crearTiposSangre,
+  crearEstadosReporte
+} from "./config/data/initialExtra.js";
+import {
+  inicializarEpp
+} from "./config/data/initialEpp.js";
 
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
@@ -51,8 +67,6 @@ import { handleSocketConnection } from "./sockets/activeUsers.socket.js";
 let ioInstance = null;
 
 export const getIO = () => ioInstance;
-import { addAbortListener } from "events";
-import crearServicios from "./config/data/initialOtrosServicios.js";
 
 
 async function setupServer() {
@@ -140,6 +154,22 @@ async function setupAPI() {
     await connectDB();
     logger.database("TypeORM conectado exitosamente");
 
+    // Inicializar Redis
+    await initializeRedis();
+    logger.info("Redis inicializado exitosamente");
+
+    // Inicializar MinIO
+    await initializeMinIO();
+    logger.info("MinIO inicializado exitosamente");
+
+    // Inicializar servicio de notificaciones (sin WebSocket por ahora)
+    await notificationService.initialize();
+    logger.info("Servicio de notificaciones inicializado exitosamente");
+
+    // Inicializar sistema de notificaciones WebSocket
+    await initializeNotificationSocket();
+    logger.info("Sistema de notificaciones WebSocket inicializado exitosamente");
+
     await setupServer();
     await crearCompañia();
     await crearRegiones();
@@ -147,6 +177,9 @@ async function setupAPI() {
 
     await crearPermisos();
     await crearRoles();
+    await crearEstadosCiviles();
+    await crearServiciosExternos();
+    await crearCarrosPredeterminados();
     
     await crearBomberos();
 
@@ -156,10 +189,10 @@ async function setupAPI() {
     await crearTipoDano();
     await crearfaseIncidente();
     await crearServicios();
-    await crearEstados();
     await crearTipoEvento();
-
-    
+    await crearTiposSangre();
+    await crearEstadosReporte();
+    await inicializarEpp();
 
     logger.info("[CONFIG] Configuración inicial completada");
   } catch (error) {

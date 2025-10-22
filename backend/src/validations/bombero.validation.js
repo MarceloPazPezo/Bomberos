@@ -3,9 +3,19 @@ import Joi from "joi";
 import { validateRUNDv } from "../helpers/run.helper.js";
 
 const domainEmailValidator = (value, helper) => {
-  if (!value.endsWith("@example.cl") && !value.endsWith("@gmail.com")) {
+  // Permitir dominios comunes y dominios .cl
+  const allowedDomains = [
+    "@gmail.com", "@hotmail.com", "@outlook.com", "@yahoo.com", 
+    "@live.com", "@msn.com", "@icloud.com", "@me.com"
+  ];
+  
+  // Verificar si termina con un dominio permitido o con .cl
+  const isAllowedDomain = allowedDomains.some(domain => value.endsWith(domain));
+  const isClDomain = value.endsWith(".cl");
+  
+  if (!isAllowedDomain && !isClDomain) {
     return helper.message(
-      "El correo electrónico debe ser de un dominio permitido (ej. @example.cl, @gmail.com)",
+      "El correo electrónico debe ser de un dominio permitido (ej. @gmail.com, @hotmail.com, @example.cl)",
     );
   }
   return value;

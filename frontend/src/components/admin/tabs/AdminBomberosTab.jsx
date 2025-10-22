@@ -4,6 +4,8 @@ import { useAdminModals } from '@components/admin/AdminModalsProvider';
 import { useBomberos } from '@hooks/bomberos/useBomberos';
 import { useBomberosFilter } from '@hooks/admin/useBomberosFilter';
 import { useViewModes } from '@hooks/admin/useViewModes';
+import { useAuth } from '@hooks/auth/useAuth';
+import { showConfirmAlert } from '@helpers/fireAlert.js';
 
 // Componentes
 import BomberosView from '@components/bomberos/BomberosView';
@@ -26,6 +28,7 @@ import { MdPersonAddAlt1, MdRefresh } from 'react-icons/md';
  */
 const AdminBomberosTab = () => {
   const { hasPermiso, refreshTrigger } = useAdmin();
+  const { bombero: currentBombero } = useAuth();
   const { 
     openModal, 
     closeModal, 
@@ -42,7 +45,7 @@ const AdminBomberosTab = () => {
     handleCreateBombero,
     handleUpdateBombero,
     handleDeleteBombero,
-    handleChangeBomberoStatus
+    handleChangeBomberoEstado
   } = useBomberos();
 
   const { filteredBomberos, handleDateFilterChange } = useBomberosFilter(bomberos);
@@ -50,7 +53,7 @@ const AdminBomberosTab = () => {
 
   // Cargar bomberos al montar el componente
   useEffect(() => {
-    if (hasPermiso('bombero:listar')) {
+    if (hasPermiso('bombero:obtener') || hasPermiso('bombero:admin')) {
       fetchBomberos(true);
     }
   }, [refreshTrigger, hasPermiso]);
@@ -182,21 +185,54 @@ const AdminBomberosTab = () => {
   };
 
   const handleDelete = async (bomberos) => {
+    console.log('DEBUG - handleDelete - bomberos recibidos:', bomberos);
+    
+    // Aplanar la estructura de datos si es necesario
+    let bomberosArray = [];
     if (Array.isArray(bomberos)) {
-      for (const bombero of bomberos) {
+      // Si bomberos es un array, verificar si contiene arrays o objetos
+      bomberosArray = bomberos.flat(); // Aplanar arrays anidados
+    } else {
+      bomberosArray = [bomberos];
+    }
+    
+    console.log('DEBUG - handleDelete - bomberosArray aplanado:', bomberosArray);
+    
+    // Crear mensaje de confirmación
+    const bomberosNames = bomberosArray.map(b => 
+      Array.isArray(b.nombres) ? b.nombres.join(' ') : b.nombres
+    ).join(', ');
+    
+    const confirmMessage = bomberosArray.length === 1 
+      ? `¿Estás seguro de que quieres eliminar permanentemente al bombero "${bomberosNames}"? Esta acción no se puede deshacer.`
+      : `¿Estás seguro de que quieres eliminar permanentemente a ${bomberosArray.length} bomberos? Esta acción no se puede deshacer.`;
+    
+    console.log('DEBUG - handleDelete - confirmMessage:', confirmMessage);
+    
+    // Mostrar confirmación
+    const confirmed = await showConfirmAlert(
+      'Confirmar Eliminación',
+      confirmMessage,
+      'Sí, eliminar',
+      'Cancelar'
+    );
+    
+    console.log('DEBUG - handleDelete - confirmed:', confirmed);
+    
+    if (confirmed.isConfirmed) {
+      console.log('DEBUG - handleDelete - procediendo con eliminación');
+      // Proceder con la eliminación
+      for (const bombero of bomberosArray) {
+        console.log('DEBUG - handleDelete - bombero individual:', bombero);
         const run = bombero.run;
+        const id = bombero.id;
+        console.log('DEBUG - handleDelete - eliminando bombero:', { run, id });
         if (run) {
-          const result = await handleDeleteBombero(run);
-          if (result.success) {
-            closeModal('editBombero');
-          }
+          await handleDeleteBombero(run, id);
         }
       }
     } else {
-      const result = await handleDeleteBombero(bomberos);
-      if (result.success) {
-        closeModal('editBombero');
-      }
+      console.log('DEBUG - handleDelete - eliminación cancelada por el usuario');
     }
   };
 
@@ -224,8 +260,9 @@ const AdminBomberosTab = () => {
     return result;
   };
 
-  const handleBomberoUpdated = async (updatedBombero) => {
-    const result = await handleUpdateBombero(updatedBombero);
+  const handleBomberoUpdated = async (updatedBombero, run) => {
+    const bomberoData = getModalData('editBombero');
+    const result = await handleUpdateBombero(updatedBombero, run, bomberoData?.id);
     if (result.success) {
       closeModal('editBombero');
     }
@@ -237,9 +274,11 @@ const AdminBomberosTab = () => {
     return (
       <BomberoActionsMenu
         bombero={row}
+        currentBombero={currentBombero}
+        hasPermiso={hasPermiso}
         onEdit={handleEdit}
         onDelete={handleDeleteSingle}
-        onStatusChange={handleChangeBomberoStatus}
+        onStatusChange={handleChangeBomberoEstado}
         onViewDetails={handleViewDetails}
       />
     );
@@ -284,11 +323,11 @@ const AdminBomberosTab = () => {
               </button>
             </Tooltip>
 
-            {/* Botón crear bombero */}
-            {hasPermiso('bombero:crear') && (
+            {/* Botón ingresar bombero */}
+            {(hasPermiso('bombero:crear') || hasPermiso('bombero:admin')) && (
               <Tooltip
                 id="create-bombero-btn"
-                content="Crear un nuevo bombero en el sistema"
+                content="Ingresar un nuevo bombero en el sistema"
                 place="top"
                 variant="dark"
               >
@@ -298,7 +337,7 @@ const AdminBomberosTab = () => {
                 >
                   <span className="flex items-center gap-2">
                     <MdPersonAddAlt1 size={18} />
-                    <span className="hidden sm:inline">Crear bombero</span>
+                    <span className="hidden sm:inline">Ingresar bombero</span>
                   </span>
                 </button>
               </Tooltip>
@@ -317,7 +356,7 @@ const AdminBomberosTab = () => {
           onEdit={handleEdit}
           onDelete={handleBulkDelete}
           onViewDetails={handleViewDetails}
-          onChangeStatus={handleChangeBomberoStatus}
+          onChangeStatus={handleChangeBomberoEstado}
           onRefresh={handleRefresh}
           filteredBomberos={filteredBomberos}
           renderActions={renderActions}

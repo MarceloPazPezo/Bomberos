@@ -25,6 +25,24 @@ export const ACCESS_TOKEN_SECRET =
   process.env.ACCESS_TOKEN_SECRET || process.env.B_ACCESS_TOKEN_SECRET;
 export const COOKIE_KEY = process.env.COOKIE_KEY || process.env.B_COOKIE_KEY;
 
+// Configuración de MinIO
+export const MINIO_ENDPOINT = process.env.MINIO_ENDPOINT || 'localhost';
+export const MINIO_PORT = process.env.MINIO_PORT || '9000';
+export const MINIO_USE_SSL = process.env.MINIO_USE_SSL || 'false';
+export const MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY || 'minioadmin';
+export const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minioadmin123';
+export const MINIO_BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'bomberos-uploads';
+export const SIGNED_URL_EXPIRY = process.env.SIGNED_URL_EXPIRY || '3600';
+
+// Configuración de Redis
+export const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
+export const REDIS_PORT = parseInt(process.env.REDIS_PORT, 10) || 6379;
+export const REDIS_PASSWORD = process.env.REDIS_PASSWORD || undefined;
+export const REDIS_DB = parseInt(process.env.REDIS_DB, 10) || 0;
+
+// Configuración de limpieza automática
+export const CLEANUP_INTERVAL = parseInt(process.env.CLEANUP_INTERVAL, 10) || 3600000; // 1 hora
+export const CLEANUP_BATCH_SIZE = parseInt(process.env.CLEANUP_BATCH_SIZE, 10) || 100;
 
 export const NODE_ENV = env;
 

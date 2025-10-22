@@ -40,7 +40,7 @@ export const getRoles = async () => {
  */
 export const getRole = async (id) => {
   try {
-    const response = await axios.get(`/rol/detail/${id}`);
+    const response = await axios.get(`/rol/detalle/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error al obtener rol:', error);
@@ -77,7 +77,7 @@ export const createRole = async (roleData) => {
  */
 export const updateRole = async (id, roleData) => {
   try {
-    const response = await axios.patch(`/rol/detail/${id}`, roleData);
+    const response = await axios.patch(`/rol/detalle/${id}`, roleData);
     return response.data;
   } catch (error) {
     console.error('Error al actualizar rol:', error);
@@ -92,7 +92,7 @@ export const updateRole = async (id, roleData) => {
  */
 export const deleteRole = async (id) => {
   try {
-    const response = await axios.delete(`/rol/detail/${id}`);
+    const response = await axios.delete(`/rol/detalle/${id}`);
     return response.data;
   } catch (error) {
     console.error('Error al eliminar rol:', error);

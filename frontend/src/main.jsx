@@ -2,6 +2,9 @@ import ReactDOM from 'react-dom/client';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import 'primereact/resources/themes/lara-light-cyan/theme.css';
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
 import Login from '@pages/Login';
 import Home from '@pages/Home';
 import Admin from '@pages/Admin';
@@ -10,7 +13,6 @@ import Disponibilidad from '@pages/Disponibilidad';
 import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 import Profile from '@pages/Profile';
-import TestRoles from '@pages/TestRoles';
 import CrearParte from '@pages/crearParte';
 import TestPermisos from '@pages/TestPermisos';
 import EdiarParte from '@pages/editarParte';
@@ -20,6 +22,8 @@ import RevisionPartes from './pages/revisionPartes';
 import VistaParteRevision from '@pages/vistaParteRevision.jsx';
 import CalendarioOperativo from '@pages/calendarioOperativoAdmin.jsx';
 import CalendarioOperativoBasic from '@pages/calendarioOperativoBasic.jsx';
+import BomberosPage from '@pages/BomberosPage';
+import InventarioEpp from '@pages/InventarioEpp';
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
@@ -54,7 +58,7 @@ const router = createBrowserRouter([
       {
         path: '/admin',
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:admin', 'rol:admin', 'permiso:admin']}>
+          <ProtectedRoute requiredPermisos={['bombero:obtener', 'bombero:crear', 'bombero:obtener_especifico', 'bombero:actualizar', 'bombero:eliminar', 'bombero:cambiar_estado', 'bombero:asignar_rol', 'bombero:admin', 'rol:obtener', 'rol:admin', 'permiso:obtener', 'permiso:admin', 'compania:obtener', 'compania:obtener_especifico', 'compania:admin', 'region:obtener', 'region:admin', 'comuna:obtener', 'comuna:admin', 'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin']}>
             <Admin />
           </ProtectedRoute>
         ),
@@ -84,14 +88,17 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/test-roles',
-        element: <TestRoles />
+        path: '/bomberos',
+        element: (
+          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+            <BomberosPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '/test-permisos',
         element: <TestPermisos />
       },
-
       {
         path: '/crearparte',
         element: (
@@ -158,6 +165,14 @@ const router = createBrowserRouter([
             <CalendarioOperativoBasic />
           </ProtectedRoute>
         )
+      },
+      {
+        path: '/inventario-epp',
+        element: (
+          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+            <InventarioEpp />
+          </ProtectedRoute>
+        ),
       }
     ]
   },

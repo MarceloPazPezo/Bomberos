@@ -17,11 +17,9 @@ const usePermisos = () => {
     // Evitar múltiples llamadas en un corto período de tiempo
     const now = Date.now();
     if (!force && loadingRef.current) {
-      console.log('Ya se están cargando permisos, evitando duplicación');
       return;
     }
     if (!force && now - lastFetchTimeRef.current < 2000) {
-      console.log('Evitando recarga muy frecuente de permisos');
       return;
     }
 
@@ -29,29 +27,22 @@ const usePermisos = () => {
       setLoading(true);
       loadingRef.current = true;
       setError(null);
-      console.log('Cargando permisos...');
       const response = await getPermisos();
       
-      console.log('Respuesta del servidor de permisos:', response);
       
       if (response.status === 'Success') {
         const responseData = response.data || [];
         
-        console.log('Datos de respuesta:', responseData);
         
         // Manejar tanto array directo como estructura paginada
         let permisos2;
         if (Array.isArray(responseData)) {
           // Array directo
           permisos2 = responseData;
-          console.log('Permisos como array directo:', permisos2.length);
         } else if (responseData.permisos && Array.isArray(responseData.permisos)) {
           // Estructura paginada: { permisos: [...], pagination: {...} }
           permisos2 = responseData.permisos;
-          console.log('Permisos de estructura paginada:', permisos2.length);
-          console.log('Información de paginación:', responseData.pagination);
         } else {
-          console.error('Los datos recibidos no tienen el formato esperado:', responseData);
           setPermisos([]);
           setPermisosByCategory({});
           setError('Formato de datos incorrecto');
@@ -61,8 +52,6 @@ const usePermisos = () => {
         
         // Validar que permisos2 sea un array
         if (Array.isArray(permisos2)) {
-          console.log(`Total de permisos cargados: ${permisos2.length}`);
-          console.log('Permisos:', permisos2.map(p => p.nombre));
           setPermisos(permisos2);
           
           // Agrupar permisos por categoría localmente
@@ -75,12 +64,9 @@ const usePermisos = () => {
             grouped[category].push(permiso);
           });
           
-          console.log('Permisos agrupados por categoría:', grouped);
-          console.log('Categorías encontradas:', Object.keys(grouped));
           setPermisosByCategory(grouped);
           setInitialized(true);
         } else {
-          console.error('Los permisos extraídos no son un array:', permisos2);
           setPermisos([]);
           setPermisosByCategory({});
           setError('Formato de datos incorrecto');
@@ -90,13 +76,11 @@ const usePermisos = () => {
         setError(response.message || 'Error al cargar permisos');
         setInitialized(true);
       } else {
-        console.error('Respuesta inesperada:', response);
         setError('Error al cargar permisos');
         setInitialized(true);
       }
       lastFetchTimeRef.current = now;
     } catch (error) {
-      console.error('Error fetching permisos:', error);
       setError('Error al conectar con el servidor');
       setInitialized(true);
     } finally {

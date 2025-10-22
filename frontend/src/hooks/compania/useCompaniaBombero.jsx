@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@hooks/auth/useAuth';
 import * as companiaService from '@services/compania.service.js';
+import { getMiCompania } from '@services/bombero.service.js';
 
 /**
  * Hook específico para obtener la compañía del bombero autenticado
@@ -42,9 +43,10 @@ export const useCompaniaBombero = () => {
         setLoading(true);
         setError(null);
 
-        const response = await companiaService.getCompaniaBombero(bombero.id);
+        // Usar el nuevo endpoint que tiene mejor lógica de fallback
+        const response = await getMiCompania();
         
-        if (response.status === 'Client error') {
+        if (!response.success) {
           throw new Error(response.message);
         }
 

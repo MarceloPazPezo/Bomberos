@@ -1,159 +1,114 @@
 "use strict";
-import {
-  getRegionesService,
-  getRegionService,
-  createRegionService,
-  updateRegionService,
-  deleteRegionService,
-} from "../services/region.service.js";
-import {
-  regionQueryValidation,
-  regionCreateValidation,
-  regionUpdateValidation,
-} from "../validations/region.validation.js";
-import {
-  handleErrorClient,
-  handleErrorServer,
-  handleSuccess,
-} from "../handlers/responseHandlers.js";
+import RegionService from "../services/region.service.js";
+import { handleSuccess, handleErrorClient, handleErrorServer } from "../handlers/responseHandlers.js";
 
-export async function getRegiones(req, res) {
+/**
+ * Obtiene todas las regiones
+ */
+export async function getAllRegiones(req, res) {
   try {
-    const filters = {
-      search: req.query.search,
-      page: parseInt(req.query.page) || 1,
-      limit: parseInt(req.query.limit) || 50,
-    };
+    const [regiones, error] = await RegionService.getAllRegiones();
+    
+    if (error) {
+      return handleErrorServer(res, 500, error);
+    }
 
-    const result = await getRegionesService(filters);
-
-    handleSuccess(res, 200, "Regiones obtenidas correctamente", result);
+    return handleSuccess(res, 200, "Regiones obtenidas exitosamente", regiones);
   } catch (error) {
-    console.error("Error en getRegiones:", error);
-    handleErrorServer(res, 500, error.message);
+    console.error("Error en getAllRegiones:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
 
-export async function getRegion(req, res) {
+/**
+ * Obtiene una región por ID
+ */
+export async function getRegionById(req, res) {
   try {
     const { id } = req.params;
-    const { nombre } = req.query;
+    const regionId = parseInt(id);
 
-    const queryParams = {
-      id: id ? parseInt(id, 10) : undefined,
-      nombre,
-    };
-
-    const { error } = regionQueryValidation.validate(queryParams);
-    if (error) return handleErrorClient(res, 400, error.message);
-
-    const region = await getRegionService(queryParams);
-
-    handleSuccess(res, 200, "Región obtenida correctamente", region);
-  } catch (error) {
-    console.error("Error en getRegion:", error);
-    if (error.message === "Región no encontrada") {
-      handleErrorClient(res, 404, error.message);
-    } else {
-      handleErrorServer(res, 500, error.message);
+    if (isNaN(regionId)) {
+      return handleErrorClient(res, 400, "ID de región inválido");
     }
+
+    const [region, error] = await RegionService.getRegionById(regionId);
+    
+    if (error) {
+      return handleErrorClient(res, 404, error);
+    }
+
+    return handleSuccess(res, 200, "Región obtenida exitosamente", region);
+  } catch (error) {
+    console.error("Error en getRegionById:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
 
-export async function createRegion(req, res) {
+/**
+ * Obtiene todas las comunas
+ */
+export async function getAllComunas(req, res) {
   try {
-    const { value, error } = regionCreateValidation.validate(req.body);
-    if (error) return handleErrorClient(res, 400, error.message);
-
-    const newRegion = await createRegionService(value);
-
-    handleSuccess(res, 201, "Región creada correctamente", newRegion);
-  } catch (error) {
-    console.error("Error en createRegion:", error);
-    if (error.message === "Ya existe una región con ese nombre") {
-      handleErrorClient(res, 409, error.message);
-    } else {
-      handleErrorServer(res, 500, error.message);
+    const [comunas, error] = await RegionService.getAllComunas();
+    
+    if (error) {
+      return handleErrorServer(res, 500, error);
     }
+
+    return handleSuccess(res, 200, "Comunas obtenidas exitosamente", comunas);
+  } catch (error) {
+    console.error("Error en getAllComunas:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
 
-export async function updateRegion(req, res) {
+/**
+ * Obtiene comunas por región
+ */
+export async function getComunasByRegion(req, res) {
   try {
-    const { id } = req.params;
-    const { nombre } = req.query;
+    const { idRegion } = req.params;
+    const regionId = parseInt(idRegion);
 
-    const queryParams = {
-      id: id ? parseInt(id, 10) : undefined,
-      nombre,
-    };
-
-    const { error: queryError } = regionQueryValidation.validate(queryParams);
-    if (queryError) {
-      return handleErrorClient(
-        res,
-        400,
-        "Error de validación en la consulta",
-        queryError.message
-      );
+    if (isNaN(regionId)) {
+      return handleErrorClient(res, 400, "ID de región inválido");
     }
 
-    const { value, error: bodyError } = regionUpdateValidation.validate(req.body);
-    if (bodyError) {
-      return handleErrorClient(
-        res,
-        400,
-        "Error de validación en los datos enviados",
-        bodyError.message
-      );
+    const [comunas, error] = await RegionService.getComunasByRegion(regionId);
+    
+    if (error) {
+      return handleErrorServer(res, 500, error);
     }
 
-    const updatedRegion = await updateRegionService(queryParams, value);
-
-    handleSuccess(res, 200, "Región actualizada correctamente", updatedRegion);
+    return handleSuccess(res, 200, "Comunas obtenidas exitosamente", comunas);
   } catch (error) {
-    console.error("Error en updateRegion:", error);
-    if (error.message === "Región no encontrada") {
-      handleErrorClient(res, 404, error.message);
-    } else if (error.message === "Ya existe una región con ese nombre") {
-      handleErrorClient(res, 409, error.message);
-    } else {
-      handleErrorServer(res, 500, error.message);
-    }
+    console.error("Error en getComunasByRegion:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
 
-export async function deleteRegion(req, res) {
+/**
+ * Obtiene una comuna por ID
+ */
+export async function getComunaById(req, res) {
   try {
     const { id } = req.params;
-    const { nombre } = req.query;
+    const comunaId = parseInt(id);
 
-    const queryParams = {
-      id: id ? parseInt(id, 10) : undefined,
-      nombre,
-    };
-
-    const { error: queryError } = regionQueryValidation.validate(queryParams);
-    if (queryError) {
-      return handleErrorClient(
-        res,
-        400,
-        "Error de validación en la consulta",
-        queryError.message
-      );
+    if (isNaN(comunaId)) {
+      return handleErrorClient(res, 400, "ID de comuna inválido");
     }
 
-    const deletedRegion = await deleteRegionService(queryParams);
+    const [comuna, error] = await RegionService.getComunaById(comunaId);
+    
+    if (error) {
+      return handleErrorClient(res, 404, error);
+    }
 
-    handleSuccess(res, 200, "Región eliminada correctamente", deletedRegion);
+    return handleSuccess(res, 200, "Comuna obtenida exitosamente", comuna);
   } catch (error) {
-    console.error("Error en deleteRegion:", error);
-    if (error.message === "Región no encontrada") {
-      handleErrorClient(res, 404, error.message);
-    } else if (error.message.includes("No se puede eliminar la región")) {
-      handleErrorClient(res, 409, error.message);
-    } else {
-      handleErrorServer(res, 500, error.message);
-    }
+    console.error("Error en getComunaById:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }

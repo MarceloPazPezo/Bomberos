@@ -13,12 +13,14 @@ import {
   MdEvent 
 } from 'react-icons/md';
 import LoadingPage from '@components/LoadingPage';
-import DateTimePicker from '@components/DateTimePicker';
+import DatePicker from '@components/DatePicker';
+import TimePicker from '@components/TimePicker';
 import { 
   createDisponibilidad, 
   cerrarDisponibilidad 
 } from '@services/disponibilidad.service';
 import dateHelper from '@helpers/dateHelper';
+import { useGlobalAvailability } from '@context/GlobalAvailabilityContext';
 
 /**
  * Componente para marcar disponibilidad
@@ -26,6 +28,7 @@ import dateHelper from '@helpers/dateHelper';
  */
 const DisponibilidadMarcarTab = () => {
   const { fireError, fireWarning, fireConfirm } = useGlobalFireAlert();
+  const { updateAvailability, clearAvailability } = useGlobalAvailability();
   const {
     // Datos
     disponibilidades,
@@ -113,6 +116,11 @@ const DisponibilidadMarcarTab = () => {
         case 'ahora':
           descripcionPreset = 'disponibilidad inmediata';
           break;
+        case '15m':
+          fechaTerminoStr = dateHelper.toInputFormat(now.plus({ minutes: 15 }));
+          usarTermino = true;
+          descripcionPreset = 'disponibilidad por 15 minutos';
+          break;
         case '2h':
           fechaTerminoStr = dateHelper.toInputFormat(now.plus({ hours: 2 }));
           usarTermino = true;
@@ -155,6 +163,7 @@ const DisponibilidadMarcarTab = () => {
 
       const newDisponibilidad = await createDisponibilidad(disponibilidadData);
       setMiDisponibilidad(newDisponibilidad);
+      updateAvailability(newDisponibilidad);
       
       disponibilidadCreatedToast(`¡${descripcionPreset.charAt(0).toUpperCase() + descripcionPreset.slice(1)} creada correctamente!`);
       
@@ -178,6 +187,13 @@ const DisponibilidadMarcarTab = () => {
           tiempo: 'Indefinida',
           descripcion: 'Te marcarás como disponible inmediatamente sin hora de término específica.',
           icono: '🚨'
+        };
+      case '15m':
+        return {
+          titulo: 'Disponible 15 Minutos',
+          tiempo: `Hasta ${now.plus({ minutes: 15 }).toFormat('HH:mm')}`,
+          descripcion: 'Te marcarás como disponible por los próximos 15 minutos.',
+          icono: '⚡'
         };
       case '2h':
         return {
@@ -265,6 +281,7 @@ const DisponibilidadMarcarTab = () => {
 
       const newDisponibilidad = await createDisponibilidad(disponibilidadData);
       setMiDisponibilidad(newDisponibilidad);
+      updateAvailability(newDisponibilidad);
       
       // Reiniciar formulario
       initializeFechas();
@@ -293,6 +310,7 @@ const DisponibilidadMarcarTab = () => {
 
       await cerrarDisponibilidad(disponibilidadData);
       setMiDisponibilidad(null);
+      clearAvailability();
       
       disponibilidadClosedToast('Disponibilidad cerrada correctamente');
       
@@ -340,6 +358,8 @@ const DisponibilidadMarcarTab = () => {
   const estaDisponible = (disponibilidad) => {
     return !disponibilidad.fechaTermino || new Date(disponibilidad.fechaTermino) > new Date();
   };
+
+  // Logs de debugging removidos para producción
 
   if (loading) {
     return <LoadingPage />;
@@ -481,37 +501,80 @@ const DisponibilidadMarcarTab = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Fecha y Hora de Inicio
-                </label>
-                <DateTimePicker
-                  value={fechaInicio ? dateHelper.fromInputFormat(fechaInicio).toJSDate() : null}
-                  onChange={(date) => {
-                    if (date) {
-                      const nuevaFecha = dateHelper.fromJSDate(date);
-                      setFechaInicio(dateHelper.toInputFormat(nuevaFecha));
-                      
-                      // Auto-ajustar fecha de término si está establecida y es anterior a la nueva fecha de inicio
-                      if (usarFechaTermino && fechaTermino) {
-                        const fechaTerminoActual = dateHelper.fromInputFormat(fechaTermino);
-                        if (fechaTerminoActual <= nuevaFecha) {
-                          const nuevaFechaTermino = nuevaFecha.plus({ hours: 2 });
-                          setFechaTermino(dateHelper.toInputFormat(nuevaFechaTermino));
-                          setAutoAjustado(true);
-                          setTimeout(() => setAutoAjustado(false), 3000);
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Fecha de Inicio
+                  </label>
+                  <DatePicker
+                    value={fechaInicio ? dateHelper.fromInputFormat(fechaInicio).toFormat('yyyy-MM-dd') : ''}
+                    onChange={(e) => {
+                      const fechaSeleccionada = e.target.value;
+                      if (fechaSeleccionada) {
+                        // Mantener la hora actual si existe, o usar 09:00 por defecto
+                        const horaActual = fechaInicio ? dateHelper.fromInputFormat(fechaInicio).toFormat('HH:mm') : '09:00';
+                        const nuevaFecha = `${fechaSeleccionada}T${horaActual}:00`;
+                        setFechaInicio(nuevaFecha);
+                        
+                        // Auto-ajustar fecha de término si está establecida y es anterior a la nueva fecha de inicio
+                        if (usarFechaTermino && fechaTermino) {
+                          const fechaTerminoActual = dateHelper.fromInputFormat(fechaTermino);
+                          const nuevaFechaObj = dateHelper.fromInputFormat(nuevaFecha);
+                          if (fechaTerminoActual <= nuevaFechaObj) {
+                            const nuevaFechaTermino = nuevaFechaObj.plus({ hours: 2 });
+                            setFechaTermino(dateHelper.toInputFormat(nuevaFechaTermino));
+                            setAutoAjustado(true);
+                            setTimeout(() => setAutoAjustado(false), 3000);
+                          }
                         }
+                      } else {
+                        setFechaInicio('');
                       }
-                    } else {
-                      setFechaInicio('');
-                    }
-                  }}
-                  placeholder="Seleccionar fecha y hora de inicio"
-                  minDate={new Date()}
-                  maxDate={new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)}
-                  showTime={true}
-                  className="w-full"
-                />
+                    }}
+                    placeholder="Seleccionar fecha"
+                    minDate={dateHelper.now().toFormat('yyyy-MM-dd')}
+                    maxDate={dateHelper.now().plus({ years: 1 }).toFormat('yyyy-MM-dd')}
+                    className="w-full"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hora de Inicio
+                  </label>
+                  <TimePicker
+                    value={fechaInicio ? dateHelper.fromInputFormat(fechaInicio).toFormat('HH:mm') : '09:00'}
+                    onChange={(e) => {
+                      const horaSeleccionada = e.target.value;
+                      if (horaSeleccionada && fechaInicio) {
+                        const fechaActual = dateHelper.fromInputFormat(fechaInicio).toFormat('yyyy-MM-dd');
+                        const nuevaFecha = `${fechaActual}T${horaSeleccionada}:00`;
+                        setFechaInicio(nuevaFecha);
+                        
+                        // Auto-ajustar fecha de término si está establecida y es anterior a la nueva fecha de inicio
+                        if (usarFechaTermino && fechaTermino) {
+                          const fechaTerminoActual = dateHelper.fromInputFormat(fechaTermino);
+                          const nuevaFechaObj = dateHelper.fromInputFormat(nuevaFecha);
+                          if (fechaTerminoActual <= nuevaFechaObj) {
+                            const nuevaFechaTermino = nuevaFechaObj.plus({ hours: 2 });
+                            setFechaTermino(dateHelper.toInputFormat(nuevaFechaTermino));
+                            setAutoAjustado(true);
+                            setTimeout(() => setAutoAjustado(false), 3000);
+                          }
+                        }
+                      } else if (horaSeleccionada) {
+                        // Si no hay fecha pero sí hora, usar la fecha de hoy
+                        const hoy = dateHelper.now().toFormat('yyyy-MM-dd');
+                        const nuevaFecha = `${hoy}T${horaSeleccionada}:00`;
+                        setFechaInicio(nuevaFecha);
+                      }
+                    }}
+                    placeholder="Seleccionar hora"
+                    format="24h"
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
               </div>
 
               <div>
@@ -540,6 +603,11 @@ const DisponibilidadMarcarTab = () => {
                           if (fechaInicio) {
                             const inicioDateTime = dateHelper.fromInputFormat(fechaInicio);
                             const terminoDateTime = inicioDateTime.plus({ hours: 2 });
+                            setFechaTermino(dateHelper.toInputFormat(terminoDateTime));
+                          } else {
+                            // Si no hay fecha de inicio, usar ahora + 2 horas
+                            const now = dateHelper.now();
+                            const terminoDateTime = now.plus({ hours: 2 });
                             setFechaTermino(dateHelper.toInputFormat(terminoDateTime));
                           }
                         }
@@ -592,26 +660,63 @@ const DisponibilidadMarcarTab = () => {
 
                 {/* Campos de fecha de término con animación */}
                 <div className={`
-                  overflow-hidden transition-all duration-500 ease-in-out
+                  overflow-visible transition-all duration-500 ease-in-out
                   ${usarFechaTermino
                     ? 'max-h-96 opacity-100 transform translate-y-0'
                     : 'max-h-0 opacity-0 transform -translate-y-2'
                   }
                 `}>
                   <div className="pt-2">
-                    <label className="block text-xs text-gray-500 mb-1">Fecha y Hora de Término</label>
-                    <DateTimePicker
-                      value={fechaTermino ? dateHelper.fromInputFormat(fechaTermino).toJSDate() : null}
-                      onChange={(date) => {
-                        if (date) {
-                          setFechaTermino(dateHelper.toInputFormat(dateHelper.fromJSDate(date)));
-                        }
-                      }}
-                      placeholder="Seleccionar fecha y hora de término"
-                      minDate={fechaInicio ? dateHelper.fromInputFormat(fechaInicio).toJSDate() : new Date()}
-                      showTime={true}
-                      className="w-full"
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Fecha de Término</label>
+                        <DatePicker
+                          value={fechaTermino ? dateHelper.fromInputFormat(fechaTermino).toFormat('yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            const fechaSeleccionada = e.target.value;
+                            if (fechaSeleccionada) {
+                              // Mantener la hora actual si existe, o usar 2 horas después del inicio
+                              const horaActual = fechaTermino ? dateHelper.fromInputFormat(fechaTermino).toFormat('HH:mm') : 
+                                (fechaInicio ? dateHelper.fromInputFormat(fechaInicio).plus({ hours: 2 }).toFormat('HH:mm') : '11:00');
+                              const nuevaFecha = `${fechaSeleccionada}T${horaActual}:00`;
+                              setFechaTermino(nuevaFecha);
+                            } else {
+                              setFechaTermino('');
+                            }
+                          }}
+                          placeholder="Seleccionar fecha"
+                          minDate={fechaInicio ? dateHelper.fromInputFormat(fechaInicio).toFormat('yyyy-MM-dd') : dateHelper.now().toFormat('yyyy-MM-dd')}
+                          maxDate={dateHelper.now().plus({ years: 1 }).toFormat('yyyy-MM-dd')}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Hora de Término</label>
+                        <TimePicker
+                          value={fechaTermino ? dateHelper.fromInputFormat(fechaTermino).toFormat('HH:mm') : 
+                            (fechaInicio ? dateHelper.fromInputFormat(fechaInicio).plus({ hours: 2 }).toFormat('HH:mm') : '11:00')}
+                          onChange={(e) => {
+                            const horaSeleccionada = e.target.value;
+                            if (horaSeleccionada && fechaTermino) {
+                              const fechaActual = dateHelper.fromInputFormat(fechaTermino).toFormat('yyyy-MM-dd');
+                              const nuevaFecha = `${fechaActual}T${horaSeleccionada}:00`;
+                              setFechaTermino(nuevaFecha);
+                            } else if (horaSeleccionada && fechaInicio) {
+                              // Si no hay fecha de término pero sí de inicio, usar la misma fecha
+                              const fechaInicioActual = dateHelper.fromInputFormat(fechaInicio).toFormat('yyyy-MM-dd');
+                              const nuevaFecha = `${fechaInicioActual}T${horaSeleccionada}:00`;
+                              setFechaTermino(nuevaFecha);
+                            }
+                          }}
+                          placeholder="Seleccionar hora"
+                          format="24h"
+                          step={1}
+                          minTime={fechaInicio ? dateHelper.fromInputFormat(fechaInicio).toFormat('HH:mm') : undefined}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -624,10 +729,36 @@ const DisponibilidadMarcarTab = () => {
                 )}
               </div>
 
+              {console.log('🎯 Renderizando botón principal. Estado:', { 
+                updatingMyStatus, 
+                fechaInicio, 
+                disabled: updatingMyStatus || !fechaInicio 
+              })}
+              
               <button
-                onClick={handleCreateDisponibilidad}
+                type="button"
+                onClick={(e) => {
+                  console.log('🔘🔘🔘 ONCLICK EJECUTADO 🔘🔘🔘');
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🔘 Estado del botón:', {
+                    updatingMyStatus,
+                    fechaInicio,
+                    fechaTermino,
+                    usarFechaTermino,
+                    isDisabled: updatingMyStatus || !fechaInicio
+                  });
+                  handleCreateDisponibilidad();
+                }}
+                onMouseEnter={() => console.log('🖱️ Mouse ENTER en botón principal')}
+                onMouseLeave={() => console.log('🖱️ Mouse LEAVE en botón principal')}
+                onMouseDown={() => console.log('🖱️ Mouse DOWN en botón principal')}
+                onMouseUp={() => console.log('🖱️ Mouse UP en botón principal')}
+                onPointerDown={() => console.log('👆 Pointer DOWN en botón principal')}
+                onPointerUp={() => console.log('👆 Pointer UP en botón principal')}
                 disabled={updatingMyStatus || !fechaInicio}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                style={{ position: 'relative', zIndex: 1000 }}
               >
                 {updatingMyStatus ? (
                   <>

@@ -25,6 +25,29 @@ services:
       - network
 
   # ===========================================
+  # CACHE Y NOTIFICACIONES (Redis)
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: bomberos-pern-redis
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${EXTERNAL_REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - network
+    command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+
+  # ===========================================
   # ALMACENAMIENTO DE ARCHIVOS (MinIO)
   # ===========================================
   minio:
@@ -80,6 +103,12 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin123}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-uploads}
+      
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-0}
     ports:
       - "${EXTERNAL_BACKEND_PORT:-3000}:3000"
     volumes:
@@ -87,6 +116,8 @@ services:
     restart: unless-stopped
     depends_on:
       database:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -131,6 +162,8 @@ volumes:
   database_data:
     driver: local
   database_test_data:
+    driver: local
+  redis_data:
     driver: local
   minio_data:
     driver: local

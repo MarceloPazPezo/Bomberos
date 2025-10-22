@@ -13,7 +13,7 @@ const router = Router();
 
 router.use(authenticateJwt);
 
-router.get("/", authorizePermisos(["bombero:leer_perfil"]), getMyProfile);
+router.get("/", authorizePermisos(["bombero:obtener_perfil"]), getMyProfile);
 router.patch(
   "/",
   cleanEmptyStrings,

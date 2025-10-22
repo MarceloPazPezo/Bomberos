@@ -23,22 +23,25 @@ const useSocket = () => {
     const socket = socketRef.current;
 
     socket.on('connect', () => {
-      console.log('[SOCKET] Conectado al servidor:', socket.id);
-      
       // Identificar al bombero en el servidor
-      socket.emit('bomberoActive', {
+      const bomberoData = {
         id: bombero.id,
         nombres: bombero.nombres,
         apellidos: bombero.apellidos,
-      });
+        companiaId: bombero.companiaId,
+        rolId: bombero.rolId
+      };
+      
+      // Debug log removido para producción
+      socket.emit('bomberoActive', bomberoData);
     });
 
     socket.on('disconnect', () => {
-      console.log('[SOCKET] Desconectado del servidor');
+      // Socket desconectado
     });
 
     socket.on('connect_error', (error) => {
-      console.error('[SOCKET] Error de conexión:', error);
+      console.error('Error de conexión socket:', error);
     });
 
     // Cleanup function

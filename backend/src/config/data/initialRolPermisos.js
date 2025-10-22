@@ -3,7 +3,7 @@ import Rol from "../../entities/rol.entity.js";
 import Permiso from "../../entities/permiso.entity.js";
 import { AppDataSource } from "../configDb.js";
 import { In } from "typeorm";
-import logger from "../logger.js";
+import logger from "../configLogger.js";
 
 async function crearPermisos() {
   try {
@@ -163,7 +163,7 @@ async function crearPermisos() {
       {
         nombre: "permiso:obtener",
         descripcion: "Permite consultar la lista de permisos del sistema",
-        categoria: "Administración",
+        categoria: "Permiso",
         ruta: "/api/permiso",
         metodo: "GET",
       },
@@ -171,7 +171,7 @@ async function crearPermisos() {
         nombre: "permiso:admin",
         descripcion:
           "Permiso especial de administrador para la gestion total de permisos",
-        categoria: "Permiso",
+        categoria: "Administración",
         ruta: "*",
         metodo: "*",
       },
@@ -214,6 +214,181 @@ async function crearPermisos() {
         ruta: "*",
         metodo: "*",
       },
+      {
+        nombre: "tipo_sangre:obtener",
+        descripcion: "Permite obtener la lista de tipos de sangre",
+        categoria: "Tipos de Sangre",
+        ruta: "/api/tipo-sangre",
+        metodo: "GET",
+      },
+      {
+        nombre: "direccion:crear",
+        descripcion: "Permite crear direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "POST",
+      },
+      {
+        nombre: "direccion:obtener",
+        descripcion: "Permite obtener direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "GET",
+      },
+      {
+        nombre: "direccion:actualizar",
+        descripcion: "Permite actualizar direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "direccion:eliminar",
+        descripcion: "Permite eliminar direcciones",
+        categoria: "Ubicación",
+        ruta: "/api/direccion",
+        metodo: "DELETE",
+      },
+      {
+        nombre: "estadoCivil:obtener",
+        descripcion: "Permite obtener información de todos los estados civiles",
+        categoria: "Estados Civiles",
+        ruta: "/api/estado-civil",
+        metodo: "GET",
+      },
+      {
+        nombre: "estadoCivil:admin",
+        descripcion: "Permite administración completa de estados civiles (crear, actualizar, eliminar)",
+        categoria: "Estados Civiles",
+        ruta: "/api/estado-civil/*",
+        metodo: "*",
+      },
+      {
+        nombre: "servicio:obtener",
+        descripcion: "Permite obtener información de todos los servicios",
+        categoria: "Servicios",
+        ruta: "/api/servicios",
+        metodo: "GET",
+      },
+      {
+        nombre: "servicio:admin",
+        descripcion: "Permite administración completa de servicios (crear, actualizar, eliminar)",
+        categoria: "Servicios",
+        ruta: "/api/servicios/*",
+        metodo: "*",
+      },
+      {
+        nombre: "carro:obtener",
+        descripcion: "Permite obtener información de todos los carros",
+        categoria: "Carros",
+        ruta: "/api/carros",
+        metodo: "GET",
+      },
+      {
+        nombre: "carro:admin",
+        descripcion: "Permite administración completa de carros (crear, actualizar, eliminar)",
+        categoria: "Carros",
+        ruta: "/api/carros/*",
+        metodo: "*",
+      },
+      {
+        nombre: "epp:obtener",
+        descripcion: "Permite obtener información de todos los EPP",
+        categoria: "EPP",
+        ruta: "/api/epp",
+        metodo: "GET",
+      },
+      {
+        nombre: "epp:crear",
+        descripcion: "Permite crear nuevos EPP",
+        categoria: "EPP",
+        ruta: "/api/epp",
+        metodo: "POST",
+      },
+      {
+        nombre: "epp:obtener_especifico",
+        descripcion: "Permite obtener información específica de un EPP",
+        categoria: "EPP",
+        ruta: "/api/epp/detalle/:id",
+        metodo: "GET",
+      },
+      {
+        nombre: "epp:actualizar",
+        descripcion: "Permite actualizar información de un EPP específico",
+        categoria: "EPP",
+        ruta: "/api/epp/detalle/:id",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "epp:eliminar",
+        descripcion: "Permite eliminar EPP",
+        categoria: "EPP",
+        ruta: "/api/epp/detalle/:id",
+        metodo: "DELETE",
+      },
+      {
+        nombre: "epp:cambiar_estado",
+        descripcion: "Permite cambiar el estado de un EPP",
+        categoria: "EPP",
+        ruta: "/api/epp/estado/:id",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "epp:asignar",
+        descripcion: "Permite asignar EPP a bomberos",
+        categoria: "EPP",
+        ruta: "/api/epp/asignar/:id",
+        metodo: "PATCH",
+      },
+      {
+        nombre: "epp:admin",
+        descripcion: "Permite administración completa de EPP (crear, actualizar, eliminar, cambiar estado, asignar)",
+        categoria: "EPP",
+        ruta: "/api/epp/*",
+        metodo: "*",
+      },
+      {
+        nombre: "tipo_epp:obtener",
+        descripcion: "Permite obtener la lista de tipos de EPP",
+        categoria: "Tipos de EPP",
+        ruta: "/api/tipo-epp",
+        metodo: "GET",
+      },
+      {
+        nombre: "tipo_epp:admin",
+        descripcion: "Permite administración completa de tipos de EPP (crear, actualizar, eliminar)",
+        categoria: "Tipos de EPP",
+        ruta: "/api/tipo-epp/*",
+        metodo: "*",
+      },
+      {
+        nombre: "estado_epp:obtener",
+        descripcion: "Permite obtener la lista de estados de EPP",
+        categoria: "Estados de EPP",
+        ruta: "/api/estado-epp",
+        metodo: "GET",
+      },
+      {
+        nombre: "estado_epp:admin",
+        descripcion: "Permite administración completa de estados de EPP (crear, actualizar, eliminar)",
+        categoria: "Estados de EPP",
+        ruta: "/api/estado-epp/*",
+        metodo: "*",
+      },
+      {
+        nombre: "tipoEvento:obtener",
+        descripcion: "Permite obtener la lista de tipos de evento",
+        categoria: "Tipos de Evento",
+        ruta: "/api/tipo-evento",
+        metodo: "GET",
+      },
+      {
+        nombre: "tipoEvento:admin",
+        descripcion: "Permite administración completa de tipos de evento (crear, actualizar, eliminar)",
+        categoria: "Tipos de Evento",
+        ruta: "/api/tipo-evento/*",
+        metodo: "*",
+      },
     ];
 
     const permisos = permisosData.map((p) => permisoRepository.create(p));
@@ -248,9 +423,19 @@ async function crearRoles() {
           "compania:obtener", // Permite ver todas las compañías
           "region:obtener", // Permite obtener regiones para dropdowns
           "comuna:obtener", // Permite obtener comunas para dropdowns
+          "rol:obtener", // Permite obtener roles para dropdowns
+          "permiso:obtener", // Permite obtener permisos para dropdowns
           "disponibilidad:obtener", // Permite obtener disponibilidades
           "disponibilidad:crear", // Permite crear su propia disponibilidad
           "disponibilidad:actualizar", // Permite cambiar su propio estado
+          "tipo_sangre:obtener", // Permite obtener tipos de sangre
+          "region:obtener", // Permite obtener regiones y comunas
+          "direccion:crear", // Permite crear direcciones
+          "direccion:obtener", // Permite obtener direcciones
+          "direccion:actualizar", // Permite actualizar direcciones
+          "epp:obtener", // Permite ver EPP disponibles
+          "tipo_epp:obtener", // Permite obtener tipos de EPP
+          "estado_epp:obtener", // Permite obtener estados de EPP
         ],
       },
       {
@@ -276,6 +461,32 @@ async function crearRoles() {
           "rol:admin",
           "region:admin",
           "comuna:admin",
+          "tipo_sangre:obtener",
+          "region:obtener",
+          "direccion:crear",
+          "direccion:obtener",
+          "direccion:actualizar",
+          "direccion:eliminar",
+          "estadoCivil:obtener",
+          "estadoCivil:admin",
+          "servicio:obtener",
+          "servicio:admin",
+          "carro:obtener",
+          "carro:admin",
+          "epp:crear",
+          "epp:obtener",
+          "epp:obtener_especifico",
+          "epp:actualizar",
+          "epp:eliminar",
+          "epp:cambiar_estado",
+          "epp:asignar",
+          "epp:admin",
+          "tipo_epp:obtener",
+          "tipo_epp:admin",
+          "estado_epp:obtener",
+          "estado_epp:admin",
+          "tipoEvento:obtener",
+          "tipoEvento:admin",
         ],
       },
     ];

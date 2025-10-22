@@ -268,3 +268,91 @@ export async function getCompaniaBombero(req, res) {
     handleErrorServer(res, 500, error.message);
   }
 }
+
+/**
+ * Obtener URL firmada de logo de una compañía específica
+ * GET /api/compania/:id/logo-url
+ */
+export async function getCompaniaLogoUrl(req, res) {
+  try {
+    const { id } = req.params;
+    const idCompania = parseInt(id);
+
+    if (isNaN(idCompania)) {
+      return handleErrorClient(res, 400, "ID de compañía inválido");
+    }
+
+    // Importar servicios necesarios
+    const minioService = (await import('../services/minio.service.js')).default;
+    const { BUCKETS } = await import('../config/configMinIO.js');
+    const { AppDataSource } = await import('../config/configDb.js');
+
+    // Verificar que la compañía existe
+    const companiaRepository = AppDataSource.getRepository("Compania");
+    const compania = await companiaRepository.findOne({
+      where: { id: idCompania }
+    });
+
+    if (!compania) {
+      return handleErrorClient(res, 404, "Compañía no encontrada");
+    }
+
+    if (!compania.logoKEY) {
+      return handleErrorClient(res, 404, "No hay logo para esta compañía");
+    }
+
+    // Generar URL firmada
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIES, compania.logoKEY);
+    
+    return handleSuccess(res, 200, "URL de logo generada exitosamente", { 
+      url: signedUrl,
+      companiaId: idCompania,
+      fileName: compania.logoKEY
+    });
+  } catch (error) {
+    console.error("Error en getCompaniaLogoUrl:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
+  }
+}
+
+export async function getCompaniaBannerUrl(req, res) {
+  try {
+    const { id } = req.params;
+    const idCompania = parseInt(id);
+
+    if (isNaN(idCompania)) {
+      return handleErrorClient(res, 400, "ID de compañía inválido");
+    }
+
+    // Importar servicios necesarios
+    const minioService = (await import('../services/minio.service.js')).default;
+    const { BUCKETS } = await import('../config/configMinIO.js');
+    const { AppDataSource } = await import('../config/configDb.js');
+
+    // Verificar que la compañía existe
+    const companiaRepository = AppDataSource.getRepository("Compania");
+    const compania = await companiaRepository.findOne({
+      where: { id: idCompania }
+    });
+
+    if (!compania) {
+      return handleErrorClient(res, 404, "Compañía no encontrada");
+    }
+
+    if (!compania.bannerKEY) {
+      return handleErrorClient(res, 404, "No hay banner para esta compañía");
+    }
+
+    // Generar URL firmada
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIES, compania.bannerKEY);
+    
+    return handleSuccess(res, 200, "URL de banner generada exitosamente", { 
+      url: signedUrl,
+      companiaId: idCompania,
+      fileName: compania.bannerKEY
+    });
+  } catch (error) {
+    console.error("Error en getCompaniaBannerUrl:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
+  }
+}

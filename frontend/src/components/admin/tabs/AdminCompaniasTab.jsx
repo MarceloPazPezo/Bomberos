@@ -1,12 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAdmin } from '@context/AdminContext';
 import { useAdminModals } from '@components/admin/AdminModalsProvider';
+import { useCompania } from '@hooks/compania/useCompania';
+import { showConfirmAlert } from '@helpers/fireAlert.js';
+import { toast } from 'react-toastify';
+
+// Importar modales
+import CreateCompaniaPopup from '@components/admin/popups/CreateCompaniaPopup';
+import UpdateCompaniaPopup from '@components/admin/popups/UpdateCompaniaPopup';
+import ViewCompaniaPopup from '@components/admin/popups/ViewCompaniaPopup';
 
 // Componentes
 import Tooltip from '@components/Tooltip';
+import CompaniaLogo from '@components/companias/CompaniaLogo';
 
 // Iconos
-import { MdAdd, MdRefresh, MdBusiness, MdSearch, MdClear } from 'react-icons/md';
+import { MdAdd, MdRefresh, MdBusiness, MdSearch, MdClear, MdEdit, MdDelete, MdVisibility, MdEmail, MdPhone, MdLocationOn } from 'react-icons/md';
 
 /**
  * Componente específico para la gestión de compañías
@@ -17,29 +26,38 @@ const AdminCompaniasTab = () => {
   const { openModal, closeModal } = useAdminModals();
 
   // Estado local
-  const [companias, setCompanias] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedCompania, setSelectedCompania] = useState(null);
 
-  // TODO: Implementar hook useCompanias cuando esté disponible
-  // const { 
-  //   companias, 
-  //   fetchCompanias, 
-  //   loading, 
-  //   error,
-  //   handleCreateCompania,
-  //   handleUpdateCompania,
-  //   handleDeleteCompania 
-  // } = useCompanias();
+  // Memoizar permisos para evitar múltiples evaluaciones
+  const permissions = useMemo(() => ({
+    canView: hasPermiso('compania:obtener'),
+    canAdmin: hasPermiso('compania:admin')
+  }), [hasPermiso]);
+
+  // Hook para gestión de compañías
+  const { 
+    companias: companiasData, 
+    fetchCompanias, 
+    loading: companiasLoading, 
+    error: companiasError,
+    createCompania,
+    updateCompania,
+    deleteCompania 
+  } = useCompania();
 
   // Cargar compañías al montar el componente
   useEffect(() => {
-      // fetchCompanias(true);
-      console.log('Cargando compañías...');
-  }, [hasPermiso]);
+    if (permissions.canView || permissions.canAdmin) {
+      fetchCompanias();
+    }
+  }, [permissions.canView, permissions.canAdmin, fetchCompanias]);
 
   // Filtrar compañías basado en el término de búsqueda
-  const filteredCompanias = companias.filter(compania =>
+  const filteredCompanias = companiasData.filter(compania =>
     compania.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     compania.direccion?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     compania.telefono?.includes(searchTerm)
@@ -47,16 +65,76 @@ const AdminCompaniasTab = () => {
 
   // Handlers
   const handleCreate = () => {
-    openModal('createCompania');
+    setShowCreateModal(true);
   };
 
   const handleRefresh = () => {
-    // fetchCompanias();
-    console.log('Refrescando compañías...');
+    fetchCompanias();
   };
 
   const clearSearch = () => {
     setSearchTerm('');
+  };
+
+  // Handlers para acciones de compañías
+  const handleEditCompania = (compania) => {
+    setSelectedCompania(compania);
+    setShowUpdateModal(true);
+  };
+
+  const handleDeleteCompania = async (compania) => {
+    const result = await showConfirmAlert(
+      '¿Eliminar Compañía?',
+      `¿Estás seguro de que quieres eliminar la compañía "${compania.nombre}"?`,
+      'Sí, eliminar',
+      'Cancelar'
+    );
+
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await deleteCompania(compania.id);
+        
+        if (deleteResult.success) {
+          // Mostrar notificación de éxito
+          toast.success(`¡Compañía "${compania.nombre}" eliminada exitosamente!`, {
+            position: "bottom-right",
+            autoClose: 4000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+          fetchCompanias(); // Refrescar la lista
+        }
+      } catch (error) {
+        console.error('Error al eliminar compañía:', error);
+      }
+    }
+  };
+
+  const handleViewCompania = (compania) => {
+    setSelectedCompania(compania);
+    setShowViewModal(true);
+  };
+
+  // Handlers para modales
+  const handleCompaniaCreated = () => {
+    fetchCompanias(); // Refrescar la lista
+    setShowCreateModal(false);
+  };
+
+  const handleCompaniaUpdated = () => {
+    fetchCompanias(); // Refrescar la lista
+    setShowUpdateModal(false);
+    setSelectedCompania(null);
+  };
+
+  const handleCloseModals = () => {
+    setShowCreateModal(false);
+    setShowUpdateModal(false);
+    setShowViewModal(false);
+    setSelectedCompania(null);
   };
 
   return (
@@ -96,7 +174,7 @@ const AdminCompaniasTab = () => {
 
             {/* Estadísticas */}
             <span className="text-sm text-gray-600 whitespace-nowrap">
-              Total: {companias.length} compañías
+              Total: {companiasData.length} compañías
               {searchTerm && ` | Filtradas: ${filteredCompanias.length}`}
             </span>
 
@@ -110,18 +188,18 @@ const AdminCompaniasTab = () => {
               <button
                 onClick={handleRefresh}
                 className={`px-3 py-2 border rounded-lg transition-colors ${
-                  loading 
+                  companiasLoading 
                     ? 'text-gray-400 border-gray-300 cursor-not-allowed' 
                     : 'text-[#4EB9FA] hover:text-[#3DA8E9] border-[#4EB9FA] hover:bg-[#4EB9FA]/10'
                 }`}
-                disabled={loading}
+                disabled={companiasLoading}
               >
-                <MdRefresh size={20} className={loading ? 'animate-spin' : ''} />
+                <MdRefresh size={20} className={companiasLoading ? 'animate-spin' : ''} />
               </button>
             </Tooltip>
 
             {/* Botón crear compañía */}
-            {hasPermiso(COMPANIA_PERMISSIONS.CREAR) && (
+            {permissions.canAdmin && (
               <Tooltip
                 id="create-compania-btn"
                 content="Crear una nueva compañía en el sistema"
@@ -145,7 +223,7 @@ const AdminCompaniasTab = () => {
         {/* Contenido principal */}
         <div className="space-y-4">
           {/* Estado de carga */}
-          {loading && (
+          {companiasLoading && (
             <div className="flex justify-center items-center py-12">
               <div className="flex items-center gap-3">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4EB9FA]"></div>
@@ -154,8 +232,17 @@ const AdminCompaniasTab = () => {
             </div>
           )}
 
-          {/* Lista vacía o en desarrollo */}
-          {!loading && companias.length === 0 && (
+          {/* Error */}
+          {companiasError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800 text-sm">
+                <strong>Error:</strong> {companiasError}
+              </p>
+            </div>
+          )}
+
+          {/* Lista vacía */}
+          {!companiasLoading && !companiasError && companiasData.length === 0 && (
             <div className="text-center py-12">
               <MdBusiness size={64} className="mx-auto text-gray-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-600 mb-2">
@@ -177,22 +264,123 @@ const AdminCompaniasTab = () => {
           )}
 
           {/* Lista de compañías filtradas */}
-          {!loading && filteredCompanias.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {!companiasLoading && !companiasError && filteredCompanias.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredCompanias.map((compania) => (
                 <div
                   key={compania.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-[#4EB9FA]/30 transition-all duration-300 group"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{compania.nombre}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{compania.direccion}</p>
-                      <p className="text-sm text-gray-500 mt-1">{compania.telefono}</p>
+                  {/* Layout: 1/3 imagen, 2/3 información */}
+                  <div className="flex h-48">
+                    {/* Logo/Imagen - 1/3 del ancho */}
+                    <div className="w-1/3 flex items-center justify-center">
+                      <CompaniaLogo
+                        compania={compania}
+                        nombre={compania.nombre}
+                        size="card"
+                        isRound={false}
+                        className="shadow-lg"
+                        alt={`Logo ${compania.nombre}`}
+                      />
                     </div>
-                    <div className="flex gap-1">
-                      {/* Botones de acción aquí */}
+                    
+                    {/* Información - 2/3 del ancho */}
+                    <div className="w-2/3 p-4 flex flex-col justify-between">
+                      {/* Header con nombre y fundación */}
+                      <div>
+                        <h4 className="font-bold text-gray-900 text-lg mb-2 truncate group-hover:text-[#4EB9FA] transition-colors">
+                          {compania.nombre}
+                        </h4>
+                        {compania.fechaFundacion && (
+                          <p className="text-sm text-gray-500 mb-3">
+                            Fundada en {new Date(compania.fechaFundacion).getFullYear()}
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Información de contacto compacta */}
+                      <div className="space-y-1 mb-3">
+                        {compania.email && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <MdEmail className="h-3 w-3 text-blue-600 flex-shrink-0" />
+                            <span className="text-gray-600 truncate">{compania.email}</span>
+                          </div>
+                        )}
+                        {compania.telefono && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <MdPhone className="h-3 w-3 text-green-600 flex-shrink-0" />
+                            <span className="text-gray-600">{compania.telefono}</span>
+                          </div>
+                        )}
+                        {compania.direccion && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <MdLocationOn className="h-3 w-3 text-orange-600 flex-shrink-0" />
+                            <span className="text-gray-600 truncate">
+                              {compania.direccion.calle} {compania.direccion.numero}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Descripción si existe */}
+                      {compania.descripcion && (
+                        <div className="mb-3">
+                          <p className="text-xs text-gray-500 line-clamp-2">
+                            {compania.descripcion}
+                          </p>
+                        </div>
+                      )}
                     </div>
+                  </div>
+                  
+                  {/* Botones de acción en la parte inferior */}
+                  <div className="flex gap-2 p-4 bg-gray-50 border-t border-gray-100">
+                    <Tooltip
+                      id={`view-compania-${compania.id}`}
+                      content="Ver detalles de la compañía"
+                      place="top"
+                    >
+                      <button
+                        onClick={() => handleViewCompania(compania)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                      >
+                        <MdVisibility className="h-4 w-4" />
+                        Ver
+                      </button>
+                    </Tooltip>
+                    
+                    {permissions.canAdmin && (
+                      <>
+                        <Tooltip
+                          id={`edit-compania-${compania.id}`}
+                          content="Editar compañía"
+                          place="top"
+                        >
+                          <button
+                            onClick={() => handleEditCompania(compania)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                          >
+                            <MdEdit className="h-4 w-4" />
+                            Editar
+                          </button>
+                        </Tooltip>
+                        
+                        <Tooltip
+                          id={`delete-compania-${compania.id}`}
+                          content="Eliminar compañía"
+                          place="top"
+                        >
+                          <button
+                            onClick={() => handleDeleteCompania(compania)}
+                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                          >
+                            <MdDelete className="h-4 w-4" />
+                            Eliminar
+                          </button>
+                        </Tooltip>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}
@@ -200,7 +388,7 @@ const AdminCompaniasTab = () => {
           )}
 
           {/* Sin resultados de búsqueda */}
-          {!loading && searchTerm && filteredCompanias.length === 0 && companias.length > 0 && (
+          {!companiasLoading && searchTerm && filteredCompanias.length === 0 && companiasData.length > 0 && (
             <div className="text-center py-8">
               <p className="text-gray-500">
                 No se encontraron compañías que coincidan con "{searchTerm}"
@@ -210,14 +398,29 @@ const AdminCompaniasTab = () => {
         </div>
       </div>
 
-      {/* Modales - TODO: Implementar cuando estén disponibles */}
-      {/* 
+      {/* Modales */}
       <CreateCompaniaPopup
-        show={isModalOpen('createCompania')}
-        setShow={(show) => show ? openModal('createCompania') : closeModal('createCompania')}
+        show={showCreateModal}
+        setShow={setShowCreateModal}
         onCompaniaCreated={handleCompaniaCreated}
       />
-      */}
+      
+      <UpdateCompaniaPopup
+        show={showUpdateModal}
+        setShow={setShowUpdateModal}
+        companiaData={selectedCompania}
+        onCompaniaUpdated={handleCompaniaUpdated}
+      />
+      
+      <ViewCompaniaPopup
+        show={showViewModal}
+        setShow={setShowViewModal}
+        companiaData={selectedCompania}
+        onEdit={handleEditCompania}
+        onDelete={handleDeleteCompania}
+        canEdit={permissions.canAdmin}
+        canDelete={permissions.canAdmin}
+      />
     </>
   );
 };

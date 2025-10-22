@@ -6,13 +6,52 @@ import { FaAsterisk } from "react-icons/fa";
 import MultiSelect from '@components/MultiSelect';
 import Select from '@components/Select';
 import LoadingSpinner from '@components/LoadingSpinner';
-import CustomDatePicker from './CustomDatePicker';
-import { registerLocale } from 'react-datepicker';
+import { format, parseISO, isValid } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
-import 'react-datepicker/dist/react-datepicker.css';
+import DatePicker from './DatePicker';
 
-// Registrar el locale español
-registerLocale('es', es);
+// Zona horaria de Chile (Santiago)
+const CHILE_TIMEZONE = 'America/Santiago';
+
+
+// Helper para convertir string de fecha a Date en zona horaria de Chile
+const stringToChileDate = (dateString) => {
+    if (!dateString) return null;
+    try {
+        // Parsear la fecha ISO (YYYY-MM-DD) y convertirla a zona horaria de Chile
+        const date = parseISO(dateString + 'T00:00:00');
+        return toZonedTime(date, CHILE_TIMEZONE);
+    } catch (error) {
+        console.error('Error parsing date:', error);
+        return null;
+    }
+};
+
+// Helper para convertir Date a string ISO en zona horaria de Chile
+const chileDateToString = (date) => {
+    if (!date || !isValid(date)) return '';
+    try {
+        // Convertir la fecha de Chile a UTC y formatear como ISO
+        const utcDate = fromZonedTime(date, CHILE_TIMEZONE);
+        return format(utcDate, 'yyyy-MM-dd');
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return '';
+    }
+};
+
+// Helper para crear fecha máxima/minima en zona horaria de Chile
+const createChileDate = (dateString, time = '00:00:00') => {
+    if (!dateString) return null;
+    try {
+        const date = parseISO(dateString + 'T' + time);
+        return toZonedTime(date, CHILE_TIMEZONE);
+    } catch (error) {
+        console.error('Error creating Chile date:', error);
+        return null;
+    }
+};
 
 const Form = forwardRef(({
     title,
@@ -157,6 +196,29 @@ const Form = forwardRef(({
                 return acc;
             }, {})
         };
+        
+        // Hacer auto-focus en el primer campo con error después del submit
+        setTimeout(() => {
+            const firstErrorField = fields.find(field => 
+                errors[field.name] && fieldRefs.current[field.name]
+            );
+
+            if (firstErrorField && fieldRefs.current[firstErrorField.name]) {
+                const fieldElement = fieldRefs.current[firstErrorField.name];
+                
+                // Hacer scroll suave al campo
+                fieldElement.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+                
+                // Hacer focus después de un pequeño delay para que el scroll termine
+                setTimeout(() => {
+                    fieldElement.focus();
+                }, 300);
+            }
+        }, 100);
+        
         onSubmit(formData);
     };
 
@@ -396,6 +458,135 @@ const Form = forwardRef(({
                         />
                     )}
 
+                    {field.fieldType === 'image' && (
+                        <div className="w-full space-y-4">
+                            {/* Preview de imagen - ancho completo */}
+                            <div className="w-full">
+                                {field.preview ? (
+                                    <div className="relative w-full h-48 bg-gray-100 rounded-lg border-2 border-gray-200 overflow-hidden shadow-sm">
+                                        <img 
+                                            src={field.preview} 
+                                            alt="Preview" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                        {field.onRemove && (
+                                            <button
+                                                type="button"
+                                                onClick={field.onRemove}
+                                                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-md"
+                                            >
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* Placeholder cuando no hay imagen */
+                                    <div className="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                                        <svg className="h-12 w-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="text-sm text-gray-500 text-center">Sin imagen seleccionada</span>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Input de archivo - ancho completo como otros campos */}
+                            <div className="w-full">
+                                <input
+                                    type="file"
+                                    id={`${field.name}-upload`}
+                                    accept={field.accept || "image/jpeg,image/jpg,image/png,image/gif"}
+                                    onChange={field.onChange}
+                                    className="hidden"
+                                    disabled={field.disabled}
+                                />
+                                <label
+                                    htmlFor={`${field.name}-upload`}
+                                    className="w-full flex items-center justify-center gap-2 p-3 bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition cursor-pointer hover:bg-gray-50"
+                                >
+                                    <svg className="h-5 w-5 text-[#4EB9FA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span className="font-medium">
+                                        {field.preview ? 'Cambiar imagen' : 'Subir imagen'}
+                                    </span>
+                                </label>
+                                {field.helpText && (
+                                    <p className="text-xs text-gray-500 mt-2 text-center">
+                                        {field.helpText}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {field.fieldType === 'banner' && (
+                        <div className="w-full space-y-4">
+                            {/* Preview de banner - más alto que imagen normal */}
+                            <div className="w-full">
+                                {field.preview ? (
+                                    <div className="relative w-full h-64 bg-gray-100 rounded-lg border-2 border-gray-200 overflow-hidden shadow-sm">
+                                        <img 
+                                            src={field.preview} 
+                                            alt="Preview" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                        {field.onRemove && (
+                                            <button
+                                                type="button"
+                                                onClick={field.onRemove}
+                                                className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-md"
+                                            >
+                                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* Placeholder cuando no hay banner */
+                                    <div className="w-full h-64 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-colors">
+                                        <svg className="h-16 w-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span className="text-sm text-gray-500 text-center">Sin banner seleccionado</span>
+                                        <span className="text-xs text-gray-400 text-center mt-1">Recomendado: 1200x400px</span>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Input de archivo - ancho completo como otros campos */}
+                            <div className="w-full">
+                                <input
+                                    type="file"
+                                    id={`${field.name}-upload`}
+                                    accept={field.accept || "image/jpeg,image/jpg,image/png,image/gif"}
+                                    onChange={field.onChange}
+                                    className="hidden"
+                                    disabled={field.disabled}
+                                />
+                                <label
+                                    htmlFor={`${field.name}-upload`}
+                                    className="w-full flex items-center justify-center gap-2 p-3 bg-white border border-[#2C3E50]/20 rounded-lg text-[#2C3E50] focus:outline-none focus:ring-2 focus:ring-[#4EB9FA]/40 transition cursor-pointer hover:bg-gray-50"
+                                >
+                                    <svg className="h-5 w-5 text-[#4EB9FA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    <span className="font-medium">
+                                        {field.preview ? 'Cambiar banner' : 'Subir banner'}
+                                    </span>
+                                </label>
+                                {field.helpText && (
+                                    <p className="text-xs text-gray-500 mt-2 text-center">
+                                        {field.helpText}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {field.fieldType === 'multiselect' && (
                         <MultiSelect
                             options={field.options || []}
@@ -452,23 +643,22 @@ const Form = forwardRef(({
 
                     {field.fieldType === 'datepicker' && (
                         <div className="relative w-full">
-                            <CustomDatePicker
-                                selected={watch(field.name) ? new Date(watch(field.name)) : null}
-                                onChange={(date) => {
-                                    const isoDate = date ? date.toISOString().split('T')[0] : '';
-                                    setValue(field.name, isoDate);
+                            <DatePicker
+                                value={watch(field.name)}
+                                onChange={(e) => {
+                                    setValue(field.name, e.target.value);
                                     if (field.onChange) {
-                                        field.onChange(date);
+                                        field.onChange(e);
                                     }
-                                    if (date) {
-                                        clearErrors(field.name);
-                                    }
+                                    clearErrors(field.name);
                                 }}
-                                placeholder={field.placeholder || "dd/mm/yyyy"}
-                                className="w-full"
+                                placeholder={field.placeholder || "Seleccionar fecha"}
                                 disabled={field.disabled}
                                 maxDate={field.maxDate}
                                 minDate={field.minDate}
+                                showIcon={true}
+                                error={!!(fieldErrors[field.name] || errors[field.name])}
+                                className="w-full"
                             />
                             <input
                                 type="hidden"

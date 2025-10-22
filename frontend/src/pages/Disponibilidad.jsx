@@ -28,11 +28,6 @@ const DisponibilidadPage = () => {
 
   // Verificar si el usuario tiene al menos un permiso de disponibilidad
   const hasAnyDisponibilidadPermission = disponibilidadPermissions.some(permission => hasPermiso(permission));
-  
-  // Debug: Log de permisos para depuración
-  console.log('[DEBUG] Permisos de disponibilidad verificados:', disponibilidadPermissions);
-  console.log('[DEBUG] Usuario tiene permisos:', disponibilidadPermissions.map(p => ({ permiso: p, tiene: hasPermiso(p) })));
-  console.log('[DEBUG] Tiene algún permiso:', hasAnyDisponibilidadPermission);
 
   if (!hasAnyDisponibilidadPermission) {
     return (
@@ -53,7 +48,7 @@ const DisponibilidadPage = () => {
 
   return (
     <DisponibilidadProvider>
-      <div className="p-3 sm:p-4 lg:p-6">
+      <div>
         {/* Header principal con tabs integrados */}
         <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl mb-4 p-6">
           <div className="flex items-center justify-between">

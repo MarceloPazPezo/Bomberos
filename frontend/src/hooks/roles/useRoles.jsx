@@ -27,13 +27,11 @@ export const useRoles = () => {
     
     // Evitar múltiples llamadas si ya está cargando (solo si no es forzado)
     if (!force && loadingRef.current) {
-      console.log('Ya se están cargando roles, evitando duplicación');
       return;
     }
     
     // Evitar recargas muy frecuentes (solo si no es forzado)
     if (!force && now - lastFetchTimeRef.current < 2000) {
-      console.log('Evitando recarga muy frecuente de roles');
       return;
     }
 
@@ -41,7 +39,6 @@ export const useRoles = () => {
       setLoading(true);
       loadingRef.current = true;
       setError(null);
-      console.log('Cargando roles...');
       const response = await getRoles();
       
       if (response.status === 'Success') {
@@ -62,16 +59,13 @@ export const useRoles = () => {
         
         setRoles(Array.isArray(roles2) ? roles2 : []);
       } else if (response.status === 'Error') {
-        console.error('Error en la respuesta:', response.message);
         setError(response.message || 'Error al cargar roles');
       } else {
         // Respuesta inesperada del servidor
-        console.error('Respuesta inesperada:', response);
         setError('Error al cargar roles');
       }
       lastFetchTimeRef.current = now;
     } catch (error) {
-      console.error('Error fetching roles:', error);
       setError('Error al conectar con el servidor');
     } finally {
       setLoading(false);
@@ -93,7 +87,6 @@ export const useRoles = () => {
         return { success: false, error: response.message };
       }
     } catch (error) {
-      console.error('Error creating role:', error);
       const errorMessage = error.response?.data?.message || 'Error al crear el rol';
       showErrorAlert('Error del Sistema', errorMessage); // ❌ FireAlert para error
       return { success: false, error: errorMessage };
@@ -114,7 +107,6 @@ export const useRoles = () => {
         return { success: false, error: response.message };
       }
     } catch (error) {
-      console.error('Error updating role:', error);
       const errorMessage = error.response?.data?.message || 'Error al actualizar el rol';
       showErrorAlert('Error del Sistema', errorMessage); // ❌ FireAlert para error
       return { success: false, error: errorMessage };
@@ -160,7 +152,6 @@ export const useRoles = () => {
         return { success: false, error: response.message };
       }
     } catch (error) {
-      console.error('Error deleting role:', error);
       
       // Mensaje de error más específico según el código de estado
       if (error.response?.status === 404) {

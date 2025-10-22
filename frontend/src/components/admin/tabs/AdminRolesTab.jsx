@@ -43,7 +43,7 @@ const AdminRolesTab = () => {
 
   // Cargar roles al montar el componente
   useEffect(() => {
-    if (hasPermiso('rol:listar')) {
+    if (hasPermiso('rol:obtener')) {
       fetchRoles(true);
     }
   }, [refreshTrigger, hasPermiso]);
@@ -87,8 +87,14 @@ const AdminRolesTab = () => {
     return result;
   };
 
-  const handleRoleUpdated = async (updatedRole) => {
-    const result = await handleUpdateRole(updatedRole);
+  const handleRoleUpdated = async (updatedRoleData) => {
+    // Obtener el ID del rol desde los datos del modal
+    const roleData = getModalData('updateRol');
+    if (!roleData || !roleData.id) {
+      return { success: false, error: 'No se encontró el ID del rol' };
+    }
+    
+    const result = await handleUpdateRole(roleData.id, updatedRoleData);
     if (result.success) {
       closeModal('updateRol');
       fetchRoles(); // Refrescar la lista
@@ -163,7 +169,7 @@ const AdminRolesTab = () => {
             </Tooltip>
 
             {/* Botón crear rol */}
-            {hasPermiso('rol:crear') && (
+            {hasPermiso('rol:admin') && (
               <Tooltip
                 id="create-role-btn"
                 content="Crear un nuevo rol en el sistema"
@@ -208,7 +214,7 @@ const AdminRolesTab = () => {
       <UpdateRolPopup
         show={isModalOpen('updateRol')}
         setShow={(show) => show ? openModal('updateRol') : closeModal('updateRol')}
-        data={getModalData('updateRol')}
+        editingRole={getModalData('updateRol')}
         onRoleUpdated={handleRoleUpdated}
       />
     </>

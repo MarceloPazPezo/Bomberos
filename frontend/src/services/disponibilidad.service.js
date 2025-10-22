@@ -1,12 +1,18 @@
 import axios from './root.service.js';
 
 /**
- * Obtiene todas las disponibilidades
+ * Obtiene todas las disponibilidades o las de un bombero específico
+ * @param {number} idBombero - ID del bombero (opcional, si no se proporciona obtiene todas)
  * @returns {Promise} Promesa que resuelve con la lista de disponibilidades
  */
-export const getDisponibilidades = async () => {
+export const getDisponibilidades = async (idBombero = null) => {
   try {
-    const response = await axios.get('/disponibilidad');
+    const params = {};
+    if (idBombero) {
+      params.idBombero = idBombero;
+    }
+    
+    const response = await axios.get('/disponibilidad', { params });
     return response.data.data; // Extraer el array de la propiedad data
   } catch (error) {
     console.error('Error al obtener disponibilidades:', error);
@@ -22,7 +28,7 @@ export const getDisponibilidades = async () => {
 export const getDisponibilidad = async (id) => {
   try {
     const response = await axios.get(`/disponibilidad/detail/${id}`);
-    return response.data;
+    return response.data.data; // Extraer el objeto de disponibilidad de la propiedad data
   } catch (error) {
     console.error('Error al obtener disponibilidad:', error);
     throw error.response?.data || error;
@@ -37,7 +43,7 @@ export const getDisponibilidad = async (id) => {
 export const createDisponibilidad = async (disponibilidadData) => {
   try {
     const response = await axios.post('/disponibilidad', disponibilidadData);
-    return response.data;
+    return response.data.data; // Extraer el objeto de disponibilidad de la propiedad data
   } catch (error) {
     console.error('Error al crear disponibilidad:', error);
     throw error.response?.data || error;
@@ -53,7 +59,7 @@ export const createDisponibilidad = async (disponibilidadData) => {
 export const updateDisponibilidad = async (id, disponibilidadData) => {
   try {
     const response = await axios.patch(`/disponibilidad/detail/${id}`, disponibilidadData);
-    return response.data;
+    return response.data.data; // Extraer el objeto de disponibilidad de la propiedad data
   } catch (error) {
     console.error('Error al actualizar disponibilidad:', error);
     throw error.response?.data || error;
@@ -68,7 +74,7 @@ export const updateDisponibilidad = async (id, disponibilidadData) => {
 export const deleteDisponibilidad = async (id) => {
   try {
     const response = await axios.delete(`/disponibilidad/detail/${id}`);
-    return response.data;
+    return response.data.data; // Extraer el resultado de la propiedad data
   } catch (error) {
     console.error('Error al eliminar disponibilidad:', error);
     throw error.response?.data || error;
@@ -84,7 +90,7 @@ export const deleteDisponibilidad = async (id) => {
 export const cerrarDisponibilidad = async (statusData) => {
   try {
     const response = await axios.patch('/disponibilidad/cerrar', statusData);
-    return response.data;
+    return response.data.data; // Extraer el objeto de disponibilidad de la propiedad data
   } catch (error) {
     console.error('Error al cerrar disponibilidad:', error);
     throw error.response?.data || error;
@@ -99,7 +105,7 @@ export const cerrarDisponibilidad = async (statusData) => {
 export const getDisponibilidadActiva = async (idBombero) => {
   try {
     const response = await axios.get(`/disponibilidad/activa/${idBombero}`);
-    return response.data;
+    return response.data.data; // Extraer el objeto de disponibilidad de la propiedad data
   } catch (error) {
     console.error('Error al obtener disponibilidad activa:', error);
     throw error.response?.data || error;

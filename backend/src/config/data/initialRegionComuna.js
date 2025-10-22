@@ -2,7 +2,7 @@
 import Region from "../../entities/region.entity.js";
 import Comuna from "../../entities/comuna.entity.js";
 import { AppDataSource } from "../configDb.js";
-import logger from "../logger.js";
+import logger from "../configLogger.js";
 import { readFile } from 'fs/promises';
 
 async function crearRegiones() {
@@ -87,6 +87,7 @@ async function crearComunas() {
 
     const data = await readFile(new URL('./regiones_comunas.json', import.meta.url), 'utf-8');
     const regionesComunas = JSON.parse(data);
+    
     for (const regionObj of regionesComunas) {
       const region = await regionRepository.findOneBy({
         nombre: regionObj.region,
@@ -95,13 +96,28 @@ async function crearComunas() {
         logger.warn(`[SERVER] Región no encontrada: ${regionObj.region}`);
         continue;
       }
+      
+      // Verificar si ya existen comunas para esta región
+      const comunasExistentes = await comunaRepository.findBy({ idRegion: region.id });
+      if (comunasExistentes.length > 0) {
+        logger.info(`[SERVER] Comunas de ${regionObj.region} ya existen, omitiendo.`);
+        continue;
+      }
+      
       const comunas = regionObj.comunas.map((nombreComuna) =>
         comunaRepository.create({ nombre: nombreComuna, idRegion: region.id }),
       );
-      await comunaRepository.save(comunas);
-      logger.info(
-        `[SERVER] Comunas de ${regionObj.region} creadas exitosamente`,
-      );
+      
+      try {
+        await comunaRepository.save(comunas);
+        logger.info(
+          `[SERVER] Comunas de ${regionObj.region} creadas exitosamente`,
+        );
+      } catch (saveError) {
+        logger.error(`[SERVER] Error al guardar comunas de ${regionObj.region}:`, saveError.message);
+        // Continuar con la siguiente región en lugar de fallar completamente
+        continue;
+      }
     }
   } catch (error) {
     logger.errorWithContext(error, { function: "crearComunas" });

@@ -30,8 +30,8 @@ export async function getCompaniaService(query) {
         "compania.email",
         "compania.telefono",
         "compania.idDireccion",
-        "compania.logoURL",
         "compania.logoKEY",
+        "compania.bannerKEY",
         "direccion.id",
         "direccion.calle",
         "direccion.numero",
@@ -99,8 +99,8 @@ export async function getCompaniasService(queryParams = {}) {
         "compania.email",
         "compania.telefono",
         "compania.idDireccion",
-        "compania.logoURL",
         "compania.logoKEY",
+        "compania.bannerKEY",
         "direccion.id",
         "direccion.calle",
         "direccion.numero",
@@ -196,8 +196,8 @@ export async function createCompaniaService(body) {
         email: body.email || null,
         telefono: body.telefono || null,
         idDireccion: body.idDireccion || null,
-        logoURL: body.logoURL || null,
         logoKEY: body.logoKEY || null,
+        bannerKEY: body.bannerKEY || null,
       };
 
       const newCompania = companiaRepository.create(companiaData);
@@ -286,11 +286,11 @@ export async function updateCompaniaService(query, body) {
       if (body.telefono !== undefined) {
         dataCompaniaUpdate.telefono = body.telefono;
       }
-      if (body.logoURL !== undefined) {
-        dataCompaniaUpdate.logoURL = body.logoURL;
-      }
       if (body.logoKEY !== undefined) {
         dataCompaniaUpdate.logoKEY = body.logoKEY;
+      }
+      if (body.bannerKEY !== undefined) {
+        dataCompaniaUpdate.bannerKEY = body.bannerKEY;
       }
 
       // Actualizar la compañía

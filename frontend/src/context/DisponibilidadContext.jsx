@@ -6,6 +6,7 @@ import {
 } from '@services/disponibilidad.service';
 import dateHelper from '@helpers/dateHelper';
 import useSocket from '../hooks/useSocket';
+import { useGlobalAvailability } from './GlobalAvailabilityContext';
 
 const DisponibilidadContext = createContext();
 
@@ -16,10 +17,12 @@ const DisponibilidadContext = createContext();
 export const DisponibilidadProvider = ({ children }) => {
   const { bombero, hasPermiso } = useAuth();
   const { on, off } = useSocket();
+  const { updateAvailability, clearAvailability } = useGlobalAvailability();
   
   // Estados principales
   const [activeTab, setActiveTab] = useState('marcar');
-  const [disponibilidades, setDisponibilidades] = useState([]);
+  const [disponibilidades, setDisponibilidades] = useState([]); // Todas las disponibilidades (para personal disponible)
+  const [miHistorial, setMiHistorial] = useState([]); // Solo las del usuario actual (para historial)
   const [bomberos, setBomberos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,11 +38,9 @@ export const DisponibilidadProvider = ({ children }) => {
 
   // Estados para filtros del historial
   const [filtros, setFiltros] = useState({
-    bombero: '',
     fechaDesde: '',
     fechaHasta: '',
-    estado: 'todos',
-    busqueda: ''
+    estado: 'todos'
   });
 
   // Estados para paginación
@@ -75,11 +76,6 @@ export const DisponibilidadProvider = ({ children }) => {
   const availableTabs = tabsConfig.filter(tab => 
     tab.permissions.some(permission => hasPermiso(permission))
   );
-  
-  // Debug: Log de pestañas para depuración
-  console.log('[DEBUG] Configuración de pestañas:', tabsConfig);
-  console.log('[DEBUG] Pestañas disponibles:', availableTabs);
-  console.log('[DEBUG] Pestaña activa:', activeTab);
 
   // Efecto para establecer la pestaña activa correcta basada en permisos
   useEffect(() => {
@@ -100,45 +96,6 @@ export const DisponibilidadProvider = ({ children }) => {
     setUsarFechaTermino(false);
     setAutoAjustado(false);
   }, []);
-
-  // Cargar datos
-  const loadData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Cargar disponibilidades solo si tiene permisos
-      let disponibilidadesData = [];
-      if (hasPermiso('disponibilidad:obtener') || hasPermiso('disponibilidad:admin')) {
-        const disponibilidadesResponse = await getDisponibilidades();
-        disponibilidadesData = Array.isArray(disponibilidadesResponse) ? disponibilidadesResponse : [];
-      }
-      setDisponibilidades(disponibilidadesData);
-
-      // Solo cargar bomberos si tiene permisos para leer todos los bomberos
-      let bomberosData = [];
-      if (hasPermiso('bombero:obtener')) {
-        const bomberosResponse = await getBomberos();
-        bomberosData = Array.isArray(bomberosResponse) ? bomberosResponse : [];
-      }
-      setBomberos(bomberosData);
-
-      // Buscar mi disponibilidad activa
-      if (bombero?.id && Array.isArray(disponibilidadesData)) {
-        const miDisponibilidadActiva = disponibilidadesData.find(d => 
-          d.idBombero === bombero.id && (!d.fechaTermino || new Date(d.fechaTermino) > new Date())
-        );
-        setMiDisponibilidad(miDisponibilidadActiva || null);
-      }
-
-      calculateStats(disponibilidadesData);
-    } catch (err) {
-      console.error('Error loading data:', err);
-      setError('Error al cargar los datos');
-    } finally {
-      setLoading(false);
-    }
-  }, [bombero?.id, hasPermiso]);
 
   // Calcular estadísticas
   const calculateStats = useCallback((data) => {
@@ -183,6 +140,61 @@ export const DisponibilidadProvider = ({ children }) => {
     setStats(stats);
   }, []);
 
+  // Cargar datos
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Cargar disponibilidades según permisos
+      let disponibilidadesData = [];
+      let miHistorialData = [];
+      
+      if (hasPermiso('disponibilidad:obtener') || hasPermiso('disponibilidad:admin')) {
+        if (hasPermiso('disponibilidad:admin')) {
+          // Administradores ven todas las disponibilidades
+          const disponibilidadesResponse = await getDisponibilidades();
+          disponibilidadesData = Array.isArray(disponibilidadesResponse) ? disponibilidadesResponse : [];
+          miHistorialData = disponibilidadesData; // Los admins ven todo en el historial también
+        } else {
+          // Usuarios normales: todas para personal disponible, solo las suyas para historial
+          const todasDisponibilidadesResponse = await getDisponibilidades();
+          disponibilidadesData = Array.isArray(todasDisponibilidadesResponse) ? todasDisponibilidadesResponse : [];
+          
+          // Para el historial, solo las del usuario actual
+          const miHistorialResponse = await getDisponibilidades(bombero?.id);
+          miHistorialData = Array.isArray(miHistorialResponse) ? miHistorialResponse : [];
+        }
+      }
+      
+      setDisponibilidades(disponibilidadesData);
+      setMiHistorial(miHistorialData);
+
+      // Solo cargar bomberos si tiene permisos para leer todos los bomberos
+      let bomberosData = [];
+      if (hasPermiso('bombero:obtener')) {
+        const bomberosResponse = await getBomberos();
+        bomberosData = Array.isArray(bomberosResponse) ? bomberosResponse : [];
+      }
+      setBomberos(bomberosData);
+
+      // Buscar mi disponibilidad activa (usar miHistorialData que ya está filtrado por usuario)
+      if (bombero?.id && Array.isArray(miHistorialData)) {
+        const miDisponibilidadActiva = miHistorialData.find(d => 
+          (!d.fechaTermino || new Date(d.fechaTermino) > new Date())
+        );
+        setMiDisponibilidad(miDisponibilidadActiva || null);
+      }
+
+      calculateStats(disponibilidadesData);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Error al cargar los datos');
+    } finally {
+      setLoading(false);
+    }
+  }, [bombero?.id, hasPermiso, calculateStats]);
+
   // Función para cambiar pestaña activa
   const handleTabChange = useCallback((tabId) => {
     if (availableTabs.some(tab => tab.id === tabId)) {
@@ -217,15 +229,61 @@ export const DisponibilidadProvider = ({ children }) => {
   useEffect(() => {
     initializeFechas();
     loadData();
-  }, [initializeFechas, loadData, refreshTrigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]); // Solo recargar cuando refreshTrigger cambie
+
+  // Efecto para sincronizar con el contexto global
+  useEffect(() => {
+    if (miDisponibilidad) {
+      updateAvailability(miDisponibilidad);
+    } else {
+      clearAvailability();
+    }
+  }, [miDisponibilidad, updateAvailability, clearAvailability]);
+
+  // Efecto para verificar si mi disponibilidad ha expirado
+  useEffect(() => {
+    if (!miDisponibilidad?.fechaTermino) return;
+
+    const checkExpiration = () => {
+      const now = new Date();
+      const fechaTermino = new Date(miDisponibilidad.fechaTermino);
+      
+      if (fechaTermino <= now) {
+        console.log('⏰ Mi disponibilidad expiró, limpiando estado...');
+        setMiDisponibilidad(null);
+        clearAvailability();
+      }
+    };
+
+    // Calcular cuánto tiempo falta para que expire
+    const fechaTermino = new Date(miDisponibilidad.fechaTermino);
+    const now = new Date();
+    const timeUntilExpiration = fechaTermino.getTime() - now.getTime();
+
+    // Si ya expiró, limpiar inmediatamente
+    if (timeUntilExpiration <= 0) {
+      checkExpiration();
+      return;
+    }
+
+    // Configurar timeout para cuando expire
+    const timeout = setTimeout(checkExpiration, timeUntilExpiration + 1000); // +1 segundo de margen
+
+    // También verificar cada minuto por si acaso
+    const interval = setInterval(checkExpiration, 60000);
+
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, [miDisponibilidad, clearAvailability]);
 
   // Efecto para manejar eventos de socket
   useEffect(() => {
     if (!on || !off) return;
 
     const handleDisponibilidadUpdate = (eventData) => {
-      console.log('[SOCKET] Evento de disponibilidad recibido:', eventData);
-      
       // Actualizar lista de disponibilidades
       setDisponibilidades(prev => {
         let newDisponibilidades = [...prev];
@@ -233,23 +291,11 @@ export const DisponibilidadProvider = ({ children }) => {
         if (eventData.type === 'created') {
           // Agregar nueva disponibilidad
           newDisponibilidades.push(eventData.data);
-          
-          // Mostrar notificación si no es del usuario actual
-          if (eventData.data.idBombero !== bombero?.id) {
-            const nombreBombero = getBomberoInfo(eventData.data.idBombero, eventData.data);
-            console.log(`[SOCKET] ${nombreBombero} se marcó como disponible`);
-          }
         } else if (eventData.type === 'closed') {
           // Actualizar disponibilidad cerrada
           const index = newDisponibilidades.findIndex(d => d.id === eventData.data.id);
           if (index !== -1) {
             newDisponibilidades[index] = eventData.data;
-          }
-          
-          // Mostrar notificación si no es del usuario actual
-          if (eventData.data.idBombero !== bombero?.id) {
-            const nombreBombero = getBomberoInfo(eventData.data.idBombero, eventData.data);
-            console.log(`[SOCKET] ${nombreBombero} cerró su disponibilidad`);
           }
         }
         
@@ -286,6 +332,7 @@ export const DisponibilidadProvider = ({ children }) => {
     
     // Datos principales
     disponibilidades,
+    miHistorial,
     bomberos,
     loading,
     error,
@@ -326,7 +373,7 @@ export const DisponibilidadProvider = ({ children }) => {
     // Configuración
     tabsConfig
   }), [
-    activeTab, availableTabs, disponibilidades, bomberos, loading, error, stats,
+    activeTab, availableTabs, disponibilidades, miHistorial, bomberos, loading, error, stats,
     updatingMyStatus, miDisponibilidad, fechaInicio, fechaTermino, usarFechaTermino, autoAjustado,
     filtros, paginaActual, registrosPorPagina,
     handleTabChange, triggerRefresh, initializeFechas, loadData, calculateStats, getBomberoInfo,

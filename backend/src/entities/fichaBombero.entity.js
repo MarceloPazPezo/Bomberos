@@ -39,9 +39,9 @@ const FichaBomberoSchema = new EntitySchema({
       joinColumn: { name: "idCompania", referencedColumnName: "id", onDelete: "RESTRICT" },
     },
     direccion: {
-      type: "many-to-one",
+      type: "one-to-one",
       target: "Direccion",
-      joinColumn: { name: "idDireccion", referencedColumnName: "id", onDelete: "RESTRICT" },
+      joinColumn: { name: "idDireccion", referencedColumnName: "id", onDelete: "CASCADE" },
     },
     tipoSangre: {
       type: "many-to-one",
