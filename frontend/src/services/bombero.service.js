@@ -302,11 +302,9 @@ export async function changeBomberoEstado(idBombero, activo) {
 //obtener bomberos por compañia
 export async function getBomberosPorCompania(idCompania) {
     try {
-
         const { data } = await axios.get(`/bombero/compania/${idCompania}`);
         const formattedData = data.data.map(formatBomberoData);
-       
-        return formattedData;
+        return formattedData.data;
     } catch (error) {
         console.error('Error in getBomberosPorCompania:', error);
         return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
@@ -317,7 +315,7 @@ export async function getBomberosConLicencias(idCompania) {
     try {
         const { data } = await axios.get(`/bombero/licencias/${idCompania}`);
         const formattedData = data.data.map(formatBomberoData);
-       
+        console.log("formattedData", formattedData);
         return formattedData;
     } catch (error) {
         console.error('Error in getBomberosConLicencias:', error);

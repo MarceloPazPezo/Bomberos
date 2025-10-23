@@ -1,34 +1,43 @@
 import ReactDOM from 'react-dom/client';
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import 'primereact/resources/themes/lara-light-cyan/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
 import Login from '@pages/Login';
 import Home from '@pages/Home';
-import Admin from '@pages/Admin';
-import Demo from '@pages/Demo';
-import Disponibilidad from '@pages/Disponibilidad';
 import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
-import Profile from '@pages/Profile';
-import CrearParte from '@pages/crearParte';
-import TestPermisos from '@pages/TestPermisos';
-import EdiarParte from '@pages/editarParte';
-import PartesDeEmergencias from '@pages/PartesDeEmergencias';
-import VistaParte from '@pages/vistaParte.jsx';
-import RevisionPartes from './pages/revisionPartes';
-import VistaParteRevision from '@pages/vistaParteRevision.jsx';
-import CalendarioOperativo from '@pages/calendarioOperativoAdmin.jsx';
-import CalendarioOperativoBasic from '@pages/calendarioOperativoBasic.jsx';
-import BomberosPage from '@pages/BomberosPage';
-import InventarioEpp from '@pages/InventarioEpp';
+
+// Lazy loading para páginas menos críticas (se cargan bajo demanda)
+// Páginas lazy: Admin, Demo, Disponibilidad, Profile, CrearParte, EditarParte,
+//               PartesDeEmergencias, VistaParte, RevisionPartes, VistaParteRevision,
+//               CalendarioOperativo, CalendarioOperativoBasic, BomberosPage, InventarioEpp
+// Páginas inmediatas: Login, Home, Error404, Root (críticas para el funcionamiento básico)
+const Admin = lazy(() => import('@pages/Admin'));
+const Demo = lazy(() => import('@pages/Demo'));
+const Disponibilidad = lazy(() => import('@pages/Disponibilidad'));
+const Profile = lazy(() => import('@pages/Profile'));
+const CrearParte = lazy(() => import('@pages/crearParte'));
+const EdiarParte = lazy(() => import('@pages/editarParte'));
+const PartesDeEmergencias = lazy(() => import('@pages/PartesDeEmergencias'));
+const VistaParte = lazy(() => import('@pages/vistaParte.jsx'));
+const RevisionPartes = lazy(() => import('./pages/revisionPartes'));
+const VistaParteRevision = lazy(() => import('@pages/vistaParteRevision.jsx'));
+const CalendarioOperativo = lazy(() => import('@pages/CalendarioOperativoAdmin.jsx'));
+const CalendarioOperativoBasic = lazy(() => import('@pages/CalendarioOperativoBasic.jsx'));
+const BomberosPage = lazy(() => import('@pages/BomberosPage'));
+const InventarioEpp = lazy(() => import('@pages/InventarioEpp'));
+
+// Componente de carga para lazy loading
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4EB9FA]"></div>
+  </div>
+);
 
 import ProtectedRoute from '@components/ProtectedRoute';
 import { FireAlertProvider } from '@components/FireAlertProvider';
 import '@styles/styles.css';
-// Estilos de PrimeReact
 import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
@@ -59,7 +68,9 @@ const router = createBrowserRouter([
         path: '/admin',
         element: (
           <ProtectedRoute requiredPermisos={['bombero:obtener', 'bombero:crear', 'bombero:obtener_especifico', 'bombero:actualizar', 'bombero:eliminar', 'bombero:cambiar_estado', 'bombero:asignar_rol', 'bombero:admin', 'rol:obtener', 'rol:admin', 'permiso:obtener', 'permiso:admin', 'compania:obtener', 'compania:obtener_especifico', 'compania:admin', 'region:obtener', 'region:admin', 'comuna:obtener', 'comuna:admin', 'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin']}>
-            <Admin />
+            <Suspense fallback={<LoadingSpinner />}>
+              <Admin />
+            </Suspense>
           </ProtectedRoute>
         ),
       },
@@ -67,7 +78,9 @@ const router = createBrowserRouter([
         path: '/demo',
         element: (
           <ProtectedRoute>
-            <Demo />
+            <Suspense fallback={<LoadingSpinner />}>
+              <Demo />
+            </Suspense>
           </ProtectedRoute>
         ),
       },
@@ -75,7 +88,9 @@ const router = createBrowserRouter([
         path: '/disponibilidad',
         element: (
           <ProtectedRoute requiredPermisos={['disponibilidad:obtener']}>
-            <Disponibilidad />
+            <Suspense fallback={<LoadingSpinner />}>
+              <Disponibilidad />
+            </Suspense>
           </ProtectedRoute>
         ),
       },
@@ -83,7 +98,9 @@ const router = createBrowserRouter([
         path: "/perfil",
         element: (
           <ProtectedRoute requiredPermisos={['bombero:obtener_perfil']}>
-            <Profile />
+            <Suspense fallback={<LoadingSpinner />}>
+              <Profile />
+            </Suspense>
           </ProtectedRoute>
         ),
       },
@@ -91,19 +108,19 @@ const router = createBrowserRouter([
         path: '/bomberos',
         element: (
           <ProtectedRoute requiredPermisos={['bombero:obtener']}>
-            <BomberosPage />
+            <Suspense fallback={<LoadingSpinner />}>
+              <BomberosPage />
+            </Suspense>
           </ProtectedRoute>
         ),
-      },
-      {
-        path: '/test-permisos',
-        element: <TestPermisos />
       },
       {
         path: '/crearparte',
         element: (
           <ProtectedRoute>
-            <CrearParte />
+            <Suspense fallback={<LoadingSpinner />}>
+              <CrearParte />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -111,7 +128,9 @@ const router = createBrowserRouter([
         path: '/editarparte/:id',
         element: (
           <ProtectedRoute>
-            <EdiarParte />
+            <Suspense fallback={<LoadingSpinner />}>
+              <EdiarParte />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -119,7 +138,9 @@ const router = createBrowserRouter([
         path: '/partesdeemergencias',
         element: (
           <ProtectedRoute>
-            <PartesDeEmergencias />
+            <Suspense fallback={<LoadingSpinner />}>
+              <PartesDeEmergencias />
+            </Suspense>
           </ProtectedRoute>
         )
       }
@@ -128,7 +149,9 @@ const router = createBrowserRouter([
         path: '/vistaparte/:id',
         element: (
           <ProtectedRoute>
-            <VistaParte />
+            <Suspense fallback={<LoadingSpinner />}>
+              <VistaParte />
+            </Suspense>
           </ProtectedRoute>
         )
       }
@@ -137,7 +160,9 @@ const router = createBrowserRouter([
         path: '/vistaparterev/:id',
         element: (
           <ProtectedRoute>
-            <VistaParteRevision />
+            <Suspense fallback={<LoadingSpinner />}>
+              <VistaParteRevision />
+            </Suspense>
           </ProtectedRoute>
         )
       }
@@ -146,7 +171,9 @@ const router = createBrowserRouter([
         path: '/revisionpartes',
         element: (
           <ProtectedRoute>
-            <RevisionPartes />
+            <Suspense fallback={<LoadingSpinner />}>
+              <RevisionPartes />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -154,7 +181,9 @@ const router = createBrowserRouter([
         path: '/calendariooperativo',
         element: (
           <ProtectedRoute>
-            <CalendarioOperativo />
+            <Suspense fallback={<LoadingSpinner />}>
+              <CalendarioOperativo />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -162,7 +191,9 @@ const router = createBrowserRouter([
         path: '/calendariooperativobasic',
         element: (
           <ProtectedRoute>
-            <CalendarioOperativoBasic />
+            <Suspense fallback={<LoadingSpinner />}>
+              <CalendarioOperativoBasic />
+            </Suspense>
           </ProtectedRoute>
         )
       },
@@ -170,7 +201,9 @@ const router = createBrowserRouter([
         path: '/inventario-epp',
         element: (
           <ProtectedRoute requiredPermisos={['bombero:obtener']}>
-            <InventarioEpp />
+            <Suspense fallback={<LoadingSpinner />}>
+              <InventarioEpp />
+            </Suspense>
           </ProtectedRoute>
         ),
       }

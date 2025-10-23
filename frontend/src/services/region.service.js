@@ -76,3 +76,24 @@ export const regionService = {
     }
   }
 };
+
+// Exportar funciones individuales para compatibilidad
+export const getRegiones = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/regiones`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener regiones:', error);
+    throw error;
+  }
+};
+
+export const getComunas = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/comunas`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener comunas:', error);
+    throw error;
+  }
+};

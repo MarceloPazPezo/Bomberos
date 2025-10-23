@@ -22,6 +22,11 @@ class BomberoImageService {
         return null;
       }
     } catch (error) {
+      // 404 es esperado cuando el bombero no tiene imagen de perfil
+      if (error.response?.status === 404) {
+        return null;
+      }
+      // Solo loguear otros errores
       console.error('Error al obtener URL de imagen de perfil del bombero:', error);
       return null;
     }

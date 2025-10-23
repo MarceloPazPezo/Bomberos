@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MdError,
   MdPeople,
@@ -41,7 +41,7 @@ const BomberosPage = () => {
   } = useBomberoCompania();
 
   // Manejar errores
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
       showErrorAlert('Error', error);
       setError(null);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const nombreBombero = (b) => {
   const n = [b.nombres, b.apellidos].filter(Boolean).join(' ').trim();
@@ -9,7 +9,7 @@ const nombreBombero = (b) => {
 function ComboBombero({ value, onChange, options = [], placeholder = 'Buscar voluntario…', disabled }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const ref = React.useRef(null);
+  const ref = useRef(null);
 
   const selected = options.find(o => String(o.id) === String(value)) || null;
   const filtered = query

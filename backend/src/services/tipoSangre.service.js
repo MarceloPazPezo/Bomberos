@@ -1,51 +1,53 @@
 "use strict";
 import { AppDataSource } from "../config/configDb.js";
+import logger from "../config/configLogger.js";
 
 /**
- * Servicio para gestionar tipos de sangre
+ * Obtiene todos los tipos de sangre disponibles
+ * @returns {Promise<Array>} [tiposSangre, error]
  */
-export class TipoSangreService {
-  
-  /**
-   * Obtiene todos los tipos de sangre disponibles
-   * @returns {Promise<Array>} [tiposSangre, error]
-   */
-  static async getTiposSangre() {
-    try {
-      const tipoSangreRepository = AppDataSource.getRepository("TipoSangre");
-      
-      const tiposSangre = await tipoSangreRepository.find({
-        order: { nombre: "ASC" }
-      });
+export async function getTiposSangreService() {
+  try {
+    logger.info("getTiposSangreService - Obteniendo tipos de sangre");
+    
+    const tipoSangreRepository = AppDataSource.getRepository("TipoSangre");
+    
+    const tiposSangre = await tipoSangreRepository.find({
+      order: { nombre: "ASC" }
+    });
 
-      return [tiposSangre, null];
-    } catch (error) {
-      console.error("Error al obtener tipos de sangre:", error);
-      return [null, "Error interno del servidor"];
-    }
+    logger.info(`getTiposSangreService - Se obtuvieron ${tiposSangre.length} tipos de sangre`);
+    return [tiposSangre, null];
+  } catch (error) {
+    logger.error("getTiposSangreService - Error:", error);
+    return [null, "Error interno del servidor"];
   }
+}
 
-  /**
-   * Obtiene un tipo de sangre por su ID
-   * @param {number} id - ID del tipo de sangre
-   * @returns {Promise<Array>} [tipoSangre, error]
-   */
-  static async getTipoSangreById(id) {
-    try {
-      const tipoSangreRepository = AppDataSource.getRepository("TipoSangre");
-      
-      const tipoSangre = await tipoSangreRepository.findOne({
-        where: { id }
-      });
+/**
+ * Obtiene un tipo de sangre por su ID
+ * @param {number} id - ID del tipo de sangre
+ * @returns {Promise<Array>} [tipoSangre, error]
+ */
+export async function getTipoSangreByIdService(id) {
+  try {
+    logger.info(`getTipoSangreByIdService - Obteniendo tipo de sangre con ID: ${id}`);
+    
+    const tipoSangreRepository = AppDataSource.getRepository("TipoSangre");
+    
+    const tipoSangre = await tipoSangreRepository.findOne({
+      where: { id }
+    });
 
-      if (!tipoSangre) {
-        return [null, "Tipo de sangre no encontrado"];
-      }
-
-      return [tipoSangre, null];
-    } catch (error) {
-      console.error("Error al obtener tipo de sangre:", error);
-      return [null, "Error interno del servidor"];
+    if (!tipoSangre) {
+      logger.warn(`getTipoSangreByIdService - Tipo de sangre con ID ${id} no encontrado`);
+      return [null, "Tipo de sangre no encontrado"];
     }
+
+    logger.info(`getTipoSangreByIdService - Tipo de sangre encontrado: ${tipoSangre.nombre}`);
+    return [tipoSangre, null];
+  } catch (error) {
+    logger.error("getTipoSangreByIdService - Error:", error);
+    return [null, "Error interno del servidor"];
   }
 }

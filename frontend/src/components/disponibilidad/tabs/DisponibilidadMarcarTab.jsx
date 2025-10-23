@@ -757,8 +757,7 @@ const DisponibilidadMarcarTab = () => {
                 onPointerDown={() => console.log('👆 Pointer DOWN en botón principal')}
                 onPointerUp={() => console.log('👆 Pointer UP en botón principal')}
                 disabled={updatingMyStatus || !fechaInicio}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                style={{ position: 'relative', zIndex: 1000 }}
+                className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 relative z-10"
               >
                 {updatingMyStatus ? (
                   <>

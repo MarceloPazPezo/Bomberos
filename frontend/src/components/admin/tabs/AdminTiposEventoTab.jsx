@@ -65,8 +65,10 @@ const AdminTiposEventoTab = () => {
       } else {
         console.error('Error updating tipo evento:', result.error);
       }
+      return result; // <- devolver siempre el resultado para el popup
     } catch (error) {
       console.error('Error updating tipo evento:', error);
+      return { success: false, error: error?.message || 'Error al actualizar tipo de evento' };
     } finally {
       setIsUpdating(false);
     }

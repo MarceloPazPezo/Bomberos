@@ -19,8 +19,7 @@ import { connectDB } from "./config/configDb.js";
 import { passportJwtSetup } from "./auth/passport.auth.js";
 import { initializeMinIO } from "./config/configMinIO.js";
 import { initializeRedis } from "./config/configRedis.js";
-import { initializeNotificationSocket } from "./sockets/notifications.socket.js";
-import notificationService from "./services/notification.service.js";
+import { initializeNotificationSystem } from "./config/configNotification.js";
 
 import {
   crearCompañia
@@ -58,6 +57,9 @@ import {
 import {
   inicializarEpp
 } from "./config/data/initialEpp.js";
+import {
+  default as crearTipoEvento
+} from "./config/data/initialTipoEvento.js";
 
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
@@ -138,6 +140,25 @@ async function setupServer() {
     
     handleSocketConnection(io);
     server.listen(PORT, () => {
+      // Banner del servidor
+      console.log('\n' + '='.repeat(70));
+      console.log('                    SERVIDOR BOMBEROS');
+      console.log('                    INICIADO EXITOSAMENTE');
+      console.log('='.repeat(70));
+      console.log(`URL Principal:     http://${HOST}:${PORT}/api`);
+      console.log(`Entorno:           ${process.env.NODE_ENV || 'development'}`);
+      console.log(`Iniciado:          ${new Date().toLocaleString('es-CL')}`);
+      console.log('='.repeat(70));
+      console.log('Estado del Sistema:');
+      console.log('• Base de datos:   Conectada y operativa');
+      console.log('• Redis:           Configurado para caché y notificaciones');
+      console.log('• MinIO:           Configurado para almacenamiento');
+      console.log('• WebSocket:       Habilitado para notificaciones en tiempo real');
+      console.log('• API REST:        Disponible en /api');
+      console.log('='.repeat(70));
+      console.log('Sistema completamente operativo y listo para recibir peticiones');
+      console.log('='.repeat(70) + '\n');
+      
       logger.info(`[SERVER] Servidor corriendo en http://${HOST}:${PORT}/api`);
     });
     // --- FIN Socket.IO ---
@@ -156,21 +177,16 @@ async function setupAPI() {
 
     // Inicializar Redis
     await initializeRedis();
-    logger.info("Redis inicializado exitosamente");
+    logger.info("[REDIS] Inicialización completada");
 
     // Inicializar MinIO
     await initializeMinIO();
-    logger.info("MinIO inicializado exitosamente");
+    logger.info("[MINIO] Inicialización completada");
 
-    // Inicializar servicio de notificaciones (sin WebSocket por ahora)
-    await notificationService.initialize();
-    logger.info("Servicio de notificaciones inicializado exitosamente");
+    // Inicializar sistema completo de notificaciones (base + WebSocket)
+    await initializeNotificationSystem();
 
-    // Inicializar sistema de notificaciones WebSocket
-    await initializeNotificationSocket();
-    logger.info("Sistema de notificaciones WebSocket inicializado exitosamente");
-
-    await setupServer();
+    // Configurar datos iniciales
     await crearCompañia();
     await crearRegiones();
     await crearComunas();
@@ -183,7 +199,6 @@ async function setupAPI() {
     
     await crearBomberos();
 
-
     await crearClasificacionEmergencia();
     await crearSubTipoIncidente();
     await crearTipoDano();
@@ -195,6 +210,9 @@ async function setupAPI() {
     await inicializarEpp();
 
     logger.info("[CONFIG] Configuración inicial completada");
+    
+    // Configurar servidor después de toda la inicialización
+    await setupServer();
   } catch (error) {
     logger.errorWithContext(error, { function: "setupAPI" });
     process.exit(1);

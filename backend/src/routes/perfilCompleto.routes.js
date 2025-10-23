@@ -1,6 +1,16 @@
 "use strict";
 import express from "express";
-import { PerfilCompletoController } from "../controllers/perfilCompleto.controller.js";
+import { 
+  updateInformacionPersonal,
+  addContactoEmergencia,
+  updateContactoEmergencia,
+  deleteContactoEmergencia,
+  addCapacitacion,
+  updateCapacitacion,
+  deleteCapacitacion,
+  getImagenPerfilUrl,
+  limpiarImagenesHuerfanas
+} from "../controllers/perfilCompleto.controller.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import { cleanEmptyStrings } from "../middlewares/cleanEmptyStrings.middleware.js";
@@ -27,7 +37,7 @@ router.patch(
   handleUploadError,
   cleanEmptyStrings,
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.updateInformacionPersonal
+  updateInformacionPersonal
 );
 
 /**
@@ -39,7 +49,7 @@ router.post(
   "/contactos-emergencia",
   cleanEmptyStrings,
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.addContactoEmergencia
+  addContactoEmergencia
 );
 
 /**
@@ -51,7 +61,7 @@ router.put(
   "/contactos-emergencia/:id",
   cleanEmptyStrings,
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.updateContactoEmergencia
+  updateContactoEmergencia
 );
 
 /**
@@ -62,7 +72,7 @@ router.put(
 router.delete(
   "/contactos-emergencia/:id",
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.deleteContactoEmergencia
+  deleteContactoEmergencia
 );
 
 /**
@@ -74,7 +84,7 @@ router.post(
   "/capacitaciones",
   cleanEmptyStrings,
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.addCapacitacion
+  addCapacitacion
 );
 
 /**
@@ -86,7 +96,7 @@ router.put(
   "/capacitaciones/:id",
   cleanEmptyStrings,
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.updateCapacitacion
+  updateCapacitacion
 );
 
 /**
@@ -97,7 +107,7 @@ router.put(
 router.delete(
   "/capacitaciones/:id",
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.deleteCapacitacion
+  deleteCapacitacion
 );
 
 /**
@@ -108,7 +118,7 @@ router.delete(
 router.get(
   "/imagen-perfil-url",
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.getImagenPerfilUrl
+  getImagenPerfilUrl
 );
 
 /**
@@ -119,7 +129,7 @@ router.get(
 router.post(
   "/limpiar-imagenes-huerfanas",
   authorizePermisos(["bombero:actualizar_perfil"]),
-  PerfilCompletoController.limpiarImagenesHuerfanas
+  limpiarImagenesHuerfanas
 );
 
 export default router;

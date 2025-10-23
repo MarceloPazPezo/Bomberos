@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { MdSecurity, MdApi, MdDescription, MdCategory, MdRefresh, MdSearch, MdClear, MdExpandMore, MdExpandLess } from 'react-icons/md';
 import BomberosLoader from '@components/BomberosLoader';
@@ -30,7 +30,7 @@ const PermisosView = () => {
   }, [categories.length]);
 
   // Filtrar permisos basado en búsqueda y categoría
-  const filteredPermisos = React.useMemo(() => {
+  const filteredPermisos = useMemo(() => {
     // Asegurar que permisosByCategory sea un objeto válido
     const validPermisosByCategory = permisosByCategory && typeof permisosByCategory === 'object' ? permisosByCategory : {};
     let filtered = { ...validPermisosByCategory };

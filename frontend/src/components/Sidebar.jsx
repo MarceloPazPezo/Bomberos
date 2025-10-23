@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
@@ -28,9 +28,9 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     ];
 
     // Estado local para controlar el retraso del botón hamburger
-    const [showHamburger, setShowHamburger] = React.useState(false);
+    const [showHamburger, setShowHamburger] = useState(false);
 
-    React.useEffect(() => {
+    useEffect(() => {
         let timeout;
         if (!sidebarOpen) {
             timeout = setTimeout(() => setShowHamburger(true), 150); // 350ms delay

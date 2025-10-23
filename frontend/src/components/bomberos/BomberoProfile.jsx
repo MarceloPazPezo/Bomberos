@@ -120,7 +120,10 @@ const BomberoProfile = () => {
     return colors[roleName] || 'bg-gray-100 text-gray-800';
   };
 
-  if (!bombero) return null;
+  // Si no hay bombero, no renderizar nada (sin early return para no violar reglas de hooks)
+  if (!bombero) {
+    return null;
+  }
 
   return (
     <div className="relative">

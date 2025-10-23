@@ -76,7 +76,19 @@ export async function initializeRedis() {
     // Conectar al suscriptor
     await redisSubscriber.connect();
     
-    logger.info('[REDIS] Redis inicializado exitosamente');
+    // Esperar a que ambos clientes estén completamente listos
+    await new Promise((resolve) => {
+      const checkReady = () => {
+        if (redisClient.isReady && redisSubscriber.isReady) {
+          resolve();
+        } else {
+          setTimeout(checkReady, 10);
+        }
+      };
+      checkReady();
+    });
+    
+    logger.info('[REDIS] Inicializacion de Redis completada');
     return redisClient;
     
   } catch (error) {
@@ -90,7 +102,7 @@ export async function initializeRedis() {
  */
 export function getRedisClient() {
   if (!redisClient) {
-    throw new Error('Redis client no está inicializado. Llama a initializeRedis() primero.');
+    throw new Error('[REDIS] Redis client no está inicializado. Llama a initializeRedis() primero.');
   }
   return redisClient;
 }
@@ -100,7 +112,7 @@ export function getRedisClient() {
  */
 export function getRedisSubscriber() {
   if (!redisSubscriber) {
-    throw new Error('Redis subscriber no está inicializado. Llama a initializeRedis() primero.');
+    throw new Error('[REDIS] Redis subscriber no está inicializado. Llama a initializeRedis() primero.');
   }
   return redisSubscriber;
 }
@@ -111,7 +123,7 @@ export function getRedisSubscriber() {
 export async function checkRedisConnection() {
   try {
     if (!redisClient) {
-      return { connected: false, error: 'Cliente no inicializado' };
+      return { connected: false, error: '[REDIS] Cliente no inicializado' };
     }
     
     await redisClient.ping();

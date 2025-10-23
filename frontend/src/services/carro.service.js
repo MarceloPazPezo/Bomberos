@@ -91,9 +91,5 @@ export const carroService = {
 
 };
 
-// Exportar función individual para compatibilidad
-export const getCarrosByCompania = (idCompania) => {
-  return carroService.getCarrosByCompania(idCompania);
-};
 
 export default carroService;

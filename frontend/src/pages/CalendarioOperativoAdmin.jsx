@@ -5,7 +5,8 @@ import 'dayjs/locale/es';
 
 // Servicios
 import { getEventos, createEvento, getTiposEvento,  updateEvento, deleteEvento, getEventosRecurrentes } from '../services/calendario.service.js';
-import { getRegiones, getComunas, getDireccion } from '../services/direccion.service.js';
+import { getRegiones, getComunas } from '../services/region.service.js';
+import { getDireccion } from '../services/direccion.service.js';
 
 // FullCalendar
 import FullCalendar from '@fullcalendar/react';

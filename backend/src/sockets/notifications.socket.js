@@ -33,17 +33,24 @@ export async function initializeNotificationSocket() {
 
     redisSubscriber = getRedisSubscriber();
     
-    // Configurar eventos del suscriptor Redis para Redis 7 con cliente v5.x
-    // Los eventos se manejan ahora en las funciones de subscribe directamente
+    if (!redisSubscriber) {
+      throw new Error('Redis subscriber no está disponible');
+    }
+
+    // Verificar que el subscriber esté listo
+    if (!redisSubscriber.isReady) {
+      throw new Error('Redis subscriber no está listo');
+    }
     
+    // Configurar eventos del suscriptor Redis
     redisSubscriber.on('error', (error) => {
       logger.error('[NOTIFICATION_SOCKET] Error en suscriptor Redis:', error);
     });
 
     isInitialized = true;
-    logger.info('[NOTIFICATION_SOCKET] Sistema de notificaciones WebSocket inicializado');
+    logger.info('[NOTIFICATION_SOCKET] Sistema WebSocket inicializado correctamente');
   } catch (error) {
-    logger.error('[NOTIFICATION_SOCKET] Error inicializando notificaciones WebSocket:', error);
+    logger.error('[NOTIFICATION_SOCKET] Error inicializando WebSocket:', error);
     throw error;
   }
 }

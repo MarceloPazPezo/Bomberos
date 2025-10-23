@@ -37,16 +37,9 @@ const BomberosView = ({
   renderActions,
   customActions
 }) => {
-  // Verificación de seguridad para el contexto de autenticación
-  let hasPermiso;
-  try {
-    const auth = useAuth();
-    hasPermiso = auth?.hasPermiso || (() => false);
-  } catch (error) {
-    // Fallback durante hot reload o si el contexto no está disponible
-    console.warn('AuthContext no disponible, usando permisos por defecto');
-    hasPermiso = () => false;
-  }
+  // Los hooks deben llamarse SIEMPRE en el mismo orden, sin try-catch
+  const auth = useAuth();
+  const hasPermiso = auth?.hasPermiso || (() => false);
   
   // Estado para detectar vista móvil
   const [isMobile, setIsMobile] = useState(false);

@@ -1,6 +1,6 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import FireAlert from './FireAlert';
-import { useFireAlert } from '../hooks/useFireAlert';
+import { useFireAlert } from '../hooks/useFireAlert.js';
 import { setGlobalFireAlert } from '../helpers/fireAlert';
 
 const FireAlertContext = createContext();
@@ -17,7 +17,7 @@ export const FireAlertProvider = ({ children }) => {
   const fireAlertHook = useFireAlert();
 
   // Configurar la instancia global para compatibilidad con helpers
-  React.useEffect(() => {
+  useEffect(() => {
     setGlobalFireAlert(fireAlertHook);
   }, [fireAlertHook]);
 

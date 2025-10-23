@@ -13,8 +13,7 @@ import { getBomberosByCompaniaService } from '../services/bombero.service.js';
 class NotificationController {
   
   constructor() {
-    // Inicializar el servicio automáticamente
-    this.initializeService();
+    // No inicializar automáticamente - se hará cuando Redis esté listo
   }
   
   async initializeService() {

@@ -284,8 +284,8 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
 ========================= */
 function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   const navigate = useNavigate();
-  const [visible, setVisible] = React.useState(false);
-  const [deleting, setDeleting] = React.useState(false);
+  const [visible, setVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const handleClose = useCallback(() => {
     setVisible(false);
     // dar tiempo a la animación antes de desmontar
