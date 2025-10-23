@@ -59,7 +59,7 @@ const Login = () => {
                 ...data,
                 run: formatRutForAPI(data.run)
             };
-            
+
             const response = await login(formattedData);
             if (response.status === 'Success') {
                 navigate('/home');
@@ -68,7 +68,8 @@ const Login = () => {
                 showErrorAlert("Acceso denegado", response.details.message);
             }
         } catch (error) {
-            // Error handling is done by the auth service
+            console.error('Error en login:', error);
+            showErrorAlert("Error", "Error en la autenticación");
         }
     };
 

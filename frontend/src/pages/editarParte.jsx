@@ -5,7 +5,7 @@ import { useParams, useNavigate, useRoutes } from 'react-router-dom';
 // Flag simple de depuración (desactívalo en producción)
 const DEBUG_INIT = false;
 // Services
-import { getRegiones, getComunas } from '../services/direccion.service.js';
+import { getRegiones, getComunas } from '../services/region.service.js';
 import {
   getClasificacionesEmergencia,
   getSubtiposIncidente,

@@ -1,8 +1,8 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import Layout from '@components/Layout';
-import { AuthProvider } from '@context/AuthContext';
 import { GlobalAvailabilityProvider } from '@context/GlobalAvailabilityContext';
 import { NotificationProvider } from '@context/NotificationContext';
+import { AuthProvider } from '@context/AuthContext';
 import { useAuth } from '@hooks/auth/useAuth';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';

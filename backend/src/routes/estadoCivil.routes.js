@@ -1,5 +1,6 @@
+"use strict";
 import { Router } from 'express';
-import { EstadoCivilController } from '../controllers/estadoCivil.controller.js';
+import { getAllEstadosCiviles, createEstadoCivil, deleteEstadoCivil } from '../controllers/estadoCivil.controller.js';
 import { 
   validateCreateEstadoCivil, 
   validateDeleteEstadoCivil,
@@ -27,7 +28,7 @@ router.use(authenticateJwt);
 router.get('/', authorizePermisos(['estadoCivil:obtener', 'estadoCivil:admin']), async (req, res) => {
   try {
     logger.info('EstadoCivil routes - GET / - Obteniendo todos los estados civiles');
-    await EstadoCivilController.getAll(req, res);
+    await getAllEstadosCiviles(req, res);
   } catch (error) {
     logger.error('EstadoCivil routes - GET / - Error:', error);
     res.status(500).json({
@@ -37,7 +38,6 @@ router.get('/', authorizePermisos(['estadoCivil:obtener', 'estadoCivil:admin']),
   }
 });
 
-
 /**
  * @route POST /api/estado-civil
  * @desc Crear un nuevo estado civil
@@ -46,7 +46,7 @@ router.get('/', authorizePermisos(['estadoCivil:obtener', 'estadoCivil:admin']),
 router.post('/', authorizePermisos(['estadoCivil:admin']), validateCreateEstadoCivil, handleValidationErrors, async (req, res) => {
   try {
     logger.info('EstadoCivil routes - POST / - Creando nuevo estado civil');
-    await EstadoCivilController.create(req, res);
+    await createEstadoCivil(req, res);
   } catch (error) {
     logger.error('EstadoCivil routes - POST / - Error:', error);
     res.status(500).json({
@@ -56,7 +56,6 @@ router.post('/', authorizePermisos(['estadoCivil:admin']), validateCreateEstadoC
   }
 });
 
-
 /**
  * @route DELETE /api/estado-civil/:id
  * @desc Eliminar un estado civil
@@ -65,7 +64,7 @@ router.post('/', authorizePermisos(['estadoCivil:admin']), validateCreateEstadoC
 router.delete('/:id', authorizePermisos(['estadoCivil:admin']), validateDeleteEstadoCivil, handleValidationErrors, async (req, res) => {
   try {
     logger.info(`EstadoCivil routes - DELETE /:id - Eliminando estado civil con ID: ${req.params.id}`);
-    await EstadoCivilController.delete(req, res);
+    await deleteEstadoCivil(req, res);
   } catch (error) {
     logger.error('EstadoCivil routes - DELETE /:id - Error:', error);
     res.status(500).json({

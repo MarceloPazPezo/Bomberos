@@ -4,7 +4,7 @@ import { obtenerParteEmergenciaPorId } from '../services/parteEmergencia.service
 import { obtenerUltimoEstadoIncidente } from '@services/parteEmergencia.service.js';
 import { cambiarEstadoIncidente } from '@services/incidentes.service.js';
 import { getCompaniaById } from '@services/compania.service.js';
-import { getRegiones, getComunas } from '@services/direccion.service.js';
+import { getRegiones, getComunas } from '@services/region.service.js';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { getClasificacionesEmergencia, getSubtiposIncidente, getTiposDano, getFasesIncidente } from '@services/subtipoIncidente.service.js';
 import { getBomberosPorCompania } from '@services/bombero.service.js';

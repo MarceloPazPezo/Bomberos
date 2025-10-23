@@ -152,15 +152,17 @@ export default function UpdateTipoEventoPopup({ show, setShow, editingTipoEvento
                 // Pasar los datos al callback para que el componente padre maneje la actualización
                 if (onTipoEventoUpdated) {
                     const result = await onTipoEventoUpdated(updatedTipoEventoData);
-                    if (result.success) {
+                    if (result && result.success) {
                         setShow(false);
                         setErrors({});
-                    } else if (result.error && typeof result.error === 'object') {
+                    } else if (result && result.error && typeof result.error === 'object') {
                         // Si el error es un objeto, son errores específicos por campo
                         errorData(result.error);
-                    } else if (result.error) {
+                    } else if (result && result.error) {
                         // Si el error es un string, es un error general
                         console.error('Error general:', result.error);
+                    } else {
+                        console.error('Error updating tipo evento: resultado indefinido o inválido');
                     }
                 }
             } catch (error) {

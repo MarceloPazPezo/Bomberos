@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Button } from 'primereact/button';
@@ -49,7 +49,7 @@ const PrimeTableBasic = ({
   };
 
   // Efecto para llamar onSearch con debounce
-  React.useEffect(() => {
+  useEffect(() => {
     if (onSearch) {
       onSearch(debouncedSearchValue);
     }

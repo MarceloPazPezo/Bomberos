@@ -51,7 +51,6 @@ router
   .use("/comuna", comunaRoutes)
   .use("/debug", debugRoutes)
   .use("/health", healthRoutes)
-  .use("/servicios", serviciosRoutes)
   .use("/parteEmergencia", parteEmergenciaRoutes)
   .use("/estadosParte", estadosParteRoutes)
   .use("/incidentes", incidenteResumenRoutes)

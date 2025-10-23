@@ -1,5 +1,5 @@
 import { AppDataSource } from "../configDb.js";
-import logger from "../logger.js";
+import logger from "../configLogger.js";
 import TipoEvento  from "../../entities/tipoEvento.entity.js";
 
 async function seedInitialTipoEvento() {

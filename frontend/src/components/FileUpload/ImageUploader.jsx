@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { MdCloudUpload, MdDelete, MdImage, MdError, MdCrop } from 'react-icons/md';
 
@@ -25,7 +25,7 @@ const ImageUploader = ({
   const fileInputRef = useRef(null);
 
   // Crear preview cuando se selecciona un archivo
-  React.useEffect(() => {
+  useEffect(() => {
     if (value && value.cropped) {
       const url = URL.createObjectURL(value);
       setCroppedUrl(url);

@@ -1,5 +1,6 @@
 "use strict";
 import { AppDataSource } from '../config/configDb.js';
+import logger from '../config/configLogger.js';
 import {
   // Servicios básicos
   getBomberoService,
@@ -26,7 +27,7 @@ import {
 } from "../services/bombero.service.js";
 
 // Servicios de detalles
-import { BomberoDetallesService } from "../services/bomberoDetalles.service.js";
+import { getBomberoDetallesCompletosService } from "../services/bomberoDetalles.service.js";
 
 import {
   bomberoBodyValidation,
@@ -431,6 +432,7 @@ export async function getBomberosOtrasCompanias(req, res) {
  */
 export async function getBomberosConLicencias(req, res) {
   try {
+    console.log("getBomberosConLicencias");
     const { idCompania } = req.params;
     if (!idCompania || isNaN(parseInt(idCompania))) {
       return handleErrorClient(res, 400, "ID de compañía inválido");
@@ -482,7 +484,7 @@ export async function getBomberoDetalles(req, res) {
 
     const idBombero = parseInt(id);
     
-    const [bombero, error] = await BomberoDetallesService.getBomberoDetallesCompletos(idBombero);
+    const [bombero, error] = await getBomberoDetallesCompletosService(idBombero);
     
     if (error) {
       if (error === "Bombero no encontrado") {
@@ -710,7 +712,7 @@ export async function getBomberoImagenPerfilUrl(req, res) {
       fileName: ficha.fotoPerfilKEY
     });
   } catch (error) {
-    console.error("Error en getBomberoImagenPerfilUrl:", error);
+    logger.error("getBomberoImagenPerfilUrl - Error:", error);
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }

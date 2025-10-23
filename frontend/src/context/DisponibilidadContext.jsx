@@ -232,6 +232,13 @@ export const DisponibilidadProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshTrigger]); // Solo recargar cuando refreshTrigger cambie
 
+  // Efecto inicial para calcular estadísticas cuando se carga la página
+  useEffect(() => {
+    if (disponibilidades.length > 0) {
+      calculateStats(disponibilidades);
+    }
+  }, []); // Solo en el montaje inicial
+
   // Efecto para sincronizar con el contexto global
   useEffect(() => {
     if (miDisponibilidad) {
@@ -239,7 +246,10 @@ export const DisponibilidadProvider = ({ children }) => {
     } else {
       clearAvailability();
     }
-  }, [miDisponibilidad, updateAvailability, clearAvailability]);
+
+    // Recalcular estadísticas cuando cambie mi disponibilidad
+    calculateStats(disponibilidades);
+  }, [miDisponibilidad, updateAvailability, clearAvailability, disponibilidades, calculateStats]);
 
   // Efecto para verificar si mi disponibilidad ha expirado
   useEffect(() => {
@@ -248,11 +258,14 @@ export const DisponibilidadProvider = ({ children }) => {
     const checkExpiration = () => {
       const now = new Date();
       const fechaTermino = new Date(miDisponibilidad.fechaTermino);
-      
+
       if (fechaTermino <= now) {
         console.log('⏰ Mi disponibilidad expiró, limpiando estado...');
         setMiDisponibilidad(null);
         clearAvailability();
+
+        // Recalcular estadísticas después de limpiar mi disponibilidad
+        calculateStats(disponibilidades);
       }
     };
 
@@ -277,7 +290,14 @@ export const DisponibilidadProvider = ({ children }) => {
       clearTimeout(timeout);
       clearInterval(interval);
     };
-  }, [miDisponibilidad, clearAvailability]);
+  }, [miDisponibilidad, clearAvailability, disponibilidades, calculateStats]);
+
+  // Efecto para recalcular estadísticas cuando cambien las disponibilidades
+  useEffect(() => {
+    if (disponibilidades.length > 0) {
+      calculateStats(disponibilidades);
+    }
+  }, [disponibilidades, calculateStats]);
 
   // Efecto para manejar eventos de socket
   useEffect(() => {
@@ -287,7 +307,7 @@ export const DisponibilidadProvider = ({ children }) => {
       // Actualizar lista de disponibilidades
       setDisponibilidades(prev => {
         let newDisponibilidades = [...prev];
-        
+
         if (eventData.type === 'created') {
           // Agregar nueva disponibilidad
           newDisponibilidades.push(eventData.data);
@@ -298,10 +318,7 @@ export const DisponibilidadProvider = ({ children }) => {
             newDisponibilidades[index] = eventData.data;
           }
         }
-        
-        // Recalcular estadísticas
-        calculateStats(newDisponibilidades);
-        
+
         // Actualizar mi disponibilidad si corresponde
         if (eventData.data.idBombero === bombero?.id) {
           if (eventData.type === 'created') {
@@ -310,7 +327,7 @@ export const DisponibilidadProvider = ({ children }) => {
             setMiDisponibilidad(null);
           }
         }
-        
+
         return newDisponibilidades;
       });
     };
@@ -322,7 +339,7 @@ export const DisponibilidadProvider = ({ children }) => {
     return () => {
       off('disponibilidadUpdate', handleDisponibilidadUpdate);
     };
-  }, [on, off, bombero?.id, calculateStats, getBomberoInfo]);
+  }, [on, off, bombero?.id, getBomberoInfo]);
 
   const value = useMemo(() => ({
     // Estado de pestañas

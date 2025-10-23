@@ -1,5 +1,6 @@
+"use strict";
 import { Router } from 'express';
-import { CarroController } from '../controllers/carro.controller.js';
+import { getAllCarros, createCarro, updateCarro, deleteCarro, getCarrosByCompania } from '../controllers/carro.controller.js';
 import { authenticateJwt } from '../middlewares/authentication.middleware.js';
 import { authorizePermisos } from '../middlewares/authorization.middleware.js';
 import logger from '../config/configLogger.js';
@@ -22,7 +23,7 @@ router.use(authenticateJwt);
 router.get('/', authorizePermisos(['carro:obtener', 'carro:admin']), async (req, res) => {
   try {
     logger.info('Carros routes - GET / - Obteniendo todos los carros');
-    await CarroController.getAll(req, res);
+    await getAllCarros(req, res);
   } catch (error) {
     logger.error('Carros routes - GET / - Error:', error);
     res.status(500).json({
@@ -40,7 +41,7 @@ router.get('/', authorizePermisos(['carro:obtener', 'carro:admin']), async (req,
 router.post('/', authorizePermisos(['carro:admin']), async (req, res) => {
   try {
     logger.info('Carros routes - POST / - Creando nuevo carro');
-    await CarroController.create(req, res);
+    await createCarro(req, res);
   } catch (error) {
     logger.error('Carros routes - POST / - Error:', error);
     res.status(500).json({
@@ -58,7 +59,7 @@ router.post('/', authorizePermisos(['carro:admin']), async (req, res) => {
 router.put('/:id', authorizePermisos(['carro:admin']), async (req, res) => {
   try {
     logger.info(`Carros routes - PUT /:id - Actualizando carro con ID: ${req.params.id}`);
-    await CarroController.update(req, res);
+    await updateCarro(req, res);
   } catch (error) {
     logger.error('Carros routes - PUT /:id - Error:', error);
     res.status(500).json({
@@ -76,7 +77,7 @@ router.put('/:id', authorizePermisos(['carro:admin']), async (req, res) => {
 router.delete('/:id', authorizePermisos(['carro:admin']), async (req, res) => {
   try {
     logger.info(`Carros routes - DELETE /:id - Eliminando carro con ID: ${req.params.id}`);
-    await CarroController.delete(req, res);
+    await deleteCarro(req, res);
   } catch (error) {
     logger.error('Carros routes - DELETE /:id - Error:', error);
     res.status(500).json({
@@ -94,7 +95,7 @@ router.delete('/:id', authorizePermisos(['carro:admin']), async (req, res) => {
 router.get('/compania/:idCompania', authorizePermisos(['carro:obtener', 'carro:admin']), async (req, res) => {
   try {
     logger.info(`Carros routes - GET /compania/:idCompania - Obteniendo carros para compañía ID: ${req.params.idCompania}`);
-    await CarroController.getByCompania(req, res);
+    await getCarrosByCompania(req, res);
   } catch (error) {
     logger.error('Carros routes - GET /compania/:idCompania - Error:', error);
     res.status(500).json({

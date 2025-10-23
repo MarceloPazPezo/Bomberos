@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { MdCloudUpload, MdDelete, MdDescription, MdError, MdImage, MdPictureAsPdf } from 'react-icons/md';
 
@@ -23,7 +23,7 @@ const DocumentUploader = ({
   const fileInputRef = useRef(null);
 
   // Crear previews cuando se seleccionan archivos
-  React.useEffect(() => {
+  useEffect(() => {
     if (value && value.length > 0) {
       const urls = value.map(file => URL.createObjectURL(file));
       setPreviewUrls(urls);

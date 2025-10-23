@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { useAdmin } from '@context/AdminContext';
-import { 
-  MdPeople, 
-  MdSecurity, 
-  MdVpnKey, 
-  MdBusiness, 
+import {
+  MdPeople,
+  MdSecurity,
+  MdVpnKey,
+  MdBusiness,
   MdLocationOn,
   MdPerson,
   MdLocalHospital,
@@ -12,16 +12,23 @@ import {
   MdEvent
 } from 'react-icons/md';
 
-// Importar componentes de pestañas
-import AdminBomberosTab from './tabs/AdminBomberosTab';
-import AdminRolesTab from './tabs/AdminRolesTab';
-import AdminPermisosTab from './tabs/AdminPermisosTab';
-import AdminCompaniasTab from './tabs/AdminCompaniasTab';
-import AdminDireccionesTab from './tabs/AdminDireccionesTab';
-import AdminEstadoCivilTab from './tabs/AdminEstadoCivilTab';
-import AdminServicioTab from './tabs/AdminServicioTab';
-import AdminCarroTab from './tabs/AdminCarroTab';
-import AdminTiposEventoTab from './tabs/AdminTiposEventoTab';
+// Componente de carga para lazy loading de pestañas
+const TabLoadingSpinner = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#4EB9FA]"></div>
+  </div>
+);
+
+// Lazy loading para componentes de pestañas (se cargan solo cuando se necesitan)
+const AdminBomberosTab = lazy(() => import('./tabs/AdminBomberosTab'));
+const AdminRolesTab = lazy(() => import('./tabs/AdminRolesTab'));
+const AdminPermisosTab = lazy(() => import('./tabs/AdminPermisosTab'));
+const AdminCompaniasTab = lazy(() => import('./tabs/AdminCompaniasTab'));
+const AdminDireccionesTab = lazy(() => import('./tabs/AdminDireccionesTab'));
+const AdminEstadoCivilTab = lazy(() => import('./tabs/AdminEstadoCivilTab'));
+const AdminServicioTab = lazy(() => import('./tabs/AdminServicioTab'));
+const AdminCarroTab = lazy(() => import('./tabs/AdminCarroTab'));
+const AdminTiposEventoTab = lazy(() => import('./tabs/AdminTiposEventoTab'));
 
 // Mapeo de iconos
 const iconMap = {
@@ -46,31 +53,67 @@ const AdminTabsContainer = () => {
   console.log('[DEBUG] AdminTabsContainer - activeTab:', activeTab);
   console.log('[DEBUG] AdminTabsContainer - availableTabs:', availableTabs);
 
-  // Renderizar el componente de pestaña activa
+  // Renderizar el componente de pestaña activa con lazy loading
   const renderActiveTab = () => {
     console.log('[DEBUG] renderActiveTab - activeTab:', activeTab);
     switch (activeTab) {
       case 'bomberos':
-        return <AdminBomberosTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminBomberosTab />
+          </Suspense>
+        );
       case 'roles':
-        return <AdminRolesTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminRolesTab />
+          </Suspense>
+        );
       case 'permisos':
-        return <AdminPermisosTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminPermisosTab />
+          </Suspense>
+        );
       case 'companias':
-        return <AdminCompaniasTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminCompaniasTab />
+          </Suspense>
+        );
       case 'direcciones':
-        return <AdminDireccionesTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminDireccionesTab />
+          </Suspense>
+        );
       case 'estadoCivil':
-        return <AdminEstadoCivilTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminEstadoCivilTab />
+          </Suspense>
+        );
       case 'servicios':
         console.log('[DEBUG] Rendering AdminServicioTab');
-        return <AdminServicioTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminServicioTab />
+          </Suspense>
+        );
       case 'carros':
         console.log('[DEBUG] Rendering AdminCarroTab');
-        return <AdminCarroTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminCarroTab />
+          </Suspense>
+        );
       case 'tiposEvento':
         console.log('[DEBUG] Rendering AdminTiposEventoTab');
-        return <AdminTiposEventoTab />;
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminTiposEventoTab />
+          </Suspense>
+        );
       default:
         console.log('[DEBUG] Default case - activeTab not found:', activeTab);
         return (

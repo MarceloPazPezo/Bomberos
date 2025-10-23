@@ -1,13 +1,15 @@
 import { createContext, useEffect, useState, useCallback } from 'react';
-import { io } from "socket.io-client";
 import { useNavigate, useLocation } from 'react-router-dom';
+import { io } from "socket.io-client";
 import { getBomberoPermisos, validateToken } from '@services/auth.service';
 import cookies from 'js-cookie';
 import axios from '@services/root.service';
+import { jwtDecode } from 'jwt-decode';
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -16,6 +18,7 @@ export function AuthProvider({ children }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
     const [sessionExpired, setSessionExpired] = useState(false);
+    const [error, setError] = useState(null);
 
     // Función para extraer permisos de los roles
     const extractPermisosFromRoles = useCallback((bomberoData) => {
@@ -88,18 +91,51 @@ export function AuthProvider({ children }) {
     }, [extractPermisosFromRoles]);
 
     // Función para hacer login
-    const login = useCallback((bomberoData, token) => {
-        sessionStorage.setItem('bombero', JSON.stringify(bomberoData));
-        if (token) {
-            sessionStorage.setItem('token', token);
-        }
-        setBombero(bomberoData);
-        setIsAuthenticated(true);
-        setSessionExpired(false);
+    const login = useCallback(async (credentials) => {
+        try {
+            setLoading(true);
+            setError(null);
 
-        // Extraer permisos de los roles o usar permisos directos
-        const permisos = bomberoData.permisos || extractPermisosFromRoles(bomberoData);
-        setBomberoPermisos(permisos);
+            const response = await import('@services/auth.service').then(module => module.login(credentials));
+
+            if (response.status === 'Success') {
+                const decoded = jwtDecode(response.data.token);
+                // Unifica todos los permisos de todos los roles en un solo array (sin duplicados)
+                const allPermisos = Array.isArray(decoded.roles)
+                    ? [...new Set(decoded.roles.flatMap(r => Array.isArray(r.permisos) ? r.permisos : []))]
+                    : [];
+                const bomberoData = {
+                    id: decoded.id,
+                    nombres: decoded.nombres,
+                    apellidos: decoded.apellidos,
+                    email: decoded.email,
+                    run: decoded.run,
+                    activo: decoded.activo,
+                    companiaId: decoded.companiaId,
+                    roles: decoded.roles,
+                    rolId: decoded.roles && decoded.roles.length > 0 ? decoded.roles[0].id : null,
+                    permisos: allPermisos
+                };
+
+                // Actualizar estado del contexto
+                setBombero(bomberoData);
+                setIsAuthenticated(true);
+                setSessionExpired(false);
+
+                // Extraer permisos de los roles o usar permisos directos
+                const permisos = bomberoData.permisos || extractPermisosFromRoles(bomberoData);
+                setBomberoPermisos(permisos);
+
+                return response;
+            }
+
+            return response;
+        } catch (error) {
+            console.error('Error en login:', error);
+            return error.response?.data || { status: 'Error', message: 'Error en la autenticación' };
+        } finally {
+            setLoading(false);
+        }
     }, [extractPermisosFromRoles]);
 
     // Función para hacer logout (ahora asíncrona para asegurar limpieza antes de navegar)
@@ -253,19 +289,27 @@ export function AuthProvider({ children }) {
         };
 
         initializeAuth();
-    }, []); // Solo ejecutar una vez al montar el componente
+    }, [navigate, location.pathname]); // Solo ejecutar una vez al montar el componente
 
     // Efecto para redirigir usuarios no autenticados
     useEffect(() => {
-        // Solo redirigir si no estamos cargando, no estamos autenticados, 
+        // Solo redirigir si no estamos cargando, no estamos autenticados,
         // y no estamos ya en la página de auth
         if (!loading && !isAuthenticated && location.pathname !== '/auth') {
             // Agregar un pequeño delay para evitar conflictos con el login
             const timer = setTimeout(() => {
                 navigate('/auth');
             }, 100);
-            
+
             return () => clearTimeout(timer);
+        }
+    }, [isAuthenticated, loading, navigate, location.pathname]);
+
+    // Efecto para redirigir usuarios autenticados que están en páginas de auth
+    useEffect(() => {
+        // Si el usuario está autenticado y está en una página de auth, redirigir al home
+        if (!loading && isAuthenticated && (location.pathname === '/auth' || location.pathname === '/login')) {
+            navigate('/home');
         }
     }, [isAuthenticated, loading, navigate, location.pathname]);
 

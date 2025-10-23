@@ -1,5 +1,6 @@
+"use strict";
 import { Router } from 'express';
-import { ServicioController } from '../controllers/servicio.controller.js';
+import { getAllServicios, createServicio, deleteServicio } from '../controllers/servicio.controller.js';
 import { authenticateJwt } from '../middlewares/authentication.middleware.js';
 import { authorizePermisos } from '../middlewares/authorization.middleware.js';
 import logger from '../config/configLogger.js';
@@ -22,7 +23,7 @@ router.use(authenticateJwt);
 router.get('/', authorizePermisos(['servicio:obtener', 'servicio:admin']), async (req, res) => {
   try {
     logger.info('Servicios routes - GET / - Obteniendo todos los servicios');
-    await ServicioController.getAll(req, res);
+    await getAllServicios(req, res);
   } catch (error) {
     logger.error('Servicios routes - GET / - Error:', error);
     res.status(500).json({
@@ -40,7 +41,7 @@ router.get('/', authorizePermisos(['servicio:obtener', 'servicio:admin']), async
 router.post('/', authorizePermisos(['servicio:admin']), async (req, res) => {
   try {
     logger.info('Servicios routes - POST / - Creando nuevo servicio');
-    await ServicioController.create(req, res);
+    await createServicio(req, res);
   } catch (error) {
     logger.error('Servicios routes - POST / - Error:', error);
     res.status(500).json({
@@ -50,7 +51,6 @@ router.post('/', authorizePermisos(['servicio:admin']), async (req, res) => {
   }
 });
 
-
 /**
  * @route DELETE /api/servicios/:id
  * @desc Eliminar un servicio
@@ -59,7 +59,7 @@ router.post('/', authorizePermisos(['servicio:admin']), async (req, res) => {
 router.delete('/:id', authorizePermisos(['servicio:admin']), async (req, res) => {
   try {
     logger.info(`Servicios routes - DELETE /:id - Eliminando servicio con ID: ${req.params.id}`);
-    await ServicioController.delete(req, res);
+    await deleteServicio(req, res);
   } catch (error) {
     logger.error('Servicios routes - DELETE /:id - Error:', error);
     res.status(500).json({

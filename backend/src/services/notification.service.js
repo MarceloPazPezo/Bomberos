@@ -34,9 +34,22 @@ class NotificationService {
     try {
       this.redisClient = getRedisClient();
       this.redisSubscriber = getRedisSubscriber();
-      logger.info('[NOTIFICATION_SERVICE] Servicio inicializado correctamente');
+      
+      // Validar conexiones
+      if (!this.redisClient || !this.redisSubscriber) {
+        throw new Error('No se pudieron obtener las conexiones Redis');
+      }
+      
+      // Verificar que Redis esté listo
+      const pingResult = await this.redisClient.ping();
+      if (pingResult !== 'PONG') {
+        throw new Error('Redis no responde correctamente');
+      }
+      
+      logger.info('[NOTIFICATION_SERVICE] Servicio base inicializado correctamente');
+      
     } catch (error) {
-      logger.error('[NOTIFICATION_SERVICE] Error al inicializar:', error);
+      logger.error('[NOTIFICATION_SERVICE] Error al inicializar servicio:', error);
       throw error;
     }
   }
