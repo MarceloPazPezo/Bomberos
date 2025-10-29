@@ -7,6 +7,7 @@ const estadoReporteSchema = new EntitySchema({
     columns: {
         id: { type: "int", primary: true, generated: "increment" },
         nombre: { type: "varchar", length: 100, nullable: false },
+        color: { type: "varchar", length: 7, nullable: true }, 
     },
 
     relations: {

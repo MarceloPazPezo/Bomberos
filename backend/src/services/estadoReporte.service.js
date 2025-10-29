@@ -6,3 +6,11 @@ export async function obtenerEstadosReporteService() {
     const estadosReporte = await estadoReporteRepository.find();
     return estadosReporte;
 }
+
+export async function obtenerIdEstadoBorradorService() {
+    const estadoReporteRepository = AppDataSource.getRepository(estadoReporte);
+    const estadoBorrador = await estadoReporteRepository.findOne({
+        where: { nombre: "Borrador" }
+    });
+    return estadoBorrador ? estadoBorrador.id : null;
+}

@@ -1,5 +1,6 @@
 "use strict";
 import { AppDataSource } from "../config/configDb.js";
+import Direccion from "../entities/direccion.entity.js";
 
 class DireccionService {
   /**

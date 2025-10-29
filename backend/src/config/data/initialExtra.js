@@ -233,21 +233,10 @@ async function crearEstadosReporte() {
 
     // Estados de reporte estándar
     const estadosReporte = [
-      { 
-        nombre: "Borrador",
-        descripcion: "Reporte en proceso de creación o edición",
-        color: "#6B7280" // Gris
-      },
-      { 
-        nombre: "En revisión",
-        descripcion: "Reporte enviado y pendiente de revisión",
-        color: "#F59E0B" // Amarillo/Ámbar
-      },
-      { 
-        nombre: "Archivado",
-        descripcion: "Reporte revisado y archivado",
-        color: "#10B981" // Verde
-      }
+            { id: 1, nombre: "Borrador", color: "#FFA500"}, //color naranja
+            { id: 2, nombre: "Enviado", color: "#0000FF"}, //color azul
+            { id: 3, nombre: "Aprobado", color: "#008000"}, //color verde
+            { id: 4, nombre: "Corregir", color: "#FF0000"}, //color rojo
     ];
 
     // Insertar estados de reporte

@@ -7,6 +7,8 @@ const AsistenciaIncidenteSchema = new EntitySchema({
     columns: {
         idBombero: { type: "int", primary: true },
         idIncidente: { type: "int", primary: true },
+        enLugar: { type: "boolean", nullable: true },
+        enCuartel: { type: "boolean", nullable: true },
     },
     indices: [
         { name: "IDX_ASISTENCIAINCIDENTE_IDINCIDENTE", columns: ["idIncidente"] },

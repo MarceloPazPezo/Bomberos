@@ -302,9 +302,11 @@ export async function changeBomberoEstado(idBombero, activo) {
 //obtener bomberos por compañia
 export async function getBomberosPorCompania(idCompania) {
     try {
+      console.log('Fetching bomberos for compania ID: /bombero/compania/id', idCompania);
         const { data } = await axios.get(`/bombero/compania/${idCompania}`);
         const formattedData = data.data.map(formatBomberoData);
-        return formattedData.data;
+        console.log("formattedData obtenidoooo:", formattedData);
+        return formattedData;
     } catch (error) {
         console.error('Error in getBomberosPorCompania:', error);
         return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };
