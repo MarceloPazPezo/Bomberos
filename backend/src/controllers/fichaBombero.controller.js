@@ -1,10 +1,10 @@
 "use strict";
 import {
   createFichaBomberoService,
-  getFichaBomberoService,
-  updateFichaBomberoService,
   deleteFichaBomberoService,
-  getFichasBomberoService
+  getFichaBomberoService,
+  getFichasBomberoService,
+  updateFichaBomberoService
 } from "../services/fichaBombero.service.js";
 import {
   handleErrorClient,

@@ -1,9 +1,9 @@
 "use strict";
 import { Router } from "express";
 
-import { crearParteEmergencia, obtenerParteEmergenciaPorId, 
-    actualizarParteEmergencia, obtenerParteEmergenciaDetallado, 
-    obtenerUltimoEstadoIncidente, borrarParteEmergencia } from "../controllers/parteEmergencia.controller.js";
+import { actualizarParteEmergencia, borrarParteEmergencia, 
+    crearParteEmergencia, obtenerParteEmergenciaDetallado, 
+    obtenerParteEmergenciaPorId, obtenerUltimoEstadoIncidente } from "../controllers/parteEmergencia.controller.js";
 
 const router = Router();
 router.post("/", crearParteEmergencia);

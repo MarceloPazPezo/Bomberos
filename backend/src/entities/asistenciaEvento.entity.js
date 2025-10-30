@@ -15,8 +15,8 @@ const AsistenciaEventoSchema = new EntitySchema({
         },
     },
     indices: [ 
-        {name: "IDX_ASISTENCIA_EVENTO_IDBOMBERO",columns: ["idBombero"],},
-        {name: "IDX_ASISTENCIA_EVENTO_IDEVENTO",columns: ["idEvento"],},
+        { name: "IDX_ASISTENCIA_EVENTO_IDBOMBERO",columns: ["idBombero"], },
+        { name: "IDX_ASISTENCIA_EVENTO_IDEVENTO",columns: ["idEvento"], },
     ],
     relations: {
         bombero: {

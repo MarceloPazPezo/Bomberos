@@ -5,7 +5,7 @@ import { direccionCreateValidation } from "../validations/direccion.validation.j
 import { parteEmergenciaValidation } from "../validations/parteEmergencia.validation.js";
 import incidenteValidation from "../validations/incidente.validation.js";
 import { crearDireccionService } from "../services/direccion.service.js";
-import { crearIncidenteService, crearFaseYDanoService } from "../services/incidente.service.js";
+import { crearFaseYDanoService, crearIncidenteService } from "../services/incidente.service.js";
 import { crearInmuebleService } from "../services/inmueble.service.js";
 import { crearAfectadoService } from "../services/afectado.service.js";
 import { crearHabitaService } from "../services/habita.service.js";
@@ -17,7 +17,7 @@ import { obtenerUltimoEstadoPorIncidenteService } from "../services/estadoEstabl
 import { crearAcudeServicioService } from "../services/acudeServicio.service.js";
 import { crearAsistenciaIncidenteService } from "../services/asistenciaIncidente.service.js";
 import { crearBomberoAccidentadoService } from "../services/bomberoAccidentado.service.js";
-import { obtenerPartePorIdService, actualizarParteCompletoService, obtenerParteDetalladoPorIdService } from "../services/parteEmergencia.service.js";
+import { actualizarParteCompletoService, obtenerParteDetalladoPorIdService, obtenerPartePorIdService } from "../services/parteEmergencia.service.js";
 import { parteEmergenciaUpdateValidation } from "../validations/parteEmergenciaUpdate.validation.js";
 import { borrarIncidenteService } from "../services/incidente.service.js";
 

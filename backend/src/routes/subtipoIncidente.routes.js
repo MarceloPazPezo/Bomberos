@@ -1,6 +1,6 @@
 "use strict";
 import { Router } from "express";
-import { obtenerclasificacionesEmergencia, obtenerSubtipoIncidente, obtenerTipoDano, obtenerFaseIncidente } from "../controllers/subtipoIncidente.controller.js";
+import { obtenerclasificacionesEmergencia, obtenerFaseIncidente, obtenerSubtipoIncidente, obtenerTipoDano } from "../controllers/subtipoIncidente.controller.js";
 
 const router = Router();
 router.get("/clasificaciones", obtenerclasificacionesEmergencia);

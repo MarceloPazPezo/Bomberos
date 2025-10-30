@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "@hooks/auth/useAuth";
 import { MdPerson } from "react-icons/md";
+import { SOCKET_URL } from "../../config/api.config";
 
 // Obtener datos del usuario autenticado desde sessionStorage
 const getUserData = () => {
@@ -39,7 +40,7 @@ const UsuariosActivos = () => {
     }
 
     // Crear socket solo si el usuario está autenticado y existe
-    const socket = io("http://localhost:3000", {
+    const socket = io(SOCKET_URL, {
       withCredentials: true,
       autoConnect: true,
       reconnection: true,

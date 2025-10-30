@@ -1,17 +1,17 @@
 "use strict";
 import { Router } from "express";
 import {
+  assignEppToBombero,
+  createEpp,
+  deleteEpp,
   getEpp,
   getEppById,
-  createEpp,
-  updateEpp,
-  deleteEpp,
-  assignEppToBombero,
-  unassignEppFromBombero,
-  getTiposEpp,
-  getEstadosEpp,
   getEppDisponibles,
-  getInventarioStats
+  getEstadosEpp,
+  getInventarioStats,
+  getTiposEpp,
+  unassignEppFromBombero,
+  updateEpp
 } from "../controllers/epp.controller.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizeRoles } from "../middlewares/authorization.middleware.js";

@@ -91,8 +91,8 @@ export function authorizePermisos(requiredPermisos) {
         if (rol?.permisos && Array.isArray(rol.permisos)) {
           rol.permisos.forEach((permisoObject) => {
             if (
-              permisoObject?.nombre &&
-              typeof permisoObject.nombre === "string"
+              permisoObject?.nombre
+              && typeof permisoObject.nombre === "string"
             ) {
               bomberoPermisos.add(permisoObject.nombre.toLowerCase());
             } else {

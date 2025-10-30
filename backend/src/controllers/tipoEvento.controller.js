@@ -1,15 +1,15 @@
 "use strict";
 import {
+  createTipoEventoService,
   deleteTipoEventoService,
   getTipoEventoService,
   getTiposEventoService,
   updateTipoEventoService,
-  createTipoEventoService,
 } from "../services/tipoEvento.service.js";
 import {
   tipoEventoBodyValidation,
-  tipoEventoQueryValidation,
   tipoEventoCreateValidation,
+  tipoEventoQueryValidation,
 } from "../validations/tipoEvento.validation.js";
 import {
   handleErrorClient,

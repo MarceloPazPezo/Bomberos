@@ -1,14 +1,20 @@
 "use strict";
-import RegionService from "../services/region.service.js";
-import { handleSuccess, handleErrorClient, handleErrorServer } from "../handlers/responseHandlers.js";
+import {
+  getComunasByRegionService,
+  getComunaService,
+  getComunasService,
+  getRegionesService,
+  getRegionService
+} from "../services/region.service.js";
+import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 
 /**
  * Obtiene todas las regiones
  */
-export async function getAllRegiones(req, res) {
+export async function getRegiones(req, res) {
   try {
-    const [regiones, error] = await RegionService.getAllRegiones();
-    
+    const [regiones, error] = await getRegionesService();
+
     if (error) {
       return handleErrorServer(res, 500, error);
     }
@@ -23,17 +29,17 @@ export async function getAllRegiones(req, res) {
 /**
  * Obtiene una región por ID
  */
-export async function getRegionById(req, res) {
+export async function getRegion(req, res) {
   try {
     const { id } = req.params;
-    const regionId = parseInt(id);
+    const idRegion = parseInt(id);
 
-    if (isNaN(regionId)) {
+    if (isNaN(idRegion)) {
       return handleErrorClient(res, 400, "ID de región inválido");
     }
 
-    const [region, error] = await RegionService.getRegionById(regionId);
-    
+    const [region, error] = await getRegionService(idRegion);
+
     if (error) {
       return handleErrorClient(res, 404, error);
     }
@@ -48,10 +54,10 @@ export async function getRegionById(req, res) {
 /**
  * Obtiene todas las comunas
  */
-export async function getAllComunas(req, res) {
+export async function getComunas(req, res) {
   try {
-    const [comunas, error] = await RegionService.getAllComunas();
-    
+    const [comunas, error] = await getComunasService();
+
     if (error) {
       return handleErrorServer(res, 500, error);
     }
@@ -75,8 +81,8 @@ export async function getComunasByRegion(req, res) {
       return handleErrorClient(res, 400, "ID de región inválido");
     }
 
-    const [comunas, error] = await RegionService.getComunasByRegion(regionId);
-    
+    const [comunas, error] = await getComunasByRegionService(regionId);
+
     if (error) {
       return handleErrorServer(res, 500, error);
     }
@@ -91,17 +97,17 @@ export async function getComunasByRegion(req, res) {
 /**
  * Obtiene una comuna por ID
  */
-export async function getComunaById(req, res) {
+export async function getComuna(req, res) {
   try {
     const { id } = req.params;
-    const comunaId = parseInt(id);
+    const idComuna = parseInt(id);
 
-    if (isNaN(comunaId)) {
+    if (isNaN(idComuna)) {
       return handleErrorClient(res, 400, "ID de comuna inválido");
     }
 
-    const [comuna, error] = await RegionService.getComunaById(comunaId);
-    
+    const [comuna, error] = await getComunaService(idComuna);
+
     if (error) {
       return handleErrorClient(res, 404, error);
     }

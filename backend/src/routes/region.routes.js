@@ -3,33 +3,30 @@ import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import {
-  getAllRegiones,
-  getRegionById,
-  getAllComunas,
+  getComuna,
+  getComunas,
   getComunasByRegion,
-  getComunaById,
+  getRegion,
+  getRegiones
 } from "../controllers/region.controller.js";
 
 const router = Router();
 
-// Aplicar autenticación a todas las rutas
 router.use(authenticateJwt);
 
-// Rutas de regiones
 router.get("/regiones", 
   authorizePermisos(["region:obtener"]),
-  getAllRegiones
+  getRegiones
 );
 
 router.get("/regiones/:id", 
   authorizePermisos(["region:obtener"]),
-  getRegionById
+  getRegion
 );
 
-// Rutas de comunas
 router.get("/comunas", 
   authorizePermisos(["region:obtener"]),
-  getAllComunas
+  getComunas
 );
 
 router.get("/comunas/region/:idRegion", 
@@ -39,7 +36,7 @@ router.get("/comunas/region/:idRegion",
 
 router.get("/comunas/:id", 
   authorizePermisos(["region:obtener"]),
-  getComunaById
+  getComuna
 );
 
 export default router;

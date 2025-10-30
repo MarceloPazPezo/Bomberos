@@ -1,0 +1,13 @@
+# Ignore artifacts:
+node_modules/
+dist/
+coverage/
+logs/
+.env
+.vscode/
+public/
+frontend/node_modules/
+backend/node_modules/
+**/*.min.js
+**/build/
+**/vendor/

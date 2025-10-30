@@ -1,15 +1,15 @@
 "use strict";
 import {
-  getComunasService,
-  getComunaService,
-  getComunasByRegionService,
   createComunaService,
-  updateComunaService,
   deleteComunaService,
+  getComunasByRegionService,
+  getComunaService,
+  getComunasService,
+  updateComunaService,
 } from "../services/comuna.service.js";
 import {
-  comunaQueryValidation,
   comunaCreateValidation,
+  comunaQueryValidation,
   comunaUpdateValidation,
 } from "../validations/comuna.validation.js";
 import {
@@ -91,8 +91,8 @@ export async function createComuna(req, res) {
   } catch (error) {
     console.error("Error en createComuna:", error);
     if (
-      error.message === "La región especificada no existe" ||
-      error.message === "Ya existe una comuna con ese nombre en la región especificada"
+      error.message === "La región especificada no existe"
+      || error.message === "Ya existe una comuna con ese nombre en la región especificada"
     ) {
       handleErrorClient(res, 409, error.message);
     } else {
@@ -140,8 +140,8 @@ export async function updateComuna(req, res) {
     if (error.message === "Comuna no encontrada") {
       handleErrorClient(res, 404, error.message);
     } else if (
-      error.message === "La región especificada no existe" ||
-      error.message === "Ya existe una comuna con ese nombre en la región especificada"
+      error.message === "La región especificada no existe"
+      || error.message === "Ya existe una comuna con ese nombre en la región especificada"
     ) {
       handleErrorClient(res, 409, error.message);
     } else {

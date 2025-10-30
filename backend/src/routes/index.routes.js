@@ -31,6 +31,9 @@ import perfilCompletoRoutes from "./perfilCompleto.routes.js";
 import tipoSangreRoutes from "./tipoSangre.routes.js";
 import estadoCivilRoutes from "./estadoCivil.routes.js";
 import tipoEventoRoutes from "./tipoEvento.routes.js";
+import tipoPuntoRoutes from "./tipoPunto.routes.js";
+import puntoGeograficoRoutes from "./puntoGeografico.routes.js";
+import jurisdiccionRoutes from "./jurisdiccion.routes.js";
 
 const router = Router();
 
@@ -65,6 +68,9 @@ router
   .use("/perfil-completo", perfilCompletoRoutes)
   .use("/tipoSangre", tipoSangreRoutes)
   .use("/estado-civil", estadoCivilRoutes)
-  .use("/tipo-evento", tipoEventoRoutes);
+  .use("/tipo-evento", tipoEventoRoutes)
+  .use("/tipos-punto", tipoPuntoRoutes)
+  .use("/puntos-geograficos", puntoGeograficoRoutes)
+  .use("/jurisdicciones", jurisdiccionRoutes);
 
 export default router;

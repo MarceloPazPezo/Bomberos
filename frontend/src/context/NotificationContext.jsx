@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback, u
 import { io } from 'socket.io-client';
 import { useAuth } from '@hooks/auth/useAuth';
 import notificationService from '../services/notification.service.js';
+import { SOCKET_URL } from '../config/api.config';
 
 /**
  * Contexto de notificaciones para el frontend
@@ -123,7 +124,7 @@ export const NotificationProvider = ({ children }) => {
   const initializeSocket = useCallback(() => {
     if (!user?.id || state.socket) return;
 
-    const socket = io(import.meta.env.VITE_BASE_URL || 'http://localhost:3000', {
+    const socket = io(SOCKET_URL, {
       transports: ['websocket'],
       autoConnect: true
     });

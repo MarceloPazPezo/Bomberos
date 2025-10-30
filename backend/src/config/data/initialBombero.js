@@ -540,7 +540,7 @@ async function crearBomberos() {
     for (let i = 0; i < bomberosData.length; i++) {
       const bomberoData = bomberosData[i];
       const bombero = bomberos[i];
-      
+
       if (bomberoData.rolesIds && bomberoData.rolesIds.length > 0) {
         const rolesToAssign = await rolRepository.findBy({ id: In(bomberoData.rolesIds) });
         bombero.roles = rolesToAssign;
@@ -565,7 +565,7 @@ async function crearBomberos() {
       const companiaRepository = AppDataSource.getRepository("Compania");
       const companiasExistentes = await companiaRepository.find();
       const companiasIds = companiasExistentes.map(c => c.id);
-      
+
       // Verificar que todas las fichas tengan compañías válidas
       const fichasValidas = fichasData.filter(ficha => {
         if (!companiasIds.includes(ficha.idCompania)) {

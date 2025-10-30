@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './auth/useAuth';
-
-const SOCKET_URL = 'http://localhost:3000'; // Ajusta según tu configuración
+import { SOCKET_URL } from '../config/api.config';
 
 const useSocket = () => {
   const socketRef = useRef(null);
@@ -31,7 +30,7 @@ const useSocket = () => {
         companiaId: bombero.companiaId,
         rolId: bombero.rolId
       };
-      
+
       // Debug log removido para producción
       socket.emit('bomberoActive', bomberoData);
     });

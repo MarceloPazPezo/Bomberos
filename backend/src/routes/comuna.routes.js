@@ -4,12 +4,12 @@ import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import { cleanEmptyStrings } from "../middlewares/cleanEmptyStrings.middleware.js";
 import {
-  getComunas,
-  getComuna,
-  getComunasByRegion,
   createComuna,
-  updateComuna,
   deleteComuna,
+  getComuna,
+  getComunas,
+  getComunasByRegion,
+  updateComuna,
 } from "../controllers/comuna.controller.js";
 
 const router = Router();

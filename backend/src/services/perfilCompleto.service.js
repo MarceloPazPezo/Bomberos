@@ -2,7 +2,7 @@
 import { AppDataSource } from "../config/configDb.js";
 import minioService from "./minio.service.js";
 import { BUCKETS } from "../config/configMinIO.js";
-import DireccionService from "./direccion.service.js";
+import { createDireccionService, updateDireccionService } from "./direccion.service.js";
 import logger from "../config/configLogger.js";
 
 /**
@@ -15,7 +15,7 @@ export async function ensureFichaBomberoService(idBombero) {
     const bomberoRepository = AppDataSource.getRepository("Bombero");
     const fichaRepository = AppDataSource.getRepository("FichaBombero");
     const companiaRepository = AppDataSource.getRepository("Compania");
-    
+
     // Verificar si el bombero ya tiene ficha
     const bombero = await bomberoRepository.findOne({
       where: { id: idBombero },
@@ -57,7 +57,7 @@ export async function ensureFichaBomberoService(idBombero) {
     });
 
     const savedFicha = await fichaRepository.save(ficha);
-    
+
     // Actualizar la relación en el bombero
     await bomberoRepository.update(idBombero, {
       fichaBombero: savedFicha
@@ -83,12 +83,12 @@ export async function updateInformacionPersonalService(idBombero, data) {
       const bomberoRepository = manager.getRepository("Bombero");
       const fichaRepository = manager.getRepository("FichaBombero");
       const files = data.files;
-      
+
       logger.info('updateInformacionPersonalService - Datos recibidos:', {
         data: Object.keys(data),
         files: files ? Object.keys(files) : 'No files'
       });
-      
+
       // Asegurar que el bombero tenga ficha (crear si no existe)
       const [ficha, fichaError] = await ensureFichaBomberoService(idBombero);
       if (fichaError) {
@@ -105,11 +105,11 @@ export async function updateInformacionPersonalService(idBombero, data) {
         // Manejar imagen de perfil
         if (files.profileImage && files.profileImage.length > 0) {
           const profileImageFile = files.profileImage[0];
-          
+
           // Obtener el RUN del bombero para usar en el nombre del archivo
           const bombero = await bomberoRepository.findOne({ where: { id: idBombero } });
           const runBombero = bombero?.run || `bombero_${idBombero}`;
-          
+
           // ELIMINAR IMAGEN ANTERIOR si existe
           if (ficha.fotoPerfilKEY) {
             try {
@@ -117,7 +117,7 @@ export async function updateInformacionPersonalService(idBombero, data) {
                 bucket: BUCKETS.PROFILES,
                 fileName: ficha.fotoPerfilKEY
               });
-              
+
               await minioService.deleteFile(BUCKETS.PROFILES, ficha.fotoPerfilKEY);
               logger.info('Imagen anterior eliminada exitosamente');
             } catch (error) {
@@ -125,9 +125,9 @@ export async function updateInformacionPersonalService(idBombero, data) {
               logger.warn('Advertencia: No se pudo eliminar la imagen anterior:', error.message);
             }
           }
-          
+
           const fileName = minioService.generateUniqueFileName(profileImageFile.originalname, runBombero);
-          
+
           logger.info('Intentando subir nueva imagen:', {
             bucket: BUCKETS.PROFILES,
             fileName,
@@ -135,7 +135,7 @@ export async function updateInformacionPersonalService(idBombero, data) {
             fileSize: profileImageFile.buffer.length,
             mimeType: profileImageFile.mimetype
           });
-          
+
           try {
             const uploadResult = await minioService.uploadFile(
               BUCKETS.PROFILES,
@@ -147,18 +147,18 @@ export async function updateInformacionPersonalService(idBombero, data) {
                 'file-type': 'profile-image'
               }
             );
-            
+
             // Solo guardar el KEY, no la URL firmada (que expira)
             // La URL se generará bajo demanda cuando se necesite
             fichaUpdateData.fotoPerfilKEY = fileName;
-            
+
             logger.info('Nueva imagen de perfil subida exitosamente:', uploadResult);
           } catch (error) {
             logger.error('Error subiendo nueva imagen de perfil:', error);
             return [null, "Error subiendo imagen de perfil"];
           }
         }
-        
+
         // Manejar documentos de licencia
         if (files.licenseDocuments && files.licenseDocuments.length > 0) {
           // Por ahora solo logueamos los documentos, no los guardamos en la BD
@@ -196,10 +196,10 @@ export async function updateInformacionPersonalService(idBombero, data) {
       if (data.direccion !== undefined) {
         logger.info('🏠 updateInformacionPersonalService - Procesando dirección:', data.direccion);
         const direccionData = data.direccion;
-        
+
         // Verificar si ya existe una dirección para este bombero
-        const direccionExistente = ficha.idDireccion ? 
-          await manager.getRepository("Direccion").findOne({
+        const direccionExistente = ficha.idDireccion
+          ? await manager.getRepository("Direccion").findOne({
             where: { id: ficha.idDireccion }
           }) : null;
 
@@ -208,11 +208,11 @@ export async function updateInformacionPersonalService(idBombero, data) {
         if (direccionExistente) {
           // Actualizar dirección existente
           logger.info('🏠 updateInformacionPersonalService - Actualizando dirección existente');
-          const [direccionActualizada, errorDireccion] = await DireccionService.updateDireccion(
-            direccionExistente.id, 
+          const [direccionActualizada, errorDireccion] = await updateDireccionService(
+            direccionExistente.id,
             direccionData
           );
-          
+
           if (errorDireccion) {
             logger.error('🏠 updateInformacionPersonalService - Error al actualizar dirección:', errorDireccion);
             return [null, `Error al actualizar dirección: ${errorDireccion}`];
@@ -221,14 +221,14 @@ export async function updateInformacionPersonalService(idBombero, data) {
         } else {
           // Crear nueva dirección
           logger.info('🏠 updateInformacionPersonalService - Creando nueva dirección');
-          const [nuevaDireccion, errorDireccion] = await DireccionService.createDireccion(direccionData);
-          
+          const [nuevaDireccion, errorDireccion] = await createDireccionService(direccionData);
+
           if (errorDireccion) {
             logger.error('🏠 updateInformacionPersonalService - Error al crear dirección:', errorDireccion);
             return [null, `Error al crear dirección: ${errorDireccion}`];
           }
           logger.info('🏠 updateInformacionPersonalService - Dirección creada exitosamente:', nuevaDireccion);
-          
+
           // Actualizar la ficha del bombero con el idDireccion
           fichaUpdateData.idDireccion = nuevaDireccion.id;
           logger.info('🏠 updateInformacionPersonalService - Actualizando ficha con idDireccion:', nuevaDireccion.id);
@@ -268,7 +268,7 @@ export async function getFichaBomberoService(idBombero) {
     const ficha = await fichaRepository.findOne({
       where: { idBombero }
     });
-    
+
     return [ficha, null];
   } catch (error) {
     logger.error("getFichaBomberoService - Error:", error);
@@ -302,7 +302,7 @@ export async function addContactoEmergenciaService(idBombero, contactoData) {
     const bomberoRepository = AppDataSource.getRepository("Bombero");
     const contactoRepository = AppDataSource.getRepository("ContactoEmergencia");
     const vinculoRepository = AppDataSource.getRepository("Vinculo");
-    
+
     // Asegurar que el bombero tenga ficha (crear si no existe)
     const [ficha, fichaError] = await ensureFichaBomberoService(idBombero);
     if (fichaError) {
@@ -336,7 +336,7 @@ export async function addContactoEmergenciaService(idBombero, contactoData) {
     });
 
     const savedContacto = await contactoRepository.save(contacto);
-    
+
     // Obtener el contacto completo con relaciones
     const contactoCompleto = await contactoRepository.findOne({
       where: { id: savedContacto.id },
@@ -360,7 +360,7 @@ export async function updateContactoEmergenciaService(idContacto, contactoData) 
   try {
     const contactoRepository = AppDataSource.getRepository("ContactoEmergencia");
     const vinculoRepository = AppDataSource.getRepository("Vinculo");
-    
+
     // Buscar o crear vínculo
     let vinculo = await vinculoRepository.findOne({
       where: { nombre: contactoData.vinculo }
@@ -401,9 +401,9 @@ export async function updateContactoEmergenciaService(idContacto, contactoData) 
 export async function deleteContactoEmergenciaService(idContacto) {
   try {
     const contactoRepository = AppDataSource.getRepository("ContactoEmergencia");
-    
+
     await contactoRepository.delete(idContacto);
-    
+
     return [true, null];
   } catch (error) {
     logger.error("deleteContactoEmergenciaService - Error:", error);
@@ -422,7 +422,7 @@ export async function addCapacitacionService(idBombero, capacitacionData) {
     const bomberoRepository = AppDataSource.getRepository("Bombero");
     const capacitacionRepository = AppDataSource.getRepository("Capacitacion");
     const tipoCapacitacionRepository = AppDataSource.getRepository("TipoCapacitacion");
-    
+
     // Asegurar que el bombero tenga ficha (crear si no existe)
     const [ficha, fichaError] = await ensureFichaBomberoService(idBombero);
     if (fichaError) {
@@ -458,7 +458,7 @@ export async function addCapacitacionService(idBombero, capacitacionData) {
     });
 
     const savedCapacitacion = await capacitacionRepository.save(capacitacion);
-    
+
     // Obtener la capacitación completa con relaciones
     const capacitacionCompleta = await capacitacionRepository.findOne({
       where: { id: savedCapacitacion.id },
@@ -482,7 +482,7 @@ export async function updateCapacitacionService(idCapacitacion, capacitacionData
   try {
     const capacitacionRepository = AppDataSource.getRepository("Capacitacion");
     const tipoCapacitacionRepository = AppDataSource.getRepository("TipoCapacitacion");
-    
+
     // Buscar o crear tipo de capacitación
     let tipoCapacitacion = await tipoCapacitacionRepository.findOne({
       where: { nombre: capacitacionData.tipoCapacitacion }
@@ -524,9 +524,9 @@ export async function updateCapacitacionService(idCapacitacion, capacitacionData
 export async function deleteCapacitacionService(idCapacitacion) {
   try {
     const capacitacionRepository = AppDataSource.getRepository("Capacitacion");
-    
+
     await capacitacionRepository.delete(idCapacitacion);
-    
+
     return [true, null];
   } catch (error) {
     logger.error("deleteCapacitacionService - Error:", error);
@@ -542,40 +542,40 @@ export async function deleteCapacitacionService(idCapacitacion) {
 export async function limpiarImagenesHuerfanasService() {
   try {
     const fichaRepository = AppDataSource.getRepository("FichaBombero");
-    
+
     // Obtener todas las claves de imágenes de perfil que están en uso
     const fichasConImagen = await fichaRepository.find({
       where: { fotoPerfilKEY: { $ne: null } },
       select: ['fotoPerfilKEY']
     });
-    
+
     const clavesEnUso = new Set(
       fichasConImagen
         .map(ficha => ficha.fotoPerfilKEY)
         .filter(key => key && key.trim() !== '')
     );
-    
+
     logger.info(`[LIMPIEZA] Encontradas ${clavesEnUso.size} imágenes en uso en la BD`);
-    
+
     // Obtener todas las imágenes en el bucket de perfiles
     const imagenesEnMinIO = await minioService.listFiles(BUCKETS.PROFILES);
-    
+
     logger.info(`[LIMPIEZA] Encontradas ${imagenesEnMinIO.length} imágenes en MinIO`);
-    
+
     // Identificar imágenes huérfanas
-    const imagenesHuerfanas = imagenesEnMinIO.filter(imagen => 
+    const imagenesHuerfanas = imagenesEnMinIO.filter(imagen =>
       !clavesEnUso.has(imagen.name)
     );
-    
+
     logger.info(`[LIMPIEZA] Encontradas ${imagenesHuerfanas.length} imágenes huérfanas`);
-    
+
     // Eliminar imágenes huérfanas
     const resultados = {
       eliminadas: 0,
       errores: 0,
       detalles: []
     };
-    
+
     for (const imagen of imagenesHuerfanas) {
       try {
         await minioService.deleteFile(BUCKETS.PROFILES, imagen.name);
@@ -596,9 +596,9 @@ export async function limpiarImagenesHuerfanasService() {
         logger.error(`[LIMPIEZA] Error eliminando ${imagen.name}:`, error.message);
       }
     }
-    
+
     logger.info(`[LIMPIEZA] Proceso completado: ${resultados.eliminadas} eliminadas, ${resultados.errores} errores`);
-    
+
     return [resultados, null];
   } catch (error) {
     logger.error("limpiarImagenesHuerfanasService - Error:", error);

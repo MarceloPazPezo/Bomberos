@@ -1,15 +1,15 @@
 "use strict";
 import {
-  deleteRolService,
-  getRolService,
-  getRolesService,
-  updateRolService,
   createRolService,
+  deleteRolService,
+  getRolesService,
+  getRolService,
+  updateRolService,
 } from "../services/rol.service.js";
 import {
   rolBodyValidation,
-  rolQueryValidation,
   rolCreateValidation,
+  rolQueryValidation,
 } from "../validations/rol.validation.js";
 import {
   handleErrorClient,

@@ -1,7 +1,7 @@
 "use strict";
 import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 
-import { getClasificacionEmergencia, getSubtipoIncidentes, getTipoDano, getFaseIncidente } from "../services/subtipoIncidente.service.js";
+import { getClasificacionEmergencia, getFaseIncidente, getSubtipoIncidentes, getTipoDano } from "../services/subtipoIncidente.service.js";
 
 
 export async function obtenerclasificacionesEmergencia(req, res) {

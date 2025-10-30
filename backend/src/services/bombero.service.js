@@ -12,9 +12,9 @@ export async function getBomberoService(query) {
     const { id, run, email } = query;
 
     if (
-      id === undefined &&
-      run === undefined &&
-      email === undefined
+      id === undefined
+      && run === undefined
+      && email === undefined
     ) {
       return [
         null,

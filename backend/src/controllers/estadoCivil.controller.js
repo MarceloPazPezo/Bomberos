@@ -1,6 +1,6 @@
 "use strict";
-import { getAllEstadosCivilesService, createEstadoCivilService, deleteEstadoCivilService } from '../services/estadoCivil.service.js';
-import { handleSuccess, handleErrorClient, handleErrorServer } from '../handlers/responseHandlers.js';
+import { createEstadoCivilService, deleteEstadoCivilService, getAllEstadosCivilesService } from '../services/estadoCivil.service.js';
+import { handleErrorClient, handleErrorServer, handleSuccess } from '../handlers/responseHandlers.js';
 import logger from '../config/configLogger.js';
 
 /**

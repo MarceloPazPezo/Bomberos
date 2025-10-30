@@ -1,17 +1,17 @@
 "use strict";
 import { 
-  updateInformacionPersonalService,
-  addContactoEmergenciaService,
-  updateContactoEmergenciaService,
-  deleteContactoEmergenciaService,
   addCapacitacionService,
-  updateCapacitacionService,
+  addContactoEmergenciaService,
   deleteCapacitacionService,
-  getFichaBomberoService,
+  deleteContactoEmergenciaService,
   generateImagenPerfilUrlService,
-  limpiarImagenesHuerfanasService
+  getFichaBomberoService,
+  limpiarImagenesHuerfanasService,
+  updateCapacitacionService,
+  updateContactoEmergenciaService,
+  updateInformacionPersonalService
 } from "../services/perfilCompleto.service.js";
-import { handleSuccess, handleErrorClient, handleErrorServer } from "../handlers/responseHandlers.js";
+import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 import logger from "../config/configLogger.js";
 
 /**

@@ -17,13 +17,13 @@ const AsistenciaIncidenteSchema = new EntitySchema({
             type: "many-to-one",
             target: "Bombero",
             joinColumn: { name: "idBombero", referencedColumnName: "id" },
-            onDelete: "RESTRICT",},
+            onDelete: "RESTRICT", },
 
         incidente: {
             type: "many-to-one",
             target: "Incidente",
             joinColumn: { name: "idIncidente", referencedColumnName: "id" },
-            onDelete: "CASCADE",}
+            onDelete: "CASCADE", }
 
     }
 });

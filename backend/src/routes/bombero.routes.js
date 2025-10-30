@@ -71,7 +71,7 @@ router.get("/compania/:idCompania", authorizeRoles(['Administrador', 'Supervisor
 router.get("/compania/:idCompania/bomberos", authorizeRoles(['Administrador', 'Supervisor']), getBomberosPorCompania);
 
 // Obtener bomberos con licencias de una compañía
-router.get("/licencias/:idCompania", authorizePermisos(["bombero:leer"]), getBomberosConLicencias);
+router.get("/licencias/:idCompania", authorizePermisos(["bombero:obtener"]), getBomberosConLicencias);
 
 // Obtener la compañía del usuario autenticado
 router.get("/mi-compania", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getMiCompania);

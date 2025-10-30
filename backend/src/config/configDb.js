@@ -1,11 +1,11 @@
 "use strict";
 import { DataSource } from "typeorm";
 import {
-  DB_NAME,
   DB_HOST,
+  DB_NAME,
+  DB_PASSWORD,
   DB_PORT,
   DB_USERNAME,
-  DB_PASSWORD,
   NODE_ENV,
 } from "./configEnv.js";
 import logger from "./configLogger.js";

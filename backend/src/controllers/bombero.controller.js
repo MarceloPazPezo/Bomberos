@@ -31,8 +31,8 @@ import { getBomberoDetallesCompletosService } from "../services/bomberoDetalles.
 
 import {
   bomberoBodyValidation,
-  bomberoQueryValidation,
   bomberoCreateValidation,
+  bomberoQueryValidation,
 } from "../validations/bombero.validation.js";
 import {
   handleErrorClient,
