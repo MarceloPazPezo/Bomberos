@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MdMyLocation, MdLocationOn, MdClear, MdMap, MdSearch } from 'react-icons/md';
+import { MdMyLocation, MdLocationOn, MdClear, MdMap, MdSearch, MdInfo } from 'react-icons/md';
 import { getCoordinatesByLocation, getCoordinatesByName } from '@helpers/chileCoordinates';
 
 const MapComponent = ({ 
@@ -10,7 +10,8 @@ const MapComponent = ({
   height = '400px',
   region = null,
   comuna = null,
-  locationName = null
+  locationName = null,
+  layers = []
 }) => {
   const mapContainer = useRef(null);
   const map = useRef(null);
@@ -21,6 +22,7 @@ const MapComponent = ({
   const [error, setError] = useState(null);
   const [address, setAddress] = useState('');
   const [maplibregl, setMaplibregl] = useState(null);
+  const [showLegend, setShowLegend] = useState(false);
 
   // Obtener coordenadas por defecto basadas en región/comuna
   const getDefaultCenter = () => {
@@ -155,6 +157,30 @@ const MapComponent = ({
     };
   }, [maplibregl, selectedLocation, disabled]);
 
+  // Efecto para añadir capas personalizadas
+  useEffect(() => {
+    if (!map.current || !maplibregl || layers.length === 0) return;
+
+    map.current.on('load', () => {
+      layers.forEach(layer => {
+        if (!map.current.getSource(layer.id)) {
+          map.current.addSource(layer.id, {
+            type: 'geojson',
+            data: layer.data
+          });
+        }
+        if (!map.current.getLayer(layer.id)) {
+          map.current.addLayer({
+            id: layer.id,
+            type: layer.type,
+            source: layer.id,
+            ...layer.options
+          });
+        }
+      });
+    });
+  }, [map.current, maplibregl, layers]);
+
   // Actualizar marcador cuando cambie la ubicación seleccionada
   useEffect(() => {
     if (!map.current || !selectedLocation || !maplibregl) return;
@@ -177,9 +203,16 @@ const MapComponent = ({
       marker.current.remove();
     }
 
+    // Crear un elemento de marcador personalizado
+    const el = document.createElement('div');
+    el.style.fontSize = '2.5rem'; // Tamaño del emoji
+    el.style.cursor = 'pointer';
+    el.innerText = '📍';
+
     marker.current = new maplibregl.Marker({
+      element: el,
       draggable: !disabled,
-      color: '#ef4444' // Color rojo para el marcador
+      anchor: 'bottom'
     })
       .setLngLat([location.lng, location.lat])
       .addTo(map.current);
@@ -273,6 +306,10 @@ const MapComponent = ({
     return `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
   };
 
+  const toggleLegend = () => {
+    setShowLegend(!showLegend);
+  };
+
   // Mostrar loading mientras se carga MapLibre
   if (!maplibregl) {
     return (
@@ -345,6 +382,34 @@ const MapComponent = ({
           className="w-full rounded-lg border border-gray-300 overflow-hidden"
         />
         
+        {/* Botón de Leyenda */}
+        <button
+          type="button"
+          onClick={toggleLegend}
+          className="absolute top-2 right-20 bg-white p-2 rounded-md shadow-md hover:bg-gray-100"
+          title="Mostrar leyenda"
+        >
+          <MdInfo className="w-5 h-5 text-blue-600" />
+        </button>
+
+        {/* Leyenda */}
+        {showLegend && (
+          <div className="absolute bottom-2 right-2 bg-white bg-opacity-90 p-3 rounded-lg shadow-lg border border-gray-200 w-48">
+            <h4 className="text-md font-bold mb-2 text-gray-800">Leyenda</h4>
+            <ul className="space-y-2">
+              <li className="flex items-center">
+                <span className="text-2xl mr-2">📍</span>
+                <span className="text-sm text-gray-700">Ubicación seleccionada</span>
+              </li>
+              <li className="flex items-center">
+                <span className="text-2xl mr-2">💧</span>
+                <span className="text-sm text-gray-700">Grifo</span>
+              </li>
+              {/* Agrega más elementos de leyenda aquí */}
+            </ul>
+          </div>
+        )}
+
         {loading && (
           <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center">
             <div className="flex items-center space-x-2 text-blue-600">

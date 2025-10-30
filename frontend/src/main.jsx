@@ -27,6 +27,7 @@ const CalendarioOperativo = lazy(() => import('@pages/CalendarioOperativoAdmin.j
 const CalendarioOperativoBasic = lazy(() => import('@pages/CalendarioOperativoBasic.jsx'));
 const BomberosPage = lazy(() => import('@pages/BomberosPage'));
 const InventarioEpp = lazy(() => import('@pages/InventarioEpp'));
+const PuntosInteres = lazy(() => import('@pages/PuntosInteres'));
 
 // Componente de carga para lazy loading
 const LoadingSpinner = () => (
@@ -203,6 +204,16 @@ const router = createBrowserRouter([
           <ProtectedRoute requiredPermisos={['bombero:obtener']}>
             <Suspense fallback={<LoadingSpinner />}>
               <InventarioEpp />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/puntos-interes',
+        element: (
+          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <PuntosInteres />
             </Suspense>
           </ProtectedRoute>
         ),

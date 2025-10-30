@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
-import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode, MdSecurity, MdPeople } from 'react-icons/md';
+import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode, MdSecurity, MdPeople, MdLocationOn } from 'react-icons/md';
 import { LuCalendarDays, LuClipboardCheck, LuClipboard } from "react-icons/lu";
 import { FaUserCheck } from 'react-icons/fa';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
@@ -106,6 +106,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             className={getNavLinkClass}
                         >
                             <span className="flex items-center"><ShieldCheckIcon className="w-5 h-5 mr-2" />Inventario EPP</span>
+                        </NavLink>
+                    )}
+                    {hasPermiso('bombero:obtener') && (
+                        <NavLink
+                            to="/puntos-interes"
+                            onClick={() => setSidebarOpen(false)}
+                            className={getNavLinkClass}
+                        >
+                            <span className="flex items-center"><MdLocationOn size={20} className="mr-2" />Puntos de Interés</span>
                         </NavLink>
                     )}
                     {(hasPermiso('bombero:obtener') || hasPermiso('bombero:crear') || hasPermiso('bombero:obtener_especifico') || hasPermiso('bombero:actualizar') || hasPermiso('bombero:eliminar') || hasPermiso('bombero:cambiar_estado') || hasPermiso('bombero:asignar_rol') || hasPermiso('bombero:admin') ||
