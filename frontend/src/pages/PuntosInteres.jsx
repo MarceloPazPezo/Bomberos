@@ -19,6 +19,7 @@ import {
 } from '@services/puntoGeografico.service';
 import { getJurisdicciones, createJurisdiccion } from '@services/jurisdiccion.service';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import BomberosLoader from '@components/BomberosLoader';
 
 const PuntosInteres = () => {
     const { bombero: user } = useAuth();
@@ -448,7 +449,129 @@ const PuntosInteres = () => {
     };
 
     const actualizarMarcadores = () => {
-        // Limpiar marcadores anteriores
+        // PRIMERO: Dibujar jurisdicciones como polígonos (DEBEN estar debajo de los puntos)
+        if (map.current && maplibregl) {
+            // Primero eliminar capas/fuentes anteriores para evitar duplicados
+            jurisdicciones.forEach((j) => {
+                const sourceId = `jurisdiccion-src-${j.id}`;
+                const fillId = `jurisdiccion-fill-${j.id}`;
+                const lineId = `jurisdiccion-line-${j.id}`;
+                if (map.current.getLayer(fillId)) map.current.removeLayer(fillId);
+                if (map.current.getLayer(lineId)) map.current.removeLayer(lineId);
+                if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+            });
+
+            if (mostrarJurisdicciones) {
+                jurisdicciones.forEach((j) => {
+                    if (!Array.isArray(j.coordenadas) || j.coordenadas.length === 0) return;
+
+                    const sourceId = `jurisdiccion-src-${j.id}`;
+                    const fillId = `jurisdiccion-fill-${j.id}`;
+                    const lineId = `jurisdiccion-line-${j.id}`;
+
+                    const polygon = {
+                        type: 'Feature',
+                        properties: { id: j.id, nombre: j.nombre, color: j.color || '#22c55e' },
+                        geometry: {
+                            type: 'Polygon',
+                            coordinates: [j.coordenadas.map(c => [c.lng, c.lat])]
+                        }
+                    };
+
+                    map.current.addSource(sourceId, {
+                        type: 'geojson',
+                        data: polygon
+                    });
+
+                    // Agregar capas AL PRINCIPIO del stack para que queden debajo de todo
+                    // Usamos beforeId: undefined para insertar al inicio
+                    const layers = map.current.getStyle().layers || [];
+                    const firstSymbolLayer = layers.find(layer => layer.type === 'symbol')?.id;
+                    
+                    map.current.addLayer({
+                        id: fillId,
+                        type: 'fill',
+                        source: sourceId,
+                        beforeId: firstSymbolLayer || undefined, // Insertar antes de la primera capa de símbolos
+                        paint: {
+                            'fill-color': j.color || '#22c55e',
+                            'fill-opacity': 0.15
+                        }
+                    });
+
+                    map.current.addLayer({
+                        id: lineId,
+                        type: 'line',
+                        source: sourceId,
+                        beforeId: firstSymbolLayer || undefined,
+                        paint: {
+                            'line-color': j.color || '#16a34a',
+                            'line-width': 2
+                        }
+                    });
+
+                    // Interacción: popup con información de la jurisdicción (estilo similar a puntos)
+                    const showJurisPopup = (e) => {
+                        const center = e.lngLat;
+                        if (openPopupRef.current && openPopupRef.current.isOpen()) {
+                            openPopupRef.current.remove();
+                        }
+                        const jurisPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, className: 'custom-popup' })
+                            .setLngLat([center.lng, center.lat])
+                            .setHTML(`
+                                <div class="p-4 min-w-[240px] max-w-[320px]">
+                                  <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm" style="background-color: ${j.color || '#16a34a'}">
+                                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2m4 0h14v-2H7v2m0 4h14v-2H7v2M3 17h2v-2H3v2m0-8h2V7H3v2m4 0h14V7H7v2Z"/></svg>
+                                    </div>
+                                    <div class="flex-1">
+                                      <h3 class="text-lg font-semibold text-gray-900 leading-tight">${j.nombre || 'Jurisdicción'}</h3>
+                                      <p class="text-xs font-medium text-gray-500">Área de cobertura</p>
+                                    </div>
+                                  </div>
+
+                                  ${j.descripcion ? `
+                                    <div class="mb-3">
+                                      <p class="text-sm text-gray-700 leading-relaxed">${j.descripcion}</p>
+                                    </div>
+                                  ` : ''}
+
+                                  <div class="space-y-2 mb-1">
+                                    <div class="flex items-center gap-2 text-sm text-gray-600">
+                                      <span class="inline-block w-3 h-3 rounded-full border" style="background-color:${j.color || '#22c55e'}"></span>
+                                      <span class="font-medium">Color:</span>
+                                      <span class="text-gray-800 font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">${j.color || '#22c55e'}</span>
+                                    </div>
+                                    ${j.compañia || j.compania ? `
+                                      <div class="flex items-center gap-2 text-sm text-gray-600">
+                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V9l7-4 7 4v12"/></svg>
+                                        <span class="font-medium">Compañía:</span>
+                                        <span class="text-gray-800">${(j.compania && j.compania.nombre) || ''}</span>
+                                      </div>
+                                    ` : ''}
+                                    <div class="flex items-center gap-2 text-sm text-gray-600">
+                                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                      <span class="font-medium">Creada:</span>
+                                      <span class="text-gray-800 font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">${j.creadoEl ? formatDate(j.creadoEl) : 'N/D'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              `)
+                            .addTo(map.current);
+                        openPopupRef.current = jurisPopup;
+                        jurisPopup.on('close', () => {
+                            if (openPopupRef.current === jurisPopup) openPopupRef.current = null;
+                        });
+                    };
+                    map.current.on('click', fillId, showJurisPopup);
+                    map.current.setPaintProperty(fillId, 'fill-outline-color', j.color || '#16a34a');
+                    map.current.on('mouseenter', fillId, () => { map.current.getCanvas().style.cursor = 'pointer'; });
+                    map.current.on('mouseleave', fillId, () => { map.current.getCanvas().style.cursor = ''; });
+                });
+            }
+        }
+
+        // SEGUNDO: Limpiar marcadores anteriores
         Object.values(markersRef.current).forEach(marker => marker.remove());
         markersRef.current = {};
 
@@ -503,11 +626,11 @@ const PuntosInteres = () => {
             
             // Crear el popup
             const popup = new maplibregl.Popup({
-                closeButton: true,
-                closeOnClick: false,
+                    closeButton: true,
+                    closeOnClick: false,
                 className: 'custom-popup',
                 closeOnMove: false
-            }).setHTML(`
+                }).setHTML(`
                     <div class="p-4 min-w-[220px] max-w-[280px]">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm" style="background-color: ${punto.tipoPunto?.color || '#FF0000'}">
@@ -539,7 +662,7 @@ const PuntosInteres = () => {
                         </div>
                         
                         <div class="space-y-2 mb-3">
-                               <div class="flex items-center gap-2 text-sm text-gray-600">
+                            <div class="flex items-center gap-2 text-sm text-gray-600">
                                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
@@ -551,7 +674,7 @@ const PuntosInteres = () => {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
                                 <span class="font-medium">Fecha:</span>
-                                       <span class="text-gray-800 font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                <span class="text-gray-800 font-mono text-xs bg-gray-100 px-2 py-1 rounded">
                                            ${formatDate(punto.creadoEl)}
                                 </span>
                             </div>
@@ -599,86 +722,6 @@ const PuntosInteres = () => {
 
             markersRef.current[punto.id] = marker;
         });
-
-        // Dibujar jurisdicciones como polígonos
-        if (map.current && maplibregl) {
-            // Primero eliminar capas/fuentes anteriores para evitar duplicados
-            jurisdicciones.forEach((j) => {
-                const sourceId = `jurisdiccion-src-${j.id}`;
-                const fillId = `jurisdiccion-fill-${j.id}`;
-                const lineId = `jurisdiccion-line-${j.id}`;
-                if (map.current.getLayer(fillId)) map.current.removeLayer(fillId);
-                if (map.current.getLayer(lineId)) map.current.removeLayer(lineId);
-                if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
-            });
-
-            if (mostrarJurisdicciones) {
-                jurisdicciones.forEach((j) => {
-                    if (!Array.isArray(j.coordenadas) || j.coordenadas.length === 0) return;
-
-                    const sourceId = `jurisdiccion-src-${j.id}`;
-                    const fillId = `jurisdiccion-fill-${j.id}`;
-                    const lineId = `jurisdiccion-line-${j.id}`;
-
-                    const polygon = {
-                        type: 'Feature',
-                        properties: { id: j.id, nombre: j.nombre, color: j.color || '#22c55e' },
-                        geometry: {
-                            type: 'Polygon',
-                            coordinates: [j.coordenadas.map(c => [c.lng, c.lat])]
-                        }
-                    };
-
-                    map.current.addSource(sourceId, {
-                        type: 'geojson',
-                        data: polygon
-                    });
-
-                    map.current.addLayer({
-                        id: fillId,
-                        type: 'fill',
-                        source: sourceId,
-                        paint: {
-                            'fill-color': j.color || '#22c55e',
-                            'fill-opacity': 0.15
-                        }
-                    });
-
-                    map.current.addLayer({
-                        id: lineId,
-                        type: 'line',
-                        source: sourceId,
-                        paint: {
-                            'line-color': j.color || '#16a34a',
-                            'line-width': 2
-                        }
-                    });
-
-                    // Interacción: popup con información de la jurisdicción
-                    const showJurisPopup = (e) => {
-                        const center = e.lngLat;
-                        new maplibregl.Popup({ closeButton: true, closeOnClick: true })
-                            .setLngLat([center.lng, center.lat])
-                            .setHTML(`
-                                <div class="p-3">
-                                    <h3 class="text-base font-semibold text-gray-900">${j.nombre}</h3>
-                                    ${j.descripcion ? `<p class=\"text-sm text-gray-600 mt-1\">${j.descripcion}</p>` : ''}
-                                    <div class="mt-2 text-xs text-gray-500">
-                                        Creada: <span class="font-mono">${j.creadoEl ? formatDate(j.creadoEl) : 'N/D'}</span>
-                                    </div>
-                                </div>
-                            `)
-                            .addTo(map.current);
-                    };
-                    map.current.on('click', fillId, showJurisPopup);
-                    map.current.on('click', lineId, showJurisPopup);
-                    map.current.setPaintProperty(fillId, 'fill-outline-color', j.color || '#16a34a');
-                    map.current.on('mouseenter', fillId, () => { map.current.getCanvas().style.cursor = 'pointer'; });
-                    map.current.on('mouseleave', fillId, () => { map.current.getCanvas().style.cursor = ''; });
-                });
-            }
-
-        }
     };
 
     // Funciones globales para los popups
@@ -819,20 +862,13 @@ const PuntosInteres = () => {
     };
 
     if (!maplibregl) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="flex items-center space-x-2 text-blue-600">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    <span className="text-lg">Cargando mapa...</span>
-                </div>
-            </div>
-        );
+        return <BomberosLoader fullScreen message="Cargando mapa..." size="lg" />;
     }
 
     return (
         <>
             {/* Estilos CSS personalizados para el popup */}
-            <style jsx>{`
+            <style>{`
                 .custom-popup .maplibregl-popup-close-button {
                     font-size: 20px !important;
                     width: 32px !important;
@@ -880,22 +916,22 @@ const PuntosInteres = () => {
                     <div className="flex gap-3">
                         {/* Grupo: Dibujar + Nuevo Punto */}
                         <div className="flex gap-2">
-                            <button
+                        <button
                                 type="button"
                                 onClick={() => setDibujarJuris(v => !v)}
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white disabled:bg-gray-400"
                                 title="Dibujar polígono de jurisdicción"
                             >
                                 {dibujarJuris ? 'Finalizar Dibujo' : 'Dibujar Jurisdicción'}
-                            </button>
-                            <button
-                                onClick={() => setModoAgregar(!modoAgregar)}
+                        </button>
+                        <button
+                            onClick={() => setModoAgregar(!modoAgregar)}
                                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white"
-                            >
-                                {modoAgregar ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
-                                {modoAgregar ? 'Cancelar' : 'Nuevo Punto'}
-                            </button>
-                        </div>
+                        >
+                            {modoAgregar ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
+                            {modoAgregar ? 'Cancelar' : 'Nuevo Punto'}
+                        </button>
+                    </div>
                         {/* Botón de jurisdicciones movido al mapa como icono */}
                         
                         <button
@@ -1031,138 +1067,138 @@ const PuntosInteres = () => {
                     )}
 
                     {/* Panel lateral - Formulario como overlay para evitar relayout del mapa */}
-                    {modoAgregar && (
+                {modoAgregar && (
                         <div className="absolute top-0 right-0 h-full w-96 bg-white border-l border-gray-200 overflow-y-auto z-20 shadow-lg">
-                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                                    {editingId ? <MdEdit className="w-6 h-6" /> : <MdAdd className="w-6 h-6" />}
-                                    {editingId ? 'Editar Punto' : 'Nuevo Punto'}
-                                </h2>
+                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                {editingId ? <MdEdit className="w-6 h-6" /> : <MdAdd className="w-6 h-6" />}
+                                {editingId ? 'Editar Punto' : 'Nuevo Punto'}
+                            </h2>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Nombre *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.nombre}
-                                        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Ej: Cuartel Central"
-                                    />
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre *
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.nombre}
+                                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Ej: Cuartel Central"
+                                />
+                            </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Tipo de Punto *
-                                    </label>
-                                    <select
-                                        required
-                                        value={formData.idTipoPunto}
-                                        onChange={(e) => setFormData({ ...formData, idTipoPunto: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="">Selecciona un tipo</option>
-                                        {tiposPunto.map(tipo => (
-                                            <option key={tipo.id} value={tipo.id}>
-                                                {tipo.nombre}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {/* Mostrar icono del tipo seleccionado */}
-                                    {formData.idTipoPunto && (
-                                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                                            {renderIcon(
-                                                tiposPunto.find(t => t.id === parseInt(formData.idTipoPunto))?.icono,
-                                                { className: 'w-5 h-5', style: { color: tiposPunto.find(t => t.id === parseInt(formData.idTipoPunto))?.color } }
-                                            )}
-                                            <span>{tiposPunto.find(t => t.id === parseInt(formData.idTipoPunto))?.nombre}</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Estado del Punto *
-                                    </label>
-                                    <select
-                                        required
-                                        value={formData.estado}
-                                        onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                    >
-                                        <option value="BUENO">Bueno</option>
-                                        <option value="REGULAR">Regular</option>
-                                        <option value="MALO">Malo</option>
-                                        <option value="FUERA_DE_SERVICIO">Fuera de Servicio</option>
-                                    </select>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Tipo de Punto *
+                                </label>
+                                <select
+                                    required
+                                    value={formData.idTipoPunto}
+                                    onChange={(e) => setFormData({ ...formData, idTipoPunto: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="">Selecciona un tipo</option>
+                                    {tiposPunto.map(tipo => (
+                                        <option key={tipo.id} value={tipo.id}>
+                                            {tipo.nombre}
+                                        </option>
+                                    ))}
+                                </select>
+                                {/* Mostrar icono del tipo seleccionado */}
+                                {formData.idTipoPunto && (
                                     <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
-                                        {formData.estado === 'BUENO' && <><MdCheckCircle className="text-green-600" /> Estado Bueno</>}
-                                        {formData.estado === 'REGULAR' && <><MdWarning className="text-yellow-600" /> Estado Regular</>}
-                                        {formData.estado === 'MALO' && <><MdCancel className="text-red-600" /> Estado Malo</>}
-                                        {formData.estado === 'FUERA_DE_SERVICIO' && <><MdBuild className="text-gray-600" /> Fuera de Servicio</>}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Descripción
-                                    </label>
-                                    <textarea
-                                        value={formData.descripcion}
-                                        onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                        rows="3"
-                                        placeholder="Descripción adicional..."
-                                    />
-                                </div>
-
-                                {/* Información de compañía (asignación automática) */}
-                                {user?.companiaId && (
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                                        <p className="text-sm font-medium text-blue-800 flex items-center gap-2">
-                                            <MdBusiness className="w-4 h-4" /> Compañía:
-                                        </p>
-                                        <p className="text-sm text-blue-700">
-                                            ID: {user.companiaId}
-                                        </p>
-                                        <p className="text-xs text-blue-600 mt-1">
-                                            Este punto se asignará automáticamente a tu compañía
-                                        </p>
+                                        {renderIcon(
+                                            tiposPunto.find(t => t.id === parseInt(formData.idTipoPunto))?.icono,
+                                            { className: 'w-5 h-5', style: { color: tiposPunto.find(t => t.id === parseInt(formData.idTipoPunto))?.color } }
+                                        )}
+                                        <span>{tiposPunto.find(t => t.id === parseInt(formData.idTipoPunto))?.nombre}</span>
                                     </div>
                                 )}
+                            </div>
 
-                                {formData.lat && formData.lng && (
-                                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                                        <p className="text-sm font-medium text-green-800">Ubicación seleccionada:</p>
-                                        <p className="text-sm text-green-700 font-mono">
-                                            {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
-                                        </p>
-                                    </div>
-                                )}
-
-                                <div className="flex gap-3 pt-4">
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-                                    >
-                                        <MdSave className="w-5 h-5" />
-                                        {loading ? 'Guardando...' : 'Guardar'}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={cancelarFormulario}
-                                        className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                                    >
-                                        <MdClose className="w-5 h-5" />
-                                        Cancelar
-                                    </button>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Estado del Punto *
+                                </label>
+                                <select
+                                    required
+                                    value={formData.estado}
+                                    onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                >
+                                    <option value="BUENO">Bueno</option>
+                                    <option value="REGULAR">Regular</option>
+                                    <option value="MALO">Malo</option>
+                                    <option value="FUERA_DE_SERVICIO">Fuera de Servicio</option>
+                                </select>
+                                <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
+                                    {formData.estado === 'BUENO' && <><MdCheckCircle className="text-green-600" /> Estado Bueno</>}
+                                    {formData.estado === 'REGULAR' && <><MdWarning className="text-yellow-600" /> Estado Regular</>}
+                                    {formData.estado === 'MALO' && <><MdCancel className="text-red-600" /> Estado Malo</>}
+                                    {formData.estado === 'FUERA_DE_SERVICIO' && <><MdBuild className="text-gray-600" /> Fuera de Servicio</>}
                                 </div>
-                            </form>
-                        </div>
-                    )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Descripción
+                                </label>
+                                <textarea
+                                    value={formData.descripcion}
+                                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                    rows="3"
+                                    placeholder="Descripción adicional..."
+                                />
+                            </div>
+
+                            {/* Información de compañía (asignación automática) */}
+                            {user?.companiaId && (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p className="text-sm font-medium text-blue-800 flex items-center gap-2">
+                                        <MdBusiness className="w-4 h-4" /> Compañía:
+                                    </p>
+                                    <p className="text-sm text-blue-700">
+                                        ID: {user.companiaId}
+                                    </p>
+                                    <p className="text-xs text-blue-600 mt-1">
+                                        Este punto se asignará automáticamente a tu compañía
+                                    </p>
+                                </div>
+                            )}
+
+                            {formData.lat && formData.lng && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <p className="text-sm font-medium text-green-800">Ubicación seleccionada:</p>
+                                    <p className="text-sm text-green-700 font-mono">
+                                        {formData.lat.toFixed(6)}, {formData.lng.toFixed(6)}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3 pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                                >
+                                    <MdSave className="w-5 h-5" />
+                                    {loading ? 'Guardando...' : 'Guardar'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={cancelarFormulario}
+                                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                                >
+                                    <MdClose className="w-5 h-5" />
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
                 </div>
             </div>
 

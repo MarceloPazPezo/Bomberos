@@ -114,3 +114,4 @@ const JurisdiccionSchema = new EntitySchema({
 export default JurisdiccionSchema;
 
 
+

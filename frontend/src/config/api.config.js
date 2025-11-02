@@ -15,20 +15,20 @@ const BASE_URL = import.meta.env.VITE_BASE_URL ||
 // URL completa de la API
 // En desarrollo usar '/api' para que pase por el proxy de Vite
 // En producción usar la URL completa configurada
-const API_URL = import.meta.env.VITE_API_URL || 
+const API_URL = import.meta.env.VITE_API_URL ||
     (isDev ? '/api' : `${BASE_URL}/api`);
 
 // URL para sockets WebSocket
 // En desarrollo usar el origen actual o la URL configurada
 // En producción usar la URL configurada o la base
 const getSocketUrl = () => {
-  if (import.meta.env.VITE_SOCKET_URL) {
-    return import.meta.env.VITE_SOCKET_URL;
-  }
-  if (isDev && typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return BASE_URL;
+    if (import.meta.env.VITE_SOCKET_URL) {
+        return import.meta.env.VITE_SOCKET_URL;
+    }
+    if (isDev && typeof window !== 'undefined') {
+        return window.location.origin;
+    }
+    return BASE_URL;
 };
 
 const SOCKET_URL = getSocketUrl();
