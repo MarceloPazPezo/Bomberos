@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAdmin } from '@context/AdminContext';
+import { fetchRegiones, fetchComunas, createRegion, updateRegion, deleteRegion } from '@services/region.service';
 import { useAdminModals } from '@components/admin/AdminModalsProvider';
 
 // Componentes
@@ -13,7 +14,9 @@ import {
   MdSearch, 
   MdClear,
   MdPublic,
-  MdLocationCity
+  MdLocationCity,
+  MdClose,
+  MdSave
 } from 'react-icons/md';
 
 /**
@@ -30,6 +33,12 @@ const AdminDireccionesTab = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSubTab, setActiveSubTab] = useState('regiones');
+  const [showCreateRegion, setShowCreateRegion] = useState(false);
+  const [regionNombre, setRegionNombre] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [showRegionDetail, setShowRegionDetail] = useState(false);
+  const [regionDetail, setRegionDetail] = useState(null);
+  const [regionFilter, setRegionFilter] = useState('');
 
   // TODO: Implementar hooks useRegiones y useComunas cuando estén disponibles
   // const { 
@@ -52,9 +61,24 @@ const AdminDireccionesTab = () => {
 
   // Cargar datos al montar el componente
   useEffect(() => {
-      // fetchRegiones(true);
-      // fetchComunas(true);
-      console.log('Cargando regiones y comunas...');
+      const load = async () => {
+        setLoading(true);
+        try {
+          console.debug('[Direcciones] solicitando regiones...');
+          const regionesResp = await fetchRegiones({ page: 1, limit: 200 });
+          console.debug('[Direcciones] regiones recibidas:', regionesResp);
+          setRegiones(regionesResp?.regiones || []);
+          console.debug('[Direcciones] solicitando comunas...');
+          const comunasResp = await fetchComunas({ page: 1, limit: 500 });
+          console.debug('[Direcciones] comunas recibidas:', comunasResp);
+          setComunas(comunasResp?.comunas || comunasResp || []);
+        } catch (e) {
+          console.error('Error cargando regiones/comunas', e);
+        } finally {
+          setLoading(false);
+        }
+      };
+      load();
   }, [hasPermiso]);
 
   // Obtener datos filtrados según la subpestaña activa
@@ -68,17 +92,32 @@ const AdminDireccionesTab = () => {
 
   // Handlers
   const handleCreate = () => {
-    const modalType = activeSubTab === 'regiones' ? 'createRegion' : 'createComuna';
+    if (activeSubTab === 'regiones') {
+      setRegionNombre('');
+      setShowCreateRegion(true);
+      return;
+    }
+    const modalType = 'createComuna';
     openModal(modalType);
   };
 
-  const handleRefresh = () => {
-    // if (activeSubTab === 'regiones') {
-    //   fetchRegiones();
-    // } else {
-    //   fetchComunas();
-    // }
-    console.log(`Refrescando ${activeSubTab}...`);
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      if (activeSubTab === 'regiones') {
+        console.debug('[Direcciones] refresh regiones...', { searchTerm });
+        const regionesResp = await fetchRegiones({ search: searchTerm || undefined, page: 1, limit: 200 });
+        console.debug('[Direcciones] refresh regiones response:', regionesResp);
+        setRegiones(regionesResp?.regiones || []);
+      } else {
+        console.debug('[Direcciones] refresh comunas...', { searchTerm });
+        const comunasResp = await fetchComunas({ search: searchTerm || undefined, page: 1, limit: 500 });
+        console.debug('[Direcciones] refresh comunas response:', comunasResp);
+        setComunas(comunasResp?.comunas || comunasResp || []);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const clearSearch = () => {
@@ -154,8 +193,8 @@ const AdminDireccionesTab = () => {
             </Tooltip>
 
             {/* Botón crear */}
-            {((activeSubTab === 'regiones' && hasPermiso(REGION_PERMISSIONS.CREAR)) || 
-              (activeSubTab === 'comunas' && hasPermiso(COMUNA_PERMISSIONS.CREAR))) && (
+            {((activeSubTab === 'regiones' && hasPermiso('region:admin')) || 
+              (activeSubTab === 'comunas' && hasPermiso('comuna:admin'))) && (
               <Tooltip
                 id="create-direccion-btn"
                 content={`Crear ${activeSubTab === 'regiones' ? 'una nueva región' : 'una nueva comuna'} en el sistema`}
@@ -267,13 +306,42 @@ const AdminDireccionesTab = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">{item.nombre}</h4>
-                      <p className="text-sm text-gray-600 mt-1">Código: {item.codigo}</p>
-                      {activeSubTab === 'comunas' && item.region && (
+                      {activeSubTab === 'comunas' ? (
+                        <>
+                          {item.region && (
                         <p className="text-sm text-gray-500 mt-1">Región: {item.region.nombre}</p>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-600 mt-1">Comunas asignadas: {Array.isArray(item.comunas) ? item.comunas.length : 0}</p>
+                          {Array.isArray(item.comunas) && item.comunas.length > 0 && (
+                            <ul className="mt-2 grid grid-cols-2 gap-1">
+                              {item.comunas.slice(0, 10).map((c) => (
+                                <li key={c.id} className="text-xs text-gray-700 flex items-center gap-2">
+                                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#4EB9FA]"></span>
+                                  {c.nombre}
+                                </li>
+                              ))}
+                              {item.comunas.length > 10 && (
+                                <li className="text-xs text-gray-500">+{item.comunas.length - 10} más…</li>
+                              )}
+                            </ul>
+                          )}
+                        </>
                       )}
                     </div>
                     <div className="flex gap-1">
                       {/* Botones de acción aquí */}
+                      {activeSubTab === 'regiones' && (
+                        <button
+                          className="px-3 py-1.5 text-sm rounded-lg border border-[#4EB9FA] text-[#4EB9FA] hover:bg-[#4EB9FA]/10"
+                          onClick={() => { setRegionDetail(item); setShowRegionDetail(true); }}
+                          title="Ver detalle de región"
+                        >
+                          Ver detalle
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -291,6 +359,101 @@ const AdminDireccionesTab = () => {
           )}
         </div>
       </div>
+
+      {/* Modal Crear Región (ligero) */}
+      {showCreateRegion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={()=>!saving && setShowCreateRegion(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl border border-gray-200 w-full max-w-md p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-gray-900">Crear región</h3>
+              <button className="p-2 rounded hover:bg-gray-100" onClick={()=>!saving && setShowCreateRegion(false)}>
+                <MdClose />
+              </button>
+            </div>
+            <label className="block text-sm text-gray-700 mb-1">Nombre</label>
+            <input
+              type="text"
+              value={regionNombre}
+              onChange={(e)=>setRegionNombre(e.target.value)}
+              placeholder="Ej: Región del Biobío"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="px-4 py-2 rounded-lg border" onClick={()=>!saving && setShowCreateRegion(false)} disabled={saving}>Cancelar</button>
+              <button
+                className="px-4 py-2 rounded-lg bg-[#2C3E50] hover:bg-[#34495E] text-white flex items-center gap-2 disabled:opacity-60"
+                disabled={saving || !regionNombre.trim()}
+                onClick={async()=>{
+                  setSaving(true);
+                  try {
+                    await createRegion({ nombre: regionNombre.trim() });
+                    const regionesResp = await fetchRegiones({ page: 1, limit: 200 });
+                    setRegiones(regionesResp?.regiones || []);
+                    setShowCreateRegion(false);
+                  } catch (e) {
+                    console.error('Error creando región', e);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              >
+                <MdSave /> Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Detalle Región */}
+      {showRegionDetail && regionDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={()=>setShowRegionDetail(false)} />
+          <div className="relative w-full max-w-3xl rounded-2xl bg-white border border-gray-200 shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-gray-200 bg-white">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-800 leading-tight">{regionDetail.nombre}</h3>
+                  <div className="mt-1 text-sm text-gray-600 flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200 text-xs font-medium">
+                      {Array.isArray(regionDetail.comunas) ? regionDetail.comunas.length : 0} comunas
+                    </span>
+                  </div>
+                </div>
+                <button className="p-2 rounded-lg hover:bg-gray-100 border border-transparent" onClick={()=>setShowRegionDetail(false)}>
+                  <MdClose />
+                </button>
+              </div>
+              <div className="mt-4">
+                <input
+                  value={regionFilter}
+                  onChange={(e)=>setRegionFilter(e.target.value)}
+                  placeholder="Buscar comuna..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+              </div>
+            </div>
+            <div className="p-5 max-h-[65vh] overflow-auto bg-white">
+              {Array.isArray(regionDetail.comunas) && regionDetail.comunas.length > 0 ? (
+                <div className="divide-y divide-gray-100 bg-white rounded-xl border border-gray-200">
+                  {regionDetail.comunas
+                    .filter(c => c.nombre.toLowerCase().includes(regionFilter.toLowerCase()))
+                    .map((c, idx) => (
+                      <div key={c.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#4EB9FA]" />
+                          <span className="text-sm text-gray-800 truncate">{idx + 1}. {c.nombre}</span>
+                        </div>
+                      </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-10">Sin comunas asociadas</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modales - TODO: Implementar cuando estén disponibles */}
       {/* 

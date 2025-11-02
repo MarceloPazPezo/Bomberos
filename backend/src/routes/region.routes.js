@@ -7,34 +7,52 @@ import {
   getComunas,
   getComunasByRegion,
   getRegion,
-  getRegiones
+  getRegiones,
+  createRegion,
+  updateRegion,
+  deleteRegion,
 } from "../controllers/region.controller.js";
 
 const router = Router();
 
 router.use(authenticateJwt);
 
-router.get("/regiones", 
+router.get("/regiones",
   authorizePermisos(["region:obtener"]),
   getRegiones
 );
 
-router.get("/regiones/:id", 
+router.get("/regiones/:id",
   authorizePermisos(["region:obtener"]),
   getRegion
 );
 
-router.get("/comunas", 
+router.post("/regiones",
+  authorizePermisos(["region:admin"]),
+  createRegion
+);
+
+router.put("/regiones/:id",
+  authorizePermisos(["region:admin"]),
+  updateRegion
+);
+
+router.delete("/regiones/:id",
+  authorizePermisos(["region:admin"]),
+  deleteRegion
+);
+
+router.get("/comunas",
   authorizePermisos(["region:obtener"]),
   getComunas
 );
 
-router.get("/comunas/region/:idRegion", 
+router.get("/comunas/region/:idRegion",
   authorizePermisos(["region:obtener"]),
   getComunasByRegion
 );
 
-router.get("/comunas/:id", 
+router.get("/comunas/:id",
   authorizePermisos(["region:obtener"]),
   getComuna
 );

@@ -1,3 +1,43 @@
+import API from '@services/root.service';
+
+export async function fetchRegiones({ search = '', page = 1, limit = 50 } = {}) {
+  const params = {};
+  if (search) params.search = search;
+  if (page) params.page = page;
+  if (limit) params.limit = limit;
+  console.debug('[API] GET /regiones', { params });
+  const { data } = await API.get('/region/regiones', { params });
+  console.debug('[API] /regiones response', data);
+  return data.data; // { regiones, pagination }
+}
+
+export async function createRegion(payload) {
+  const { data } = await API.post('/regiones', payload);
+  return data.data;
+}
+
+export async function updateRegion(id, payload) {
+  const { data } = await API.put(`/regiones/${id}`, payload);
+  return data.data;
+}
+
+export async function deleteRegion(id) {
+  const { data } = await API.delete(`/regiones/${id}`);
+  return data.data;
+}
+
+export async function fetchComunas({ search = '', idRegion, page = 1, limit = 50 } = {}) {
+  const params = {};
+  if (search) params.search = search;
+  if (idRegion) params.idRegion = idRegion;
+  if (page) params.page = page;
+  if (limit) params.limit = limit;
+  console.debug('[API] GET /comunas', { params });
+  const { data } = await API.get('/region/comunas', { params });
+  console.debug('[API] /comunas response', data);
+  return data.data; // puede ser { comunas, pagination } del backend de comunas
+}
+
 import axios from './root.service.js';
 
 const API_URL = '/region';
