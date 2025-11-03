@@ -12,17 +12,32 @@ export async function fetchRegiones({ search = '', page = 1, limit = 50 } = {}) 
 }
 
 export async function createRegion(payload) {
-  const { data } = await API.post('/regiones', payload);
+  const { data } = await API.post('/region/regiones', payload);
   return data.data;
 }
 
 export async function updateRegion(id, payload) {
-  const { data } = await API.put(`/regiones/${id}`, payload);
+  const { data } = await API.put(`/region/regiones/${id}`, payload);
   return data.data;
 }
 
 export async function deleteRegion(id) {
-  const { data } = await API.delete(`/regiones/${id}`);
+  const { data } = await API.delete(`/region/regiones/${id}`);
+  return data.data;
+}
+
+export async function createComuna(payload) {
+  const { data } = await API.post('/comuna/', payload);
+  return data.data;
+}
+
+export async function updateComuna(id, payload) {
+  const { data } = await API.patch(`/comuna/detalle/${id}`, payload);
+  return data.data;
+}
+
+export async function deleteComuna(id) {
+  const { data } = await API.delete(`/comuna/detalle/${id}`);
   return data.data;
 }
 
