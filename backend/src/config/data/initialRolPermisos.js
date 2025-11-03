@@ -376,6 +376,62 @@ async function crearPermisos() {
         metodo: "*",
       },
       {
+        nombre: "vinculo:obtener",
+        descripcion: "Permite obtener la lista de vínculos",
+        categoria: "Vínculos",
+        ruta: "/api/vinculo",
+        metodo: "GET",
+      },
+      {
+        nombre: "vinculo:admin",
+        descripcion: "Permite administración completa de vínculos (crear, actualizar, eliminar)",
+        categoria: "Vínculos",
+        ruta: "/api/vinculo/*",
+        metodo: "*",
+      },
+      {
+        nombre: "clave_radial:obtener",
+        descripcion: "Permite obtener la lista de claves radiales",
+        categoria: "Claves Radiales",
+        ruta: "/api/clave-radial",
+        metodo: "GET",
+      },
+      {
+        nombre: "clave_radial:admin",
+        descripcion: "Permite administración completa de claves radiales (crear, actualizar, eliminar)",
+        categoria: "Claves Radiales",
+        ruta: "/api/clave-radial/*",
+        metodo: "*",
+      },
+      {
+        nombre: "subtipo_incidente:obtener",
+        descripcion: "Permite obtener la lista de subtipos de incidente",
+        categoria: "Subtipos de Incidente",
+        ruta: "/api/subtipoIncidente",
+        metodo: "GET",
+      },
+      {
+        nombre: "subtipo_incidente:admin",
+        descripcion: "Permite administración completa de subtipos de incidente (crear, actualizar, eliminar)",
+        categoria: "Subtipos de Incidente",
+        ruta: "/api/subtipoIncidente/*",
+        metodo: "*",
+      },
+      {
+        nombre: "clasificacion_emergencia:obtener",
+        descripcion: "Permite obtener la lista de clasificaciones de emergencia",
+        categoria: "Clasificaciones de Emergencia",
+        ruta: "/api/clasificacion-emergencia",
+        metodo: "GET",
+      },
+      {
+        nombre: "clasificacion_emergencia:admin",
+        descripcion: "Permite administración completa de clasificaciones de emergencia (crear, actualizar, eliminar)",
+        categoria: "Clasificaciones de Emergencia",
+        ruta: "/api/clasificacion-emergencia/*",
+        metodo: "*",
+      },
+      {
         nombre: "tipoEvento:obtener",
         descripcion: "Permite obtener la lista de tipos de evento",
         categoria: "Tipos de Evento",
@@ -539,8 +595,13 @@ async function crearRoles() {
           "direccion:obtener", // Permite obtener direcciones
           "direccion:actualizar", // Permite actualizar direcciones
           "epp:obtener", // Permite ver EPP disponibles
+          "epp:asignar", // Permite asignar EPP a bomberos
           "tipo_epp:obtener", // Permite obtener tipos de EPP
           "estado_epp:obtener", // Permite obtener estados de EPP
+          "vinculo:obtener", // Permite obtener vínculos
+          "clave_radial:obtener", // Permite obtener claves radiales
+          "subtipo_incidente:obtener", // Permite obtener subtipos de incidente
+          "clasificacion_emergencia:obtener", // Permite obtener clasificaciones de emergencia
         ],
       },
       {
@@ -590,6 +651,14 @@ async function crearRoles() {
           "tipo_epp:admin",
           "estado_epp:obtener",
           "estado_epp:admin",
+          "vinculo:obtener",
+          "vinculo:admin",
+          "clave_radial:obtener",
+          "clave_radial:admin",
+          "subtipo_incidente:obtener",
+          "subtipo_incidente:admin",
+          "clasificacion_emergencia:obtener",
+          "clasificacion_emergencia:admin",
           "tipoEvento:obtener",
           "tipoEvento:admin",
           "tipoPunto:obtener",

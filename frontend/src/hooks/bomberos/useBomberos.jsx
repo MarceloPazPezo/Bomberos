@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { getBomberos, createBombero, updateBombero, deleteBombero, changeBomberoEstado } from '@services/bombero.service.js';
+import { getBomberos, getBomberosMiCompania, createBombero, updateBombero, deleteBombero, changeBomberoEstado } from '@services/bombero.service.js';
 import { showErrorAlert } from '@helpers/fireAlert.js';
 import { 
   bomberoCreatedToast, 
@@ -41,8 +41,8 @@ export const useBomberos = () => {
   const lastFetchTimeRef = useRef(0);
   const loadingRef = useRef(false);
 
-  // Función para obtener todos los bomberos
-  const fetchBomberos = useCallback(async (force = false) => {
+  // Función para obtener bomberos (todos o solo mi compañía)
+  const fetchBomberos = useCallback(async (force = false, filterMode = 'todas') => {
     // Evitar múltiples llamadas en un corto período de tiempo
     const now = Date.now();
     if (!force && loadingRef.current) {
@@ -61,36 +61,65 @@ export const useBomberos = () => {
       setLoading(true);
       loadingRef.current = true;
       setError(null);
-      const response = await getBomberos();
+      
+      // Elegir el servicio según el filtro
+      const response = filterMode === 'miCompania' 
+        ? await getBomberosMiCompania()
+        : await getBomberos();
 
-      // Manejar tanto array directo como respuesta con status
-      if (Array.isArray(response)) {
-        // Array directo
-        setBomberos(response);
-      } else if (response.status === 'Success') {
-        // Respuesta con status
-        const responseData = response.data || [];
-        
-        // Manejar tanto array directo como estructura paginada
-        let bomberos2;
-        if (Array.isArray(responseData)) {
-          // Array directo
-          bomberos2 = responseData;
-        } else if (responseData.bomberos && Array.isArray(responseData.bomberos)) {
-          // Estructura paginada: { bomberos: [...], pagination: {...} }
-          bomberos2 = responseData.bomberos;
+      // Manejar respuesta según el servicio usado
+      if (filterMode === 'miCompania') {
+        // Para getBomberosMiCompania, la respuesta tiene estructura: { status: 'Success', data: { compania, bomberos, totalBomberos } }
+        if (response.status === 'Success') {
+          const responseData = response.data || {};
+          // La estructura puede tener bomberos directamente o dentro de data
+          let bomberosArray = [];
+          
+          if (Array.isArray(responseData)) {
+            bomberosArray = responseData;
+          } else if (Array.isArray(responseData.bomberos)) {
+            bomberosArray = responseData.bomberos;
+          } else if (responseData.data && Array.isArray(responseData.data.bomberos)) {
+            bomberosArray = responseData.data.bomberos;
+          }
+          
+          setBomberos(bomberosArray);
+        } else if (Array.isArray(response)) {
+          setBomberos(response);
         } else {
-          // Asumir que es array directo si no tiene estructura paginada
-          bomberos2 = responseData;
+          console.error('Error en la respuesta:', response.message);
+          setError(response.message || 'Error al cargar bomberos de mi compañía');
         }
-        
-        setBomberos(Array.isArray(bomberos2) ? bomberos2 : []);
-      } else if (response.status === 'Error') {
-        console.error('Error en la respuesta:', response.message);
-        setError(response.message || 'Error al cargar bomberos');
       } else {
-        console.error('Respuesta inesperada:', response);
-        setError('Error al cargar bomberos');
+        // Para getBomberos (todos)
+        if (Array.isArray(response)) {
+          // Array directo
+          setBomberos(response);
+        } else if (response.status === 'Success') {
+          // Respuesta con status
+          const responseData = response.data || [];
+          
+          // Manejar tanto array directo como estructura paginada
+          let bomberos2;
+          if (Array.isArray(responseData)) {
+            // Array directo
+            bomberos2 = responseData;
+          } else if (responseData.bomberos && Array.isArray(responseData.bomberos)) {
+            // Estructura paginada: { bomberos: [...], pagination: {...} }
+            bomberos2 = responseData.bomberos;
+          } else {
+            // Asumir que es array directo si no tiene estructura paginada
+            bomberos2 = responseData;
+          }
+          
+          setBomberos(Array.isArray(bomberos2) ? bomberos2 : []);
+        } else if (response.status === 'Error') {
+          console.error('Error en la respuesta:', response.message);
+          setError(response.message || 'Error al cargar bomberos');
+        } else {
+          console.error('Respuesta inesperada:', response);
+          setError('Error al cargar bomberos');
+        }
       }
       lastFetchTimeRef.current = now;
     } catch (error) {

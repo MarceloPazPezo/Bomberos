@@ -5,7 +5,7 @@ import { Button } from 'primereact/button';
 import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
-import { MdAdd, MdEdit, MdDelete, MdSearch, MdFilterList } from 'react-icons/md';
+import { MdAdd, MdEdit, MdDelete, MdSearch, MdFilterList, MdVisibility } from 'react-icons/md';
 import { useDebounce } from '@hooks/useDebounce.js';
 import 'primereact/resources/themes/lara-light-cyan/theme.css';
 import 'primereact/resources/primereact.min.css';
@@ -18,6 +18,7 @@ const PrimeTableBasic = ({
   onAdd,
   onEdit,
   onDelete,
+  onViewDetail,
   onSearch,
   searchPlaceholder = "Buscar...",
   addButtonText = "Agregar",
@@ -59,9 +60,18 @@ const PrimeTableBasic = ({
   const actionsBodyTemplate = (rowData) => {
     return (
       <div className="flex gap-2 justify-center">
+        {onViewDetail && (
+          <Button
+            icon={<MdVisibility size={18} />}
+            className="p-button-rounded p-button-text p-button-info"
+            onClick={() => onViewDetail(rowData)}
+            tooltip="Ver detalle"
+            tooltipOptions={{ position: 'top' }}
+          />
+        )}
         {onEdit && (
           <Button
-            icon="pi pi-pencil"
+            icon={<MdEdit size={18} />}
             className="p-button-rounded p-button-text p-button-plain"
             onClick={() => onEdit(rowData)}
             tooltip="Editar"
@@ -70,7 +80,7 @@ const PrimeTableBasic = ({
         )}
         {onDelete && (
           <Button
-            icon="pi pi-trash"
+            icon={<MdDelete size={18} />}
             className="p-button-rounded p-button-text p-button-danger"
             onClick={() => onDelete(rowData)}
             tooltip="Eliminar"
@@ -120,7 +130,7 @@ const PrimeTableBasic = ({
         <div className="flex align-items-center gap-2">
           {showSearch && (
             <div className="p-input-icon-left" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <i className="pi pi-search" style={{ position: 'absolute', left: '0.75rem', zIndex: 1 }} />
+              <MdSearch style={{ position: 'absolute', left: '0.75rem', zIndex: 1, color: '#6c757d' }} size={18} />
               <InputText
                 value={globalFilterValue}
                 onChange={onGlobalFilterChange}
@@ -134,7 +144,7 @@ const PrimeTableBasic = ({
         {showAddButton && onAdd && (
           <Button
             label={addButtonText}
-            icon="pi pi-plus"
+            icon={<MdAdd size={18} />}
             onClick={onAdd}
             className="p-button-sm"
           />

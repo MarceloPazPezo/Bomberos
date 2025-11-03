@@ -26,7 +26,15 @@ const Admin = () => {
     'comuna:obtener', 'comuna:admin',
     'estadoCivil:obtener', 'estadoCivil:admin',
     'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin',
-    'tipoEvento:obtener', 'tipoEvento:admin'
+    'tipoEvento:obtener', 'tipoEvento:admin',
+    'tipo_epp:obtener', 'tipo_epp:admin',
+    'estado_epp:obtener', 'estado_epp:admin',
+    'epp:obtener', 'epp:admin',
+    'servicio:obtener', 'servicio:admin',
+    'vinculo:obtener', 'vinculo:admin',
+    'clave_radial:obtener', 'clave_radial:admin',
+    'subtipo_incidente:obtener', 'subtipo_incidente:admin',
+    'clasificacion_emergencia:obtener', 'clasificacion_emergencia:admin'
   ];
 
   // Verificar si el usuario tiene al menos un permiso de administración

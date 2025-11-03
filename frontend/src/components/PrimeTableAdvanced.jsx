@@ -6,7 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dropdown } from 'primereact/dropdown';
 import { Paginator } from 'primereact/paginator';
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
-import { MdAdd, MdEdit, MdDelete, MdSearch, MdFilterList, MdDownload, MdRefresh, MdClear } from 'react-icons/md';
+import { MdAdd, MdEdit, MdDelete, MdSearch, MdFilterList, MdDownload, MdRefresh, MdClear, MdFileDownload } from 'react-icons/md';
 import 'primereact/resources/themes/lara-light-cyan/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
@@ -99,7 +99,7 @@ const PrimeTableAdvanced = ({
       <div className="flex gap-2 justify-center">
         {onEdit && (
           <Button
-            icon="pi pi-pencil"
+            icon={<MdEdit size={18} />}
             className="p-button-rounded p-button-text p-button-plain"
             onClick={() => onEdit(rowData)}
             tooltip="Editar"
@@ -108,7 +108,7 @@ const PrimeTableAdvanced = ({
         )}
         {onDelete && (
           <Button
-            icon="pi pi-trash"
+            icon={<MdDelete size={18} />}
             className="p-button-rounded p-button-text p-button-danger"
             onClick={() => onDelete(rowData)}
             tooltip="Eliminar"
@@ -169,7 +169,7 @@ const PrimeTableAdvanced = ({
         <div className="flex align-items-center gap-2">
           {showSearch && (
             <div className="p-input-icon-left" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <i className="pi pi-search" style={{ position: 'absolute', left: '0.75rem', zIndex: 1 }} />
+              <MdSearch style={{ position: 'absolute', left: '0.75rem', zIndex: 1, color: '#6c757d' }} size={18} />
               <InputText
                 value={globalFilterValue}
                 onChange={onGlobalFilterChange}
@@ -182,7 +182,7 @@ const PrimeTableAdvanced = ({
           
           {showFilters && (
             <Button
-              icon="pi pi-filter"
+              icon={<MdFilterList size={18} />}
               className="p-button-text p-button-plain"
               onClick={() => {/* Implementar panel de filtros */}}
               tooltip="Filtros avanzados"
@@ -192,7 +192,7 @@ const PrimeTableAdvanced = ({
 
           {showRefresh && onRefresh && (
             <Button
-              icon="pi pi-refresh"
+              icon={<MdRefresh size={18} />}
               className="p-button-text p-button-plain"
               onClick={onRefresh}
               tooltip="Refrescar datos"
@@ -203,14 +203,14 @@ const PrimeTableAdvanced = ({
           {showExport && (
             <div className="flex gap-1">
               <Button
-                icon="pi pi-file-export"
+                icon={<MdDownload size={18} />}
                 className="p-button-text p-button-plain"
                 onClick={exportCSV}
                 tooltip="Exportar CSV"
                 tooltipOptions={{ position: 'top' }}
               />
               <Button
-                icon="pi pi-file-excel"
+                icon={<MdFileDownload size={18} />}
                 className="p-button-text p-button-plain"
                 onClick={exportExcel}
                 tooltip="Exportar Excel"
@@ -220,7 +220,7 @@ const PrimeTableAdvanced = ({
           )}
 
           <Button
-            icon="pi pi-times"
+            icon={<MdClear size={18} />}
             className="p-button-text p-button-plain"
             onClick={clearFilters}
             tooltip="Limpiar filtros"
@@ -230,7 +230,7 @@ const PrimeTableAdvanced = ({
           {showAddButton && onAdd && (
             <Button
               label={addButtonText}
-              icon="pi pi-plus"
+              icon={<MdAdd size={18} />}
               onClick={onAdd}
               className="p-button-sm"
             />

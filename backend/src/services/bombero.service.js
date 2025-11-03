@@ -696,32 +696,8 @@ export async function getAllBomberosWithFichaService() {
     const bomberos = await bomberoRepository
       .createQueryBuilder("bombero")
       .leftJoinAndSelect("bombero.roles", "rol")
-      .leftJoin("fichaBombero", "ficha", "ficha.idBombero = bombero.id")
-      .leftJoin("companias", "compania", "compania.id = ficha.idCompania")
-      .select([
-        "bombero.id",
-        "bombero.nombres",
-        "bombero.apellidos",
-        "bombero.run",
-        "bombero.email",
-        "bombero.activo",
-        "bombero.creadoEl",
-        "bombero.creadoPor",
-        "bombero.actualizadoEl",
-        "bombero.actualizadoPor",
-        "rol.id",
-        "rol.nombre",
-        "ficha.id",
-        "ficha.nombre",
-        "ficha.telefono",
-        "ficha.fechaNacimiento",
-        "ficha.fechaIngreso",
-        "ficha.licenciaClaseF",
-        "ficha.donante",
-        "ficha.fotoPerfilURL",
-        "compania.id",
-        "compania.nombre"
-      ])
+      .leftJoinAndSelect("bombero.fichaBombero", "ficha")
+      .leftJoinAndSelect("ficha.compania", "compania")
       .orderBy("bombero.apellidos", "ASC")
       .addOrderBy("bombero.nombres", "ASC")
       .getMany();
@@ -746,8 +722,20 @@ export async function getAllBomberosWithFichaService() {
         id: rol.id,
         nombre: rol.nombre
       })) : [],
-      hasFicha: !!bombero.ficha,
-      ficha: bombero.ficha || null
+      hasFicha: !!bombero.fichaBombero,
+      fichaBombero: bombero.fichaBombero ? {
+        id: bombero.fichaBombero.id,
+        telefono: bombero.fichaBombero.telefono,
+        fechaNacimiento: bombero.fichaBombero.fechaNacimiento,
+        fechaIngreso: bombero.fichaBombero.fechaIngreso,
+        licenciaClaseF: bombero.fichaBombero.licenciaClaseF,
+        donante: bombero.fichaBombero.donante,
+        fotoPerfilURL: bombero.fichaBombero.fotoPerfilURL,
+        compania: bombero.fichaBombero.compania ? {
+          id: bombero.fichaBombero.compania.id,
+          nombre: bombero.fichaBombero.compania.nombre
+        } : null
+      } : null
     }));
 
     return [bomberosData, null];
@@ -800,6 +788,10 @@ export async function getBomberosByCompaniaService(idCompania) {
         run: bombero.run,
         email: bombero.email,
         activo: bombero.activo,
+        creadoEl: bombero.creadoEl,
+        creadoPor: bombero.creadoPor,
+        actualizadoEl: bombero.actualizadoEl,
+        actualizadoPor: bombero.actualizadoPor,
         roles: bombero.roles ? bombero.roles.map((rol) => ({
           id: rol.id,
           nombre: rol.nombre
@@ -924,7 +916,6 @@ export async function getBomberosOtrasCompaniasService(idCompaniaUsuario) {
         "rol.id",
         "rol.nombre",
         "ficha.id",
-        "ficha.nombre",
         "ficha.telefono",
         "compania.id",
         "compania.nombre"

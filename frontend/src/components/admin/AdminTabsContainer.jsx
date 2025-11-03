@@ -6,10 +6,11 @@ import {
   MdVpnKey,
   MdBusiness,
   MdLocationOn,
-  MdPerson,
-  MdLocalHospital,
   MdDirectionsCar,
-  MdEvent
+  MdShield,
+  MdRadioButtonChecked,
+  MdSettings,
+  MdInventory
 } from 'react-icons/md';
 
 // Componente de carga para lazy loading de pestañas
@@ -25,10 +26,11 @@ const AdminRolesTab = lazy(() => import('./tabs/AdminRolesTab'));
 const AdminPermisosTab = lazy(() => import('./tabs/AdminPermisosTab'));
 const AdminCompaniasTab = lazy(() => import('./tabs/AdminCompaniasTab'));
 const AdminDireccionesTab = lazy(() => import('./tabs/AdminDireccionesTab'));
-const AdminEstadoCivilTab = lazy(() => import('./tabs/AdminEstadoCivilTab'));
-const AdminServicioTab = lazy(() => import('./tabs/AdminServicioTab'));
 const AdminCarroTab = lazy(() => import('./tabs/AdminCarroTab'));
-const AdminTiposEventoTab = lazy(() => import('./tabs/AdminTiposEventoTab'));
+const AdminTipoEppTab = lazy(() => import('./tabs/AdminTipoEppTab'));
+const AdminInventarioEppTab = lazy(() => import('./tabs/AdminInventarioEppTab'));
+const AdminIncidenteTab = lazy(() => import('./tabs/AdminIncidenteTab'));
+const AdminExtraTabs = lazy(() => import('./tabs/AdminExtraTabs'));
 
 // Mapeo de iconos
 const iconMap = {
@@ -37,10 +39,11 @@ const iconMap = {
   MdVpnKey,
   MdBusiness,
   MdLocationOn,
-  MdPerson,
-  MdLocalHospital,
   MdDirectionsCar,
-  MdEvent
+  MdShield,
+  MdInventory,
+  MdRadioButtonChecked,
+  MdSettings
 };
 
 /**
@@ -87,19 +90,6 @@ const AdminTabsContainer = () => {
             <AdminDireccionesTab />
           </Suspense>
         );
-      case 'estadoCivil':
-        return (
-          <Suspense fallback={<TabLoadingSpinner />}>
-            <AdminEstadoCivilTab />
-          </Suspense>
-        );
-      case 'servicios':
-        console.log('[DEBUG] Rendering AdminServicioTab');
-        return (
-          <Suspense fallback={<TabLoadingSpinner />}>
-            <AdminServicioTab />
-          </Suspense>
-        );
       case 'carros':
         console.log('[DEBUG] Rendering AdminCarroTab');
         return (
@@ -107,11 +97,32 @@ const AdminTabsContainer = () => {
             <AdminCarroTab />
           </Suspense>
         );
-      case 'tiposEvento':
-        console.log('[DEBUG] Rendering AdminTiposEventoTab');
+      case 'tiposEpp':
+        console.log('[DEBUG] Rendering AdminTipoEppTab');
         return (
           <Suspense fallback={<TabLoadingSpinner />}>
-            <AdminTiposEventoTab />
+            <AdminTipoEppTab />
+          </Suspense>
+        );
+      case 'inventarioEpp':
+        console.log('[DEBUG] Rendering AdminInventarioEppTab');
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminInventarioEppTab />
+          </Suspense>
+        );
+      case 'incidentes':
+        console.log('[DEBUG] Rendering AdminIncidenteTab');
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminIncidenteTab />
+          </Suspense>
+        );
+      case 'extraTabs':
+        console.log('[DEBUG] Rendering AdminExtraTabs');
+        return (
+          <Suspense fallback={<TabLoadingSpinner />}>
+            <AdminExtraTabs />
           </Suspense>
         );
       default:

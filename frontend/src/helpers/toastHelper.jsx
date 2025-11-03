@@ -585,3 +585,339 @@ export const tipoEventoDeletedToast = (tipoEventoName = "Tipo de evento") => {
     }
   );
 };
+
+// ===== TOASTS PARA TIPO EPP =====
+
+export const tipoEppCreatedToast = (tipoEppName = "Tipo de EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{tipoEppName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const tipoEppUpdatedToast = (tipoEppName = "Tipo de EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{tipoEppName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const tipoEppDeletedToast = (tipoEppName = "Tipo de EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{tipoEppName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA ESTADO EPP =====
+
+export const estadoEppCreatedToast = (estadoEppName = "Estado de EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{estadoEppName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const estadoEppUpdatedToast = (estadoEppName = "Estado de EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{estadoEppName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const estadoEppDeletedToast = (estadoEppName = "Estado de EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{estadoEppName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA VÍNCULOS =====
+
+export const vinculoCreatedToast = (vinculoName = "Vínculo") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{vinculoName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const vinculoUpdatedToast = (vinculoName = "Vínculo") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{vinculoName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const vinculoDeletedToast = (vinculoName = "Vínculo") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{vinculoName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA CLAVE RADIAL =====
+
+export const claveRadialCreatedToast = (claveRadialName = "Clave radial") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{claveRadialName} creada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const claveRadialUpdatedToast = (claveRadialName = "Clave radial") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{claveRadialName} actualizada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const claveRadialDeletedToast = (claveRadialName = "Clave radial") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{claveRadialName} eliminada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA SUBTIPO INCIDENTE =====
+
+export const subtipoIncidenteCreatedToast = (subtipoName = "Subtipo de incidente") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{subtipoName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const subtipoIncidenteUpdatedToast = (subtipoName = "Subtipo de incidente") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{subtipoName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const subtipoIncidenteDeletedToast = (subtipoName = "Subtipo de incidente") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{subtipoName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA CLASIFICACION EMERGENCIA =====
+
+export const clasificacionEmergenciaCreatedToast = (clasificacionName = "Clasificación de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{clasificacionName} creada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const clasificacionEmergenciaUpdatedToast = (clasificacionName = "Clasificación de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{clasificacionName} actualizada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const clasificacionEmergenciaDeletedToast = (clasificacionName = "Clasificación de emergencia") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{clasificacionName} eliminada exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+// ===== TOASTS PARA EPP (INVENTARIO) =====
+
+export const eppCreatedToast = (eppName = "EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <CreateIcon />
+      <span>{eppName} creado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const eppUpdatedToast = (eppName = "EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <UpdateIcon />
+      <span>{eppName} actualizado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const eppDeletedToast = (eppName = "EPP") => {
+  toast.success(
+    <div className="flex items-center">
+      <DeleteIcon />
+      <span>{eppName} eliminado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const eppAssignedToast = () => {
+  toast.success(
+    <div className="flex items-center">
+      <BomberoIcon />
+      <span>EPP asignado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};
+
+export const eppUnassignedToast = () => {
+  toast.success(
+    <div className="flex items-center">
+      <MdSecurity className="text-indigo-600 text-xl mr-2" />
+      <span>EPP desasignado exitosamente</span>
+    </div>,
+    {
+      ...toastConfig,
+      className: 'toast-success',
+      progressClassName: 'toast-progress-success',
+    }
+  );
+};

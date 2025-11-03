@@ -39,6 +39,12 @@ import {
   crearEstadosCiviles
 } from "./config/data/initialEstadoCivil.js";
 import {
+  crearVinculos
+} from "./config/data/initialVinculo.js";
+import {
+  crearClavesRadiales
+} from "./config/data/initialClaveRadial.js";
+import {
   crearServiciosExternos
 } from "./config/data/initialServicio.js";
 import {
@@ -197,12 +203,14 @@ async function setupAPI() {
     await crearPermisos();
     await crearRoles();
     await crearEstadosCiviles();
+    await crearVinculos();
     await crearServiciosExternos();
     await crearCarrosPredeterminados();
 
     await crearBomberos();
 
     await crearClasificacionEmergencia();
+    await crearClavesRadiales(); // Debe ejecutarse ANTES de crearSubTipoIncidente para que las claves existan
     await crearSubTipoIncidente();
     await crearTipoDano();
     await crearfaseIncidente();
