@@ -108,7 +108,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             <span className="flex items-center"><ShieldCheckIcon className="w-5 h-5 mr-2" />Inventario EPP</span>
                         </NavLink>
                     )}
-                    {hasPermiso('bombero:obtener') && (
+                    {(hasPermiso('puntoGeografico:obtener') || hasPermiso('puntoGeografico:admin')) && (
                         <NavLink
                             to="/puntos-interes"
                             onClick={() => setSidebarOpen(false)}

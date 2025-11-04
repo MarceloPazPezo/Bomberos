@@ -211,7 +211,7 @@ const router = createBrowserRouter([
       {
         path: '/puntos-interes',
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+          <ProtectedRoute requiredPermisos={['puntoGeografico:obtener', 'puntoGeografico:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <PuntosInteres />
             </Suspense>
