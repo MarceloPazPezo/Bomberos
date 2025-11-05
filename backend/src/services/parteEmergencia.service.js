@@ -471,8 +471,8 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
 
   // Dirección
   let dir = incidente.direccion;
-  if (!dir) { dir = dirRepo.create({ calle: payload.calle, numero: String(payload.numero), depto: payload.depto || null, referencia: payload.referencia || null, idComuna: payload.comunaId, creadoPor: payload.idRedactor || null }); dir = await dirRepo.save(dir); await incidenteRepo.update({ id: idIncidente }, { idDireccion: dir.id }); }
-  else { dir.calle = payload.calle; dir.numero = String(payload.numero); dir.depto = payload.depto || null; dir.referencia = payload.referencia || null; dir.idComuna = payload.comunaId; await dirRepo.save(dir); }
+  if (!dir) { dir = dirRepo.create({ calle: payload.calle, numero: payload.numero, depto: payload.depto || null, referencia: payload.referencia || null, idComuna: payload.comunaId, creadoPor: payload.idRedactor || null }); dir = await dirRepo.save(dir); await incidenteRepo.update({ id: idIncidente }, { idDireccion: dir.id }); }
+  else { dir.calle = payload.calle; dir.numero = payload.numero; dir.depto = payload.depto || null; dir.referencia = payload.referencia || null; dir.idComuna = payload.comunaId; await dirRepo.save(dir); }
 
   // 3) Fase y Daño (si aplica): estrategia simple -> eliminar previos y crear si payload trae ambos
   if (incidente.faseYDano?.length) {

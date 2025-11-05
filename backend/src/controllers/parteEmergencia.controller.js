@@ -39,6 +39,7 @@ export async function crearParteEmergencia(req, res) {
   // Normalizar campos opcionales que pueden venir como '' desde el front
   if (payload && (payload.tipoIncendioId === '' || payload.tipoIncendioId === undefined)) payload.tipoIncendioId = null;
   if (payload && (payload.faseId === '' || payload.faseId === undefined)) payload.faseId = null;
+  if (payload && (payload.numero === '' || payload.numero === undefined)) payload.numero = null;
   const { error: parteError, value: parteData } = parteEmergenciaValidation.validate(payload, { abortEarly: true });
   if (parteError) {
     return handleErrorClient(res, 400, `Error validación parte: ${parteError.details[0].message}`);
@@ -47,8 +48,10 @@ export async function crearParteEmergencia(req, res) {
   await queryRunner.connect();
   await queryRunner.startTransaction();
   try {
+   
     const { companiaId, fecha, horaDespacho, fechaHoraDespacho: fechaHoraDespachoFront, hora6_0, hora6_3, hora6_9, hora6_10, comunaId, calle, numero, depto, referencia, descripcionPreliminar, bomberoACargoId, subtipoId: idSubtipoIncidente, tipoIncendioId, faseId, idRedactor, inmuebles = [], vehiculos = [], materialMayor = [], accidentados = [], otrosServicios = [], asistencia = { lugar: [], cuartel: [] } } = parteData;
-    const dirPrincipal = { calle, numero: String(numero), depto: depto || null, referencia: referencia || null, idComuna: comunaId, creadoPor: idRedactor || null, actualizadoPor: null };
+    console.log('el numero es:', numero);
+    const dirPrincipal = { calle, numero: numero || null, depto: depto || null, referencia: referencia || null, idComuna: comunaId, creadoPor: idRedactor || null, actualizadoPor: null };
     const { error: dirError } = direccionCreateValidation.validate(dirPrincipal);
     if (dirError) { await queryRunner.rollbackTransaction(); return handleErrorClient(res, 400, `Error validación dirección: ${dirError.details[0].message}`); }
     console.log('Crear parte emergencia - dirección principal validada:', dirPrincipal);
