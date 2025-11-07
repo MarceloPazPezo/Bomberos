@@ -84,7 +84,7 @@ router
   .use("/estado-epp", estadoEppRoutes)
   .use("/vinculo", vinculoRoutes)
   .use("/clave-radial", claveRadialRoutes)
-  .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes);
+  .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes)
   .use("/historial", historialRoutes);
 
 
