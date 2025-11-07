@@ -1,8 +1,8 @@
 "use strict";
 import { Router } from "express";
 import {
-  getPermisos,
   getPermiso,
+  getPermisos,
   updatePermiso,
 } from "../controllers/permiso.controller.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";

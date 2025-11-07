@@ -1,20 +1,20 @@
 "use strict";
 import { Router } from "express";
 import {
+  assignEppToBombero,
+  createEpp,
+  deleteEpp,
   getEpp,
   getEppById,
-  createEpp,
-  updateEpp,
-  deleteEpp,
-  assignEppToBombero,
-  unassignEppFromBombero,
-  getTiposEpp,
-  getEstadosEpp,
   getEppDisponibles,
-  getInventarioStats
+  getEstadosEpp,
+  getInventarioStats,
+  getTiposEpp,
+  unassignEppFromBombero,
+  updateEpp
 } from "../controllers/epp.controller.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
-import { authorizeRoles } from "../middlewares/authorization.middleware.js";
+import { authorizeRoles, authorizePermisos } from "../middlewares/authorization.middleware.js";
 
 const router = Router();
 
@@ -31,27 +31,27 @@ router.get("/:id", getEppById); // Obtener EPP por ID
 
 // Rutas que requieren permisos específicos
 router.post("/", 
-  authorizeRoles(["admin", "supervisor"]), 
+  authorizePermisos(["epp:admin", "epp:crear"]), 
   createEpp
 ); // Crear EPP
 
 router.put("/:id", 
-  authorizeRoles(["admin", "supervisor"]), 
+  authorizePermisos(["epp:admin", "epp:actualizar"]), 
   updateEpp
 ); // Actualizar EPP
 
 router.delete("/:id", 
-  authorizeRoles(["admin"]), 
+  authorizePermisos(["epp:admin", "epp:eliminar"]), 
   deleteEpp
 ); // Eliminar EPP
 
 router.post("/:id/asignar", 
-  authorizeRoles(["admin", "supervisor"]), 
+  authorizePermisos(["epp:admin", "epp:asignar"]), 
   assignEppToBombero
 ); // Asignar EPP a bombero
 
 router.delete("/:id/asignar", 
-  authorizeRoles(["admin", "supervisor"]), 
+  authorizePermisos(["epp:admin", "epp:asignar"]), 
   unassignEppFromBombero
 ); // Desasignar EPP de bombero
 

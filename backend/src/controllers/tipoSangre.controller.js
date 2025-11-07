@@ -1,6 +1,6 @@
 "use strict";
-import { getTiposSangreService, getTipoSangreByIdService } from "../services/tipoSangre.service.js";
-import { handleSuccess, handleErrorServer, handleErrorClient } from "../handlers/responseHandlers.js";
+import { getTipoSangreByIdService, getTiposSangreService } from "../services/tipoSangre.service.js";
+import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 import logger from "../config/configLogger.js";
 
 /**

@@ -61,7 +61,7 @@ export async function getFichaBomberoService(query) {
     }
 
     const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
-    
+
     const queryBuilder = fichaBomberoRepository
       .createQueryBuilder("ficha")
       .leftJoinAndSelect("ficha.bombero", "bombero")
@@ -70,7 +70,6 @@ export async function getFichaBomberoService(query) {
       .leftJoinAndSelect("ficha.tipoSangre", "tipoSangre")
       .select([
         "ficha.id",
-        "ficha.nombre",
         "ficha.licenciaClaseF",
         "ficha.telefono",
         "ficha.fechaNacimiento",
@@ -184,7 +183,6 @@ export async function getFichasBomberoService(queryParams = {}) {
       .leftJoinAndSelect("ficha.tipoSangre", "tipoSangre")
       .select([
         "ficha.id",
-        "ficha.nombre",
         "ficha.licenciaClaseF",
         "ficha.telefono",
         "ficha.fechaNacimiento",

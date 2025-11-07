@@ -5,6 +5,7 @@ import { getBomberoPermisos, validateToken } from '@services/auth.service';
 import cookies from 'js-cookie';
 import axios from '@services/root.service';
 import { jwtDecode } from 'jwt-decode';
+import { SOCKET_URL } from '../config/api.config';
 
 export const AuthContext = createContext();
 
@@ -144,7 +145,7 @@ export function AuthProvider({ children }) {
             const bombero = JSON.parse(sessionStorage.getItem("bombero"));
             if (bombero && bombero.id) {
                 // Crear una conexión temporal solo para emitir el logout
-                const tempSocket = io("http://localhost:3000", { withCredentials: true });
+                const tempSocket = io(SOCKET_URL, { withCredentials: true });
                 await new Promise((resolve) => {
                     tempSocket.emit("userLogout", bombero.id);
                     setTimeout(() => {

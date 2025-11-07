@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "@hooks/auth/useAuth";
+import { SOCKET_URL } from "../../config/api.config";
 
 // Obtener datos del bombero autenticado desde sessionStorage
 const getBomberoData = () => {
@@ -39,7 +40,7 @@ export const useActiveBomberos = () => {
     }
 
     // Crear socket solo si el bombero está autenticado y existe
-    const socket = io("http://localhost:3000", {
+    const socket = io(SOCKET_URL, {
       withCredentials: true,
       autoConnect: true,
       reconnection: true,

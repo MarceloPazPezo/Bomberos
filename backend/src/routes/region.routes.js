@@ -3,43 +3,58 @@ import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import {
-  getAllRegiones,
-  getRegionById,
-  getAllComunas,
+  getComuna,
+  getComunas,
   getComunasByRegion,
-  getComunaById,
+  getRegion,
+  getRegiones,
+  createRegion,
+  updateRegion,
+  deleteRegion,
 } from "../controllers/region.controller.js";
 
 const router = Router();
 
-// Aplicar autenticación a todas las rutas
 router.use(authenticateJwt);
 
-// Rutas de regiones
-router.get("/regiones", 
+router.get("/regiones",
   authorizePermisos(["region:obtener"]),
-  getAllRegiones
+  getRegiones
 );
 
-router.get("/regiones/:id", 
+router.get("/regiones/:id",
   authorizePermisos(["region:obtener"]),
-  getRegionById
+  getRegion
 );
 
-// Rutas de comunas
-router.get("/comunas", 
-  authorizePermisos(["region:obtener"]),
-  getAllComunas
+router.post("/regiones",
+  authorizePermisos(["region:admin"]),
+  createRegion
 );
 
-router.get("/comunas/region/:idRegion", 
+router.put("/regiones/:id",
+  authorizePermisos(["region:admin"]),
+  updateRegion
+);
+
+router.delete("/regiones/:id",
+  authorizePermisos(["region:admin"]),
+  deleteRegion
+);
+
+router.get("/comunas",
+  authorizePermisos(["region:obtener"]),
+  getComunas
+);
+
+router.get("/comunas/region/:idRegion",
   authorizePermisos(["region:obtener"]),
   getComunasByRegion
 );
 
-router.get("/comunas/:id", 
+router.get("/comunas/:id",
   authorizePermisos(["region:obtener"]),
-  getComunaById
+  getComuna
 );
 
 export default router;

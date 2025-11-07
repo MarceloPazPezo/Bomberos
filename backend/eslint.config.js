@@ -17,7 +17,8 @@ export default {
       },
     ],
     "no-console": "off",
-    quotes: ["error", "double"],
+    // Disable quotes enforcement to avoid errors for single vs double quotes.
+    quotes: "off",
     "operator-linebreak": [
       "warn",
       "before",

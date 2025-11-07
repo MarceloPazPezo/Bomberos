@@ -9,9 +9,9 @@ import express, { json, urlencoded } from "express";
 import indexRoutes from "./routes/index.routes.js";
 import logger from "./config/configLogger.js";
 import {
+  errorLogger,
   morganMiddleware,
   requestLogger,
-  errorLogger,
 } from "./middlewares/logger.middleware.js";
 
 import { COOKIE_KEY, HOST, PORT } from "./config/configEnv.js";
@@ -28,16 +28,22 @@ import {
   crearBomberos
 } from "./config/data/initialBombero.js";
 import {
-  crearRoles,
-  crearPermisos
+  crearPermisos,
+  crearRoles
 } from "./config/data/initialRolPermisos.js";
 import {
-  crearRegiones,
   crearComunas,
+  crearRegiones,
 } from "./config/data/initialRegionComuna.js";
 import {
   crearEstadosCiviles
 } from "./config/data/initialEstadoCivil.js";
+import {
+  crearVinculos
+} from "./config/data/initialVinculo.js";
+import {
+  crearClavesRadiales
+} from "./config/data/initialClaveRadial.js";
 import {
   crearServiciosExternos
 } from "./config/data/initialServicio.js";
@@ -46,13 +52,13 @@ import {
 } from "./config/data/initialCarro.js";
 
 import {
-  crearSubTipoIncidente,
   crearClasificacionEmergencia,
-  crearTipoDano,
+  crearEstadosReporte,
   crearfaseIncidente,
   crearServicios,
-  crearTiposSangre,
-  crearEstadosReporte
+  crearSubTipoIncidente,
+  crearTipoDano,
+  crearTiposSangre
 } from "./config/data/initialExtra.js";
 import {
   inicializarEpp
@@ -60,6 +66,9 @@ import {
 import {
   default as crearTipoEvento
 } from "./config/data/initialTipoEvento.js";
+import {
+  crearTiposPunto
+} from "./config/data/initialTipoPunto.js";
 
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
@@ -134,10 +143,10 @@ async function setupServer() {
         credentials: true,
       },
     });
-    
+
     // Asignar la instancia global
     ioInstance = io;
-    
+
     handleSocketConnection(io);
     server.listen(PORT, () => {
       // Banner del servidor
@@ -158,7 +167,7 @@ async function setupServer() {
       console.log('='.repeat(70));
       console.log('Sistema completamente operativo y listo para recibir peticiones');
       console.log('='.repeat(70) + '\n');
-      
+
       logger.info(`[SERVER] Servidor corriendo en http://${HOST}:${PORT}/api`);
     });
     // --- FIN Socket.IO ---
@@ -194,12 +203,14 @@ async function setupAPI() {
     await crearPermisos();
     await crearRoles();
     await crearEstadosCiviles();
+    await crearVinculos();
     await crearServiciosExternos();
     await crearCarrosPredeterminados();
-    
+
     await crearBomberos();
 
     await crearClasificacionEmergencia();
+    await crearClavesRadiales(); // Debe ejecutarse ANTES de crearSubTipoIncidente para que las claves existan
     await crearSubTipoIncidente();
     await crearTipoDano();
     await crearfaseIncidente();
@@ -208,9 +219,10 @@ async function setupAPI() {
     await crearTiposSangre();
     await crearEstadosReporte();
     await inicializarEpp();
+    await crearTiposPunto();
 
     logger.info("[CONFIG] Configuración inicial completada");
-    
+
     // Configurar servidor después de toda la inicialización
     await setupServer();
   } catch (error) {

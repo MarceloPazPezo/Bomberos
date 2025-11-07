@@ -1,17 +1,17 @@
 "use strict";
 import {
-  getEppService,
-  getEppByIdService,
-  createEppService,
-  updateEppService,
-  deleteEppService,
   assignEppToBomberoService,
-  unassignEppFromBomberoService,
-  getTiposEppService,
+  createEppService,
+  deleteEppService,
+  getEppByIdService,
+  getEppDisponiblesService,
+  getEppService,
   getEstadosEppService,
-  getEppDisponiblesService
+  getTiposEppService,
+  unassignEppFromBomberoService,
+  updateEppService
 } from "../services/epp.service.js";
-import { handleSuccess, handleErrorClient, handleErrorServer } from "../handlers/responseHandlers.js";
+import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 import logger from "../config/configLogger.js";
 
 /**

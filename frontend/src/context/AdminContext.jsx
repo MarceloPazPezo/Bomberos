@@ -50,20 +50,6 @@ export const AdminProvider = ({ children }) => {
       permissions: ['region:obtener', 'region:admin', 'comuna:obtener', 'comuna:admin']
     },
     {
-      id: 'estadoCivil',
-      label: 'Estados Civiles',
-      description: 'Gestión de estados civiles',
-      icon: 'MdPerson',
-      permissions: ['estadoCivil:obtener', 'estadoCivil:admin']
-    },
-    {
-      id: 'servicios',
-      label: 'Servicios',
-      description: 'Gestión de servicios externos',
-      icon: 'MdLocalHospital',
-      permissions: ['servicio:obtener', 'servicio:admin']
-    },
-    {
       id: 'carros',
       label: 'Carros',
       description: 'Gestión de carros',
@@ -71,11 +57,36 @@ export const AdminProvider = ({ children }) => {
       permissions: ['carro:obtener', 'carro:admin']
     },
     {
-      id: 'tiposEvento',
-      label: 'Tipos de Evento',
-      description: 'Gestión de tipos de evento',
-      icon: 'MdEvent',
-      permissions: ['tipoEvento:obtener', 'tipoEvento:admin']
+      id: 'tiposEpp',
+      label: 'EPP',
+      description: 'Gestión de tipos y estados de EPP',
+      icon: 'MdShield',
+      permissions: ['tipo_epp:obtener', 'tipo_epp:admin', 'estado_epp:obtener', 'estado_epp:admin']
+    },
+    {
+      id: 'inventarioEpp',
+      label: 'Inventario EPP',
+      description: 'Gestión del inventario de Equipos de Protección Personal',
+      icon: 'MdInventory',
+      permissions: ['epp:obtener', 'epp:admin']
+    },
+    {
+      id: 'incidentes',
+      label: 'Incidente',
+      description: 'Gestión de claves radiales, subtipos y clasificaciones',
+      icon: 'MdRadioButtonChecked',
+      permissions: [
+        'clave_radial:obtener', 'clave_radial:admin',
+        'subtipo_incidente:obtener', 'subtipo_incidente:admin',
+        'clasificacion_emergencia:obtener', 'clasificacion_emergencia:admin'
+      ]
+    },
+    {
+      id: 'extraTabs',
+      label: 'Extras',
+      description: 'Gestión de estados civiles, servicios, tipos de evento y vínculos',
+      icon: 'MdSettings',
+      permissions: ['estadoCivil:obtener', 'estadoCivil:admin', 'servicio:obtener', 'servicio:admin', 'tipoEvento:obtener', 'tipoEvento:admin', 'vinculo:obtener', 'vinculo:admin']
     }
   ];
 

@@ -5,9 +5,9 @@ import {
   updatePermisoService,
 } from "../services/permiso.service.js";
 import {
-  handleSuccess,
   handleErrorClient,
   handleErrorServer,
+  handleSuccess,
 } from "../handlers/responseHandlers.js";
 
 export async function getPermisos(req, res) {

@@ -1,6 +1,6 @@
 "use strict";
 import { Router } from "express";
-import { getTiposSangre, getTipoSangreById } from "../controllers/tipoSangre.controller.js";
+import { getTipoSangreById, getTiposSangre } from "../controllers/tipoSangre.controller.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 

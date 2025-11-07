@@ -1,7 +1,7 @@
 "use strict";
 
 import { getRedisSubscriber } from '../config/configRedis.js';
-import { getUserChannel, getCompaniaChannel, getRolChannel } from '../helpers/notification.helper.js';
+import { getCompaniaChannel, getRolChannel, getUserChannel } from '../helpers/notification.helper.js';
 import { getIO } from '../index.js';
 import logger from '../config/configLogger.js';
 

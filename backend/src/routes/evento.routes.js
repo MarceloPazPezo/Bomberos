@@ -1,7 +1,7 @@
 "use strict";
 import { Router } from "express";
-import { obtenerEventos, crearEvento, obtenerTiposEvento, actualizarEvento, 
-    eliminarEvento,obtenerEventosRecurrentes,registrarAsistenciaEvento, obtenerAsistenciaEvento } from "../controllers/caledarioOperativo.controller.js";
+import { actualizarEvento, crearEvento, eliminarEvento, obtenerAsistenciaEvento, 
+    obtenerEventos,obtenerEventosRecurrentes,obtenerTiposEvento, registrarAsistenciaEvento } from "../controllers/caledarioOperativo.controller.js";
 
 const router = Router();
 router.get("/eventos", obtenerEventos);

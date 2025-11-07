@@ -1,7 +1,6 @@
 import axios from 'axios';
 import cookies from 'js-cookie';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+import { API_URL } from '../config/api.config';
 
 const instance = axios.create({
     baseURL: API_URL,
@@ -13,11 +12,11 @@ instance.interceptors.request.use(
     (config) => {
         // Obtener el token desde las cookies
         const token = cookies.get('jwt-auth');
-        
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
-        
+
         return config;
     },
     (error) => {
@@ -38,13 +37,13 @@ instance.interceptors.response.use(
             cookies.remove('jwt');
             sessionStorage.removeItem('usuario');
             sessionStorage.removeItem('token');
-            
+
             // Redirigir al login si no estamos ya ahí
             if (window.location.pathname !== '/auth') {
                 window.location.href = '/auth';
             }
         }
-        
+
         return Promise.reject(error);
     }
 );

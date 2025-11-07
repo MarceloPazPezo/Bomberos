@@ -12,13 +12,13 @@ async function crearServicios() {
         return;
     }
     const serviciosData = [
-        {nombre: "SAMU"},
+        { nombre: "SAMU" },
         { nombre: "Carabineros" },
-        {nombre: "Emergencias Municipal"},
-        {nombre: "CONAF"},
-        {nombre: "Brigada Forestal"},
-        {nombre: "Compañía Eléctrica"},
-        {nombre: "Compañía de agua"},
+        { nombre: "Emergencias Municipal" },
+        { nombre: "CONAF" },
+        { nombre: "Brigada Forestal" },
+        { nombre: "Compañía Eléctrica" },
+        { nombre: "Compañía de agua" },
     ];
     
     const servicios = serviciosRepository.create(serviciosData);

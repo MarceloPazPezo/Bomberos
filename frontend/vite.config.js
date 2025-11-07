@@ -9,10 +9,10 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   plugins: [
-        react(),
-        tailwindcss(),
-      ],
-  preview: {port:443, host:true},
+    react(),
+    tailwindcss(),
+  ],
+  preview: { port: 443, host: true },
   resolve: {
     alias: {
       '@assets': path.resolve(__dirname, './src/assets'),
@@ -40,11 +40,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:3000',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'ws://localhost:3000',
+        target: process.env.VITE_BACKEND_URL || 'ws://localhost:3000',
         ws: true,
       },
     }

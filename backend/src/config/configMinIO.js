@@ -1,11 +1,11 @@
 import { Client } from 'minio';
 import { 
+  MINIO_ACCESS_KEY, 
+  MINIO_BUCKET_NAME,
   MINIO_ENDPOINT, 
   MINIO_PORT, 
-  MINIO_USE_SSL, 
-  MINIO_ACCESS_KEY, 
   MINIO_SECRET_KEY, 
-  MINIO_BUCKET_NAME,
+  MINIO_USE_SSL, 
   SIGNED_URL_EXPIRY 
 } from './configEnv.js';
 import logger from './configLogger.js';

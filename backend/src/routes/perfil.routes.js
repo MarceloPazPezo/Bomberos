@@ -4,9 +4,9 @@ import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import { cleanEmptyStrings } from "../middlewares/cleanEmptyStrings.middleware.js";
 import {
+  changeMyPassword,
   getMyProfile,
   updateMyProfile,
-  changeMyPassword,
 } from "../controllers/perfil.controller.js";
 
 const router = Router();

@@ -5,8 +5,8 @@ const BomberoAccidentadoSchema = new EntitySchema({
     name: "BomberoAccidentado",
     tableName: "bomberoAccidentado",
     columns: {
-        idBombero: { type: "int", primary: true},
-        idIncidente: { type: "int", primary: true},
+        idBombero: { type: "int", primary: true },
+        idIncidente: { type: "int", primary: true },
 
         lesiones: { type: "varchar", length: 500, nullable: true },
         constancia: { type: "varchar", length: 100, nullable: true },
@@ -18,12 +18,12 @@ const BomberoAccidentadoSchema = new EntitySchema({
             type: "many-to-one",
             target: "Bombero",
             joinColumn: { name: "idBombero", referencedColumnName: "id" },
-            onDelete: "RESTRICT",},
+            onDelete: "RESTRICT", },
         incidente: {
             type: "many-to-one",
             target: "Incidente",
             joinColumn: { name: "idIncidente",referencedColumnName: "id" },
-            onDelete: "CASCADE",}
+            onDelete: "CASCADE", }
     }
 });
 export default BomberoAccidentadoSchema;

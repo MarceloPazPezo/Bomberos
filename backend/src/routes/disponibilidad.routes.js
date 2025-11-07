@@ -3,12 +3,12 @@ import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import {
+  cerrarDisponibilidad,
+  createDisponibilidad,
   deleteDisponibilidad,
   getDisponibilidad,
-  getDisponibilidades,
-  createDisponibilidad,
-  cerrarDisponibilidad,
   getDisponibilidadActiva,
+  getDisponibilidades,
 } from "../controllers/disponibilidad.controller.js";
 
 const router = Router();

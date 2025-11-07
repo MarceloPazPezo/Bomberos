@@ -31,9 +31,9 @@ export function normalizeRUN(runString) {
  */
 export function validateRUNDv(normalizedRUN) {
   if (
-    !normalizedRUN ||
-    typeof normalizedRUN !== "string" ||
-    normalizedRUN.length < 2
+    !normalizedRUN
+    || typeof normalizedRUN !== "string"
+    || normalizedRUN.length < 2
   ) {
     return false;
   }

@@ -1,16 +1,16 @@
 "use strict";
 import {
-  getCompaniaService,
-  getCompaniasService,
   createCompaniaService,
-  updateCompaniaService,
   deleteCompaniaService,
   getCompaniaBomberoService,
+  getCompaniaService,
+  getCompaniasService,
+  updateCompaniaService,
 } from "../services/compania.service.js";
 import {
+  companiaCreateValidation,
   companiaIdParamsValidation,
   companiaQueryValidation,
-  companiaCreateValidation,
   companiaUpdateValidation,
 } from "../validations/compania.validation.js";
 import {

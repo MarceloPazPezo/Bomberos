@@ -5,27 +5,18 @@ import logger from '../config/configLogger.js';
 
 const router = Router();
 
-// ===========================================
-// RUTAS PÚBLICAS PARA TILES DE MAPLIBRE
-// ===========================================
-
-/**
- * @route GET /api/tiles/:comuna/:z/:x/:y
- * @desc Servir tiles públicos para MapLibre
- * @access Public
- * @example GET /api/tiles/santiago/12/1234/5678
- */
+// Rutas públicas para tiles de MapLibre
 router.get('/:comuna/:z/:x/:y', async (req, res) => {
   try {
     const { comuna, z, x, y } = req.params;
-    
+
     // Construir nombre del archivo del tile
     const fileName = `${comuna}/${z}/${x}/${y}.png`;
-    
+
     // Intentar obtener el tile desde MinIO
     try {
       const fileBuffer = await minioService.downloadFile(BUCKETS.TILES_PUBLIC, fileName);
-      
+
       // Configurar headers para tiles
       res.set({
         'Content-Type': 'image/png',
@@ -35,9 +26,9 @@ router.get('/:comuna/:z/:x/:y', async (req, res) => {
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type'
       });
-      
+
       res.send(fileBuffer);
-      
+
       logger.info(`[MINIO] Tile servido: ${fileName}`);
     } catch (error) {
       if (error.code === 'NotFound') {
@@ -61,24 +52,19 @@ router.get('/:comuna/:z/:x/:y', async (req, res) => {
   }
 });
 
-/**
- * @route GET /api/tiles/:comuna/:z/:x/:y.json
- * @desc Servir metadatos del tile (si es necesario)
- * @access Public
- */
 router.get('/:comuna/:z/:x/:y.json', async (req, res) => {
   try {
     const { comuna, z, x, y } = req.params;
-    
+
     // Construir nombre del archivo del tile
     const fileName = `${comuna}/${z}/${x}/${y}.png`;
-    
+
     // Verificar si el tile existe
     const exists = await minioService.fileExists(BUCKETS.TILES_PUBLIC, fileName);
-    
+
     if (exists) {
       const fileInfo = await minioService.getFileInfo(BUCKETS.TILES_PUBLIC, fileName);
-      
+
       res.json({
         success: true,
         data: {
@@ -109,23 +95,18 @@ router.get('/:comuna/:z/:x/:y.json', async (req, res) => {
   }
 });
 
-/**
- * @route GET /api/tiles/available/:comuna
- * @desc Listar tiles disponibles para una comuna
- * @access Public
- */
 router.get('/available/:comuna', async (req, res) => {
   try {
     const { comuna } = req.params;
     const { z } = req.query; // Nivel de zoom opcional
-    
+
     let prefix = `${comuna}/`;
     if (z) {
       prefix += `${z}/`;
     }
-    
+
     const files = await minioService.listFiles(BUCKETS.TILES_PUBLIC, prefix);
-    
+
     // Organizar tiles por nivel de zoom
     const tilesByZoom = {};
     files.forEach(file => {
@@ -143,7 +124,7 @@ router.get('/available/:comuna', async (req, res) => {
         });
       }
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -162,15 +143,10 @@ router.get('/available/:comuna', async (req, res) => {
   }
 });
 
-/**
- * @route GET /api/tiles/communas
- * @desc Listar comunas con tiles disponibles
- * @access Public
- */
 router.get('/communas', async (req, res) => {
   try {
     const files = await minioService.listFiles(BUCKETS.TILES_PUBLIC, '');
-    
+
     // Extraer comunas únicas
     const comunas = new Set();
     files.forEach(file => {
@@ -179,7 +155,7 @@ router.get('/communas', async (req, res) => {
         comunas.add(pathParts[0]);
       }
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -197,21 +173,16 @@ router.get('/communas', async (req, res) => {
   }
 });
 
-/**
- * @route GET /api/tiles/cache-info/:comuna
- * @desc Obtener información de cache para React Native
- * @access Public
- */
 router.get('/cache-info/:comuna', async (req, res) => {
   try {
     const { comuna } = req.params;
-    
+
     const files = await minioService.listFiles(BUCKETS.TILES_PUBLIC, `${comuna}/`);
-    
+
     // Calcular información de cache
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
     const tilesByZoom = {};
-    
+
     files.forEach(file => {
       const pathParts = file.name.split('/');
       if (pathParts.length >= 4) {
@@ -226,7 +197,7 @@ router.get('/cache-info/:comuna', async (req, res) => {
         tilesByZoom[zoom].size += file.size;
       }
     });
-    
+
     res.json({
       success: true,
       data: {

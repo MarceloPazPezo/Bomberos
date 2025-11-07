@@ -4,14 +4,14 @@ import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import { cleanEmptyStrings } from "../middlewares/cleanEmptyStrings.middleware.js";
 import {
-  getCompania,
-  getCompanias,
   createCompania,
-  updateCompania,
   deleteCompania,
+  getCompania,
+  getCompaniaBannerUrl,
   getCompaniaBombero,
   getCompaniaLogoUrl,
-  getCompaniaBannerUrl,
+  getCompanias,
+  updateCompania,
 } from "../controllers/compania.controller.js";
 
 const router = Router();

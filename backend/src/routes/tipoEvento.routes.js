@@ -3,11 +3,11 @@ import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 import {
+  createTipoEvento,
   deleteTipoEvento,
   getTipoEvento,
   getTiposEvento,
   updateTipoEvento,
-  createTipoEvento,
 } from "../controllers/tipoEvento.controller.js";
 
 const router = Router();
