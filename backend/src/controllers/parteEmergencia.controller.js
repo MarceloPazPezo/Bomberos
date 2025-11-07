@@ -20,6 +20,7 @@ import { crearBomberoAccidentadoService } from "../services/bomberoAccidentado.s
 import { actualizarParteCompletoService, obtenerParteDetalladoPorIdService, obtenerPartePorIdService } from "../services/parteEmergencia.service.js";
 import { parteEmergenciaUpdateValidation } from "../validations/parteEmergenciaUpdate.validation.js";
 import { borrarIncidenteService } from "../services/incidente.service.js";
+import {obtenerIdEstadoBorradorService} from "../services/estadoReporte.service.js";
 
 
 function toHHMMSS(v) {
@@ -31,12 +32,14 @@ function toHHMMSS(v) {
 
 export async function crearParteEmergencia(req, res) {
   const payload = req.body;
+  console.log('Payload recibido en crearParteEmergencia:', payload);
   if (!payload || typeof payload !== 'object') {
     return handleErrorClient(res, 400, "Payload inválido");
   }
   // Normalizar campos opcionales que pueden venir como '' desde el front
   if (payload && (payload.tipoIncendioId === '' || payload.tipoIncendioId === undefined)) payload.tipoIncendioId = null;
   if (payload && (payload.faseId === '' || payload.faseId === undefined)) payload.faseId = null;
+  if (payload && (payload.numero === '' || payload.numero === undefined)) payload.numero = null;
   const { error: parteError, value: parteData } = parteEmergenciaValidation.validate(payload, { abortEarly: true });
   if (parteError) {
     return handleErrorClient(res, 400, `Error validación parte: ${parteError.details[0].message}`);
@@ -45,12 +48,16 @@ export async function crearParteEmergencia(req, res) {
   await queryRunner.connect();
   await queryRunner.startTransaction();
   try {
+   
     const { companiaId, fecha, horaDespacho, fechaHoraDespacho: fechaHoraDespachoFront, hora6_0, hora6_3, hora6_9, hora6_10, comunaId, calle, numero, depto, referencia, descripcionPreliminar, bomberoACargoId, subtipoId: idSubtipoIncidente, tipoIncendioId, faseId, idRedactor, inmuebles = [], vehiculos = [], materialMayor = [], accidentados = [], otrosServicios = [], asistencia = { lugar: [], cuartel: [] } } = parteData;
-    const dirPrincipal = { calle, numero: String(numero), depto: depto || null, referencia: referencia || null, idComuna: comunaId, creadoPor: idRedactor || null, actualizadoPor: null };
+    console.log('el numero es:', numero);
+    const dirPrincipal = { calle, numero: numero || null, depto: depto || null, referencia: referencia || null, idComuna: comunaId, creadoPor: idRedactor || null, actualizadoPor: null };
     const { error: dirError } = direccionCreateValidation.validate(dirPrincipal);
     if (dirError) { await queryRunner.rollbackTransaction(); return handleErrorClient(res, 400, `Error validación dirección: ${dirError.details[0].message}`); }
+    console.log('Crear parte emergencia - dirección principal validada:', dirPrincipal);
     const manager = queryRunner.manager;
     const idDireccion = await crearDireccionService(dirPrincipal, manager);
+    console.log('Crear parte emergencia - dirección principal creada con ID:', idDireccion);
     // Construir FechaHoraDespacho de forma robusta
     let fechaHoraDespacho = null;
     if (fechaHoraDespachoFront) {
@@ -171,11 +178,24 @@ export async function crearParteEmergencia(req, res) {
     for (const m of materialMayor) { await crearDespachoService({ idBomberoMaquinista: Number(m.conductorId), idIncidente, idCarro: Number(m.unidadId), kmSalida: m.kmSalida || null, kmLlegada: m.kmLlegada || null, nPersonal: m.voluntarios || null }, manager); }
     for (const a of accidentados) { await crearBomberoAccidentadoService({ idBombero: Number(a.bomberoId), idIncidente, lesiones: a.lesiones || null, constancia: a.constancia || null, AccionesRealizadas: a.acciones || null, comisaria: a.comisaria || null }, manager); }
     for (const s of otrosServicios) { await crearAcudeServicioService({ idServicio: Number(s.servicioId), idIncidente, unidad: s.tipoUnidad || '', observaciones: s.observaciones || null, nPersonal: s.personal || null, nombrePersonalACargo: s.responsable || null }, manager); }
-    if (asistencia && Array.isArray(asistencia.lugar)) { for (const idBombero of asistencia.lugar) { await crearAsistenciaIncidenteService({ idBombero: Number(idBombero), idIncidente }, manager); } }
+    // Asistencia en el lugar (enLugar=true, enCuartel=false)
+    if (asistencia && Array.isArray(asistencia.lugar)) { 
+      for (const idBombero of asistencia.lugar) { 
+        await crearAsistenciaIncidenteService({ idBombero: Number(idBombero), idIncidente, enLugar: true, enCuartel: false }, manager); 
+      } 
+    }
+    // Asistencia en el cuartel (enLugar=false, enCuartel=true)
+    if (asistencia && Array.isArray(asistencia.cuartel)) { 
+      for (const idBombero of asistencia.cuartel) { 
+        await crearAsistenciaIncidenteService({ idBombero: Number(idBombero), idIncidente, enLugar: false, enCuartel: true }, manager); 
+      } 
+    }
     // Registrar EstadoEstablecido inicial: idEstado=1, idBombero=idRedactor
     try {
+      const idEstadoBorrador = await obtenerIdEstadoBorradorService();
+
       if (idRedactor) {
-        await crearEstadoEstablecidoService({ idBombero: Number(idRedactor), idEstado: 1, idIncidente, fechaHora: new Date() }, manager);
+        await crearEstadoEstablecidoService({ idBombero: Number(idRedactor), idEstado: idEstadoBorrador , idIncidente, fechaHora: new Date() }, manager);
       }
     } catch (ee) {
       console.warn('No se pudo registrar EstadoEstablecido inicial:', ee?.message);
@@ -250,6 +270,7 @@ export async function actualizarParteEmergencia(req, res) {
     return handleErrorClient(res, 400, "Id inválido");
   }
   const payload = req.body || {};
+  console.log('Payload recibido en actualizarParteEmergencia:', payload);
   // Normalizar opcionales del front
   if (payload && (payload.tipoIncendioId === '' || payload.tipoIncendioId === undefined)) payload.tipoIncendioId = null;
   if (payload && (payload.faseId === '' || payload.faseId === undefined)) payload.faseId = null;

@@ -31,6 +31,7 @@ import perfilCompletoRoutes from "./perfilCompleto.routes.js";
 import tipoSangreRoutes from "./tipoSangre.routes.js";
 import estadoCivilRoutes from "./estadoCivil.routes.js";
 import tipoEventoRoutes from "./tipoEvento.routes.js";
+
 import tipoPuntoRoutes from "./tipoPunto.routes.js";
 import puntoGeograficoRoutes from "./puntoGeografico.routes.js";
 import jurisdiccionRoutes from "./jurisdiccion.routes.js";
@@ -39,6 +40,8 @@ import estadoEppRoutes from "./estadoEpp.routes.js";
 import vinculoRoutes from "./vinculo.routes.js";
 import claveRadialRoutes from "./claveRadial.routes.js";
 import clasificacionEmergenciaRoutes from "./clasificacionEmergencia.routes.js";
+import historialRoutes from "./historial.routes.js";
+
 
 const router = Router();
 
@@ -82,5 +85,7 @@ router
   .use("/vinculo", vinculoRoutes)
   .use("/clave-radial", claveRadialRoutes)
   .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes);
+  .use("/historial", historialRoutes);
+
 
 export default router;

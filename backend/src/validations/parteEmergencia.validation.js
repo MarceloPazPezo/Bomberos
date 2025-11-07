@@ -90,7 +90,7 @@ export const parteEmergenciaValidation = Joi.object({
   hora6_10: Joi.string().pattern(horaPattern).allow('', null),
   comunaId: Joi.number().integer().positive().required(),
   calle: Joi.string().max(255).required(),
-  numero: Joi.alternatives(Joi.string(), Joi.number()).required(),
+  numero: Joi.string().allow('', null),
   depto: Joi.alternatives(Joi.string(), Joi.number()).allow('', null),
   referencia: Joi.string().max(255).allow('', null, ''),
   clasificacionId: Joi.number().integer().positive().allow(null),

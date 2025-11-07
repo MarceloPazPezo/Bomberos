@@ -146,9 +146,10 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
 
 
   const otrosServicios = (otrosServiciosRaw || []).map(s => ({ id: s.idServicio, servicioId: s.idServicio, tipoUnidad: s.unidad || '', responsable: s.nombrePersonalACargo || '', personal: s.nPersonal || 0, observaciones: s.observaciones || '' }));
+  // Asistencia separada por enLugar y enCuartel
   const asistencia = {
-    lugar: (asistenciasRaw || []).map(a => a.idBombero),
-    cuartel: [] // si hay otra tabla para cuartel, agregarla; por ahora placeholder
+    lugar: (asistenciasRaw || []).filter(a => a.enLugar).map(a => a.idBombero),
+    cuartel: (asistenciasRaw || []).filter(a => a.enCuartel).map(a => a.idBombero)
   };
   // fase y daño: tomar el primero si existe
   const fy = Array.isArray(fases) && fases.length > 0 ? fases[0] : null;
@@ -355,10 +356,10 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
     observaciones: s.observaciones || ''
   }));
 
-  // Asistencia con nombres
+  // Asistencia con nombres - separar por enLugar y enCuartel
   const asistencia = {
-    lugar: (asistenciasRaw || []).map(a => bomberoToPersona(a.bombero) || { id: a.idBombero, nombreCompleto: null, run: null }),
-    cuartel: []
+    lugar: (asistenciasRaw || []).filter(a => a.enLugar).map(a => bomberoToPersona(a.bombero) || { id: a.idBombero, nombreCompleto: null, run: null }),
+    cuartel: (asistenciasRaw || []).filter(a => a.enCuartel).map(a => bomberoToPersona(a.bombero) || { id: a.idBombero, nombreCompleto: null, run: null })
   };
 
   // Clasificación y subtipo (con nombre/descripcion)
@@ -470,8 +471,8 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
 
   // Dirección
   let dir = incidente.direccion;
-  if (!dir) { dir = dirRepo.create({ calle: payload.calle, numero: String(payload.numero), depto: payload.depto || null, referencia: payload.referencia || null, idComuna: payload.comunaId, creadoPor: payload.idRedactor || null }); dir = await dirRepo.save(dir); await incidenteRepo.update({ id: idIncidente }, { idDireccion: dir.id }); }
-  else { dir.calle = payload.calle; dir.numero = String(payload.numero); dir.depto = payload.depto || null; dir.referencia = payload.referencia || null; dir.idComuna = payload.comunaId; await dirRepo.save(dir); }
+  if (!dir) { dir = dirRepo.create({ calle: payload.calle, numero: payload.numero, depto: payload.depto || null, referencia: payload.referencia || null, idComuna: payload.comunaId, creadoPor: payload.idRedactor || null }); dir = await dirRepo.save(dir); await incidenteRepo.update({ id: idIncidente }, { idDireccion: dir.id }); }
+  else { dir.calle = payload.calle; dir.numero = payload.numero; dir.depto = payload.depto || null; dir.referencia = payload.referencia || null; dir.idComuna = payload.comunaId; await dirRepo.save(dir); }
 
   // 3) Fase y Daño (si aplica): estrategia simple -> eliminar previos y crear si payload trae ambos
   if (incidente.faseYDano?.length) {
@@ -577,12 +578,23 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
     await acudeRepo.save(acudeRepo.create({ idServicio: Number(s.servicioId), idIncidente, unidad: s.tipoUnidad || '', observaciones: s.observaciones || null, nPersonal: s.personal || null, nombrePersonalACargo: s.responsable || null }));
   }
 
-  // 9) Asistencia: por ahora solo lugar -> recreate
+  console.log('Payload asistencia:', payload.asistencia);
+
+  // 9) Asistencia: lugar y cuartel -> recreate
   const asistRepo = mgr.getRepository('AsistenciaIncidente');
   const actualesAsist = await asistRepo.find({ where: { idIncidente } });
   if (actualesAsist.length) { for (const ai of actualesAsist) await asistRepo.remove(ai); }
+  // Asistencia en el lugar (enLugar=true, enCuartel=false)
   if (payload.asistencia && Array.isArray(payload.asistencia.lugar)) {
-    for (const idBombero of payload.asistencia.lugar) { await asistRepo.save(asistRepo.create({ idBombero: Number(idBombero), idIncidente })); }
+    for (const idBombero of payload.asistencia.lugar) { 
+      await asistRepo.save(asistRepo.create({ idBombero: Number(idBombero), idIncidente, enLugar: true, enCuartel: false })); 
+    }
+  }
+  // Asistencia en el cuartel (enLugar=false, enCuartel=true)
+  if (payload.asistencia && Array.isArray(payload.asistencia.cuartel)) {
+    for (const idBombero of payload.asistencia.cuartel) { 
+      await asistRepo.save(asistRepo.create({ idBombero: Number(idBombero), idIncidente, enLugar: false, enCuartel: true })); 
+    }
   }
 
   return { id: idIncidente };

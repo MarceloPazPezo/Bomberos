@@ -1,6 +1,6 @@
 "use strict";
 import { AppDataSource } from "../configDb.js";
-import logger from "../logger.js";
+import logger from "../configLogger.js";
 import Estado from "../../entities/estadoReporte.entity.js";
 
 async function crearEstados() {
@@ -12,10 +12,10 @@ async function crearEstados() {
             return;
         }
         const estadosData = [
-            { id: 1, nombre: "Borrador" },
-            { id: 2, nombre: "Enviado" },
-            { id: 3, nombre: "Aprobado" },
-            { id: 4, nombre: "Corregir" },
+            { id: 1, nombre: "Borrador", color: "#FFA500"}, //color naranja
+            { id: 2, nombre: "Enviado", color: "#0000FF"}, //color azul
+            { id: 3, nombre: "Aprobado", color: "#008000"}, //color verde
+            { id: 4, nombre: "Corregir", color: "#FF0000"}, //color rojo
         ];
 
         const estados = estadoRepository.create(estadosData);

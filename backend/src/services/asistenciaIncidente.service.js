@@ -7,3 +7,14 @@ export async function crearAsistenciaIncidenteService(data, manager = null) {
   await repo.save(ent);
   return true;
 }
+
+export async function eliminarAsistenciasPorIncidenteService(idIncidente, manager = null) {
+  const repo = (manager || AppDataSource).getRepository(AsistenciaIncidente);
+  await repo.delete({ idIncidente });
+  return true;
+}
+
+export async function obtenerAsistenciasPorIncidenteService(idIncidente, manager = null) {
+  const repo = (manager || AppDataSource).getRepository(AsistenciaIncidente);
+  return await repo.find({ where: { idIncidente } });
+}

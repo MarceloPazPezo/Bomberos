@@ -661,6 +661,7 @@ const CrearParte = () => {
       try {
         setLoadingBomberos(true);
         const res = await getBomberosPorCompania(companiaId);
+        console.log('Bomberos por compañía:', res);
         const arr = normalizeArray(res, 'bomberos').length > 0 ? normalizeArray(res, 'bomberos') : normalizeArray(res);
         setBomberos(arr);
       } catch { setBomberos([]); } finally { setLoadingBomberos(false); }

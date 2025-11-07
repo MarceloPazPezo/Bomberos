@@ -18,7 +18,7 @@ const DireccionSchema = new EntitySchema({
         numero: {
             type: "varchar",
             length: 50,
-            nullable: false,
+            nullable: true,
         },
         depto: {
             type: "varchar",
