@@ -155,6 +155,12 @@ export async function formatearBomberoCompleto(bombero) {
             id: bombero.fichaBombero.direccion.id,
             calle: bombero.fichaBombero.direccion.calle,
             numero: bombero.fichaBombero.direccion.numero,
+            depto: bombero.fichaBombero.direccion.depto || null,
+            referencia: bombero.fichaBombero.direccion.referencia || null,
+            codigoPostal: bombero.fichaBombero.direccion.codigoPostal || null,
+            idComuna: bombero.fichaBombero.direccion.idComuna || null,
+            latitud: bombero.fichaBombero.direccion.latitud || null,
+            longitud: bombero.fichaBombero.direccion.longitud || null,
             comuna: bombero.fichaBombero.direccion.comuna ? {
               id: bombero.fichaBombero.direccion.comuna.id,
               nombre: bombero.fichaBombero.direccion.comuna.nombre,
@@ -275,6 +281,30 @@ export async function getBomberoDetallesCompletosService(idBombero) {
     if (!bombero) {
       logger.warn(`getBomberoDetallesCompletosService - Bombero ${idBombero} no encontrado`);
       return [null, "Bombero no encontrado"];
+    }
+
+    // Si hay dirección, obtener las coordenadas del punto geométrico
+    if (bombero.fichaBombero?.direccion?.id) {
+      try {
+        logger.info(`getBomberoDetallesCompletosService - Obteniendo coordenadas para dirección ID: ${bombero.fichaBombero.direccion.id}`);
+        const direccionRaw = await AppDataSource
+          .getRepository("Direccion")
+          .createQueryBuilder("direccion")
+          .addSelect("ST_Y(direccion.punto)", "lat")
+          .addSelect("ST_X(direccion.punto)", "lng")
+          .where("direccion.id = :id", { id: bombero.fichaBombero.direccion.id })
+          .getRawOne();
+
+        if (direccionRaw && direccionRaw.lat && direccionRaw.lng) {
+          bombero.fichaBombero.direccion.latitud = parseFloat(direccionRaw.lat);
+          bombero.fichaBombero.direccion.longitud = parseFloat(direccionRaw.lng);
+          logger.info(`getBomberoDetallesCompletosService - Coordenadas extraídas: lat=${bombero.fichaBombero.direccion.latitud}, lng=${bombero.fichaBombero.direccion.longitud}`);
+        } else {
+          logger.warn(`getBomberoDetallesCompletosService - No se encontraron coordenadas para dirección ID: ${bombero.fichaBombero.direccion.id}`);
+        }
+      } catch (error) {
+        logger.warn(`getBomberoDetallesCompletosService - Error al obtener coordenadas: ${error.message}`);
+      }
     }
 
     // Formatear datos del bombero

@@ -10,13 +10,10 @@ import PropTypes from 'prop-types';
 import { useRoles } from '@hooks/roles/useRoles';
 import { useCompania } from '@hooks/compania/useCompania';
 import { useTipoSangre } from '@hooks/tipoSangre/useTipoSangre';
-import { useDireccion } from '@hooks/direccion/useDireccion';
-import { useRegion } from '@hooks/region/useRegion';
 import { perfilCompletoService } from '@services/perfilCompleto.service';
 import { showErrorAlert, showSuccessAlert, showConfirmAlert } from '@helpers/fireAlert';
 import { perfilActualizadoToast, imagenPerfilActualizadaToast, contraseñaCambiadaToast } from '@helpers/toastHelper';
-import AddressForm from '@components/forms/AddressForm';
-import MapComponent from '@components/maps/MapComponent';
+import DirectionSelector from '@components/forms/DirectionSelector';
 
 export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
     const [errors, setErrors] = useState({});
@@ -29,9 +26,6 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
     const [licenseDocuments, setLicenseDocuments] = useState([]);
     const [licenseDocumentsError, setLicenseDocumentsError] = useState(null);
     const [direccionData, setDireccionData] = useState(null);
-    const [mapLocation, setMapLocation] = useState(null);
-    const [selectedRegion, setSelectedRegion] = useState(null);
-    const [selectedComuna, setSelectedComuna] = useState(null);
     const [formData, setFormData] = useState({
         // Datos editables
         email: '',
@@ -52,35 +46,11 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
     const { roles, loading: rolesLoading } = useRoles();
     const { companias, loading: companiasLoading } = useCompania();
     const { tiposSangre, loading: tiposSangreLoading, fetchTiposSangre } = useTipoSangre();
-    const { createDireccion, updateDireccion, loading: direccionLoading } = useDireccion();
-    const { regiones, comunas, fetchComunasByRegion } = useRegion();
 
-    // Función estable para manejar cambios de dirección
+    // Manejar cambios de dirección
     const handleDireccionChange = useCallback((newDireccionData) => {
         setDireccionData(newDireccionData);
-        
-        // Extraer nombres de región y comuna para el mapa
-        if (newDireccionData.idRegion) {
-            const region = regiones.find(r => r.id === parseInt(newDireccionData.idRegion));
-            setSelectedRegion(region?.nombre || null);
-        } else {
-            setSelectedRegion(null);
-        }
-        
-        if (newDireccionData.idComuna) {
-            const comuna = comunas.find(c => c.id === parseInt(newDireccionData.idComuna));
-            setSelectedComuna(comuna?.nombre || null);
-        } else {
-            setSelectedComuna(null);
-        }
-    }, [regiones, comunas]);
-
-    // Cargar comunas cuando cambie la región en los datos de dirección
-    useEffect(() => {
-        if (direccionData?.idRegion) {
-            fetchComunasByRegion(direccionData.idRegion);
-        }
-    }, [direccionData?.idRegion, fetchComunasByRegion]);
+    }, []);
 
     // Preparar opciones para los selects
     const companiasOptions = companias.map(compania => ({
@@ -299,28 +269,6 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
         return newErrors;
     };
 
-    // Validar datos de dirección
-    const validateDireccionData = (data) => {
-        const newErrors = {};
-
-        if (!data) {
-            return newErrors; // La dirección es opcional
-        }
-
-        if (!data.calle || data.calle.trim() === '') {
-            newErrors.calle = 'La calle/sector es requerida';
-        }
-
-        if (!data.numero || data.numero.trim() === '') {
-            newErrors.numero = 'El número es requerido';
-        }
-
-        if (!data.idComuna) {
-            newErrors.idComuna = 'La comuna es requerida';
-        }
-
-        return newErrors;
-    };
 
     // Manejar submit completo
     const handleSubmit = async () => {
@@ -338,7 +286,8 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
             } else if (activeTab === 'ficha') {
                 validationErrors = validateFichaData(formData);
             } else if (activeTab === 'direccion') {
-                validationErrors = validateDireccionData(direccionData);
+                // La dirección es opcional, no requiere validación
+                validationErrors = {};
             }
             
             if (Object.keys(validationErrors).length > 0) {
@@ -361,8 +310,28 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                 updateData.donante = formData.donante;
                 updateData.idTipoSangre = formData.idTipoSangre ? parseInt(formData.idTipoSangre) : null;
             } else if (activeTab === 'direccion') {
-                // Enviar datos de dirección directamente
-                updateData.direccion = direccionData;
+                // Enviar datos de dirección completos
+                if (direccionData) {
+                    updateData.direccion = {
+                        calle: direccionData.calle || null,
+                        numero: direccionData.numero || null,
+                        depto: direccionData.depto || null,
+                        referencia: direccionData.referencia || null,
+                        codigoPostal: direccionData.codigoPostal || null,
+                        // Incluir idComuna si tiene un valor válido (número > 0 o string no vacío)
+                        idComuna: (direccionData.idComuna && (typeof direccionData.idComuna === 'number' && direccionData.idComuna > 0) || (typeof direccionData.idComuna === 'string' && direccionData.idComuna.trim() !== '')) 
+                            ? direccionData.idComuna 
+                            : undefined,
+                        latitud: direccionData.latitud || null,
+                        longitud: direccionData.longitud || null
+                    };
+                    // Remover idComuna si es undefined para que no se envíe
+                    if (updateData.direccion.idComuna === undefined) {
+                        delete updateData.direccion.idComuna;
+                    }
+                } else {
+                    updateData.direccion = null;
+                }
             }
 
             // Agregar archivos si existen (independientemente del tab activo)
@@ -429,13 +398,13 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
                     <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                            <MdEdit className="w-6 h-6 text-white" />
+                        <div className="p-2 bg-white rounded-lg">
+                            <MdEdit className="w-6 h-6 text-[#3A9BD9]" />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">
@@ -516,31 +485,15 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                 </div>
 
                 {/* Contenido */}
-                <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[65vh] bg-gray-50/50">
+                <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[65vh] bg-gray-50/50 relative">
                     {loading && (
-                        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-b-2xl">
                             <LoadingSpinner />
                         </div>
                     )}
 
                     {activeTab === 'personal' && (
                         <div className="space-y-6">
-                            <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-blue-600 text-sm font-bold">📋</span>
-                                    </div>
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-blue-900 text-sm">
-                                        Información Personal Editable
-                                    </h3>
-                                    <p className="text-blue-700 text-xs mt-1">
-                                        Solo puedes editar tu email y teléfono. Otros datos requieren autorización administrativa.
-                                    </p>
-                                </div>
-                            </div>
-
                             {/* Campos bloqueados (solo lectura) */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                                 <div>
@@ -838,43 +791,13 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
 
                     {activeTab === 'direccion' && (
                         <div className="space-y-6">
-                            <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-                                <div className="flex-shrink-0">
-                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <MdLocationOn className="w-4 h-4 text-blue-600" />
-                                    </div>
-                                </div>
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-blue-900 text-sm">
-                                        Información de Dirección
-                                    </h3>
-                                    <p className="text-blue-700 text-xs mt-1">
-                                        Actualiza tu dirección de residencia. Puedes agregar una ubicación en el mapa para mayor precisión.
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Formulario de dirección */}
-                            <AddressForm
-                                initialData={direccionData}
+                            <DirectionSelector
+                                initialData={bombero?.ficha?.direccion || bombero?.informacionPersonal?.direccion}
                                 onChange={handleDireccionChange}
-                                errors={errors}
+                                errors={errors.direccion || {}}
                                 disabled={loading}
-                                showTitle={false}
+                                showMap={true}
                             />
-
-                            {/* Mapa opcional */}
-                            <div className="mt-6">
-                                <MapComponent
-                                    onLocationSelect={setMapLocation}
-                                    initialLocation={mapLocation}
-                                    disabled={loading}
-                                    showTitle={true}
-                                    height="300px"
-                                    region={selectedRegion}
-                                    comuna={selectedComuna}
-                                />
-                            </div>
                         </div>
                     )}
 

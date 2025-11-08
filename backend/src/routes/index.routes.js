@@ -39,6 +39,7 @@ import estadoEppRoutes from "./estadoEpp.routes.js";
 import vinculoRoutes from "./vinculo.routes.js";
 import claveRadialRoutes from "./claveRadial.routes.js";
 import clasificacionEmergenciaRoutes from "./clasificacionEmergencia.routes.js";
+import geocodingRoutes from "./geocoding.routes.js";
 
 const router = Router();
 
@@ -81,6 +82,7 @@ router
   .use("/estado-epp", estadoEppRoutes)
   .use("/vinculo", vinculoRoutes)
   .use("/clave-radial", claveRadialRoutes)
-  .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes);
+  .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes)
+  .use("/geocoding", geocodingRoutes);
 
 export default router;

@@ -17,13 +17,17 @@ export const useRegion = () => {
     try {
       const response = await regionService.getAllRegiones();
       if (response.status === 'Success') {
-        setRegiones(response.data);
+        // El backend devuelve { regiones: [...], pagination: {...} }
+        const regionesData = response.data?.regiones || response.data;
+        setRegiones(Array.isArray(regionesData) ? regionesData : []);
       } else {
         setError(response.message || 'Error al cargar regiones');
+        setRegiones([]);
       }
     } catch (error) {
       console.error('Error al cargar regiones:', error);
       setError('Error al cargar regiones');
+      setRegiones([]);
     } finally {
       setLoadingRegiones(false);
     }
@@ -44,7 +48,9 @@ export const useRegion = () => {
       const response = await regionService.getComunasByRegion(idRegion);
       
       if (response.status === 'Success') {
-        setComunas(response.data);
+        // Asegurar que sea un array
+        const comunasData = Array.isArray(response.data) ? response.data : [];
+        setComunas(comunasData);
       } else {
         setError(response.message || 'Error al cargar comunas');
         setComunas([]);
@@ -67,9 +73,12 @@ export const useRegion = () => {
     try {
       const response = await regionService.getAllComunas();
       if (response.status === 'Success') {
-        setComunas(response.data);
+        // Asegurar que sea un array
+        const comunasData = Array.isArray(response.data) ? response.data : [];
+        setComunas(comunasData);
       } else {
         setError(response.message || 'Error al cargar comunas');
+        setComunas([]);
       }
     } catch (error) {
       console.error('Error al cargar comunas:', error);
