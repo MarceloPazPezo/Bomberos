@@ -40,6 +40,7 @@ import estadoEppRoutes from "./estadoEpp.routes.js";
 import vinculoRoutes from "./vinculo.routes.js";
 import claveRadialRoutes from "./claveRadial.routes.js";
 import clasificacionEmergenciaRoutes from "./clasificacionEmergencia.routes.js";
+import geocodingRoutes from "./geocoding.routes.js";
 import historialRoutes from "./historial.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 
@@ -85,6 +86,7 @@ router
   .use("/estado-epp", estadoEppRoutes)
   .use("/vinculo", vinculoRoutes)
   .use("/clave-radial", claveRadialRoutes)
+  .use("/geocoding", geocodingRoutes)
   .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes)
   .use("/historial", historialRoutes)
   .use("/dashboard", dashboardRoutes);

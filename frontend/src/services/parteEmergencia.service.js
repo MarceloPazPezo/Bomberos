@@ -52,3 +52,17 @@ export const obtenerUltimoEstadoIncidente = async (id) => {
         throw error.response?.data || error;
     }
 };
+
+export const generarReporteParteEmergenciaPdf = async (id, options = {}) => {
+    try {
+        const payload = {};
+        if (options.pageSize) payload.pageSize = options.pageSize;
+        if (options.expiresIn) payload.expiresIn = options.expiresIn;
+        const response = await axios.post(`/parteEmergencia/${id}/reporte/pdf`, payload);
+        if (import.meta.env?.DEV) console.log("Reporte PDF generado:", response);
+        return response.data;
+    } catch (error) {
+        console.error('Error al generar reporte PDF:', error);
+        throw error.response?.data || error;
+    }
+};

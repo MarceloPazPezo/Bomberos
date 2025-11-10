@@ -955,13 +955,7 @@ const Profile = () => {
                         )}
 
                         {/* Dirección */}
-                        {(() => {
-                          const direccion = informacionPersonal?.direccion || currentBombero?.ficha?.direccion;
-                          console.log('🏠 Profile - Dirección a mostrar:', direccion);
-                          console.log('🏠 Profile - informacionPersonal:', informacionPersonal);
-                          console.log('🏠 Profile - currentBombero:', currentBombero);
-                          return direccion;
-                        })() && (
+                        {(informacionPersonal?.direccion || currentBombero?.ficha?.direccion) && (
                           <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200 md:col-span-2">
                             <div className="flex items-center space-x-3">
                               <div className="bg-blue-100 p-2 rounded-lg">
@@ -975,14 +969,14 @@ const Profile = () => {
                                   {(informacionPersonal?.direccion?.comuna || currentBombero?.ficha?.direccion?.comuna) && `, ${(informacionPersonal?.direccion?.comuna || currentBombero?.ficha?.direccion?.comuna)?.nombre}`}
                                 </p>
                                 {(informacionPersonal?.direccion?.referencia || currentBombero?.ficha?.direccion?.referencia) && (
-                          <p className="text-sm text-gray-600 mt-1">
+                                  <p className="text-sm text-gray-600 mt-1">
                                     📍 {(informacionPersonal?.direccion?.referencia || currentBombero?.ficha?.direccion?.referencia)}
-                          </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Mensaje si no hay información adicional */}

@@ -208,6 +208,15 @@ export async function updateInformacionPersonalService(idBombero, data) {
         if (direccionExistente) {
           // Actualizar dirección existente
           logger.info('🏠 updateInformacionPersonalService - Actualizando dirección existente');
+          logger.info('🏠 updateInformacionPersonalService - Datos de dirección a actualizar:', {
+            id: direccionExistente.id,
+            calle: direccionData.calle,
+            numero: direccionData.numero,
+            idComuna: direccionData.idComuna,
+            latitud: direccionData.latitud,
+            longitud: direccionData.longitud,
+            tieneCoordenadas: !!(direccionData.latitud && direccionData.longitud)
+          });
           const [direccionActualizada, errorDireccion] = await updateDireccionService(
             direccionExistente.id,
             direccionData
@@ -218,6 +227,10 @@ export async function updateInformacionPersonalService(idBombero, data) {
             return [null, `Error al actualizar dirección: ${errorDireccion}`];
           }
           logger.info('🏠 updateInformacionPersonalService - Dirección actualizada exitosamente');
+          logger.info('🏠 updateInformacionPersonalService - Dirección actualizada con coordenadas:', {
+            latitud: direccionActualizada?.latitud,
+            longitud: direccionActualizada?.longitud
+          });
         } else {
           // Crear nueva dirección
           logger.info('🏠 updateInformacionPersonalService - Creando nueva dirección');

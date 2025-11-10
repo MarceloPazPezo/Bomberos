@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { obtenerParteEmergenciaPorId } from '../services/parteEmergencia.service.js';
+import { generarReporteParteEmergenciaPdf, obtenerParteEmergenciaPorId } from '../services/parteEmergencia.service.js';
 import { obtenerUltimoEstadoIncidente } from '@services/parteEmergencia.service.js';
 import { cambiarEstadoIncidente } from '@services/incidentes.service.js';
 import { getCompaniaById } from '@services/compania.service.js';
@@ -43,6 +43,14 @@ const KeyStat = ({ label, value }) => (
   </div>
 );
 
+const normalizeArray = (res, nestedKey) => {
+  if (Array.isArray(res)) return res;
+  if (nestedKey && Array.isArray(res?.[nestedKey])) return res[nestedKey];
+  if (Array.isArray(res?.data)) return res.data;
+  if (nestedKey && Array.isArray(res?.data?.[nestedKey])) return res.data[nestedKey];
+  return [];
+};
+
 export default function VistaParte({ showEnviarButton = true }) {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -52,6 +60,7 @@ export default function VistaParte({ showEnviarButton = true }) {
   const [parte, setParte] = useState(null);
   const [estadoActual, setEstadoActual] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [generandoPdf, setGenerandoPdf] = useState(false);
   // Row expansion states
   const [expandedInmuebles, setExpandedInmuebles] = useState(null);
   const [expandedVehiculos, setExpandedVehiculos] = useState(null);
@@ -109,28 +118,37 @@ export default function VistaParte({ showEnviarButton = true }) {
           p.regionId ? getComunas(p.regionId).catch(() => []) : Promise.resolve([]),
         ]);
 
+        const regionesArr = normalizeArray(regiones, 'regiones');
+        const comunasArr = normalizeArray(comunas, 'comunas');
+        const clasificacionesArr = normalizeArray(clasificaciones, 'clasificaciones');
+        const tiposDanoArr = normalizeArray(tiposDano, 'tiposDano');
+        const fasesArr = normalizeArray(fases, 'fases');
+        const bomberosArr = normalizeArray(bomberos, 'bomberos');
+        const carrosArr = normalizeArray(carros, 'carros');
+        const serviciosArr = normalizeArray(servicios, 'servicios');
+
         const subtipos = p.clasificacionId ? await getSubtiposIncidente(p.clasificacionId).catch(() => []) : [];
 
         const findById = (arr, id) => Array.isArray(arr) ? arr.find(x => String(x.id) === String(id)) : undefined;
         const companiaObj = companiasDetalle?.data ?? companiasDetalle ?? null;
-        const clasificacionObj = findById(clasificaciones, p.clasificacionId) || null;
+        const clasificacionObj = findById(clasificacionesArr, p.clasificacionId) || null;
         const subtipoObj = findById(subtipos, p.subtipoId) || null;
-        const tipoDanoObj = findById(tiposDano, p.tipoIncendioId) || null;
-        const faseObj = findById(fases, p.faseId) || null;
-        const regionObj = findById(regiones, p.regionId) || null;
-        const comunaObj = findById(comunas, p.comunaId) || null;
+        const tipoDanoObj = findById(tiposDanoArr, p.tipoIncendioId) || null;
+        const faseObj = findById(fasesArr, p.faseId) || null;
+        const regionObj = findById(regionesArr, p.regionId) || null;
+        const comunaObj = findById(comunasArr, p.comunaId) || null;
         const bomberoById = (id) => {
-          const b = findById(bomberos, id);
+          const b = findById(bomberosArr, id);
           if (!b) return id ? { id, nombreCompleto: `Bombero #${id}` } : null;
           const nombreCompleto = [b.nombres, b.apellidos].filter(Boolean).join(' ').trim() || `Bombero #${b.id}`;
           return { id: b.id, nombreCompleto, run: b.run };
         };
         const carroById = (id) => {
-          const c = findById(carros, id);
+          const c = findById(carrosArr, id);
           return c ? { id: c.id, patente: c.patente } : (id ? { id, patente: null } : null);
         };
         const servicioById = (id) => {
-          const s = findById(servicios, id);
+          const s = findById(serviciosArr, id);
           return s ? { id: s.id, nombre: s.nombre } : (id ? { id, nombre: null } : null);
         };
 
@@ -229,6 +247,23 @@ export default function VistaParte({ showEnviarButton = true }) {
     { label: '6-10', time: parte?.hora6_10 || '-' },
   ]), [parte?.hora6_0, parte?.hora6_3, parte?.hora6_9, parte?.hora6_10]);
 
+  const handleGenerarPdf = async (pageSize = 'A4') => {
+    try {
+      setGenerandoPdf(true);
+      const response = await generarReporteParteEmergenciaPdf(id, { pageSize });
+      const data = response?.data ?? response;
+      if (!data?.url) {
+        throw new Error('No se recibió un enlace válido para el PDF');
+      }
+      navigate(`/vistaparte/${id}/pdf`, { state: { pdf: { ...data, pageSize } } });
+    } catch (err) {
+      const message = err?.message || err?.status || 'No se pudo generar el PDF';
+      toast.error(message);
+    } finally {
+      setGenerandoPdf(false);
+    }
+  };
+
 
   if (loading) return <LoadingPage message="Cargando parte..." />;
   if (error) return (
@@ -300,6 +335,16 @@ export default function VistaParte({ showEnviarButton = true }) {
           </div>
           <div className="w-64">
             <DateDisplay fechaCreacion={parte?.createdAt || parte?.fechaHoraDespacho} fechaActualizacion={parte?.updatedAt} />
+            <div className="mt-3">
+              <button
+                disabled={generandoPdf}
+                onClick={() => handleGenerarPdf('A4')}
+                className="w-full inline-flex items-center justify-center gap-2 rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-3 py-2 hover:bg-emerald-100 disabled:opacity-60"
+                type="button"
+              >
+                {generandoPdf ? 'Generando reporte...' : 'Generar reporte PDF'}
+              </button>
+            </div>
             {showEnviarButton && (estadoActual === 'BORRADOR' || estadoActual === 'CORREGIR') && (
               <div className="mt-3">
                 <button
