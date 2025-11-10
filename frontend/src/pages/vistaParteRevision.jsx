@@ -3,18 +3,17 @@ import { useParams } from 'react-router-dom';
 import { AuthContext } from '@context/AuthContext.jsx';
 import { obtenerUltimoEstadoIncidente } from '@services/parteEmergencia.service.js';
 import { cambiarEstadoIncidente } from '@services/incidentes.service.js';
-import { toast } from 'react-toastify';
 import VistaParte from './vistaParte.jsx';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
+import { useGlobalFireAlert } from '@components/FireAlertProvider.jsx';
 
 // Esta vista envuelve a VistaParte y añade controles para cambiar estado cuando corresponda.
 export default function VistaParteRevision() {
   const { id } = useParams();
   const { bombero } = useContext(AuthContext);
   const [estadoActual, setEstadoActual] = useState('');
-  const [modalOpen, setModalOpen] = useState(false);
   const [working, setWorking] = useState(false);
+  const fireAlert = useGlobalFireAlert();
 
   useEffect(() => {
     let mounted = true;
@@ -35,8 +34,7 @@ export default function VistaParteRevision() {
       setWorking(true);
       const idBombero = Number(bombero?.id) || Number(JSON.parse(localStorage.getItem('bombero') || '{}')?.id) || null;
       await cambiarEstadoIncidente(Number(id), { estado: nuevoEstado, idBombero });
-      toast.success(`Estado cambiado a ${nuevoEstado}`);
-      setModalOpen(false);
+      fireAlert.fireSuccess('Estado actualizado', `Estado cambiado a ${nuevoEstado}`);
       // refrescar estado
       try {
         const resp = await obtenerUltimoEstadoIncidente(id);
@@ -47,10 +45,27 @@ export default function VistaParteRevision() {
         console.warn('No se pudo refrescar el estado del incidente:', e);
       }
     } catch (e) {
-      toast.error(e?.message || 'No se pudo cambiar el estado');
+      fireAlert.fireError('Error', e?.message || 'No se pudo cambiar el estado');
     } finally {
       setWorking(false);
     }
+  };
+
+  const abrirPopupRevision = () => {
+    fireAlert.fireInfo(
+      `Revisar incidente #${id}`,
+      'Selecciona la acción que deseas aplicar a este parte de emergencia.',
+      {
+        showCancel: true,
+        confirmText: 'Aprobar',
+        cancelText: 'Corregir',
+        // Botón rojo para Corregir
+        cancelClassName:
+          'flex-1 px-4 py-3 border-2 border-red-300 text-red-700 bg-red-50 rounded-lg font-semibold hover:bg-red-100 hover:border-red-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
+        onConfirm: () => doChange('APROBADO'),
+        onCancel: () => doChange('CORREGIR')
+      }
+    );
   };
 
   return (
@@ -64,49 +79,11 @@ export default function VistaParteRevision() {
             icon="pi pi-pencil"
             severity="info"
             className="shadow-lg"
-            onClick={() => setModalOpen(true)}
+            onClick={abrirPopupRevision}
+            disabled={working}
           />
         </div>
       )}
-
-      <Dialog
-        header={`Revisar incidente #${id}`}
-        visible={modalOpen}
-        style={{ width: '24rem' }}
-        modal
-        onHide={() => !working && setModalOpen(false)}
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button
-              label="Cancelar"
-              icon="pi pi-times"
-              text
-              onClick={() => setModalOpen(false)}
-              disabled={working}
-            />
-            <Button
-              label="Corregir"
-              icon="pi pi-pencil"
-              severity="danger"
-              onClick={() => doChange('CORREGIR')}
-              loading={working}
-              disabled={working}
-            />
-            <Button
-              label="Aprobar"
-              icon="pi pi-check"
-              severity="success"
-              onClick={() => doChange('APROBADO')}
-              loading={working}
-              disabled={working}
-            />
-          </div>
-        }
-      >
-        <div className="text-sm text-gray-800">
-          Selecciona la acción que deseas aplicar a este parte de emergencia.
-        </div>
-      </Dialog>
     </>
   );
 }

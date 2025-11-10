@@ -34,6 +34,8 @@ export const FireAlertProvider = ({ children }) => {
         confirmText={fireAlertHook.alert.confirmText}
         cancelText={fireAlertHook.alert.cancelText}
         showCancel={fireAlertHook.alert.showCancel}
+        confirmClassName={fireAlertHook.alert.confirmClassName}
+        cancelClassName={fireAlertHook.alert.cancelClassName}
         onConfirm={fireAlertHook.alert.onConfirm}
         onCancel={fireAlertHook.alert.onCancel}
       />

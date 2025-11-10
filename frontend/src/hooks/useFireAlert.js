@@ -10,6 +10,8 @@ export const useFireAlert = () => {
     confirmText: 'Entendido',
     cancelText: 'Cancelar',
     showCancel: false,
+    confirmClassName: '',
+    cancelClassName: '',
     onConfirm: null,
     onCancel: null
   });
@@ -24,6 +26,8 @@ export const useFireAlert = () => {
       confirmText: options.confirmText || 'Entendido',
       cancelText: options.cancelText || 'Cancelar',
       showCancel: options.showCancel || false,
+      confirmClassName: options.confirmClassName || '',
+      cancelClassName: options.cancelClassName || '',
       onConfirm: options.onConfirm || null,
       onCancel: options.onCancel || null
     });

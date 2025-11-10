@@ -2,8 +2,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getIncidentesRevision, cambiarEstadoIncidente } from '@services/incidentes.service.js';
-import { CheckCircle2, Edit3 } from 'lucide-react';
 import Card from '@components/Card.jsx';
+import { useGlobalFireAlert } from '@components/FireAlertProvider.jsx';
 // PrimeReact
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -69,7 +69,7 @@ function TablaRevision({ rows, onOpen, onChangeEstado }) {
           value={globalValue}
           onChange={(e) => setFilters((f) => ({ ...f, global: { value: e.target.value, matchMode: FilterMatchMode.CONTAINS } }))}
           placeholder="Buscar en la tabla"
-          className="p-inputtext-sm w-64 md:w-80"
+          className="p-inputtext-sm text-xs w-48 md:w-64"
         />
       </IconField>
     </div>
@@ -87,9 +87,9 @@ function TablaRevision({ rows, onOpen, onChangeEstado }) {
 
   const accionesBody = (row) => (
     <div className="flex items-center gap-2">
-      <Button size="small" label="Ver" icon="pi pi-eye" outlined onClick={() => onOpen(row)} />
+      <Button size="small" label="Detalle" icon="pi pi-eye" outlined onClick={() => onOpen(row)} />
       {row.estado === 'ENVIADO' && (
-        <Button size="small" label="Cambiar estado" icon="pi pi-pencil" severity="info" outlined onClick={() => onChangeEstado(row)} />
+        <Button size="small" label="Revisar" icon="pi pi-pencil" severity="info" outlined onClick={() => onChangeEstado(row)} />
       )}
     </div>
   );
@@ -99,7 +99,7 @@ function TablaRevision({ rows, onOpen, onChangeEstado }) {
       value={options.value}
       options={estadosOptions}
       onChange={(e) => options.filterCallback(e.value)}
-      className="p-column-filter"
+  className="p-column-filter p-inputtext-sm text-xs min-w-32"
       placeholder="Estados"
       maxSelectedLabels={1}
       display="chip"
@@ -112,7 +112,7 @@ function TablaRevision({ rows, onOpen, onChangeEstado }) {
       value={options.value}
       options={clavesOptions}
       onChange={(e) => options.filterCallback(e.value)}
-      className="p-column-filter"
+  className="p-column-filter p-inputtext-sm text-xs min-w-32"
       placeholder="Clave radial"
       maxSelectedLabels={1}
       display="chip"
@@ -132,15 +132,16 @@ function TablaRevision({ rows, onOpen, onChangeEstado }) {
       globalFilterFields={["estado", "claveRadial", "tipo", "compania", "descripcion"]}
       emptyMessage="Sin registros"
       header={header}
-      className="rounded-md border border-gray-200 bg-white"
+      className="rounded-md border border-gray-200 bg-white text-xs"
+      rowClassName={() => 'text-xs'}
     >
-      <Column field="fechaSort" header="Fecha" sortable body={(row) => row.fecha} style={{ minWidth: '10rem' }} />
-      <Column field="estado" header="Estado" sortable body={estadoBody} filter filterElement={estadoFilterElement} showFilterMatchModes={false} style={{ minWidth: '10rem' }} />
-      <Column field="claveRadial" header="Clave radial" sortable filter body={(row) => row.claveRadial} filterElement={claveFilterElement} showFilterMatchModes={false} style={{ minWidth: '10rem' }} />
-      <Column field="descripcion" header="Descripción" body={descripcionBody} style={{ minWidth: '16rem' }} />
-      <Column field="tipo" header="Tipo" sortable style={{ minWidth: '8rem' }} />
-      <Column field="compania" header="Compañía" sortable style={{ minWidth: '10rem' }} />
-      <Column header="Acciones" body={accionesBody} exportable={false} style={{ minWidth: '14rem' }} />
+      <Column field="fechaSort" header="Fecha" sortable body={(row) => row.fecha} headerClassName="!py-2 !px-2 text-xs" bodyClassName="!py-1 !px-2 text-xs" style={{ minWidth: '8rem' }} />
+      <Column field="estado" header="Estado" sortable body={estadoBody} filter filterElement={estadoFilterElement} showFilterMatchModes={false} headerClassName="!py-2 !px-2 text-xs" bodyClassName="!py-1 !px-2 text-xs" style={{ minWidth: '8rem' }} />
+      <Column field="claveRadial" header="Clave radial" sortable filter body={(row) => row.claveRadial} filterElement={claveFilterElement} showFilterMatchModes={false} headerClassName="!py-2 !px-2 text-xs" bodyClassName="!py-1 !px-2 text-xs" style={{ minWidth: '8rem' }} />
+      <Column field="descripcion" header="Descripción" body={descripcionBody} headerClassName="!py-2 !px-2 text-xs" bodyClassName="!py-1 !px-2 text-xs" style={{ minWidth: '12rem' }} />
+      <Column field="tipo" header="Tipo" sortable headerClassName="!py-2 !px-2 text-xs" bodyClassName="!py-1 !px-2 text-xs" style={{ minWidth: '7rem' }} />
+      <Column field="compania" header="Compañía" sortable headerClassName="!py-2 !px-2 text-xs" bodyClassName="!py-1 !px-2 text-xs" style={{ minWidth: '8rem' }} />
+      <Column header="Acciones" body={accionesBody} exportable={false} headerClassName="!py-2 !px-2 text-xs" bodyClassName="!py-1 !px-2 text-xs" style={{ minWidth: '12rem' }} />
     </DataTable>
   );
 }
@@ -149,12 +150,12 @@ export default function RevisionPartes() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState([]);
-  const [modal, setModal] = useState({ open: false, incidente: null });
+  const fireAlert = useGlobalFireAlert();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Mostrar solo BORRADOR, CORREGIR y APROBADO
+      // Mostrar solo ENVIADO, CORREGIR y APROBADO
       const estadosPermitidos = ['ENVIADO', 'CORREGIR', 'APROBADO'];
       const data = await getIncidentesRevision(estadosPermitidos);
       const filtrados = (Array.isArray(data) ? data : []).filter(r => estadosPermitidos.includes(String(r?.estado || '').toUpperCase()));
@@ -167,17 +168,34 @@ export default function RevisionPartes() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const onOpen = (r) => navigate(`/vistaparterev/${r.id}`);
-  const onChangeEstado = (r) => setModal({ open: true, incidente: r });
+  const onChangeEstado = (incidente) => {
+    // Usamos el popup de Información con dos acciones: Aprobar y Corregir
+    fireAlert.fireInfo(
+      'Cambiar estado',
+      `Selecciona la acción para el incidente #${incidente?.id}`,
+      {
+        showCancel: true,
+        confirmText: 'Aprobar',
+        cancelText: 'Corregir',
+        // Azul por defecto para confirmar (info) y rojo personalizado para corregir
+        cancelClassName:
+          'flex-1 px-4 py-3 border-2 border-red-300 text-red-700 bg-red-50 rounded-lg font-semibold hover:bg-red-100 hover:border-red-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2',
+        onConfirm: () => confirmChange(incidente, 'APROBADO'),
+        onCancel: () => confirmChange(incidente, 'CORREGIR')
+      }
+    );
+  };
 
-  const confirmChange = async (nuevoEstado) => {
-    if (!modal.incidente) return;
+  const confirmChange = async (incidente, nuevoEstado) => {
+    if (!incidente?.id) return;
     try {
       // TODO: reemplazar idBombero por el usuario autenticado cuando esté disponible
-      await cambiarEstadoIncidente(modal.incidente.id, { estado: nuevoEstado, idBombero: 1 });
-      setModal({ open: false, incidente: null });
+      await cambiarEstadoIncidente(incidente.id, { estado: nuevoEstado, idBombero: 1 });
+      // Feedback opcional
+      fireAlert.fireSuccess('Estado actualizado', `El incidente #${incidente.id} fue marcado como ${nuevoEstado}.`);
       await fetchData();
     } catch (e) {
-      alert(e?.message || 'No se pudo cambiar el estado');
+      fireAlert.fireError('Error', e?.message || 'No se pudo cambiar el estado');
     }
   };
 
@@ -193,30 +211,7 @@ export default function RevisionPartes() {
         )}
       </Card>
 
-      {modal.open && (
-        <div className="fixed inset-0 bg-black/30 grid place-items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-4 w-80">
-            <div className="text-sm font-medium mb-2">Cambiar estado del incidente #{modal.incidente?.id}</div>
-            <div className="space-y-2">
-              <button
-                className="w-full inline-flex items-center justify-center gap-2 rounded border border-green-200 bg-green-50 text-green-700 px-3 py-2 hover:bg-green-100"
-                onClick={() => confirmChange('APROBADO')}
-              >
-                <CheckCircle2 className="h-4 w-4" /> Aprobar
-              </button>
-              <button
-                className="w-full inline-flex items-center justify-center gap-2 rounded border border-red-200 bg-red-50 text-red-700 px-3 py-2 hover:bg-red-100"
-                onClick={() => confirmChange('CORREGIR')}
-              >
-                <Edit3 className="h-4 w-4" /> Corregir
-              </button>
-            </div>
-            <div className="mt-3 text-right">
-              <button className="text-xs text-gray-700 hover:text-gray-900" onClick={() => setModal({ open: false, incidente: null })}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 }

@@ -26,6 +26,9 @@ const FireAlert = ({
   confirmText = 'Entendido',
   cancelText = 'Cancelar',
   showCancel = false,
+  // clases opcionales para personalizar botones
+  confirmClassName,
+  cancelClassName,
   onConfirm,
   onCancel 
 }) => {
@@ -168,7 +171,7 @@ const FireAlert = ({
       `}>
         {/* Contenedor principal */}
         <div className={`
-          relative bg-gradient-to-br ${config.bgGradient} 
+          relative bg-linear-to-br ${config.bgGradient} 
           border-2 ${config.borderColor} 
           rounded-2xl shadow-2xl overflow-hidden
           max-w-md mx-auto
@@ -176,7 +179,7 @@ const FireAlert = ({
           
           {/* Barra decorativa superior con temática de bomberos */}
           <div className={`h-2 ${config.accentColor} relative overflow-hidden`}>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
           </div>
 
           {/* Header con ícono de bomberos */}
@@ -245,7 +248,10 @@ const FireAlert = ({
               {showCancel && (
                 <button
                   onClick={handleCancel}
-                  className="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  className={
+                    cancelClassName ||
+                    "flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  }
                 >
                   {cancelText}
                 </button>
@@ -253,18 +259,14 @@ const FireAlert = ({
               
               <button
                 onClick={handleConfirm}
-                className={`
-                  ${showCancel ? 'flex-1' : 'w-full'} 
-                  px-4 py-3 ${config.buttonColor} text-white rounded-lg font-semibold 
-                  shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 
-                  transition-all duration-200 focus:outline-none focus:ring-2 
-                  focus:${config.buttonColor.split(' ')[0].replace('bg-', 'ring-')} focus:ring-offset-2
-                  relative overflow-hidden
-                `}
+                className={
+                  confirmClassName ||
+                  `${showCancel ? 'flex-1' : 'w-full'} px-4 py-3 ${config.buttonColor} text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:${config.buttonColor.split(' ')[0].replace('bg-', 'ring-')} focus:ring-offset-2 relative overflow-hidden`
+                }
               >
                 <span className="relative z-10">{confirmText}</span>
                 {/* Efecto de brillo en el botón */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
               </button>
             </div>
 

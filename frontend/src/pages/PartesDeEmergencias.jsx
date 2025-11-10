@@ -152,6 +152,9 @@ function KanbanCard({ parte, onClick }) {
    Tabla de registros (por estado) — NEUTRA
 ========================= */
 function EstadoTable({ rows, onOpen, containerClass = "" }) {
+  const navigate = useNavigate();
+  const [deleting, setDeleting] = useState(false);
+  
   // Aplanar datos para filtros y sort
   const data = useMemo(() => rows.map(r => ({
     ...r,
@@ -241,11 +244,68 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
     return arr;
   }, [data, dateFilter, claveFilter, descFilter, globalFilter]);
 
-  const accionesBody = (row) => (
-    <div className="flex items-center gap-2">
-      <Button icon="pi pi-eye" className="p-button-sm p-button-text" onClick={() => onOpen(row)} tooltip="Ver" />
-    </div>
-  );
+  const accionesBody = (row) => {
+    const estadoKey = (row.estado || '').toUpperCase();
+    const canEdit = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
+    const puedeBorrar = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
+    
+    const onDelete = async (parte) => {
+      if (!parte?.id || deleting) return;
+      confirmDialog({
+        message: '¿Estás seguro de eliminar este parte? Esta acción no se puede deshacer.',
+        header: 'Confirmar eliminación',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, eliminar',
+        rejectLabel: 'Cancelar',
+        acceptClassName: 'p-button-danger',
+        rejectClassName: 'p-button-text',
+        defaultFocus: 'reject',
+        accept: async () => {
+          try {
+            setDeleting(true);
+            await borrarIncidente(parte.id);
+            // Recargar la página para refrescar datos
+            window.location.reload();
+          } catch (e) {
+            alert(e?.message || 'No se pudo borrar el parte');
+          } finally {
+            setDeleting(false);
+          }
+        },
+      });
+    };
+
+    return (
+      <div className="flex items-center gap-1">
+        <Button 
+          icon="pi pi-eye" 
+          className="p-button-sm p-button-text" 
+          onClick={() => onOpen(row)} 
+          tooltip="Ver"
+          tooltipOptions={{ position: 'top' }}
+        />
+        {canEdit && (
+          <Button 
+            icon="pi pi-pencil" 
+            className="p-button-sm p-button-text p-button-warning" 
+            onClick={() => navigate(`/editarparte/${row.id}`)} 
+            tooltip="Actualizar"
+            tooltipOptions={{ position: 'top' }}
+          />
+        )}
+        {puedeBorrar && (
+          <Button 
+            icon="pi pi-trash" 
+            className="p-button-sm p-button-text p-button-danger" 
+            onClick={() => onDelete(row)} 
+            tooltip="Eliminar"
+            tooltipOptions={{ position: 'top' }}
+            disabled={deleting}
+          />
+        )}
+      </div>
+    );
+  };
 
   const descripcionBody = (row) => {
     const txt = row.descripcionText || '';
@@ -450,7 +510,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
               <div className="text-gray-500 inline-flex items-center gap-1">
                 <MapPin className="h-4 w-4" /> Dirección
               </div>
-              <div className="mt-0.5 break-words">{parte.detalle?.direccion || ""}</div>
+              <div className="mt-0.5 wrap-break-word">{parte.detalle?.direccion || ""}</div>
             </div>
             <div className="rounded-md border border-gray-200 bg-white p-3">
               <div className="text-gray-500 inline-flex items-center gap-1">
@@ -467,7 +527,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
             <div className="text-gray-500 inline-flex items-center gap-1">
               <FileText className="h-4 w-4" /> Descripción preliminar
             </div>
-            <div className="mt-1 whitespace-pre-line break-words rounded-md border border-gray-200 bg-gray-50 p-3">
+            <div className="mt-1 whitespace-pre-line wrap-break-word rounded-md border border-gray-200 bg-gray-50 p-3">
               {parte.detalle?.descripcionPreliminar || ""}
             </div>
           </div>
@@ -523,6 +583,9 @@ export default function PartesDeEmergencias() {
   const [errorCols, setErrorCols] = useState(null);
   const [loadingItems, setLoadingItems] = useState(true);
   const [errorItems, setErrorItems] = useState(null);
+  // Paginación por columna (kanban)
+  const [colPage, setColPage] = useState({});
+  const PAGE_SIZE = 8;
 
   // Tab actual: "BOARD" (kanban) o uno de los estados
   const TABS = useMemo(() => ["BOARD", ...columns.map((c) => c.key)], [columns]);
@@ -731,6 +794,13 @@ export default function PartesDeEmergencias() {
               const list = grouped[col.key] || [];
               const containerStyle = CONTAINER_STYLE_BY_ESTADO[col.key] || "border-gray-200 bg-gray-50";
               const headerStyle = HEADER_STYLE_BY_ESTADO[col.key] || "bg-slate-500 text-white";
+              const total = list.length;
+              const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+              const currentPage = Math.min(Math.max(1, colPage[col.key] || 1), totalPages);
+              const startIdx = (currentPage - 1) * PAGE_SIZE;
+              const pageItems = list.slice(startIdx, startIdx + PAGE_SIZE);
+              const goPrev = () => setColPage((p) => ({ ...p, [col.key]: Math.max(1, currentPage - 1) }));
+              const goNext = () => setColPage((p) => ({ ...p, [col.key]: Math.min(totalPages, currentPage + 1) }));
               return (
                 <section key={col.key} className={`rounded-lg border overflow-hidden ${containerStyle}`}>
                   {/* Encabezado de columna */}
@@ -743,14 +813,38 @@ export default function PartesDeEmergencias() {
 
                   {/* Contenido de tarjetas */}
                   <div className="p-3 space-y-2 min-h-[60vh] overflow-auto pr-1 bg-white/60">
-                    {list.length === 0 ? (
+                    {total === 0 ? (
                       <div className="text-xs italic text-gray-500 px-1 py-2">Sin elementos</div>
                     ) : (
-                      list.map((p) => (
+                      pageItems.map((p) => (
                         <KanbanCard key={p.id} parte={p} onClick={setSelected} />
                       ))
                     )}
                   </div>
+                  {/* Paginación */}
+                  {totalPages > 1 && (
+                    <div className="px-3 pb-3 pt-2 bg-white/60 border-t border-white/50 flex items-center justify-between text-[12px]">
+                      <span className="text-gray-600">Página {currentPage} de {totalPages}</span>
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          onClick={goPrev}
+                          disabled={currentPage <= 1}
+                          title="Anterior"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                          onClick={goNext}
+                          disabled={currentPage >= totalPages}
+                          title="Siguiente"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </section>
               );
             })}
