@@ -50,12 +50,8 @@ export const direccionCreateValidation = Joi.object({
     .min(1)
     .max(50)
     .pattern(numberPattern)
-    .required()
+    .allow(null, "")
     .messages({
-      "string.base": "El número debe ser de tipo string.",
-      "string.empty": "El número no puede estar vacío.",
-      "string.min": "El número debe tener como mínimo {#limit} caracteres.",
-      "string.max": "El número debe tener como máximo {#limit} caracteres.",
       "string.pattern.base": "El número solo puede contener letras, números, espacios y guiones.",
       "any.required": "El número es obligatorio.",
     }),

@@ -1,6 +1,7 @@
 "use strict";
 import { AppDataSource } from "../config/configDb.js";
 import { validarCoordenadas } from "../helpers/geometry.helper.js";
+import Direccion from "../entities/direccion.entity.js";
 
 /**
  * Crea una nueva dirección
@@ -38,7 +39,7 @@ export async function createDireccionService(direccionData) {
       if (!validarCoordenadas(direccionData.latitud, direccionData.longitud)) {
         return [null, "Coordenadas inválidas. Latitud debe estar entre -90 y 90, longitud entre -180 y 180"];
       }
-      
+
       // Actualizar con el punto geométrico usando SQL directo
       await AppDataSource.query(
         `UPDATE direcciones 
@@ -100,7 +101,7 @@ export async function createDireccionService(direccionData) {
 export async function getDireccionService(id) {
   try {
     const direccionRepository = AppDataSource.getRepository("Direccion");
-    
+
     // Obtener dirección con coordenadas extraídas
     const direccionRaw = await direccionRepository
       .createQueryBuilder("direccion")
@@ -206,7 +207,7 @@ export async function updateDireccionService(id, direccionData) {
         if (!validarCoordenadas(direccionData.latitud, direccionData.longitud)) {
           return [null, "Coordenadas inválidas. Latitud debe estar entre -90 y 90, longitud entre -180 y 180"];
         }
-        
+
         await AppDataSource.query(
           `UPDATE direcciones 
            SET punto = ST_SetSRID(ST_MakePoint($1, $2), 4326)
@@ -356,7 +357,7 @@ export async function getDireccionesCercanasService(lat, lng, radio = 5000) {
     }
 
     const direccionRepository = AppDataSource.getRepository("Direccion");
-    
+
     const direcciones = await direccionRepository
       .createQueryBuilder("direccion")
       .select([
