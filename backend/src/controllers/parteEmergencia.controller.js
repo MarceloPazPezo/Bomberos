@@ -20,6 +20,7 @@ import { crearBomberoAccidentadoService } from "../services/bomberoAccidentado.s
 import { actualizarParteCompletoService, obtenerParteDetalladoPorIdService, obtenerPartePorIdService } from "../services/parteEmergencia.service.js";
 import { parteEmergenciaUpdateValidation } from "../validations/parteEmergenciaUpdate.validation.js";
 import { borrarIncidenteService } from "../services/incidente.service.js";
+import { generarPdfParteEmergencia } from "../services/reportes/parteEmergenciaPdf.service.js";
 
 
 function toHHMMSS(v) {
@@ -240,6 +241,28 @@ export async function obtenerUltimoEstadoIncidente(req, res) {
   } catch (err) {
     console.error(err);
     return handleErrorServer(res, 500, err.message);
+  }
+}
+
+export async function generarReporteParteEmergenciaPdf(req, res) {
+  const { id } = req.params;
+  const idIncidente = Number(id);
+  if (!Number.isInteger(idIncidente) || idIncidente <= 0) {
+    return handleErrorClient(res, 400, "Id inválido");
+  }
+  const { pageSize, expiresIn } = req.body || {};
+  try {
+    const resultado = await generarPdfParteEmergencia(idIncidente, {
+      pageSize,
+      expiresIn,
+    });
+    return handleSuccess(res, 200, "Reporte PDF generado", resultado);
+  } catch (error) {
+    if (error?.statusCode === 404) {
+      return handleErrorClient(res, 404, error.message || "Parte no encontrado");
+    }
+    console.error('Error generando PDF de parte:', error);
+    return handleErrorServer(res, 500, "Error generando el reporte PDF");
   }
 }
 

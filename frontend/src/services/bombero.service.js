@@ -304,7 +304,7 @@ export async function getBomberosPorCompania(idCompania) {
     try {
         const { data } = await axios.get(`/bombero/compania/${idCompania}`);
         const formattedData = data.data.map(formatBomberoData);
-        return formattedData.data;
+        return formattedData;
     } catch (error) {
         console.error('Error in getBomberosPorCompania:', error);
         return error.response?.data || { status: 'Error', message: 'Error de conexión con el servidor' };

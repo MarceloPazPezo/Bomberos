@@ -533,7 +533,10 @@ const CrearParte = () => {
       try {
         setLoadingRegiones(true); setErrorRegiones('');
         const res = await regionService.getAllRegiones();
-        setRegiones(normalizeArray(res));
+        const arr = normalizeArray(res, 'regiones').length > 0
+          ? normalizeArray(res, 'regiones')
+          : normalizeArray(res?.data?.regiones ?? res, null);
+        setRegiones(arr);
       } catch {
         setErrorRegiones('No se pudieron cargar las regiones.'); setRegiones([]);
       } finally { setLoadingRegiones(false); }

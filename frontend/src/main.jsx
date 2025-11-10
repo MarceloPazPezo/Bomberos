@@ -23,6 +23,7 @@ const PartesDeEmergencias = lazy(() => import('@pages/PartesDeEmergencias'));
 const VistaParte = lazy(() => import('@pages/vistaParte.jsx'));
 const RevisionPartes = lazy(() => import('./pages/revisionPartes'));
 const VistaParteRevision = lazy(() => import('@pages/vistaParteRevision.jsx'));
+const VistaPartePdf = lazy(() => import('@pages/vistaPartePdf.jsx'));
 const CalendarioOperativo = lazy(() => import('@pages/CalendarioOperativoAdmin.jsx'));
 const CalendarioOperativoBasic = lazy(() => import('@pages/CalendarioOperativoBasic.jsx'));
 const BomberosPage = lazy(() => import('@pages/BomberosPage'));
@@ -163,6 +164,17 @@ const router = createBrowserRouter([
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaParteRevision />
+            </Suspense>
+          </ProtectedRoute>
+        )
+      }
+      ,
+      {
+        path: '/vistaparte/:id/pdf',
+        element: (
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingSpinner />}>
+              <VistaPartePdf />
             </Suspense>
           </ProtectedRoute>
         )

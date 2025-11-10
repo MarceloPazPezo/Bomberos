@@ -1,6 +1,12 @@
 "use strict";
 import { createClient } from 'redis';
 import logger from './configLogger.js';
+import {
+  REDIS_DB,
+  REDIS_HOST,
+  REDIS_PASSWORD,
+  REDIS_PORT,
+} from './configEnv.js';
 
 /**
  * Configuración y conexión a Redis
@@ -12,9 +18,9 @@ let redisSubscriber = null;
 
 // Configuración de Redis optimizada para Redis 7 con cliente v5.x
 const redisConfig = {
-  url: `redis://${process.env.REDIS_HOST || 'localhost'}:${process.env.REDIS_PORT || 6379}`,
-  password: process.env.REDIS_PASSWORD || undefined,
-  database: process.env.REDIS_DB || 0,
+  url: `redis://${REDIS_HOST}:${REDIS_PORT}`,
+  password: REDIS_PASSWORD,
+  database: REDIS_DB,
   socket: {
     connectTimeout: 10000,
     lazyConnect: true,
