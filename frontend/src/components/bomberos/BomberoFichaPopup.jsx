@@ -113,9 +113,9 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         {/* Header del popup */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 relative">
+        <div className="bg-linear-to-r from-blue-600 to-blue-700 text-white p-6 relative">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-lg transition-colors"
@@ -139,12 +139,14 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
           </div>
         </div>
 
-        {/* Tarjeta principal del bombero */}
-        <div className="p-6 bg-gray-50">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-start space-x-6">
+        {/* Contenido scrolleable */}
+        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          {/* Tarjeta principal del bombero */}
+          <div className="p-6 bg-gray-50">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-start space-x-6">
               {/* Avatar */}
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <BomberoAvatar
                   src={bombero.ficha?.fotoPerfilURL}
                   alt={`Foto de ${getNombreCompleto()}`}
@@ -207,9 +209,9 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
           </div>
         </div>
 
-        {/* Navegación de pestañas */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
+          {/* Navegación de pestañas */}
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6">
             {[
               { id: 'personal', label: 'Información Personal', icon: MdPerson },
               { id: 'emergency', label: 'Contactos de Emergencia', icon: MdEmergency },
@@ -232,12 +234,12 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
                 </button>
               );
             })}
-          </nav>
-        </div>
+            </nav>
+          </div>
 
-        {/* Contenido de las pestañas */}
-        <div className="p-6 bg-gray-50">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          {/* Contenido de las pestañas */}
+          <div className="p-6 bg-gray-50">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             {activeTab === 'personal' && (
               <div className="space-y-6">
                 {loading ? (
@@ -535,6 +537,7 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
                 )}
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>

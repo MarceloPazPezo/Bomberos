@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { authenticateJwt } from '../middlewares/authentication.middleware.js';
 import { authorizePermisos, authorizeRoles } from "../middlewares/authorization.middleware.js";
-import { obtenerHistorialCompania } from '../controllers/historial.controller.js';
+import { obtenerHistorialCompania, obtenerHistorialVoluntario} from '../controllers/historial.controller.js';
 
 const router = Router();
 
@@ -14,5 +14,8 @@ const router = Router();
 router.use(authenticateJwt);
 
 // Rutas específicas
-router.get('/historial/:idCompania',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerHistorialCompania);
+router.get('/compania/:idCompania',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerHistorialCompania);
+
+router.get('/voluntario/:idBombero',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerHistorialVoluntario);
+
 export default router;

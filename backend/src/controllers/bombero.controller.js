@@ -700,7 +700,8 @@ export async function getBomberoImagenPerfilUrl(req, res) {
     });
 
     if (!ficha || !ficha.fotoPerfilKEY) {
-      return handleErrorClient(res, 404, "No hay imagen de perfil para este bombero");
+      // Evitar ruido 404 en el cliente cuando simplemente no hay imagen
+      return res.status(204).end();
     }
 
     // Generar URL firmada

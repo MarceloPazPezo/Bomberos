@@ -41,6 +41,7 @@ import vinculoRoutes from "./vinculo.routes.js";
 import claveRadialRoutes from "./claveRadial.routes.js";
 import clasificacionEmergenciaRoutes from "./clasificacionEmergencia.routes.js";
 import historialRoutes from "./historial.routes.js";
+import dashboardRoutes from "./dashboard.routes.js";
 
 
 const router = Router();
@@ -85,7 +86,8 @@ router
   .use("/vinculo", vinculoRoutes)
   .use("/clave-radial", claveRadialRoutes)
   .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes)
-  .use("/historial", historialRoutes);
+  .use("/historial", historialRoutes)
+  .use("/dashboard", dashboardRoutes);
 
 
 export default router;

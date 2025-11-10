@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   MdEdit, 
   MdSave, 
@@ -43,6 +43,303 @@ import {
   capacitacionDeletedToast
 } from '@helpers/toastHelper';
 
+// PrimeReact
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { MultiSelect } from 'primereact/multiselect';
+import { FilterMatchMode } from 'primereact/api';
+
+import {getHistorialVoluntario} from '../services/historial.service.js';
+
+/**
+ * Componente de tabla de historial con filtros por columna
+ */
+const HistorialTable = ({ data }) => {
+  // Formatear fecha para mostrar
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No especificada';
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy HH:mm', { locale: es });
+    } catch {
+      return 'Fecha inválida';
+    }
+  };
+
+  // Preparar datos para la tabla
+  const tableData = useMemo(() => {
+    return data.map(item => ({
+      ...item,
+      fechaStr: item.fecha || item.createdAt || item.creadoEl || '',
+      tipoStr: item.tipo || '',
+      descripcionStr: item.descripcion || '',
+      subtipoStr: item.subtipo || '',
+      detalleStr: item.detalle || ''
+    }));
+  }, [data]);
+
+  // Inicializar filtros
+  const [filters, setFilters] = useState({
+    tipoStr: { value: null, matchMode: FilterMatchMode.IN },
+    subtipoStr: { value: null, matchMode: FilterMatchMode.IN },
+    descripcionStr: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    detalleStr: { value: null, matchMode: FilterMatchMode.IN }
+  });
+
+  // Estado para datos filtrados
+  const [filteredData, setFilteredData] = useState(tableData);
+
+  // Actualizar datos filtrados cuando cambia tableData
+  useEffect(() => {
+    setFilteredData(tableData);
+  }, [tableData]);
+
+  // Obtener opciones únicas para filtros basadas en datos filtrados
+  const tipoOptions = useMemo(() => {
+    // Si hay filtro de subtipo activo, filtrar por subtipo
+    let dataToUse = filteredData;
+    if (filters.subtipoStr.value && filters.subtipoStr.value.length > 0) {
+      dataToUse = tableData.filter(item => 
+        filters.subtipoStr.value.includes(item.subtipoStr)
+      );
+    }
+    return [...new Set(dataToUse.map(item => item.tipoStr).filter(Boolean))].sort();
+  }, [filteredData, tableData, filters.subtipoStr.value]);
+
+  const subtipoOptions = useMemo(() => {
+    // Si hay filtro de tipo activo, filtrar por tipo
+    let dataToUse = filteredData;
+    if (filters.tipoStr.value && filters.tipoStr.value.length > 0) {
+      dataToUse = tableData.filter(item => 
+        filters.tipoStr.value.includes(item.tipoStr)
+      );
+    }
+    return [...new Set(dataToUse.map(item => item.subtipoStr).filter(Boolean))].sort();
+  }, [filteredData, tableData, filters.tipoStr.value]);
+
+  const detalleOptions = useMemo(() => {
+    return [...new Set(filteredData.map(item => item.detalleStr).filter(Boolean))].sort();
+  }, [filteredData]);
+
+  // Templates para el contenido de las columnas
+  const fechaBodyTemplate = (rowData) => {
+    return <span className="text-sm">{formatDate(rowData.fechaStr)}</span>;
+  };
+
+  const tipoBodyTemplate = (rowData) => {
+    return <span className="text-sm font-medium text-gray-700">{rowData.tipoStr || '-'}</span>;
+  };
+
+  const descripcionBodyTemplate = (rowData) => {
+    const desc = rowData.descripcionStr || '-';
+    const shortDesc = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
+    return <span className="text-sm text-gray-600" title={desc}>{shortDesc}</span>;
+  };
+
+  const subtipoBodyTemplate = (rowData) => {
+    return <span className="text-sm text-gray-600">{rowData.subtipoStr || '-'}</span>;
+  };
+
+  const detalleBodyTemplate = (rowData) => {
+    const detalle = rowData.detalleStr || '-';
+    const shortDetalle = detalle.length > 60 ? detalle.substring(0, 60) + '...' : detalle;
+    return <span className="text-sm text-gray-500" title={detalle}>{shortDetalle}</span>;
+  };
+
+  // Templates de filtros
+  const tipoFilterTemplate = (options) => {
+    return (
+      <MultiSelect
+        value={options.value}
+        options={tipoOptions}
+        onChange={(e) => options.filterApplyCallback(e.value)}
+        placeholder="Seleccionar"
+  className="w-full min-w-40"
+        maxSelectedLabels={1}
+        filter
+        filterPlaceholder="Buscar tipo..."
+        emptyFilterMessage="No se encontraron tipos"
+        selectAllLabel="Seleccionar todos"
+        selectedItemsLabel="{0} seleccionados"
+      />
+    );
+  };
+
+  const subtipoFilterTemplate = (options) => {
+    return (
+      <MultiSelect
+        value={options.value}
+        options={subtipoOptions}
+        onChange={(e) => options.filterApplyCallback(e.value)}
+        placeholder="Seleccionar"
+  className="w-full min-w-40"
+        maxSelectedLabels={1}
+        filter
+        filterPlaceholder="Buscar subtipo..."
+        emptyFilterMessage="No se encontraron subtipos"
+        selectAllLabel="Seleccionar todos"
+        selectedItemsLabel="{0} seleccionados"
+      />
+    );
+  };
+
+  const detalleFilterTemplate = (options) => {
+    return (
+      <MultiSelect
+        value={options.value}
+        options={detalleOptions}
+        onChange={(e) => options.filterApplyCallback(e.value)}
+        placeholder="Seleccionar"
+  className="w-full min-w-40"
+        maxSelectedLabels={1}
+        filter
+        filterPlaceholder="Buscar detalle..."
+        emptyFilterMessage="No se encontraron detalles"
+        selectAllLabel="Seleccionar todos"
+        selectedItemsLabel="{0} seleccionados"
+      />
+    );
+  };
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+            <MdHistory className="w-8 h-8 text-blue-600" />
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-base font-semibold text-gray-900 mb-2">
+              Sin historial registrado
+            </h3>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Aún no hay actividades registradas en tu historial.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        {/* Estilo mínimo y acotado para respetar la estética solicitada */}
+        <style>{`
+          .historial-table .p-datatable-thead > tr > th {
+            background: #4EB9FA;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.875rem; /* 14px */
+            padding: 0.5rem;     /* 8px, menos alto entre título y filtro */
+            border: none;
+            white-space: nowrap;
+          }
+          /* Filtros compactos en el header */
+          .historial-table .p-column-filter .p-inputtext,
+          .historial-table .p-column-filter .p-multiselect {
+            font-size: 0.75rem;  /* 12px */
+            height: 2.25rem;     /* 36px: más compacto */
+          }
+          /* Reducir espacio entre título y filtro */
+          .historial-table .p-column-filter {
+            margin-top: 0.25rem; /* 4px */
+          }
+          .historial-table .p-multiselect .p-multiselect-label {
+            font-size: 0.75rem;  /* 12px */
+            padding: 0.5rem;     /* 8px */
+            color: #374151 !important; /* texto visible al seleccionar */
+          }
+          .historial-table .p-multiselect .p-multiselect-label.p-placeholder {
+            color: #6b7280 !important; /* placeholder gris */
+          }
+          .historial-table .p-column-filter .p-inputtext {
+            color: #374151; /* texto visible en input de descripción */
+          }
+        `}</style>
+        <DataTable
+          className="historial-table"
+          value={tableData}
+          dataKey="id"
+          paginator
+          rows={10}
+          rowsPerPageOptions={[5, 10, 20, 50]}
+          size="small"
+          sortMode="single"
+          sortField="fechaStr"
+          sortOrder={-1}
+          emptyMessage="No se encontraron registros"
+          stripedRows
+          scrollable
+          scrollHeight="600px"
+          paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} registros"
+          filters={filters}
+          onFilter={(e) => {
+            setFilters(e.filters);
+            setFilteredData(e.filteredValue || tableData);
+          }}
+          filterDisplay="row"
+          globalFilterFields={['descripcionStr', 'detalleStr']}
+        >
+          <Column 
+            field="fechaStr" 
+            header="Fecha" 
+            sortable 
+            body={fechaBodyTemplate}
+            headerClassName="min-w-44"
+            bodyClassName="min-w-44"
+            frozen
+          />
+          <Column 
+            field="tipoStr" 
+            header="Tipo" 
+            sortable 
+            body={tipoBodyTemplate}
+            filter
+            filterElement={tipoFilterTemplate}
+            showFilterMenu={false}
+            headerClassName="min-w-40"
+            bodyClassName="min-w-40"
+          />
+          <Column 
+            field="descripcionStr" 
+            header="Descripción" 
+            sortable 
+            body={descripcionBodyTemplate}
+            filter
+            filterPlaceholder="Buscar en descripción"
+            showFilterMenu={false}
+            headerClassName="min-w-60"
+            bodyClassName="min-w-60"
+          />
+          <Column 
+            field="subtipoStr" 
+            header="Subtipo" 
+            sortable 
+            body={subtipoBodyTemplate}
+            filter
+            filterElement={subtipoFilterTemplate}
+            showFilterMenu={false}
+            headerClassName="min-w-40"
+            bodyClassName="min-w-40"
+          />
+          <Column 
+            field="detalleStr" 
+            header="Detalle" 
+            sortable 
+            body={detalleBodyTemplate}
+            filter
+            filterElement={detalleFilterTemplate}
+            showFilterMenu={false}
+            headerClassName="min-w-48"
+            bodyClassName="min-w-48"
+          />
+        </DataTable>
+      </div>
+    </div>
+  );
+};
+
 /**
  * Página completa de perfil del bombero con funcionalidad de edición
  * Similar al popup de ficha pero con capacidades de modificación
@@ -57,6 +354,11 @@ const Profile = () => {
   const [isBomberoModalOpen, setIsBomberoModalOpen] = useState(false);
   const [selectedContacto, setSelectedContacto] = useState(null);
   const [selectedCapacitacion, setSelectedCapacitacion] = useState(null);
+  
+  // Estado para historial
+  const [historialData, setHistorialData] = useState([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [errorHistorial, setErrorHistorial] = useState(null);
 
   // Hook para obtener detalles del bombero actual
   const { 
@@ -71,6 +373,31 @@ const Profile = () => {
     error, 
     reloadData
   } = useBomberoDetalles(currentBombero?.id || null);
+
+  // Cargar historial cuando se cambia a la pestaña de historial
+  useEffect(() => {
+    if (activeTab === 'history' && currentBombero?.id && historialData.length === 0) {
+      loadHistorial();
+    }
+  }, [activeTab, currentBombero?.id]);
+
+  const loadHistorial = async () => {
+    if (!currentBombero?.id) return;
+    
+    setLoadingHistorial(true);
+    setErrorHistorial(null);
+    
+    try {
+      const response = await getHistorialVoluntario(currentBombero.id);
+      console.log('Historial obtenido:', response);
+      setHistorialData(response.data || response || []);
+    } catch (error) {
+      console.error('Error al cargar historial:', error);
+      setErrorHistorial(error.message || 'Error al cargar el historial');
+    } finally {
+      setLoadingHistorial(false);
+    }
+  };
 
   // Función para formatear fechas
   const formatDate = (dateString) => {
@@ -370,7 +697,7 @@ const Profile = () => {
       <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl overflow-hidden">
         <div className="flex flex-col lg:flex-row min-h-[500px]">
           {/* Sección de imagen de perfil (1/3) - Formato Carnet */}
-          <div className="lg:w-1/3 bg-gradient-to-br from-[#4EB9FA] to-[#3A9BD9] flex flex-col relative overflow-hidden">
+          <div className="lg:w-1/3 bg-linear-to-br from-[#4EB9FA] to-[#3A9BD9] flex flex-col relative overflow-hidden">
             {/* Patrón de fondo sutil */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute top-10 left-10 w-20 h-20 border-2 border-white rounded-full"></div>
@@ -551,7 +878,7 @@ const Profile = () => {
                     </div>
 
                     {/* Información Extra - Nuevo diseño tipo carnet */}
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200 shadow-lg">
+                    <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200 shadow-lg">
                       <h5 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                         <MdInfo className="w-5 h-5 text-amber-600 mr-2" />
                         Información Adicional
@@ -836,28 +1163,30 @@ const Profile = () => {
 
             {activeTab === 'history' && (
               <div className="space-y-3">
-                <h4 className="text-lg font-semibold text-gray-900">Historial de Actividades</h4>
-                
-                {/* Mensaje de en desarrollo */}
-                <div className="text-center py-12">
-                  <div className="flex flex-col items-center space-y-4">
-                    <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <MdHistory className="w-10 h-10 text-yellow-600" />
-                    </div>
-                    <div className="max-w-md">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        Funcionalidad en Desarrollo
-                      </h3>
-                      <p className="text-gray-600 text-sm leading-relaxed">
-                        El historial de actividades está siendo desarrollado. Pronto podrás ver un registro completo de tus eventos, incidentes y actividades como bombero.
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-full">
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                      <span>Próximamente disponible</span>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold text-gray-900">Historial de Actividades</h4>
                 </div>
+                
+                {loadingHistorial ? (
+                  <div className="flex items-center justify-center py-12">
+                    <BomberosLoader size="md" message="Cargando historial..." />
+                  </div>
+                ) : errorHistorial ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-red-800 font-medium">Error</span>
+                    </div>
+                    <p className="text-red-700 mt-1">{errorHistorial}</p>
+                    <button
+                      onClick={loadHistorial}
+                      className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                ) : (
+                  <HistorialTable data={historialData} />
+                )}
               </div>
             )}
           </div>
