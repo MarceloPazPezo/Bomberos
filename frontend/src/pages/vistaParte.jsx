@@ -110,6 +110,8 @@ export default function VistaParte({ showEnviarButton = true }) {
           p.companiaId ? getCarrosByCompania(p.companiaId).catch(() => []) : Promise.resolve([]),
           getServicios().catch(() => []),
           p.regionId ? getComunas(p.regionId).catch(() => []) : Promise.resolve([]),
+          p.comunaId ? regionService.getComunaById(p.comunaId).catch(() => null) : Promise.resolve(null),
+  
         ]);
 
         const regionesArr = normalizeArray(regiones, 'regiones');
