@@ -439,6 +439,76 @@ export async function getAsistenciaPromedio(fechaInicio, fechaFin, idcompania) {
         throw error;
     }
 }
+
+export async function getPorcentajeParticipacionIncidentes(fechaInicio, fechaFin, idcompania) {
+    try {
+        const fechaInicioDate = typeof fechaInicio === 'number' 
+            ? new Date(fechaInicio).toISOString().split('T')[0]
+            : fechaInicio;
+        const fechaFinDate = typeof fechaFin === 'number' 
+            ? new Date(fechaFin).toISOString().split('T')[0]
+            : fechaFin;
+
+        const response = await AppDataSource.query(
+            `-- KPI: Porcentaje de participación promedio (asistencia promedio / total voluntarios activos)
+            WITH inc_base AS (
+                SELECT i."id"
+                FROM "incidente" i
+                WHERE COALESCE(i."FechaHoraDespacho", i."creadoEl") >= $1::date
+                  AND COALESCE(i."FechaHoraDespacho", i."creadoEl") <  $2::date
+                  AND ($3::int IS NULL OR i."idCompania" = $3::int)
+            ),
+            estado_final AS (
+                SELECT DISTINCT ON (ee."idIncidente")
+                       ee."idIncidente",
+                       UPPER(er."nombre") AS estado_final
+                FROM "estadoEstablecido" ee
+                JOIN "estadoReporte" er ON er."id" = ee."idEstado"
+                ORDER BY ee."idIncidente", ee."fechaHora" DESC
+            ),
+            aprobados AS (
+                SELECT ib."id"
+                FROM inc_base ib
+                JOIN estado_final ef ON ef."idIncidente" = ib."id"
+                WHERE ef.estado_final = 'APROBADO'
+            ),
+            asistencia_por_incidente AS (
+                SELECT a."id",
+                       COUNT(DISTINCT ai."idBombero")::int AS num_voluntarios
+                FROM aprobados a
+                LEFT JOIN "asistenciaIncidente" ai ON ai."idIncidente" = a."id"
+                GROUP BY a."id"
+            ),
+            asistencia_promedio AS (
+                SELECT COALESCE(AVG(num_voluntarios), 0) AS promedio
+                FROM asistencia_por_incidente
+            ),
+            total_voluntarios AS (
+                SELECT COUNT(DISTINCT b."id")::int AS cnt
+                FROM "bomberos" b
+                LEFT JOIN "fichaBombero" fb ON fb."idBombero" = b."id"
+                WHERE ($3::int IS NULL OR fb."idCompania" = $3::int)
+                  AND b."activo" = true
+            )
+            SELECT 
+                CASE 
+                    WHEN tv.cnt > 0 THEN ROUND((ap.promedio / tv.cnt::decimal) * 100, 2)
+                    ELSE 0
+                END AS porcentaje_participacion,
+                ROUND(ap.promedio, 2) AS asistencia_promedio,
+                tv.cnt AS total_voluntarios
+            FROM asistencia_promedio ap, total_voluntarios tv;
+            `,
+            [fechaInicioDate, fechaFinDate, idcompania]
+        );
+      
+        return response[0] || { porcentaje_participacion: 0, asistencia_promedio: 0, total_voluntarios: 0 };
+    } catch (error) {
+        console.error("Error fetching porcentaje participación incidentes:", error);
+        throw error;
+    }
+}
+
 export async function getHeatmapDisponibilidad(fechaInicio, fechaFin, idcompania) {
   try {
     // Normaliza fechas considerando zona horaria local
@@ -1007,6 +1077,511 @@ export async function getPorcentajeParticipacion(fechaInicio, fechaFin, idsEvent
     return response[0] || { voluntarios_participantes: 0, total_voluntarios: 0, porcentaje: 0 };
   } catch (error) {
     console.error('Error fetching porcentaje participación:', error);
+    throw error;
+  }
+}
+
+/**
+ * Obtiene datos para Bump Chart de clasificaciones de emergencia
+ * Agrupa por: días de semana, meses o años según el parámetro agrupacion
+ * Calcula el ranking de cada clasificación en cada periodo
+ */
+export async function getRankingClasificaciones(fechaInicio, fechaFin, idcompania, agrupacion = 'dias') {
+  try {
+    const fechaInicioDate = typeof fechaInicio === 'number' 
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number' 
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
+
+    let periodosBase, selectPeriodo, groupByPeriodo, ordenPeriodo;
+
+    if (agrupacion === 'dias') {
+      // Días de la semana (Lunes=1, Domingo=7) - SIEMPRE TODOS
+      periodosBase = `
+        periodos_base AS (
+          SELECT 'Lunes' AS periodo, 1 AS orden_periodo UNION ALL
+          SELECT 'Martes', 2 UNION ALL
+          SELECT 'Miércoles', 3 UNION ALL
+          SELECT 'Jueves', 4 UNION ALL
+          SELECT 'Viernes', 5 UNION ALL
+          SELECT 'Sábado', 6 UNION ALL
+          SELECT 'Domingo', 7
+        )
+      `;
+      selectPeriodo = `
+        CASE EXTRACT(DOW FROM fh)::int
+          WHEN 1 THEN 'Lunes'
+          WHEN 2 THEN 'Martes'
+          WHEN 3 THEN 'Miércoles'
+          WHEN 4 THEN 'Jueves'
+          WHEN 5 THEN 'Viernes'
+          WHEN 6 THEN 'Sábado'
+          WHEN 0 THEN 'Domingo'
+        END AS periodo,
+        CASE EXTRACT(DOW FROM fh)::int
+          WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 4
+          WHEN 5 THEN 5 WHEN 6 THEN 6 WHEN 0 THEN 7
+        END AS orden_periodo
+      `;
+      groupByPeriodo = `
+        CASE EXTRACT(DOW FROM fh)::int
+          WHEN 1 THEN 'Lunes' WHEN 2 THEN 'Martes' WHEN 3 THEN 'Miércoles' 
+          WHEN 4 THEN 'Jueves' WHEN 5 THEN 'Viernes' WHEN 6 THEN 'Sábado' WHEN 0 THEN 'Domingo'
+        END,
+        CASE EXTRACT(DOW FROM fh)::int
+          WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 4
+          WHEN 5 THEN 5 WHEN 6 THEN 6 WHEN 0 THEN 7
+        END
+      `;
+    } else if (agrupacion === 'meses') {
+      // Meses del año - SIEMPRE TODOS
+      periodosBase = `
+        periodos_base AS (
+          SELECT 'Enero' AS periodo, 1 AS orden_periodo UNION ALL
+          SELECT 'Febrero', 2 UNION ALL
+          SELECT 'Marzo', 3 UNION ALL
+          SELECT 'Abril', 4 UNION ALL
+          SELECT 'Mayo', 5 UNION ALL
+          SELECT 'Junio', 6 UNION ALL
+          SELECT 'Julio', 7 UNION ALL
+          SELECT 'Agosto', 8 UNION ALL
+          SELECT 'Septiembre', 9 UNION ALL
+          SELECT 'Octubre', 10 UNION ALL
+          SELECT 'Noviembre', 11 UNION ALL
+          SELECT 'Diciembre', 12
+        )
+      `;
+      selectPeriodo = `
+        CASE EXTRACT(MONTH FROM fh)::int
+          WHEN 1 THEN 'Enero' WHEN 2 THEN 'Febrero' WHEN 3 THEN 'Marzo'
+          WHEN 4 THEN 'Abril' WHEN 5 THEN 'Mayo' WHEN 6 THEN 'Junio'
+          WHEN 7 THEN 'Julio' WHEN 8 THEN 'Agosto' WHEN 9 THEN 'Septiembre'
+          WHEN 10 THEN 'Octubre' WHEN 11 THEN 'Noviembre' WHEN 12 THEN 'Diciembre'
+        END AS periodo,
+        EXTRACT(MONTH FROM fh)::int AS orden_periodo
+      `;
+      groupByPeriodo = `
+        CASE EXTRACT(MONTH FROM fh)::int
+          WHEN 1 THEN 'Enero' WHEN 2 THEN 'Febrero' WHEN 3 THEN 'Marzo'
+          WHEN 4 THEN 'Abril' WHEN 5 THEN 'Mayo' WHEN 6 THEN 'Junio'
+          WHEN 7 THEN 'Julio' WHEN 8 THEN 'Agosto' WHEN 9 THEN 'Septiembre'
+          WHEN 10 THEN 'Octubre' WHEN 11 THEN 'Noviembre' WHEN 12 THEN 'Diciembre'
+        END,
+        EXTRACT(MONTH FROM fh)::int
+      `;
+    } else {
+      // Años - Generar serie entre fechaInicio y fechaFin
+      periodosBase = `
+        periodos_base AS (
+          SELECT 
+            y::text AS periodo,
+            y AS orden_periodo
+          FROM generate_series(
+            EXTRACT(YEAR FROM $1::date)::int,
+            EXTRACT(YEAR FROM $2::date)::int,
+            1
+          ) AS y
+        )
+      `;
+      selectPeriodo = `
+        EXTRACT(YEAR FROM fh)::text AS periodo,
+        EXTRACT(YEAR FROM fh)::int AS orden_periodo
+      `;
+      groupByPeriodo = 'EXTRACT(YEAR FROM fh)::text, EXTRACT(YEAR FROM fh)::int';
+    }
+
+    const query = `
+      -- Bump Chart: Ranking de clasificaciones con TODOS los periodos
+      WITH ${periodosBase},
+      inc_base AS (
+        SELECT 
+          i."id",
+          i."idSubtipoIncidente",
+          COALESCE(i."FechaHoraDespacho", i."creadoEl") AS fh
+        FROM "incidente" i
+        WHERE COALESCE(i."FechaHoraDespacho", i."creadoEl") >= $1::date
+          AND COALESCE(i."FechaHoraDespacho", i."creadoEl") < $2::date
+          AND ($3::int IS NULL OR i."idCompania" = $3::int)
+          AND i."idSubtipoIncidente" IS NOT NULL
+      ),
+      estado_final AS (
+        SELECT DISTINCT ON (ee."idIncidente")
+          ee."idIncidente",
+          UPPER(er."nombre") AS estado_final
+        FROM "estadoEstablecido" ee
+        JOIN "estadoReporte" er ON er."id" = ee."idEstado"
+        ORDER BY ee."idIncidente", ee."fechaHora" DESC
+      ),
+      aprobados AS (
+        SELECT ib."id", ib."idSubtipoIncidente", ib.fh
+        FROM inc_base ib
+        JOIN estado_final ef ON ef."idIncidente" = ib."id"
+        WHERE ef.estado_final = 'APROBADO'
+      ),
+      -- Todas las clasificaciones únicas en los datos
+      clasificaciones_unicas AS (
+        SELECT DISTINCT ce."id" AS id_clasificacion, ce."nombre" AS nombre_clasificacion
+        FROM aprobados a
+        JOIN "subTipoIncidente" sti ON sti."id" = a."idSubtipoIncidente"
+        JOIN "clasificacionEmergencia" ce ON ce."id" = sti."clasificacion"
+      ),
+      -- Producto cartesiano: todos los periodos x todas las clasificaciones
+      periodos_clasificaciones AS (
+        SELECT 
+          pb.periodo,
+          pb.orden_periodo,
+          cu.id_clasificacion,
+          cu.nombre_clasificacion
+        FROM periodos_base pb
+        CROSS JOIN clasificaciones_unicas cu
+      ),
+      -- Conteo real de incidentes por periodo y clasificación
+      conteo_real AS (
+        SELECT
+          ${selectPeriodo},
+          ce."id" AS id_clasificacion,
+          COUNT(*)::int AS cantidad
+        FROM aprobados a
+        JOIN "subTipoIncidente" sti ON sti."id" = a."idSubtipoIncidente"
+        JOIN "clasificacionEmergencia" ce ON ce."id" = sti."clasificacion"
+        GROUP BY ${groupByPeriodo}, ce."id"
+      ),
+      -- Unir periodos completos con conteos reales (LEFT JOIN para tener todos los periodos)
+      conteo_completo AS (
+        SELECT
+          pc.periodo,
+          pc.orden_periodo,
+          pc.id_clasificacion,
+          pc.nombre_clasificacion,
+          COALESCE(cr.cantidad, 0)::int AS cantidad
+        FROM periodos_clasificaciones pc
+        LEFT JOIN conteo_real cr 
+          ON cr.periodo = pc.periodo 
+          AND cr.id_clasificacion = pc.id_clasificacion
+      ),
+      -- Calcular ranking por periodo (ordenar por cantidad DESC)
+      ranking_por_periodo AS (
+        SELECT
+          periodo,
+          orden_periodo,
+          id_clasificacion,
+          nombre_clasificacion,
+          cantidad,
+          RANK() OVER (PARTITION BY periodo ORDER BY cantidad DESC, nombre_clasificacion) AS ranking
+        FROM conteo_completo
+      ),
+      -- Total por clasificación (para la leyenda)
+      total_por_clasificacion AS (
+        SELECT
+          id_clasificacion,
+          nombre_clasificacion,
+          SUM(cantidad)::int AS total_incidentes
+        FROM conteo_completo
+        GROUP BY id_clasificacion, nombre_clasificacion
+      )
+      SELECT
+        r.periodo,
+        r.orden_periodo,
+        r.id_clasificacion,
+        r.nombre_clasificacion,
+        r.cantidad,
+        r.ranking,
+        t.total_incidentes
+      FROM ranking_por_periodo r
+      JOIN total_por_clasificacion t ON t.id_clasificacion = r.id_clasificacion
+      ORDER BY r.orden_periodo, r.ranking;
+    `;
+
+    const response = await AppDataSource.query(query, [fechaInicioDate, fechaFinDate, idcompania]);
+    return response;
+  } catch (error) {
+    console.error('Error fetching ranking clasificaciones:', error);
+    throw error;
+  }
+}
+
+/**
+ * Unificado: Incidentes por periodo (dias|meses|años) usando SOLO tabla incidente.
+ * No filtra por estado APROBADO, cuenta todos los incidentes en el rango temporal.
+ * Parámetros:
+ *  - fechaInicio / fechaFin: timestamps o fechas (se normalizan a date)
+ *  - idcompania: opcional, si viene filtra por compañía
+ *  - agrupacion: 'dias' | 'meses' | 'años'
+ * Respuesta: [{ periodo, orden_periodo, cantidad }]
+ * Siempre retorna TODOS los periodos posibles aunque cantidad sea 0.
+ */
+export async function getIncidentesPorPeriodo(fechaInicio, fechaFin, idcompania, agrupacion = 'dias') {
+  try {
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
+
+    let periodosBase, selectPeriodo, groupByPeriodo;
+
+    if (agrupacion === 'dias') {
+      periodosBase = `
+        periodos_base AS (
+          SELECT 'Lunes' AS periodo, 1 AS orden_periodo UNION ALL
+          SELECT 'Martes', 2 UNION ALL
+          SELECT 'Miércoles', 3 UNION ALL
+          SELECT 'Jueves', 4 UNION ALL
+          SELECT 'Viernes', 5 UNION ALL
+          SELECT 'Sábado', 6 UNION ALL
+          SELECT 'Domingo', 7
+        )`;
+      selectPeriodo = `
+        CASE EXTRACT(DOW FROM fh)::int
+          WHEN 1 THEN 'Lunes'
+          WHEN 2 THEN 'Martes'
+          WHEN 3 THEN 'Miércoles'
+          WHEN 4 THEN 'Jueves'
+          WHEN 5 THEN 'Viernes'
+          WHEN 6 THEN 'Sábado'
+          WHEN 0 THEN 'Domingo'
+        END AS periodo,
+        CASE EXTRACT(DOW FROM fh)::int
+          WHEN 1 THEN 1 WHEN 2 THEN 2 WHEN 3 THEN 3 WHEN 4 THEN 4
+          WHEN 5 THEN 5 WHEN 6 THEN 6 WHEN 0 THEN 7
+        END AS orden_periodo`;
+      groupByPeriodo = `EXTRACT(DOW FROM fh)::int`;
+    } else if (agrupacion === 'meses') {
+      periodosBase = `
+        periodos_base AS (
+          SELECT 'Enero' AS periodo, 1 AS orden_periodo UNION ALL
+          SELECT 'Febrero', 2 UNION ALL
+          SELECT 'Marzo', 3 UNION ALL
+          SELECT 'Abril', 4 UNION ALL
+          SELECT 'Mayo', 5 UNION ALL
+          SELECT 'Junio', 6 UNION ALL
+          SELECT 'Julio', 7 UNION ALL
+          SELECT 'Agosto', 8 UNION ALL
+          SELECT 'Septiembre', 9 UNION ALL
+          SELECT 'Octubre', 10 UNION ALL
+          SELECT 'Noviembre', 11 UNION ALL
+          SELECT 'Diciembre', 12
+        )`;
+      selectPeriodo = `
+        CASE EXTRACT(MONTH FROM fh)::int
+          WHEN 1 THEN 'Enero' WHEN 2 THEN 'Febrero' WHEN 3 THEN 'Marzo'
+          WHEN 4 THEN 'Abril' WHEN 5 THEN 'Mayo' WHEN 6 THEN 'Junio'
+          WHEN 7 THEN 'Julio' WHEN 8 THEN 'Agosto' WHEN 9 THEN 'Septiembre'
+          WHEN 10 THEN 'Octubre' WHEN 11 THEN 'Noviembre' WHEN 12 THEN 'Diciembre'
+        END AS periodo,
+        EXTRACT(MONTH FROM fh)::int AS orden_periodo`;
+      groupByPeriodo = `EXTRACT(MONTH FROM fh)::int`;
+    } else {
+      // años
+      periodosBase = `
+        periodos_base AS (
+          SELECT y::text AS periodo, y AS orden_periodo
+          FROM generate_series(
+            EXTRACT(YEAR FROM $1::date)::int,
+            EXTRACT(YEAR FROM $2::date)::int,
+            1
+          ) AS y
+        )`;
+      selectPeriodo = `EXTRACT(YEAR FROM fh)::text AS periodo, EXTRACT(YEAR FROM fh)::int AS orden_periodo`;
+      groupByPeriodo = `EXTRACT(YEAR FROM fh)::int, EXTRACT(YEAR FROM fh)::text`;
+    }
+
+    const query = `
+      -- Incidentes por periodo unificado
+      WITH ${periodosBase},
+      inc_base AS (
+        SELECT i."id", COALESCE(i."FechaHoraDespacho", i."creadoEl") AS fh
+        FROM "incidente" i
+        WHERE COALESCE(i."FechaHoraDespacho", i."creadoEl") >= $1::date
+          AND COALESCE(i."FechaHoraDespacho", i."creadoEl") < $2::date
+          AND ($3::int IS NULL OR i."idCompania" = $3::int)
+      ),
+      conteo_real AS (
+        SELECT ${selectPeriodo}, COUNT(*)::int AS cantidad
+        FROM inc_base
+        GROUP BY ${groupByPeriodo}
+      )
+      SELECT pb.periodo, pb.orden_periodo, COALESCE(cr.cantidad,0)::int AS cantidad
+      FROM periodos_base pb
+      LEFT JOIN conteo_real cr ON cr.periodo = pb.periodo
+      ORDER BY pb.orden_periodo;`;
+
+    const response = await AppDataSource.query(query, [fechaInicioDate, fechaFinDate, idcompania]);
+    return response;
+  } catch (error) {
+    console.error('Error fetching incidentes por periodo:', error);
+    throw error;
+  }
+}
+
+/**
+ * Ranking de voluntarios por asistencia a incidentes y eventos
+ * Retorna bomberos activos de una compañía con su cantidad de asistencias agrupadas por:
+ * - Clasificación de emergencia (incidentes APROBADOS)
+ * - Tipo de evento
+ * @param {Date|number} fechaInicio - Timestamp o fecha de inicio
+ * @param {Date|number} fechaFin - Timestamp o fecha de fin
+ * @param {number} idcompania - ID de la compañía
+ */
+export async function getRankingAsistencia(fechaInicio, fechaFin, idcompania) {
+  try {
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
+
+    const query = `
+      -- Ranking de asistencia de voluntarios (incidentes APROBADOS + eventos)
+      WITH 
+      -- Voluntarios activos de la compañía
+      bomberos_activos AS (
+        SELECT b."id", b."nombres", b."apellidos"
+        FROM "bomberos" b
+        INNER JOIN "fichaBombero" fb ON fb."idBombero" = b."id"
+        WHERE fb."idCompania" = $3::int
+          AND b."activo" = true
+      ),
+      -- Todas las clasificaciones de emergencia disponibles
+      todas_clasificaciones AS (
+        SELECT DISTINCT ce."nombre" AS clasificacion
+        FROM "clasificacionEmergencia" ce
+      ),
+      -- Todos los tipos de evento disponibles
+      todos_tipos_evento AS (
+        SELECT DISTINCT te."nombre" AS tipoevento
+        FROM "tipoEvento" te
+      ),
+      -- Incidentes APROBADOS en el rango
+      incidentes_aprobados AS (
+        SELECT i."id", i."idSubtipoIncidente"
+        FROM "incidente" i
+        WHERE i."idCompania" = $3::int
+          AND COALESCE(i."FechaHoraDespacho", i."creadoEl") >= $1::date
+          AND COALESCE(i."FechaHoraDespacho", i."creadoEl") < $2::date
+          AND EXISTS (
+            -- Verificar que el último estado del incidente sea APROBADO
+            SELECT 1
+            FROM "estadoEstablecido" ee
+            INNER JOIN "estadoReporte" er ON er."id" = ee."idEstado"
+            WHERE ee."idIncidente" = i."id"
+              AND UPPER(er."nombre") = 'APROBADO'
+            ORDER BY ee."fechaHora" DESC
+            LIMIT 1
+          )
+      ),
+      -- Asistencias a incidentes aprobados agrupadas por clasificación
+      asist_inc_por_clasif AS (
+        SELECT 
+          ai."idBombero",
+          ce."nombre" AS clasificacion,
+          COUNT(*)::int AS cantidad
+        FROM "asistenciaIncidente" ai
+        INNER JOIN incidentes_aprobados ia ON ia."id" = ai."idIncidente"
+        INNER JOIN "subTipoIncidente" sti ON sti."id" = ia."idSubtipoIncidente"
+        INNER JOIN "clasificacionEmergencia" ce ON ce."id" = sti."clasificacion"
+        GROUP BY ai."idBombero", ce."nombre"
+      ),
+      -- Total de incidentes por bombero (SIN agrupar por clasificación)
+      total_incidentes_bombero AS (
+        SELECT 
+          ai."idBombero",
+          COUNT(*)::int AS total_incidentes
+        FROM "asistenciaIncidente" ai
+        INNER JOIN incidentes_aprobados ia ON ia."id" = ai."idIncidente"
+        GROUP BY ai."idBombero"
+      ),
+      -- Eventos en el rango
+      eventos_rango AS (
+        SELECT e."id", e."idTipoEvento"
+        FROM "evento" e
+        WHERE e."fechaHoraInicio" >= $1::date
+          AND e."fechaHoraInicio" < $2::date
+      ),
+      -- Asistencias a eventos agrupadas por tipo
+      asist_evt_por_tipo AS (
+        SELECT 
+          ae."idBombero",
+          te."nombre" AS tipoevento,
+          COUNT(*)::int AS cantidad
+        FROM "asistenciaEvento" ae
+        INNER JOIN eventos_rango er ON er."id" = ae."idEvento"
+        INNER JOIN "tipoEvento" te ON te."id" = er."idTipoEvento"
+        GROUP BY ae."idBombero", te."nombre"
+      ),
+      -- Total de eventos por bombero (SIN agrupar por tipo)
+      total_eventos_bombero AS (
+        SELECT 
+          ae."idBombero",
+          COUNT(*)::int AS total_eventos
+        FROM "asistenciaEvento" ae
+        INNER JOIN eventos_rango er ON er."id" = ae."idEvento"
+        GROUP BY ae."idBombero"
+      ),
+      -- Total de asistencias (suma incidentes + eventos)
+      totales AS (
+        SELECT 
+          ba."id",
+          COALESCE(tib.total_incidentes, 0)::int AS total_incidentes,
+          COALESCE(teb.total_eventos, 0)::int AS total_eventos
+        FROM bomberos_activos ba
+        LEFT JOIN total_incidentes_bombero tib ON tib."idBombero" = ba."id"
+        LEFT JOIN total_eventos_bombero teb ON teb."idBombero" = ba."id"
+      ),
+      -- Crear objeto JSON con TODAS las clasificaciones (con 0 si no hay asistencias)
+      incidentes_completos AS (
+        SELECT 
+          ba."id",
+          json_object_agg(
+            tc.clasificacion,
+            COALESCE(aic.cantidad, 0)
+          ) AS incidentes_por_clasificacion
+        FROM bomberos_activos ba
+        CROSS JOIN todas_clasificaciones tc
+        LEFT JOIN asist_inc_por_clasif aic 
+          ON aic."idBombero" = ba."id" 
+          AND aic.clasificacion = tc.clasificacion
+        GROUP BY ba."id"
+      ),
+      -- Crear objeto JSON con TODOS los tipos de evento (con 0 si no hay asistencias)
+      eventos_completos AS (
+        SELECT 
+          ba."id",
+          json_object_agg(
+            tte.tipoevento,
+            COALESCE(aet.cantidad, 0)
+          ) AS eventos_por_tipo
+        FROM bomberos_activos ba
+        CROSS JOIN todos_tipos_evento tte
+        LEFT JOIN asist_evt_por_tipo aet 
+          ON aet."idBombero" = ba."id" 
+          AND aet.tipoevento = tte.tipoevento
+        GROUP BY ba."id"
+      )
+      SELECT 
+        ba."id",
+        ba."nombres",
+        ba."apellidos",
+        t.total_incidentes,
+        t.total_eventos,
+        (t.total_incidentes + t.total_eventos)::int AS total_asistencias,
+        ic.incidentes_por_clasificacion,
+        ec.eventos_por_tipo
+      FROM bomberos_activos ba
+      INNER JOIN totales t ON t."id" = ba."id"
+      INNER JOIN incidentes_completos ic ON ic."id" = ba."id"
+      INNER JOIN eventos_completos ec ON ec."id" = ba."id"
+      ORDER BY total_asistencias DESC, ba."apellidos", ba."nombres";
+    `;
+
+    const response = await AppDataSource.query(query, [fechaInicioDate, fechaFinDate, idcompania]);
+    return response;
+  } catch (error) {
+    console.error('Error fetching ranking asistencia:', error);
     throw error;
   }
 }

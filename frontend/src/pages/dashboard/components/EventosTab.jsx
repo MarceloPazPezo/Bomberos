@@ -109,7 +109,6 @@ const EventosTab = () => {
   const cargarTiposEvento = async () => {
     try {
       const resp = await getTiposEvento();
-      console.log('Response tipos de evento:', resp);
       
       if (resp && resp.status === 'Success' && resp.data) {
         setTiposEvento(resp.data);
@@ -138,7 +137,6 @@ const EventosTab = () => {
         granularidad
       );
 
-      console.log('Response eventos granularidad:', respGran);
 
       if (respGran && respGran.data) {
         const processedData = processEventosPorGranularidadData(respGran.data, granularidad);
@@ -175,8 +173,6 @@ const EventosTab = () => {
         getPromedioAsistenciaPorTipoEvento(fechaInicioTimestamp, fechaFinTimestamp),
       ]);
 
-      console.log('Response eventos por tipo:', respTipo);
-      console.log('Response promedio asistencia por tipo:', respAsistencia);
 
       if (respTipo && respTipo.data) {
         const processedTipo = processEventosPorTipoData(respTipo.data);
@@ -252,7 +248,6 @@ const EventosTab = () => {
         tipoEventoSeleccionado
       );
 
-      console.log('Response evolución eventos:', respEvolucion);
 
       if (respEvolucion && respEvolucion.data) {
         const processedEvolucion = processEvolucionEventosData(respEvolucion.data);
@@ -404,7 +399,7 @@ const EventosTab = () => {
           </h3>
           
           {/* Filtro multi-select de tipos de evento */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 participacion-multiselect">
             <label htmlFor="tiposEventoParticipacion" className="block text-xs font-medium text-gray-700 mb-2">
               Filtrar por Tipo(s) de Evento
             </label>
@@ -416,7 +411,7 @@ const EventosTab = () => {
               optionLabel="nombre"
               optionValue="id"
               placeholder="Todos los tipos"
-              className="w-full"
+              className="w-full text-xs"
               display="chip"
               showSelectAll={true}
             />
@@ -426,7 +421,8 @@ const EventosTab = () => {
           </div>
 
           {/* Contenido del KPI */}
-          <div className="h-60 flex items-center justify-center">
+          {/* Ajuste de tamaño: aumentamos la altura y hacemos el SVG responsive para evitar que se corte el gráfico */}
+          <div className="h-72 md:h-64 flex items-center justify-center">
             {participacionLoading ? (
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-3"></div>
@@ -441,7 +437,7 @@ const EventosTab = () => {
             ) : participacionData ? (
               <div className="text-center w-full">
                 <div className="relative inline-block">
-                  <svg className="w-48 h-48 transform -rotate-90">
+                  <svg className="w-40 h-40 sm:w-48 sm:h-48 transform -rotate-90 overflow-visible">
                     {/* Círculo de fondo */}
                     <circle
                       cx="96"

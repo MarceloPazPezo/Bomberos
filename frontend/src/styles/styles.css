@@ -58,3 +58,42 @@ body {
 .fc-compact .fc .fc-multimonth-title {
   font-size: 1rem;
 }
+
+/* Tamaño reducido para chips del MultiSelect de participación en EventosTab */
+.participacion-multiselect .p-multiselect {
+  font-size: 0.65rem; /* Base más pequeña */
+}
+.participacion-multiselect .p-multiselect-label,
+.participacion-multiselect .p-multiselect-token {
+  font-size: 0.65rem;
+  line-height: 0.9rem;
+}
+.participacion-multiselect .p-multiselect-token {
+  padding: 0.15rem 0.5rem;
+  border-radius: 14px;
+  background-color: #E5E7EB; /* gris claro consistente */
+  color: #374151;
+}
+.participacion-multiselect .p-multiselect-token .p-multiselect-token-icon {
+  font-size: 0.6rem;
+  margin-left: 0.25rem;
+}
+.participacion-multiselect .p-multiselect-trigger {
+  width: 1.25rem; /* disparador más angosto */
+}
+.participacion-multiselect .p-multiselect-trigger-icon {
+  font-size: 0.65rem;
+}
+.participacion-multiselect .p-multiselect-panel .p-multiselect-items {
+  font-size: 0.7rem;
+}
+.participacion-multiselect .p-checkbox .p-checkbox-box {
+  width: 12px;
+  height: 12px;
+}
+.participacion-multiselect .p-multiselect-header {
+  padding: 0.4rem 0.5rem;
+}
+.participacion-multiselect .p-multiselect-item {
+  padding: 0.3rem 0.5rem;
+}

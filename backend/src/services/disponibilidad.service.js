@@ -35,7 +35,7 @@ export async function createDisponibilidadService(body) {
       // 3. Crear nueva disponibilidad
       const newDisponibilidad = disponibilidadRepository.create({
         idBombero: bombero.id,
-        fechaInicio: fechaInicio || new Date(),
+       // fechaInicio: fechaInicio || new Date(),
         fechaTermino: fechaTermino || null,
       });
 

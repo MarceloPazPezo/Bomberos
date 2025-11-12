@@ -15,27 +15,31 @@ import {
 import { useAuth } from '@hooks/auth/useAuth';
 import { 
     getCantidadDeIncidentesDiasdelaSemana,
-    getCantidadDeIncidentesMeses,
     getClavesRadialesMasRepetidas,
     getIncidentesPorFranjaHoraria,
     getHeatmapDiaHora,
     getAsistenciaPromedio,
-    getHeatmapDisponibilidad
+    getHeatmapDisponibilidad,
+    getPorcentajeParticipacionIncidentes,
+    getRankingClasificaciones,
+    getIncidentesPorPeriodo
 } from '../../services/dashboard.service.js';
 
 import DashboardTabs from './components/DashboardTabs';
 import IncidentesTab from './components/IncidentesTab';
 import EventosTab from './components/EventosTab';
 import AsistenciaTab from './components/AsistenciaTab';
+import HistorialTab from './components/HistorialTab';
 import { 
-  getIncidentesPorDiaChartOptions, 
   processIncidentesPorDiaData,
-  getIncidentesPorMesChartOptions,
-  processIncidentesPorMesData,
   getClavesRadialesChartOptions,
   processClavesRadialesData,
   getFranjaHorariaChartOptions,
-  processFranjaHorariaData
+  processFranjaHorariaData,
+  getRankingClasificacionesChartOptions,
+  processRankingClasificacionesData,
+  getIncidentesPorPeriodoChartOptions,
+  processIncidentesPorPeriodoData
 } from './utils/chartConfig';
 import { aplicarFiltroTiempo, dateToTimestamp } from './utils/dateUtils';
 
@@ -66,12 +70,7 @@ const CompaniaDashboard = () => {
   const [errorDias, setErrorDias] = useState(null);
   const [filtroRapido, setFiltroRapido] = useState('mensual');
 
-  // Estados para gráfico por mes
-  const [añoDesde, setAñoDesde] = useState(null);
-  const [añoHasta, setAñoHasta] = useState(null);
-  const [chartDataMeses, setChartDataMeses] = useState(null);
-  const [loadingMeses, setLoadingMeses] = useState(false);
-  const [errorMeses, setErrorMeses] = useState(null);
+  // (Limpieza) se elimina gráfico por mes individual: reemplazado por unificado
 
   // Estados para gráfico de claves radiales (tiene sus propios filtros de fecha)
   // Unificado: usaremos fechaInicio/fechaFin globales
@@ -106,15 +105,32 @@ const CompaniaDashboard = () => {
   });
   const [loadingKpiAsistencia, setLoadingKpiAsistencia] = useState(false);
 
+  // Estados para KPI de participación en incidentes
+  const [filtroKpiParticipacion, setFiltroKpiParticipacion] = useState('mensual');
+  const [kpiParticipacion, setKpiParticipacion] = useState({
+    porcentaje: 0,
+    asistenciaPromedio: 0,
+    totalVoluntarios: 0
+  });
+  const [loadingKpiParticipacion, setLoadingKpiParticipacion] = useState(false);
+
+  // Estados para Bump Chart de clasificaciones
+  const [agrupacionRanking, setAgrupacionRanking] = useState('dias');
+  const [chartDataRanking, setChartDataRanking] = useState(null);
+  const [loadingRanking, setLoadingRanking] = useState(false);
+  const [errorRanking, setErrorRanking] = useState(null);
+
+  // Estados para gráfico unificado por período
+  const [agrupacionIncidentes, setAgrupacionIncidentes] = useState('dias');
+  const [chartDataPeriodo, setChartDataPeriodo] = useState(null);
+  const [loadingPeriodo, setLoadingPeriodo] = useState(false);
+  const [errorPeriodo, setErrorPeriodo] = useState(null);
+
   // Establecer fechas por defecto
   useEffect(() => {
     handleFiltroRapidoChange('mensual');
     handleFiltroKpiAsistenciaChange('mensual');
-    
-    // Establecer años por defecto (año actual)
-    const currentYear = new Date().getFullYear();
-    setAñoDesde(currentYear);
-    setAñoHasta(currentYear);
+    handleFiltroKpiParticipacionChange('mensual');
   }, []);
 
   // Función para aplicar filtros rápidos
@@ -147,12 +163,28 @@ const CompaniaDashboard = () => {
     }
   };
 
+  // Función para cambiar filtro del KPI de participación
+  const handleFiltroKpiParticipacionChange = (tipo) => {
+    setFiltroKpiParticipacion(tipo);
+    if (bombero?.companiaId) {
+      cargarKpiParticipacion(tipo);
+    }
+  };
+
   // Cargar datos cuando cambien las fechas (gráfico de días)
   useEffect(() => {
     if (fechaInicio && fechaFin && bombero?.companiaId) {
       cargarDatosDias();
+      cargarIncidentesPorPeriodo(agrupacionIncidentes);
     }
   }, [fechaInicio, fechaFin, bombero?.companiaId]);
+
+  // Recargar unificado al cambiar agrupación
+  useEffect(() => {
+    if (fechaInicio && fechaFin && bombero?.companiaId) {
+      cargarIncidentesPorPeriodo(agrupacionIncidentes);
+    }
+  }, [agrupacionIncidentes]);
 
   // Cargar datos unificados para Pareto (claves), histograma (franja horaria) y heatmaps
   useEffect(() => {
@@ -160,15 +192,11 @@ const CompaniaDashboard = () => {
       cargarDatosClaves();
       cargarDatosHoraria();
       cargarDatosHeatmap();
+      cargarRankingClasificaciones(agrupacionRanking);
     }
   }, [fechaInicio, fechaFin, bombero?.companiaId]);
 
-  // Cargar datos cuando cambien los años
-  useEffect(() => {
-    if (añoDesde && añoHasta && bombero?.companiaId) {
-      cargarDatosMeses();
-    }
-  }, [añoDesde, añoHasta, bombero?.companiaId]);
+  // (Limpieza) eliminado useEffect de meses: reemplazado por unificado
 
   const cargarDatosDias = async () => {
     try {
@@ -184,7 +212,6 @@ const CompaniaDashboard = () => {
         bombero.companiaId
       );
 
-      console.log('Response dashboard días:', response);
 
       if (response && response.data) {
         const processedData = processIncidentesPorDiaData(response.data);
@@ -204,34 +231,28 @@ const CompaniaDashboard = () => {
     }
   };
 
-  const cargarDatosMeses = async () => {
+  // (Limpieza) se elimina función cargarDatosMeses
+
+  const cargarIncidentesPorPeriodo = async (agr = 'dias') => {
     try {
-      setLoadingMeses(true);
-      setErrorMeses(null);
+      setLoadingPeriodo(true);
+      setErrorPeriodo(null);
 
-      const response = await getCantidadDeIncidentesMeses(
-        añoDesde,
-        añoHasta,
-        bombero.companiaId
-      );
+      const fi = dateToTimestamp(fechaInicio);
+      const ff = dateToTimestamp(fechaFin);
 
-      console.log('Response dashboard meses:', response);
-
+      const response = await getIncidentesPorPeriodo(fi, ff, bombero.companiaId, agr);
       if (response && response.data) {
-        const processedData = processIncidentesPorMesData(response.data);
-        if (processedData) {
-          setChartDataMeses(processedData);
-        } else {
-          setErrorMeses('No se recibieron datos válidos del servidor');
-        }
+        const processed = processIncidentesPorPeriodoData(response.data);
+        setChartDataPeriodo(processed);
       } else {
-        setErrorMeses('No se recibieron datos válidos del servidor');
+        setErrorPeriodo('No se recibieron datos válidos del servidor');
       }
     } catch (err) {
-      console.error('Error al cargar datos de meses:', err);
-      setErrorMeses('Error al cargar los datos del gráfico');
+      console.error('Error al cargar incidentes por período:', err);
+      setErrorPeriodo('Error al cargar los datos del gráfico');
     } finally {
-      setLoadingMeses(false);
+      setLoadingPeriodo(false);
     }
   };
 
@@ -249,7 +270,6 @@ const CompaniaDashboard = () => {
         bombero.companiaId
       );
 
-      console.log('Response dashboard claves:', response);
 
       if (response && response.data) {
         const processedData = processClavesRadialesData(response.data);
@@ -283,7 +303,6 @@ const CompaniaDashboard = () => {
         bombero.companiaId
       );
 
-      console.log('Response dashboard horaria:', response);
 
       if (response && response.data) {
         const processedData = processFranjaHorariaData(response.data);
@@ -327,8 +346,6 @@ const CompaniaDashboard = () => {
         )
       ]);
 
-      console.log('Response dashboard heatmap incidentes:', responseIncidentes);
-      console.log('Response dashboard heatmap disponibilidad:', responseDisponibilidad);
 
       if (responseIncidentes && responseIncidentes.data) {
         setChartDataHeatmap(responseIncidentes.data);
@@ -381,10 +398,76 @@ const CompaniaDashboard = () => {
     }
   };
 
-  const chartOptionsDias = getIncidentesPorDiaChartOptions();
-  const chartOptionsMeses = getIncidentesPorMesChartOptions();
+  const cargarKpiParticipacion = async (tipoFiltro) => {
+    try {
+      setLoadingKpiParticipacion(true);
+
+      const { fechaInicio, fechaFin } = aplicarFiltroTiempo(tipoFiltro);
+      const fechaInicioTimestamp = dateToTimestamp(fechaInicio);
+      const fechaFinTimestamp = dateToTimestamp(fechaFin);
+
+      const response = await getPorcentajeParticipacionIncidentes(
+        fechaInicioTimestamp,
+        fechaFinTimestamp,
+        bombero.companiaId
+      );
+
+
+      if (response && response.data) {
+        setKpiParticipacion({
+          porcentaje: parseFloat(response.data.porcentaje_participacion) || 0,
+          asistenciaPromedio: parseFloat(response.data.asistencia_promedio) || 0,
+          totalVoluntarios: response.data.total_voluntarios || 0
+        });
+      }
+    } catch (err) {
+      console.error('Error al cargar KPI de participación:', err);
+    } finally {
+      setLoadingKpiParticipacion(false);
+    }
+  };
+
+  const cargarRankingClasificaciones = async (agrupacion = 'dias') => {
+    if (!fechaInicio || !fechaFin) return;
+    
+    try {
+      setLoadingRanking(true);
+      setErrorRanking(null);
+
+      const fechaInicioTimestamp = dateToTimestamp(fechaInicio);
+      const fechaFinTimestamp = dateToTimestamp(fechaFin);
+
+      const response = await getRankingClasificaciones(
+        fechaInicioTimestamp,
+        fechaFinTimestamp,
+        bombero.companiaId,
+        agrupacion
+      );
+
+
+      if (response && response.data) {
+        const dataProcessed = processRankingClasificacionesData(response.data);
+        setChartDataRanking(dataProcessed);
+      }
+    } catch (err) {
+      console.error('Error al cargar ranking clasificaciones:', err);
+      setErrorRanking(err.message || 'Error al cargar datos');
+    } finally {
+      setLoadingRanking(false);
+    }
+  };
+
+  const handleAgrupacionRankingChange = (nuevaAgrupacion) => {
+    setAgrupacionRanking(nuevaAgrupacion);
+    cargarRankingClasificaciones(nuevaAgrupacion);
+  };
+
+ 
+  // (Limpieza) opciones de meses eliminadas
   const chartOptionsClaves = getClavesRadialesChartOptions();
   const chartOptionsHoraria = getFranjaHorariaChartOptions();
+  const chartOptionsRanking = getRankingClasificacionesChartOptions();
+  const chartOptionsPeriodo = getIncidentesPorPeriodoChartOptions('Incidentes por Período');
 
   // Renderizar el contenido según el tab activo
   const renderTabContent = () => {
@@ -397,26 +480,27 @@ const CompaniaDashboard = () => {
             loadingKpiAsistencia={loadingKpiAsistencia}
             onFiltroKpiAsistenciaChange={handleFiltroKpiAsistenciaChange}
             
+            kpiParticipacion={kpiParticipacion}
+            filtroKpiParticipacion={filtroKpiParticipacion}
+            loadingKpiParticipacion={loadingKpiParticipacion}
+            onFiltroKpiParticipacionChange={handleFiltroKpiParticipacionChange}
+            
             filtroRapido={filtroRapido}
             fechaInicio={fechaInicio}
             fechaFin={fechaFin}
-            añoDesde={añoDesde}
-            añoHasta={añoHasta}
             onFiltroRapidoChange={handleFiltroRapidoChange}
             onFechaInicioChange={handleFechaInicioChange}
             onFechaFinChange={handleFechaFinChange}
-            onAñoDesdeChange={setAñoDesde}
-            onAñoHastaChange={setAñoHasta}
             
-            chartDataDias={chartDataDias}
-            chartOptionsDias={chartOptionsDias}
-            loadingDias={loadingDias}
-            errorDias={errorDias}
-            
-            chartDataMeses={chartDataMeses}
-            chartOptionsMeses={chartOptionsMeses}
-            loadingMeses={loadingMeses}
-            errorMeses={errorMeses}
+             
+
+            // Unificado por período
+            chartDataPeriodo={chartDataPeriodo}
+            chartOptionsPeriodo={chartOptionsPeriodo}
+            loadingPeriodo={loadingPeriodo}
+            errorPeriodo={errorPeriodo}
+            agrupacionPeriodo={agrupacionIncidentes}
+            onAgrupacionPeriodoChange={setAgrupacionIncidentes}
             
             chartDataClaves={chartDataClaves}
             chartOptionsClaves={chartOptionsClaves}
@@ -434,22 +518,32 @@ const CompaniaDashboard = () => {
             loadingHeatmapDisp={loadingHeatmapDisp}
             errorHeatmap={errorHeatmap}
             errorHeatmapDisp={errorHeatmapDisp}
+            
+            chartDataRanking={chartDataRanking}
+            chartOptionsRanking={chartOptionsRanking}
+            loadingRanking={loadingRanking}
+            errorRanking={errorRanking}
+            agrupacionRanking={agrupacionRanking}
+            onAgrupacionRankingChange={handleAgrupacionRankingChange}
           />
         );
       case 'eventos':
           return <EventosTab />;
       case 'asistencia':
-        return <AsistenciaTab />;
+        return <AsistenciaTab idCompania={bombero.companiaId} />;
+      case 'historial':
+        return <HistorialTab idCompania={bombero.companiaId} />;
+      
       default:
         return null;
     }
   };
 
   return (
-    <div className="p-6 w-full max-w-[2000px] mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <MdBusiness size={32} className="text-[#4EB9FA]" />
-        <h2 className="text-2xl font-semibold text-[#2C3E50]">Dashboard de Compañía</h2>
+    <div className="p-2 sm:p-4 md:p-6 w-full max-w-[2000px] mx-auto">
+      <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+        <MdBusiness size={24} className="text-[#4EB9FA] sm:w-8 sm:h-8" />
+        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-[#2C3E50]">Dashboard de Compañía</h2>
       </div>
 
       {/* Tabs de navegación */}

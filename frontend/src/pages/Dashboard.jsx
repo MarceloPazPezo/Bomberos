@@ -33,15 +33,15 @@ const BomberoDashboard = lazy(() => import('./dashboard/BomberoDashboard'));
 
 const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-4 px-8">
-      <div className="mx-auto">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-[#4EB9FA] rounded-lg shadow-md inline-flex">
-            <MdQueryStats size={32} className="text-white" />
+    <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 py-2 sm:py-4 px-2 sm:px-4 md:px-6 lg:px-8">
+      <div className="mx-auto max-w-[2000px]">
+        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+          <div className="p-2 sm:p-3 bg-[#4EB9FA] rounded-lg shadow-md inline-flex">
+            <MdQueryStats size={24} className="text-white sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-[#2C3E50] tracking-tight">Dashboard</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#2C3E50] tracking-tight">Dashboard</h1>
         </div>
-        <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Cargando secciones...</div>}>
+        <Suspense fallback={<div className="p-4 sm:p-8 text-center text-sm text-gray-500">Cargando secciones...</div>}>
           <TabView className="bg-white shadow rounded-md overflow-hidden">
             <TabPanel header="Compañía">
               <CompaniaDashboard />

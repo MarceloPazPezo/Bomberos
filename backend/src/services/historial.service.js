@@ -1,11 +1,17 @@
 "use strict";
 import { AppDataSource } from "../config/configDb.js";
 
-export async function obtenerHistorialCompaniaService(idCompania) {
+export async function obtenerHistorialCompaniaService(idCompania, fechaInicio = null, fechaFin = null) {
     try {
+        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+        
         /*  ejecutaremos una consulta sql  */
         const query = `
             -- $1 => ID de la compañía
+            -- $2 => Fecha inicio (opcional)
+            -- $3 => Fecha fin (opcional)
 
 WITH miembros_cia AS (
   SELECT fb."idBombero"
@@ -49,6 +55,8 @@ eventos_cia AS (
     er."id"                         AS id_origen
   FROM eventos_rel er
   LEFT JOIN asistencia_evento_cia aec ON aec."idEvento" = er."id"
+  WHERE ($2::timestamp IS NULL OR er."fechaHoraInicio"::timestamp >= $2::timestamp)
+    AND ($3::timestamp IS NULL OR er."fechaHoraInicio"::timestamp <= $3::timestamp)
 ),
 
 -- Conteo de asistentes (solo bomberos de la compañía) por INCIDENTE
@@ -71,6 +79,8 @@ incidentes_cia AS (
   LEFT JOIN "subTipoIncidente" sti ON sti."id" = i."idSubtipoIncidente"
   LEFT JOIN asistencia_incidente_cia aic ON aic."idIncidente" = i."id"
   WHERE i."idCompania" = $1
+    AND ($2::timestamp IS NULL OR COALESCE(i."FechaHoraDespacho", i."creadoEl")::timestamp >= $2::timestamp)
+    AND ($3::timestamp IS NULL OR COALESCE(i."FechaHoraDespacho", i."creadoEl")::timestamp <= $3::timestamp)
 ),
 
 -- Aniversarios anuales de la compañía
@@ -88,6 +98,8 @@ aniversarios_cia AS (
          EXTRACT(YEAR FROM age(current_date, c."fechaFundacion"))::int
        ) AS gs(anniv) ON TRUE
   WHERE c."id" = $1
+    AND ($2::timestamp IS NULL OR (c."fechaFundacion" + make_interval(years => gs.anniv))::timestamp >= $2::timestamp)
+    AND ($3::timestamp IS NULL OR (c."fechaFundacion" + make_interval(years => gs.anniv))::timestamp <= $3::timestamp)
 )
 
 SELECT fecha, tipo, titulo, "subTipo", "cantidad de asistentes", id_origen
@@ -101,7 +113,7 @@ FROM aniversarios_cia
 ORDER BY fecha ASC, tipo ASC, id_origen ASC;
 
         `;
-        const result = await AppDataSource.query(query, [idCompania]);
+        const result = await AppDataSource.query(query, [idCompania, fechaInicioISO, fechaFinISO]);
         return result;
 
 
@@ -113,6 +125,184 @@ ORDER BY fecha ASC, tipo ASC, id_origen ASC;
 
 
 
+}
+
+export async function obtenerKpiAsistenciaVoluntarioService(idBombero, fechaInicio = null, fechaFin = null) {
+    try {
+        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+
+        const query = `
+            -- $1 => ID del bombero
+            -- $2 => Fecha inicio (opcional)
+            -- $3 => Fecha fin (opcional)
+            
+            WITH asistencia_eventos AS (
+              SELECT COUNT(*)::int AS total
+              FROM "asistenciaEvento" ae
+              JOIN "evento" e ON e."id" = ae."idEvento"
+              WHERE ae."idBombero" = $1
+                AND ($2::timestamp IS NULL OR e."fechaHoraInicio"::timestamp >= $2::timestamp)
+                AND ($3::timestamp IS NULL OR e."fechaHoraInicio"::timestamp <= $3::timestamp)
+            ),
+            asistencia_incidentes AS (
+              SELECT COUNT(*)::int AS total
+              FROM "asistenciaIncidente" ai
+              JOIN "incidente" i ON i."id" = ai."idIncidente"
+              WHERE ai."idBombero" = $1
+                AND ($2::timestamp IS NULL OR COALESCE(i."FechaHoraDespacho", i."creadoEl")::timestamp >= $2::timestamp)
+                AND ($3::timestamp IS NULL OR COALESCE(i."FechaHoraDespacho", i."creadoEl")::timestamp <= $3::timestamp)
+                AND EXISTS (
+                  SELECT 1
+                  FROM "estadoEstablecido" ee
+                  JOIN "estadoReporte" er ON er."id" = ee."idEstado"
+                  WHERE ee."idIncidente" = i."id"
+                    AND UPPER(er."nombre") = 'APROBADO'
+                )
+            )
+            SELECT 
+              COALESCE(ae.total, 0) AS "asistenciaEventos",
+              COALESCE(ai.total, 0) AS "asistenciaIncidentes",
+              COALESCE(ae.total, 0) + COALESCE(ai.total, 0) AS "totalAsistencias"
+            FROM asistencia_eventos ae, asistencia_incidentes ai;
+        `;
+
+        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+        return result[0] || { asistenciaEventos: 0, asistenciaIncidentes: 0, totalAsistencias: 0 };
+    } catch (error) {
+        console.error("Error al obtener KPI de asistencia del voluntario:", error);
+        throw error;
+    }
+}
+
+export async function obtenerKpiResponsabilidadesVoluntarioService(idBombero, fechaInicio = null, fechaFin = null) {
+    try {
+        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+
+        const query = `
+            -- Parámetros: $1 = bombero_id, $2 = fecha_inicio (timestamp), $3 = fecha_fin (timestamp)
+            WITH IncAprobadosEnRango AS (
+              SELECT i.id
+              FROM public.incidente i
+              WHERE ($2::timestamp IS NULL OR i."FechaHoraDespacho" >= $2::timestamp)
+                AND ($3::timestamp IS NULL OR i."FechaHoraDespacho" <= $3::timestamp)
+                AND EXISTS (
+                  SELECT 1
+                  FROM public."estadoEstablecido" ee
+                  JOIN public."estadoReporte" er ON ee."idEstado" = er.id
+                  WHERE ee."idIncidente" = i.id
+                    AND UPPER(er.nombre) = 'APROBADO'
+                )
+            )
+            SELECT
+              COUNT(*) FILTER (WHERE i."idBomberoACargo" = $1) AS "incidentesACargo",
+              COUNT(DISTINCT ed."idIncidente") FILTER (WHERE ed."idBomberoMaquinista" = $1) AS "vecesChofer"
+            FROM IncAprobadosEnRango ar
+            LEFT JOIN public.incidente i ON i.id = ar.id
+            LEFT JOIN public."esDespachado" ed ON ed."idIncidente" = ar.id;
+        `;
+
+        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+        return result[0] || { incidentesACargo: 0, vecesChofer: 0 };
+    } catch (error) {
+        console.error("Error al obtener KPI de responsabilidades del voluntario:", error);
+        throw error;
+    }
+}
+
+export async function obtenerResumenActividadVoluntarioService(idBombero, fechaInicio = null, fechaFin = null) {
+    try {
+        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+
+        const query = `
+            -- $1 => ID del bombero
+            -- $2 => Fecha inicio (opcional)
+            -- $3 => Fecha fin (opcional)
+            
+            WITH 
+            -- Disponibilidades en el rango
+            disponibilidades_rango AS (
+              SELECT 
+                d."fechaInicio",
+                d."fechaTermino",
+                DATE(d."fechaInicio") AS dia,
+                EXTRACT(EPOCH FROM (d."fechaTermino" - d."fechaInicio")) / 3600.0 AS horas_sesion
+              FROM "disponibilidades" d
+              WHERE d."idBombero" = $1
+                AND d."fechaInicio" IS NOT NULL
+                AND d."fechaTermino" IS NOT NULL
+                AND ($2::timestamp IS NULL OR d."fechaInicio" >= $2::timestamp)
+                AND ($3::timestamp IS NULL OR d."fechaTermino" <= $3::timestamp)
+            ),
+            -- Calcular horas totales de disponibilidad
+            horas_disponibilidad AS (
+              SELECT 
+                COALESCE(SUM(dr.horas_sesion), 0) AS total_horas,
+                COUNT(*)::int AS total_sesiones
+              FROM disponibilidades_rango dr
+            ),
+            -- Contar días únicos de disponibilidad
+            dias_disponibilidad AS (
+              SELECT COUNT(DISTINCT dr.dia)::int AS total_dias
+              FROM disponibilidades_rango dr
+            ),
+            -- Calcular promedio de horas por sesión
+            promedio_horas AS (
+              SELECT 
+                CASE 
+                  WHEN hd.total_sesiones > 0 THEN hd.total_horas / hd.total_sesiones
+                  ELSE 0
+                END AS promedio_horas_sesion
+              FROM horas_disponibilidad hd
+            )
+            
+            SELECT 
+              COALESCE(hd.total_horas, 0) AS "horasDisponibles",
+              COALESCE(dd.total_dias, 0) AS "diasDisponibles",
+              COALESCE(hd.total_sesiones, 0) AS "totalSesiones",
+              COALESCE(ph.promedio_horas_sesion, 0) AS "promedioHorasSesion"
+            FROM horas_disponibilidad hd, dias_disponibilidad dd, promedio_horas ph;
+        `;
+
+        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+        
+        if (result && result[0]) {
+            const data = result[0];
+            const horasDisponibles = parseFloat(data.horasDisponibles) || 0;
+            const horasEnteras = Math.floor(horasDisponibles);
+            const minutos = Math.round((horasDisponibles - horasEnteras) * 60);
+            
+            const promedioHoras = parseFloat(data.promedioHorasSesion) || 0;
+            const promedioHorasEnteras = Math.floor(promedioHoras);
+            const promedioMinutos = Math.round((promedioHoras - promedioHorasEnteras) * 60);
+            
+            return {
+                horasDisponibles: horasEnteras,
+                minutosDisponibles: minutos,
+                diasDisponibles: parseInt(data.diasDisponibles) || 0,
+                totalSesiones: parseInt(data.totalSesiones) || 0,
+                promedioHorasSesion: promedioHorasEnteras,
+                promedioMinutosSesion: promedioMinutos
+            };
+        }
+        
+        return {
+            horasDisponibles: 0,
+            minutosDisponibles: 0,
+            diasDisponibles: 0,
+            totalSesiones: 0,
+            promedioHorasSesion: 0,
+            promedioMinutosSesion: 0
+        };
+    } catch (error) {
+        console.error("Error al obtener resumen de disponibilidad del voluntario:", error);
+        throw error;
+    }
 }
 
 export async function obtenerHistorialVoluntarioService(idBombero) {
@@ -260,6 +450,59 @@ ORDER BY t.fecha DESC, t.ref_tabla, t.ref_id;
         return result;
     } catch (error) {
         console.error("Error al obtener el historial del voluntario:", error);
+        throw error;
+    }
+}
+
+/**
+ * Obtiene el heatmap de disponibilidad día×hora para un voluntario específico
+ * @param {number} idBombero - ID del bombero
+ * @param {number} fechaInicio - Timestamp Unix (segundos) de fecha inicio
+ * @param {number} fechaFin - Timestamp Unix (segundos) de fecha fin
+ * @returns {Promise<Array>} Array con conteos por día de semana y hora
+ */
+export async function obtenerHeatmapDisponibilidadVoluntarioService(idBombero, fechaInicio, fechaFin) {
+    try {
+        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+        const fechaInicioISO = new Date(fechaInicio * 1000).toISOString();
+        const fechaFinISO = new Date(fechaFin * 1000).toISOString();
+
+        const query = `
+            WITH disponibilidades_filtradas AS (
+                SELECT 
+                    d."id",
+                    d."fechaInicio",
+                    d."fechaTermino"
+                FROM "disponibilidades" d
+                WHERE d."idBombero" = $1
+                    AND d."fechaInicio" IS NOT NULL
+                    AND d."fechaTermino" IS NOT NULL
+                    AND d."fechaInicio" >= $2::timestamp
+                    AND d."fechaInicio" <= $3::timestamp
+            ),
+            horas_generadas AS (
+                SELECT 
+                    df."id",
+                    generate_series(
+                        date_trunc('hour', df."fechaInicio"),
+                        date_trunc('hour', df."fechaTermino"),
+                        interval '1 hour'
+                    ) AS hora_slot
+                FROM disponibilidades_filtradas df
+            )
+            SELECT 
+                EXTRACT(DOW FROM hg.hora_slot)::int AS dia_semana,
+                EXTRACT(HOUR FROM hg.hora_slot)::int AS hora,
+                COUNT(*)::int AS cantidad
+            FROM horas_generadas hg
+            GROUP BY dia_semana, hora
+            ORDER BY dia_semana, hora;
+        `;
+
+        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+        return result;
+    } catch (error) {
+        console.error("Error al obtener heatmap de disponibilidad del voluntario:", error);
         throw error;
     }
 }
