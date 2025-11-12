@@ -120,6 +120,8 @@ export const comunasCoordinates = {
   'Florida': { lat: -36.8167, lng: -72.6667 },
   'Hualqui': { lat: -36.9667, lng: -72.9333 },
   'Santa Juana': { lat: -37.1667, lng: -72.9333 },
+  'Cabrero': { lat: -37.0333, lng: -72.4000 },
+  'Nueva Concepción': { lat: -37.0833, lng: -72.3833 },
 
   // Región de La Araucanía
   'Temuco': { lat: -38.7359, lng: -72.5904 },
@@ -183,51 +185,78 @@ export const comunasCoordinates = {
  * Función para obtener coordenadas basadas en región y comuna
  * @param {string} region - Nombre de la región
  * @param {string} comuna - Nombre de la comuna
- * @returns {Object} Coordenadas {lat, lng} o coordenadas por defecto
+ * @param {Function} geocodeCallback - Función opcional para geocodificar si no hay coordenadas locales
+ * @returns {Promise<Object>|Object} Coordenadas {lat, lng} o coordenadas por defecto
  */
-export const getCoordinatesByLocation = (region, comuna) => {
-  // Si tenemos comuna específica, usarla
+export const getCoordinatesByLocation = async (region, comuna, geocodeCallback = null) => {
+  // Si tenemos comuna específica en el archivo local, usarla directamente
   if (comuna && comunasCoordinates[comuna]) {
     return comunasCoordinates[comuna];
   }
-  
-  // Si tenemos región, usar las coordenadas de la región
+
+  // Si NO tenemos la comuna en el archivo local pero tenemos callback de geocodificación, intentar geocodificar PRIMERO
+  // Esto es importante para obtener coordenadas precisas de la comuna específica
+  if (geocodeCallback && comuna) {
+    try {
+      const coords = await geocodeCallback(comuna, region);
+      if (coords && coords.lat && coords.lng) {
+        return coords;
+      }
+    } catch (error) {
+      console.warn('Error al geocodificar comuna, usando fallback:', error);
+    }
+  }
+
+  // Si no pudimos geocodificar, usar las coordenadas de la región como fallback
   if (region && regionesCoordinates[region]) {
     return regionesCoordinates[region];
   }
-  
-  // Si no tenemos nada, usar Santiago como fallback
-  return { lat: -33.4489, lng: -70.6693 };
+
+  // Si no tenemos nada, usar Cabrero como fallback final
+  return { lat: -37.0333, lng: -72.4000 };
 };
 
 /**
  * Función para obtener coordenadas por nombre de ubicación (búsqueda flexible)
  * @param {string} locationName - Nombre de la ubicación a buscar
- * @returns {Object} Coordenadas {lat, lng} o coordenadas por defecto
+ * @param {Function} geocodeCallback - Función opcional para geocodificar si no hay coordenadas locales
+ * @returns {Promise<Object>|Object} Coordenadas {lat, lng} o coordenadas por defecto
  */
-export const getCoordinatesByName = (locationName) => {
+export const getCoordinatesByName = async (locationName, geocodeCallback = null) => {
   if (!locationName) {
     return { lat: -33.4489, lng: -70.6693 };
   }
-  
+
   const normalizedName = locationName.toLowerCase().trim();
-  
+
   // Buscar en comunas
   for (const [comuna, coords] of Object.entries(comunasCoordinates)) {
-    if (comuna.toLowerCase().includes(normalizedName) || 
-        normalizedName.includes(comuna.toLowerCase())) {
+    if (comuna.toLowerCase().includes(normalizedName) ||
+      normalizedName.includes(comuna.toLowerCase())) {
       return coords;
     }
   }
-  
+
   // Buscar en regiones
   for (const [region, coords] of Object.entries(regionesCoordinates)) {
-    if (region.toLowerCase().includes(normalizedName) || 
-        normalizedName.includes(region.toLowerCase())) {
+    if (region.toLowerCase().includes(normalizedName) ||
+      normalizedName.includes(region.toLowerCase())) {
       return coords;
     }
   }
-  
-  // Fallback a Santiago
-  return { lat: -33.4489, lng: -70.6693 };
+
+  // Si no encontramos y tenemos callback de geocodificación, intentar geocodificar
+  if (geocodeCallback) {
+    try {
+      const coords = await geocodeCallback(locationName);
+      if (coords && coords.lat && coords.lng) {
+        return coords;
+      }
+    } catch (error) {
+      console.warn('Error al geocodificar ubicación, usando fallback:', error);
+    }
+  }
+
+  // Fallback a Cabrero
+  return { lat: -37.0333, lng: -72.4000 };
 };

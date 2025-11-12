@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { MdMyLocation, MdLocationOn, MdClear, MdMap, MdSearch, MdInfo } from 'react-icons/md';
+import { MdLocationOn, MdClear, MdMap, MdSearch, MdInfo } from 'react-icons/md';
 import { getCoordinatesByLocation, getCoordinatesByName } from '@helpers/chileCoordinates';
 
 const MapComponent = ({ 
@@ -11,12 +11,12 @@ const MapComponent = ({
   region = null,
   comuna = null,
   locationName = null,
-  layers = []
+  layers = [],
+  showLocationInfo = true
 }) => {
   const mapContainer = useRef(null);
   const map = useRef(null);
   const marker = useRef(null);
-  const [userLocation, setUserLocation] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -24,18 +24,15 @@ const MapComponent = ({
   const [maplibregl, setMaplibregl] = useState(null);
   const [showLegend, setShowLegend] = useState(false);
 
-  // Obtener coordenadas por defecto basadas en región/comuna
+  // Función auxiliar para validar coordenadas
+  const isValidCoordinate = (coord) => {
+    return coord !== null && coord !== undefined && !isNaN(coord) && isFinite(coord);
+  };
+
+  // Obtener coordenadas por defecto basadas en región/comuna (síncrono para inicialización)
   const getDefaultCenter = () => {
-    if (region || comuna) {
-      const coords = getCoordinatesByLocation(region, comuna);
-      return [coords.lng, coords.lat]; // [lng, lat] para MapLibre
-    }
-    if (locationName) {
-      const coords = getCoordinatesByName(locationName);
-      return [coords.lng, coords.lat];
-    }
-    // Fallback a Santiago
-    return [-70.6693, -33.4489]; // [lng, lat] para MapLibre
+    // Fallback a Cabrero siempre (evita problemas con async)
+    return [-72.4000, -37.0333]; // [lng, lat] para MapLibre
   };
 
   const defaultCenter = getDefaultCenter();
@@ -61,21 +58,174 @@ const MapComponent = ({
     loadMapLibre();
   }, []);
 
-  useEffect(() => {
-    if (initialLocation) {
-      setSelectedLocation(initialLocation);
+  const handleLocationSelect = useCallback((location) => {
+    if (disabled) return;
+    setSelectedLocation(location);
+    onLocationSelect(location);
+  }, [disabled, onLocationSelect]);
+
+  // Función para crear/actualizar marcador
+  const addMarker = useCallback((location) => {
+    if (!maplibregl || !map.current) return;
+    
+    if (marker.current) {
+      marker.current.remove();
     }
-  }, [initialLocation]);
+
+    // Crear un elemento de marcador personalizado con icono SVG
+    const el = document.createElement('div');
+    el.style.cursor = 'pointer';
+    el.style.width = '40px';
+    el.style.height = '40px';
+    el.style.display = 'flex';
+    el.style.alignItems = 'center';
+    el.style.justifyContent = 'center';
+    el.style.background = 'white';
+    el.style.borderRadius = '50%';
+    el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+    el.style.border = '3px solid #3B82F6'; // Azul
+    
+    // Crear SVG del icono de ubicación
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '24');
+    svg.setAttribute('height', '24');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', '#3B82F6');
+    
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z');
+    
+    svg.appendChild(path);
+    el.appendChild(svg);
+
+    marker.current = new maplibregl.Marker({
+      element: el,
+      draggable: !disabled,
+      anchor: 'center'
+    })
+      .setLngLat([location.lng, location.lat])
+      .addTo(map.current);
+
+    // Agregar listener para arrastrar marcador
+    if (!disabled) {
+      marker.current.on('dragend', () => {
+        const lngLat = marker.current.getLngLat();
+        const location = {
+          lat: lngLat.lat,
+          lng: lngLat.lng
+        };
+        handleLocationSelect(location);
+      });
+    }
+  }, [maplibregl, disabled, handleLocationSelect]);
+
+  // Función para obtener dirección desde coordenadas
+  const getAddressFromCoordinates = useCallback(async (location) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}&zoom=18&addressdetails=1`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.display_name) {
+          setAddress(data.display_name);
+        }
+      }
+    } catch (error) {
+      console.warn('Error al obtener dirección:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (initialLocation && isValidCoordinate(initialLocation.lat) && isValidCoordinate(initialLocation.lng)) {
+      setSelectedLocation(initialLocation);
+      
+      // Si el mapa ya está inicializado, centrarlo en la nueva ubicación y crear/actualizar marcador
+      if (map.current && maplibregl) {
+        const currentZoom = map.current.getZoom();
+        // Si no hay marcador, crear uno y centrar con zoom apropiado
+        if (!marker.current) {
+          addMarker(initialLocation);
+          map.current.easeTo({
+            center: [initialLocation.lng, initialLocation.lat],
+            zoom: currentZoom > 13 ? currentZoom : 13, // Usar zoom actual si es mayor, sino 13
+            duration: 500
+          });
+        } else {
+          // Si ya hay marcador, actualizar posición y centrar sin cambiar zoom
+          marker.current.setLngLat([initialLocation.lng, initialLocation.lat]);
+          map.current.easeTo({
+            center: [initialLocation.lng, initialLocation.lat],
+            zoom: currentZoom,
+            duration: 300
+          });
+        }
+        // Obtener dirección desde coordenadas
+        getAddressFromCoordinates(initialLocation);
+      }
+    } else if (initialLocation === null) {
+      // Si initialLocation es null, limpiar la ubicación seleccionada
+      setSelectedLocation(null);
+    }
+  }, [initialLocation, maplibregl, addMarker, getAddressFromCoordinates]);
 
   // Función para actualizar el centro del mapa
-  const updateMapCenter = useCallback(() => {
-    if (map.current && !selectedLocation && (region || comuna || locationName)) {
-      const newCenter = getDefaultCenter();
-      map.current.setCenter(newCenter);
-      // También ajustar el zoom para mejor vista
-      map.current.setZoom(13);
+  const updateMapCenter = useCallback(async () => {
+    if (map.current && (region || comuna || locationName) && !selectedLocation) {
+      try {
+        let newCenter = getDefaultCenter();
+        
+        // Intentar obtener coordenadas de la región/comuna si están disponibles
+        if (region || comuna) {
+          // Para geocodificación, necesitamos importar el servicio dinámicamente
+          // o usar un callback. Por ahora, intentemos con getCoordinatesByLocation
+          // que puede usar geocodificación si se pasa el callback
+          const coords = await getCoordinatesByLocation(
+            region, 
+            comuna,
+            // Callback de geocodificación para comunas no encontradas
+            async (comunaName, regionName) => {
+              try {
+                // Importar dinámicamente el servicio de geocodificación
+                const { geocodingService } = await import('@services/geocoding.service');
+                return await geocodingService.geocodeComuna(comunaName, regionName);
+              } catch (error) {
+                console.warn('Error al geocodificar en updateMapCenter:', error);
+                return null;
+              }
+            }
+          );
+          if (coords && isValidCoordinate(coords.lat) && isValidCoordinate(coords.lng)) {
+            newCenter = [coords.lng, coords.lat];
+          }
+        } else if (locationName) {
+          const coords = await getCoordinatesByName(locationName);
+          if (coords && isValidCoordinate(coords.lat) && isValidCoordinate(coords.lng)) {
+            newCenter = [coords.lng, coords.lat];
+          }
+        }
+        
+        // Validar que el centro sea válido antes de establecerlo
+        if (isValidCoordinate(newCenter[0]) && isValidCoordinate(newCenter[1])) {
+          // Centrar el mapa sin mostrar marcador
+          map.current.easeTo({
+            center: newCenter,
+            zoom: 13,
+            duration: 500
+          });
+        }
+      } catch (error) {
+        console.warn('Error al obtener coordenadas para centrar mapa:', error);
+        // Usar centro por defecto si hay error
+        map.current.easeTo({
+          center: defaultCenter,
+          zoom: 13,
+          duration: 500
+        });
+      }
     }
-  }, [region, comuna, locationName, selectedLocation]);
+  }, [region, comuna, locationName, selectedLocation, defaultCenter]);
 
   // Actualizar centro del mapa cuando cambien región/comuna
   useEffect(() => {
@@ -109,7 +259,9 @@ const MapComponent = ({
             }
           ]
         },
-        center: selectedLocation ? [selectedLocation.lng, selectedLocation.lat] : defaultCenter,
+        center: selectedLocation && isValidCoordinate(selectedLocation.lat) && isValidCoordinate(selectedLocation.lng)
+          ? [selectedLocation.lng, selectedLocation.lat] 
+          : defaultCenter,
         zoom: 15,
         attributionControl: true
       });
@@ -155,7 +307,7 @@ const MapComponent = ({
         map.current = null;
       }
     };
-  }, [maplibregl, selectedLocation, disabled]);
+  }, [maplibregl, disabled]); // Removido selectedLocation para evitar reinicialización
 
   // Efecto para añadir capas personalizadas
   useEffect(() => {
@@ -184,120 +336,49 @@ const MapComponent = ({
   // Actualizar marcador cuando cambie la ubicación seleccionada
   useEffect(() => {
     if (!map.current || !selectedLocation || !maplibregl) return;
+    
+    // Validar coordenadas antes de usarlas
+    if (!isValidCoordinate(selectedLocation.lat) || !isValidCoordinate(selectedLocation.lng)) {
+      console.warn('Coordenadas inválidas:', selectedLocation);
+      return;
+    }
 
     if (marker.current) {
+      // Si ya hay marcador, solo actualizar su posición sin cambiar zoom
       marker.current.setLngLat([selectedLocation.lng, selectedLocation.lat]);
-      map.current.setCenter([selectedLocation.lng, selectedLocation.lat]);
+      // Solo hacer un pan suave para centrar el marcador sin cambiar el zoom
+      const currentZoom = map.current.getZoom();
+      map.current.easeTo({
+        center: [selectedLocation.lng, selectedLocation.lat],
+        zoom: currentZoom, // Mantener el zoom actual
+        duration: 300
+      });
     } else {
+      // Si no hay marcador, crearlo
       addMarker(selectedLocation);
+      // Solo hacer un pan suave para centrar el marcador sin cambiar el zoom
+      const currentZoom = map.current.getZoom();
+      map.current.easeTo({
+        center: [selectedLocation.lng, selectedLocation.lat],
+        zoom: currentZoom, // Mantener el zoom actual
+        duration: 300
+      });
     }
 
     // Obtener dirección desde coordenadas
     getAddressFromCoordinates(selectedLocation);
-  }, [selectedLocation, maplibregl]);
-
-  const addMarker = (location) => {
-    if (!maplibregl) return;
-    
-    if (marker.current) {
-      marker.current.remove();
-    }
-
-    // Crear un elemento de marcador personalizado
-    const el = document.createElement('div');
-    el.style.fontSize = '2.5rem'; // Tamaño del emoji
-    el.style.cursor = 'pointer';
-    el.innerText = '📍';
-
-    marker.current = new maplibregl.Marker({
-      element: el,
-      draggable: !disabled,
-      anchor: 'bottom'
-    })
-      .setLngLat([location.lng, location.lat])
-      .addTo(map.current);
-
-    // Agregar listener para arrastrar marcador
-    if (!disabled) {
-      marker.current.on('dragend', () => {
-        const lngLat = marker.current.getLngLat();
-        const location = {
-          lat: lngLat.lat,
-          lng: lngLat.lng
-        };
-        handleLocationSelect(location);
-      });
-    }
-  };
-
-  const handleLocationSelect = (location) => {
-    if (disabled) return;
-
-    setSelectedLocation(location);
-    onLocationSelect(location);
-  };
-
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setError('Geolocalización no está disponible en este navegador');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        
-        setUserLocation(location);
-        handleLocationSelect(location);
-        setLoading(false);
-      },
-      (error) => {
-        console.error('Error obteniendo ubicación:', error);
-        setError('No se pudo obtener la ubicación actual');
-        setLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000
-      }
-    );
-  };
+  }, [selectedLocation, maplibregl, addMarker, getAddressFromCoordinates]);
 
   const clearLocation = () => {
     if (disabled) return;
     
     setSelectedLocation(null);
-    setUserLocation(null);
     setAddress('');
     onLocationSelect(null);
     
     if (marker.current) {
       marker.current.remove();
       marker.current = null;
-    }
-  };
-
-  const getAddressFromCoordinates = async (location) => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}&zoom=18&addressdetails=1`
-      );
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.display_name) {
-          setAddress(data.display_name);
-        }
-      }
-    } catch (error) {
-      console.warn('Error obteniendo dirección:', error);
     }
   };
 
@@ -350,29 +431,43 @@ const MapComponent = ({
       )}
 
       {/* Controles */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={getCurrentLocation}
-          disabled={disabled || loading}
-          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
-        >
-          <MdMyLocation className="w-4 h-4" />
-          <span>{loading ? 'Obteniendo...' : 'Mi Ubicación'}</span>
-        </button>
-
-        {selectedLocation && (
-          <button
-            type="button"
-            onClick={clearLocation}
-            disabled={disabled}
-            className="flex items-center space-x-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm"
-          >
-            <MdClear className="w-4 h-4" />
-            <span>Limpiar</span>
-          </button>
-        )}
-      </div>
+      {selectedLocation && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start space-x-3 flex-1 min-w-0">
+              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <MdLocationOn className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                {address ? (
+                  <>
+                    <p className="text-sm font-medium text-red-900 break-words leading-snug">{address}</p>
+                    <p className="text-xs text-red-600 mt-1">
+                      {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm font-medium text-red-900">Ubicación seleccionada</p>
+                    <p className="text-xs text-red-600 mt-1">
+                      {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={clearLocation}
+              disabled={disabled}
+              className="flex items-center justify-center space-x-2 px-3 py-2 bg-white border border-red-300 text-red-700 rounded-lg hover:bg-red-50 hover:border-red-400 disabled:bg-gray-100 disabled:border-gray-300 disabled:text-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-all duration-200 shadow-sm hover:shadow flex-shrink-0 w-full sm:w-auto"
+            >
+              <MdClear className="w-4 h-4" />
+              <span>Limpiar</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mapa */}
       <div className="relative">
@@ -398,7 +493,9 @@ const MapComponent = ({
             <h4 className="text-md font-bold mb-2 text-gray-800">Leyenda</h4>
             <ul className="space-y-2">
               <li className="flex items-center">
-                <span className="text-2xl mr-2">📍</span>
+                <div className="w-6 h-6 mr-2 bg-white rounded-full border-2 border-blue-600 flex items-center justify-center">
+                  <MdLocationOn className="w-4 h-4 text-blue-600" />
+                </div>
                 <span className="text-sm text-gray-700">Ubicación seleccionada</span>
               </li>
               <li className="flex items-center">
@@ -420,39 +517,7 @@ const MapComponent = ({
         )}
       </div>
 
-      {/* Información de la ubicación */}
-      {selectedLocation && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          <div className="flex items-start space-x-2">
-            <MdLocationOn className="w-5 h-5 text-green-600 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-green-800">Ubicación seleccionada:</p>
-              <p className="text-sm text-green-700 font-mono">
-                {formatCoordinates(selectedLocation)}
-              </p>
-              {address && (
-                <p className="text-sm text-green-600 mt-1 break-words">
-                  {address}
-                </p>
-              )}
-              {userLocation && (
-                <p className="text-xs text-green-600 mt-1">
-                  Basada en tu ubicación actual
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Instrucciones */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-        <p className="text-sm text-gray-600">
-          <strong>Instrucciones:</strong> Haz clic en el mapa para seleccionar una ubicación, 
-          o usa "Mi Ubicación" para obtener tu posición actual. 
-          Puedes arrastrar el marcador para ajustar la posición.
-        </p>
-      </div>
 
       {/* Error */}
       {error && (

@@ -11,6 +11,7 @@ import {
 } from 'react-icons/md';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import LoadingSpinner from '@components/LoadingSpinner';
 
 /**
  * Modal para editar información personal del bombero
@@ -135,7 +136,9 @@ const EditPersonalInfoModal = ({ isOpen, bombero, onClose, onSave }) => {
 
   // Manejar envío del formulario
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     
     if (!validateForm()) {
       return;
@@ -161,6 +164,7 @@ const EditPersonalInfoModal = ({ isOpen, bombero, onClose, onSave }) => {
       onClose();
     } catch (error) {
       console.error('Error al guardar información personal:', error);
+      setErrors({ general: error.response?.data?.message || error.message || 'Error al guardar la información personal' });
     } finally {
       setLoading(false);
     }
@@ -169,28 +173,41 @@ const EditPersonalInfoModal = ({ isOpen, bombero, onClose, onSave }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-        {/* Header del modal */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <MdPerson className="w-6 h-6" />
-              <h2 className="text-xl font-bold">Editar Información Personal</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 bg-white rounded-lg">
+              <MdPerson className="w-6 h-6 text-[#3A9BD9]" />
             </div>
-            <button
-              onClick={onClose}
-              className="text-white hover:text-gray-200 transition-colors"
-              disabled={loading}
-            >
-              <MdClose className="w-6 h-6" />
-            </button>
+            <div>
+              <h2 className="text-xl font-bold text-white">
+                Editar Información Personal
+              </h2>
+              <p className="text-blue-100 text-sm">
+                Actualiza tus datos personales y de contacto
+              </p>
+            </div>
           </div>
+          <button
+            onClick={onClose}
+            className="p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-lg transition-colors"
+            disabled={loading}
+          >
+            <MdClose className="w-6 h-6 text-red-300 hover:text-white" />
+          </button>
         </div>
 
-        {/* Contenido del modal */}
-        <form onSubmit={handleSubmit} className="p-6">
-          <div className="space-y-6">
+        {/* Contenido */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[65vh] bg-gray-50/50 relative">
+          {loading && (
+            <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-b-2xl">
+              <LoadingSpinner />
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Nombres y Apellidos */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -333,28 +350,36 @@ const EditPersonalInfoModal = ({ isOpen, bombero, onClose, onSave }) => {
                 />
               </div>
             </div>
-          </div>
+          </form>
 
-          {/* Botones */}
-          <div className="flex items-center justify-end space-x-3 mt-8 pt-6 border-t border-gray-200">
+          {/* Error general */}
+          {errors.general && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{errors.general}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Botones */}
+        <div className="flex justify-end px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
+          <div className="flex space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="flex items-center space-x-2 px-4 py-2.5 text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-all duration-200 font-medium"
               disabled={loading}
             >
-              Cancelar
+              <MdClose className="w-4 h-4 text-red-500" />
+              <span>Cancelar</span>
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
+              className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
               disabled={loading}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
               {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Guardando...</span>
-                </>
+                <LoadingSpinner size="sm" />
               ) : (
                 <>
                   <MdSave className="w-4 h-4" />
@@ -363,7 +388,7 @@ const EditPersonalInfoModal = ({ isOpen, bombero, onClose, onSave }) => {
               )}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

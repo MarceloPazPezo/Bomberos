@@ -109,7 +109,7 @@ const AddressForm = ({
             } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
           >
             <option value="">Seleccionar región</option>
-            {regiones.map(region => (
+            {Array.isArray(regiones) && regiones.map(region => (
               <option key={region.id} value={region.id}>
                 {region.nombre}
               </option>
@@ -137,7 +137,7 @@ const AddressForm = ({
             <option value="">
               {loadingComunas ? 'Cargando comunas...' : !formData.idRegion ? 'Seleccione una región primero' : 'Seleccionar comuna'}
             </option>
-            {comunas.map(comuna => (
+            {Array.isArray(comunas) && comunas.map(comuna => (
               <option key={comuna.id} value={comuna.id}>
                 {comuna.nombre}
               </option>
