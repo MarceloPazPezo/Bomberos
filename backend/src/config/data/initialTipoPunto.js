@@ -114,6 +114,13 @@ export async function crearTiposPunto() {
                 descripcion: "Zona forestal con riesgo de incendio",
                 activo: true,
             },
+            {
+                nombre: "Ubicación Bombero",
+                icono: "MdPerson",
+                color: "#10B981",
+                descripcion: "Ubicación de residencia de un bombero",
+                activo: true,
+            },
         ];
 
         const tiposPunto = tiposPuntoData.map((tipoPunto) =>

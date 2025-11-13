@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
 
 // Services
 import { regionService } from '../services/region.service.js';
@@ -34,6 +34,12 @@ import AccidentadoCard from '../components/parteEmergencia/AccidentadoCard.jsx';
 import ServicioExternoCard from '../components/parteEmergencia/ServicioExternoCard.jsx';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { useCompaniaConfig } from '@hooks/compania/useCompaniaConfig';
+import PrimeDatePicker from '@components/inputs/PrimeDatePicker.jsx';
+import PrimeTimePicker from '@components/inputs/PrimeTimePicker.jsx';
+import Select from 'react-select';
+import { Dropdown } from 'primereact/dropdown';
+import { InputNumber } from 'primereact/inputnumber';
+import { formatRutForDisplay } from '@helpers/rutFormatter.js';
 
 
 /* ================================
@@ -63,6 +69,13 @@ const timeToMin = (t) => {
 };
 const isInt = (v) => Number.isInteger(Number(v));
 const isPosInt = (v) => isInt(v) && Number(v) > 0;
+const formatDateLocal = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 /* =========================================
    Hook: cachea bomberos por compañía on-demand
@@ -338,6 +351,14 @@ const CrearParte = () => {
   const [deptoTxt, setDeptoTxt] = useState('');
   const [referenciaTxt, setReferenciaTxt] = useState('');
 
+  useEffect(() => {
+    if (!fecha) {
+      setFecha(formatDateLocal(new Date()));
+    }
+  }, [fecha]);
+
+  const todayIso = useMemo(() => formatDateLocal(new Date()), []);
+
   /* ---------- Envío del formulario ---------- */
   const [submitting, setSubmitting] = useState(false);
   const handleSubmit = async (e) => {
@@ -347,6 +368,7 @@ const CrearParte = () => {
     // Requeridos simples
     if (!companiaId) nextErrors.companiaId = 'Obligatorio.';
     if (!fecha) nextErrors.fecha = 'Obligatorio.';
+    else if (fecha > todayIso) nextErrors.fecha = 'La fecha no puede ser en el futuro.';
     if (!horaDespacho) nextErrors.horadespacho = 'Obligatorio.';
     if (!hora60) nextErrors.hora6_0 = 'Obligatorio.';
     if (!hora63) nextErrors.hora6_3 = 'Obligatorio.';
@@ -489,7 +511,23 @@ const CrearParte = () => {
         descripcionPreliminar: descripcionPreliminar || '',
         bomberoACargoId: bomberoACargoId ? Number(bomberoACargoId) : null,
         idRedactor, // agregado
-        inmuebles, vehiculos, materialMayor, accidentados, otrosServicios,
+        inmuebles,
+        vehiculos,
+        materialMayor: materialMayor.map((row) => ({
+          ...row,
+          unidadId: row.unidadId ? Number(row.unidadId) : null,
+          conductorId: row.conductorId ? Number(row.conductorId) : null,
+          bomberoId: row.bomberoId ? Number(row.bomberoId) : null,
+          voluntarios: row.voluntarios === '' ? null : Number(row.voluntarios),
+          kmSalida: row.kmSalida === '' ? null : Number(row.kmSalida),
+          kmLlegada: row.kmLlegada === '' ? null : Number(row.kmLlegada),
+        })),
+        accidentados,
+        otrosServicios: otrosServicios.map((s) => ({
+          ...s,
+          servicioId: s.servicioId ? Number(s.servicioId) : null,
+          personal: s.personal === '' ? null : Number(s.personal),
+        })),
         asistencia: {
           lugar: Object.keys(asistenciaLugar).filter((id) => asistenciaLugar[id]).map(Number),
           cuartel: Object.keys(asistenciaCuartel).filter((id) => asistenciaCuartel[id]).map(Number),
@@ -713,6 +751,152 @@ const CrearParte = () => {
   const bomberosLugarFiltrados = bomberos.filter(b => nombreBombero(b).toLowerCase().includes(searchLugar.toLowerCase()));
   const bomberosCuartelFiltrados = bomberos.filter(b => nombreBombero(b).toLowerCase().includes(searchCuartel.toLowerCase()));
 
+  const bomberoSearchOptions = useMemo(() => {
+    return bomberos
+      .map((b) => {
+        const run = formatRutForDisplay(b.run);
+        const nombre = nombreBombero(b);
+        const value = b.id?.toString() ?? '';
+        if (!value) return null;
+        return {
+          value,
+          label: run ? `${run} • ${nombre}` : nombre,
+          data: {
+            run: (run || '').toLowerCase(),
+            nombre: nombre.toLowerCase(),
+          },
+        };
+      })
+      .filter(Boolean);
+  }, [bomberos]);
+
+  const selectedBomberoOption = useMemo(() => {
+    if (!bomberoACargoId) return null;
+    return bomberoSearchOptions.find((opt) => opt.value === bomberoACargoId.toString()) || null;
+  }, [bomberoACargoId, bomberoSearchOptions]);
+
+  const commonSelectStyles = useMemo(() => ({
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+      borderWidth: '2px',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+      '&:hover': {
+        borderColor: '#4EB9FA',
+      },
+      minHeight: '44px',
+      borderRadius: '10px',
+      fontSize: '0.9rem',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 25,
+      borderRadius: '10px',
+      overflow: 'hidden',
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '260px',
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? '#4EB9FA'
+        : state.isFocused
+          ? '#E0F2FE'
+          : 'white',
+      color: state.isSelected ? '#FFFFFF' : '#1F2937',
+      fontSize: '0.9rem',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#9CA3AF',
+    }),
+    input: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#1F2937',
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+  }), []);
+
+  const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
+
+  const regionOptions = useMemo(() => {
+    return regiones
+      .map((region) => {
+        const value = region.id?.toString() ?? '';
+        if (!value) return null;
+        return {
+          value,
+          label: region.nombre || `Región ${value}`,
+          data: {
+            nombre: (region.nombre || '').toLowerCase(),
+          },
+        };
+      })
+      .filter(Boolean);
+  }, [regiones]);
+
+  const selectedRegionOption = useMemo(() => {
+    if (regionId === '' || regionId === null || regionId === undefined) return null;
+    return regionOptions.find((opt) => opt.value === regionId.toString()) || null;
+  }, [regionId, regionOptions]);
+
+  const comunaOptions = useMemo(() => {
+    return comunas
+      .map((comuna) => {
+        const value = comuna.id?.toString() ?? '';
+        if (!value) return null;
+        return {
+          value,
+          label: comuna.nombre || `Comuna ${value}`,
+          data: {
+            nombre: (comuna.nombre || '').toLowerCase(),
+          },
+        };
+      })
+      .filter(Boolean);
+  }, [comunas]);
+
+  const selectedComunaOption = useMemo(() => {
+    if (comunaId === '' || comunaId === null || comunaId === undefined) return null;
+    return comunaOptions.find((opt) => opt.value === comunaId.toString()) || null;
+  }, [comunaId, comunaOptions]);
+
+  const claveRadialOptions = useMemo(() => {
+    return subtipos
+      .map((st) => {
+        const value = st.id?.toString() ?? '';
+        if (!value) return null;
+        const codigo = st.claveRadial ?? st.codigoRadial ?? `Clave ${value}`;
+        const nombre = st.nombre ?? st.descripcion ?? '';
+        const label = nombre ? `${codigo} • ${nombre}` : codigo;
+        return {
+          value,
+          label,
+          data: {
+            codigo: (codigo || '').toLowerCase(),
+            nombre: (nombre || '').toLowerCase(),
+          },
+        };
+      })
+      .filter(Boolean);
+  }, [subtipos]);
+
+  const selectedClaveRadialOption = useMemo(() => {
+    if (subtipoId === '' || subtipoId === null || subtipoId === undefined) return null;
+    return claveRadialOptions.find((opt) => opt.value === subtipoId.toString()) || null;
+  }, [subtipoId, claveRadialOptions]);
+
   /* ---------- Tabs ---------- */
   const tabs = [
     { key: 'dg', label: 'Datos generales & Lugar' },             // 1 & 2
@@ -738,15 +922,16 @@ const CrearParte = () => {
 
   /* ---------- Render ---------- */
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      {/* Mostrar error de idRedactor si aplica */}
-      {errors.idRedactor && (
-        <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="idRedactor">
-          {errors.idRedactor}
-        </div>
-      )}
+    <form onSubmit={handleSubmit} noValidate className="bg-slate-50 min-h-screen py-6 px-3 md:px-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Mostrar error de idRedactor si aplica */}
+        {errors.idRedactor && (
+          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="idRedactor">
+            {errors.idRedactor}
+          </div>
+        )}
 
-      <main className="p-4 md:p-6">
+        <main className="space-y-6">
         {/* Encabezado */}
         <div className="bg-white rounded-3xl shadow-sm p-6 mb-4 sticky top-0 z-40">
           <div className="flex items-center gap-3">
@@ -806,78 +991,91 @@ const CrearParte = () => {
 
                 <div data-error-key="fecha">
                   <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-1">Fecha:</label>
-                  <input
-                    type="date"
+                  <PrimeDatePicker
                     id="fecha"
-                    name="fecha"
-                    className={inputCls('fecha')}
                     value={fecha}
-                    onChange={(e) => { setFecha(e.target.value); if (errors.fecha) setErrors(p => ({ ...p, fecha: undefined })); }}
+                    onChange={(next) => {
+                      setFecha(next);
+                      if (errors.fecha) setErrors((p) => ({ ...p, fecha: undefined }));
+                    }}
+                    maxDate={todayIso}
+                    error={hasError('fecha')}
+                    placeholder="Selecciona la fecha"
                   />
                   {hasError('fecha') && <p className="mt-1 text-xs text-red-600">{errors.fecha}</p>}
                 </div>
 
                 <div data-error-key="horadespacho">
                   <label htmlFor="horadespacho" className="block text-sm font-medium text-gray-700 mb-1">Hora Despacho:</label>
-                  <input
-                    type="time"
+                  <PrimeTimePicker
                     id="horadespacho"
-                    name="horadespacho"
-                    className={inputCls('horadespacho')}
                     value={horaDespacho}
-                    onChange={(e) => { setHoraDespacho(e.target.value); if (errors.horadespacho) setErrors(p => ({ ...p, horadespacho: undefined })); }}
+                    onChange={(next) => {
+                      setHoraDespacho(next);
+                      if (errors.horadespacho) setErrors((p) => ({ ...p, horadespacho: undefined }));
+                    }}
+                    error={hasError('horadespacho')}
+                    placeholder="Selecciona hora de despacho"
                   />
                   {hasError('horadespacho') && <p className="mt-1 text-xs text-red-600">{errors.horadespacho}</p>}
                 </div>
 
                 <div data-error-key="hora6_0">
                   <label htmlFor="hora6_0" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_0</label>
-                  <input
-                    type="time"
+                  <PrimeTimePicker
                     id="hora6_0"
-                    name="hora6_0"
-                    className={inputCls('hora6_0')}
                     value={hora60}
-                    onChange={(e) => { setHora60(e.target.value); if (errors.hora6_0) setErrors(p => ({ ...p, hora6_0: undefined })); }}
+                    onChange={(next) => {
+                      setHora60(next);
+                      if (errors.hora6_0) setErrors((p) => ({ ...p, hora6_0: undefined }));
+                    }}
+                    error={hasError('hora6_0')}
+                    placeholder="Selecciona hora 6_0"
                   />
                   {hasError('hora6_0') && <p className="mt-1 text-xs text-red-600">{errors.hora6_0}</p>}
                 </div>
 
                 <div data-error-key="hora6_3">
                   <label htmlFor="hora6_3" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_3</label>
-                  <input
-                    type="time"
+                  <PrimeTimePicker
                     id="hora6_3"
-                    name="hora6_3"
-                    className={inputCls('hora6_3')}
                     value={hora63}
-                    onChange={(e) => { setHora63(e.target.value); if (errors.hora6_3) setErrors(p => ({ ...p, hora6_3: undefined })); }}
+                    onChange={(next) => {
+                      setHora63(next);
+                      if (errors.hora6_3) setErrors((p) => ({ ...p, hora6_3: undefined }));
+                    }}
+                    error={hasError('hora6_3')}
+                    placeholder="Selecciona hora 6_3"
                   />
                   {hasError('hora6_3') && <p className="mt-1 text-xs text-red-600">{errors.hora6_3}</p>}
                 </div>
 
                 <div data-error-key="hora6_9">
                   <label htmlFor="hora6_9" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_9</label>
-                  <input
-                    type="time"
+                  <PrimeTimePicker
                     id="hora6_9"
-                    name="hora6_9"
-                    className={inputCls('hora6_9')}
                     value={hora69}
-                    onChange={(e) => { setHora69(e.target.value); if (errors.hora6_9) setErrors(p => ({ ...p, hora6_9: undefined })); }}
+                    onChange={(next) => {
+                      setHora69(next);
+                      if (errors.hora6_9) setErrors((p) => ({ ...p, hora6_9: undefined }));
+                    }}
+                    error={hasError('hora6_9')}
+                    placeholder="Selecciona hora 6_9"
                   />
                   {hasError('hora6_9') && <p className="mt-1 text-xs text-red-600">{errors.hora6_9}</p>}
                 </div>
 
                 <div data-error-key="hora6_10">
                   <label htmlFor="hora6_10" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_10</label>
-                  <input
-                    type="time"
+                  <PrimeTimePicker
                     id="hora6_10"
-                    name="hora6_10"
-                    className={inputCls('hora6_10')}
                     value={hora610}
-                    onChange={(e) => { setHora610(e.target.value); if (errors.hora6_10) setErrors(p => ({ ...p, hora6_10: undefined })); }}
+                    onChange={(next) => {
+                      setHora610(next);
+                      if (errors.hora6_10) setErrors((p) => ({ ...p, hora6_10: undefined }));
+                    }}
+                    error={hasError('hora6_10')}
+                    placeholder="Selecciona hora 6_10"
                   />
                   {hasError('hora6_10') && <p className="mt-1 text-xs text-red-600">{errors.hora6_10}</p>}
                 </div>
@@ -887,20 +1085,43 @@ const CrearParte = () => {
                   <label htmlFor="bomberoACargo" className="block text-sm font-medium text-gray-700 mb-1">
                     Bombero a cargo:
                   </label>
-                  <select
-                    id="bomberoACargo"
-                    className={baseInput}
-                    value={bomberoACargoId}
-                    onChange={(e) => setBomberoACargoId(e.target.value || '')}
-                    disabled={!companiaId || loadingBomberos}
-                  >
-                    <option value="">
-                      {!companiaId ? 'Seleccione compañía…' : loadingBomberos ? 'Cargando bomberos…' : 'Selecciona bombero…'}
-                    </option>
-                    {bomberos.map((b) => (
-                      <option key={b.id} value={b.id}>{nombreBombero(b)}</option>
-                    ))}
-                  </select>
+                  <Select
+                    inputId="bomberoACargo"
+                    isSearchable
+                    isClearable
+                    isDisabled={!companiaId}
+                    isLoading={loadingBomberos}
+                    value={selectedBomberoOption}
+                    options={bomberoSearchOptions}
+                    menuPortalTarget={selectMenuPortalTarget}
+                    onChange={(option) => {
+                      setBomberoACargoId(option?.value ?? '');
+                    }}
+                    placeholder={
+                      !companiaId
+                        ? 'Selecciona primero una compañía...'
+                        : loadingBomberos
+                          ? 'Cargando bomberos...'
+                          : 'Buscar por nombre o RUN...'
+                    }
+                    noOptionsMessage={() =>
+                      !companiaId ? 'Selecciona una compañía' : 'No se encontraron coincidencias'
+                    }
+                    filterOption={(candidate, rawInput) => {
+                      if (!rawInput) return true;
+                      const term = rawInput.toLowerCase();
+                      const labelMatch = candidate.label.toLowerCase().includes(term);
+                      const runMatch = candidate.data?.run?.includes(term);
+                      return labelMatch || runMatch;
+                    }}
+                    styles={commonSelectStyles}
+                    classNamePrefix="bombero-select"
+                  />
+                  {!loadingBomberos && companiaId && bomberoSearchOptions.length === 0 && (
+                    <p className="mt-1 text-xs text-gray-500 italic">
+                      No hay bomberos registrados para la compañía seleccionada.
+                    </p>
+                  )}
                 </div>
 
                 <div className="md:col-span-4">
@@ -925,46 +1146,93 @@ const CrearParte = () => {
               <div className="grid md:grid-cols-3 gap-3">
                 <div data-error-key="regionId">
                   <label htmlFor="region" className="block text-sm font-medium text-gray-700 mb-1">Región:</label>
-                  <select
-                    id="region"
-                    className={inputCls('regionId')}
-                    value={regionId}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const next = v === '' ? '' : Number(v);
-                      setRegionId(Number.isNaN(next) ? '' : next);
-                      setComunaId('');
+                  <Select
+                    inputId="region"
+                    isSearchable
+                    isClearable
+                    isDisabled={loadingRegiones || !!errorRegiones}
+                    isLoading={loadingRegiones}
+                    options={regionOptions}
+                    value={selectedRegionOption}
+                    menuPortalTarget={selectMenuPortalTarget}
+                    placeholder={
+                      loadingRegiones
+                        ? 'Cargando regiones...'
+                        : errorRegiones
+                          ? errorRegiones
+                          : 'Buscar región...'
+                    }
+                    noOptionsMessage={() =>
+                      loadingRegiones ? 'Cargando...' : 'No se encontraron regiones'
+                    }
+                    onChange={(option) => {
+                      if (!option) {
+                        setRegionId('');
+                        setComunaId('');
+                      } else {
+                        const numeric = Number(option.value);
+                        setRegionId(Number.isNaN(numeric) ? '' : numeric);
+                        setComunaId('');
+                      }
                       if (errors.regionId) setErrors((prev) => ({ ...prev, regionId: undefined }));
                     }}
-                    disabled={loadingRegiones || !!errorRegiones}
-                  >
-                    <option value="">{loadingRegiones ? 'Cargando regiones…' : 'Selecciona región…'}</option>
-                    {errorRegiones && <option value="" disabled>{errorRegiones}</option>}
-                    {regiones.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-                  </select>
+                    filterOption={(candidate, rawInput) => {
+                      if (!rawInput) return true;
+                      const term = rawInput.toLowerCase();
+                      const nameMatch = candidate.label.toLowerCase().includes(term);
+                      const extraMatch = candidate.data?.nombre?.includes(term);
+                      return nameMatch || extraMatch;
+                    }}
+                    styles={commonSelectStyles}
+                    classNamePrefix="region-select"
+                  />
                   {hasError('regionId') && <p className="mt-1 text-xs text-red-600">{errors.regionId}</p>}
                 </div>
 
                 <div data-error-key="comunaId">
                   <label htmlFor="comuna" className="block text-sm font-medium text-gray-700 mb-1">Comuna:</label>
-                  <select
-                    id="comuna"
-                    className={inputCls('comunaId')}
-                    value={comunaId}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      const next = v === '' ? '' : Number(v);
-                      setComunaId(Number.isNaN(next) ? '' : next);
+                  <Select
+                    inputId="comuna"
+                    isSearchable
+                    isClearable
+                    isDisabled={regionId === '' || loadingComunas || !!errorComunas}
+                    isLoading={loadingComunas}
+                    options={comunaOptions}
+                    value={selectedComunaOption}
+                    menuPortalTarget={selectMenuPortalTarget}
+                    placeholder={
+                      regionId === ''
+                        ? 'Selecciona primero una región...'
+                        : loadingComunas
+                          ? 'Cargando comunas...'
+                          : errorComunas || 'Buscar comuna...'
+                    }
+                    noOptionsMessage={() =>
+                      regionId === ''
+                        ? 'Selecciona primero una región'
+                        : loadingComunas
+                          ? 'Cargando...'
+                          : 'No se encontraron comunas'
+                    }
+                    onChange={(option) => {
+                      if (!option) {
+                        setComunaId('');
+                      } else {
+                        const numeric = Number(option.value);
+                        setComunaId(Number.isNaN(numeric) ? '' : numeric);
+                      }
                       if (errors.comunaId) setErrors((prev) => ({ ...prev, comunaId: undefined }));
                     }}
-                    disabled={regionId === '' || loadingComunas || !!errorComunas}
-                  >
-                    <option value="">
-                      {regionId === '' ? 'Selecciona primero una región…' : loadingComunas ? 'Cargando comunas…' : 'Selecciona comuna…'}
-                    </option>
-                    {errorComunas && <option value="" disabled>{errorComunas}</option>}
-                    {comunas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
+                    filterOption={(candidate, rawInput) => {
+                      if (!rawInput) return true;
+                      const term = rawInput.toLowerCase();
+                      const nameMatch = candidate.label.toLowerCase().includes(term);
+                      const extraMatch = candidate.data?.nombre?.includes(term);
+                      return nameMatch || extraMatch;
+                    }}
+                    styles={commonSelectStyles}
+                    classNamePrefix="comuna-select"
+                  />
                   {hasError('comunaId') && <p className="mt-1 text-xs text-red-600">{errors.comunaId}</p>}
                 </div>
 
@@ -988,9 +1256,21 @@ const CrearParte = () => {
                     id="numero"
                     name="numero"
                     min={0}
+                    step={1}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     className={baseInput}
                     value={numeroTxt}
-                    onChange={(e) => setNumeroTxt(e.target.value)}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') {
+                        setNumeroTxt('');
+                        return;
+                      }
+                      const sanitized = raw.replace(/\D+/g, '');
+                      setNumeroTxt(sanitized);
+                    }}
+                    onWheel={(e) => e.currentTarget.blur()}
                   />
                 </div>
 
@@ -1056,28 +1336,48 @@ const CrearParte = () => {
                     <label htmlFor="subtipo" className="block text-sm font-medium text-gray-700 mb-1">
                       Clave Radial (según clasificación seleccionada):
                     </label>
-                    <select
-                      id="subtipo"
-                      className={inputCls('subtipoId')}
-                      value={subtipoId}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        const next = v === '' ? '' : Number(v);
-                        setSubtipoId(Number.isNaN(next) ? '' : next);
+                    <Select
+                      inputId="subtipo"
+                      isSearchable
+                      isClearable
+                      isDisabled={loadingSubtipos || !!errorSubtipos}
+                      isLoading={loadingSubtipos}
+                      options={claveRadialOptions}
+                      value={selectedClaveRadialOption}
+                      menuPortalTarget={selectMenuPortalTarget}
+                      placeholder={
+                        loadingSubtipos
+                          ? 'Cargando claves…'
+                          : errorSubtipos
+                            ? errorSubtipos
+                            : 'Buscar clave radial...'
+                      }
+                      noOptionsMessage={() =>
+                        loadingSubtipos ? 'Cargando...' : 'No se encontraron claves'
+                      }
+                      onChange={(option) => {
+                        if (!option) {
+                          setSubtipoId('');
+                        } else {
+                          const numeric = Number(option.value);
+                          setSubtipoId(Number.isNaN(numeric) ? '' : numeric);
+                        }
                         setTipoIncendioId('');
                         setFaseId('');
                         if (errors.subtipoId) setErrors(p => ({ ...p, subtipoId: undefined }));
                       }}
-                      disabled={loadingSubtipos || !!errorSubtipos}
-                    >
-                      <option value="">{loadingSubtipos ? 'Cargando claves…' : 'Selecciona clave radial…'}</option>
-                      {errorSubtipos && <option value="" disabled>{errorSubtipos}</option>}
-                      {subtipos.map((st) => (
-                        <option key={st.id} value={st.id}>
-                          {st.claveRadial ?? st.codigoRadial ?? `Clave ${st.id}`}
-                        </option>
-                      ))}
-                    </select>
+                      filterOption={(candidate, rawInput) => {
+                        if (!rawInput) return true;
+                        const term = rawInput.toLowerCase();
+                        const labelMatch = candidate.label.toLowerCase().includes(term);
+                        const extraMatch =
+                          candidate.data?.codigo?.includes(term) ||
+                          candidate.data?.nombre?.includes(term);
+                        return labelMatch || extraMatch;
+                      }}
+                      styles={commonSelectStyles}
+                      classNamePrefix="subtipo-select"
+                    />
                     {hasError('subtipoId') && <p className="mt-1 text-xs text-red-600">{errors.subtipoId}</p>}
                   </div>
                 </div>
@@ -1284,7 +1584,7 @@ const CrearParte = () => {
           <>
             {/* 8. Bomberos Accidentados */}
             <Card title="8. Bomberos Accidentados" titleIcon={<Users className="text-red-600" />}>
-              <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 {accidentados.map((row, idx) => (
                   <AccidentadoCard
                     key={row.id}
@@ -1316,7 +1616,7 @@ const CrearParte = () => {
 
             {/* 9. Otros servicios */}
             <Card title="9. Otros servicios de emergencia en el lugar" titleIcon={<Handshake className="text-blue-600" />}>
-              <div className="grid sm:grid-cols-1 gap-4">
+              <div className="space-y-4">
                 {otrosServicios.map((row, idx) => (
                   <ServicioExternoCard
                     key={row.id}
@@ -1480,7 +1780,7 @@ const CrearParte = () => {
               type="button"
               onClick={goPrev}
               disabled={isFirst}
-              className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
               title="Anterior"
             >
               Anterior
@@ -1489,7 +1789,7 @@ const CrearParte = () => {
               type="button"
               onClick={goNext}
               disabled={isLast}
-              className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg bg-slate-600 text-white hover:bg-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               title="Siguiente"
             >
               Siguiente
@@ -1499,12 +1799,13 @@ const CrearParte = () => {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2 text-sm hover:bg-blue-700 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2.5 text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             title="Guardar parte"
           >
             {submitting ? 'Guardando…' : 'Guardar parte'}
           </button>
         </div>
+      </div>
       </div>
     </form>
   );

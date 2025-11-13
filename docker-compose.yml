@@ -10,6 +10,9 @@ services:
       POSTGRES_USER: ${DB_USERNAME:-user_bomberos}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password_bomberos}
       POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=es-ES --encoding=UTF8"
+      # Zona horaria de Chile (maneja automáticamente el cambio de horario)
+      TZ: America/Santiago
+      PGTZ: America/Santiago
     ports:
       - "${EXTERNAL_DB_PORT:-5432}:5432"
     volumes:
@@ -85,6 +88,10 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       HOST: ${B_HOST:-0.0.0.0}
       PORT: ${B_PORT:-3000}
+      # Zona horaria de Chile (maneja automáticamente el cambio de horario)
+      TZ: America/Santiago
+      # Aumentar límite de memoria de Node.js para evitar heap out of memory
+      NODE_OPTIONS: "--max-old-space-size=4096"
       
       # Seguridad
       ACCESS_TOKEN_SECRET: ${B_ACCESS_TOKEN_SECRET}

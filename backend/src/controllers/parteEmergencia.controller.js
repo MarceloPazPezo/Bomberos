@@ -161,7 +161,17 @@ export async function crearParteEmergencia(req, res) {
       let idDueno = null, idConductor = null;
       if (v.dueno) { idDueno = await crearAfectadoService({ nombreCompleto: v.dueno.nombreCompleto, run: v.dueno.run || null, telefono: v.dueno.telefono || null, edad: v.dueno.edad || null, descripcionGravedad: v.dueno.descripcionGravedad || null, esEmpresa: !!v.dueno.esEmpresa, idIncidente, idDireccion: null, idEstadoCivil: null }, manager); }
       if (v.chofer) { idConductor = await crearAfectadoService({ nombreCompleto: v.chofer.nombreCompleto, run: v.chofer.run || null, telefono: v.chofer.telefono || null, edad: v.chofer.edad || null, descripcionGravedad: v.chofer.descripcionGravedad || null, esEmpresa: false, idIncidente, idDireccion: null, idEstadoCivil: null }, manager); }
-      const idVehiculo = await crearVehiculoService({ patente: v.patente, color: v.color || null, marca: v.marca || null, modelo: v.modelo || null, descripciondanos: v.danos_vehiculo || null, idDueno: idDueno || null, idConductor: idConductor || null, idIncidente }, manager);
+      const idVehiculo = await crearVehiculoService({
+        patente: v.patente,
+        color: v.color || null,
+        marca: v.marca || null,
+        modelo: v.modelo || null,
+        anio: v.anio || null,
+        descripciondanos: v.danos_vehiculo || null,
+        idDueno: idDueno || null,
+        idConductor: idConductor || null,
+        idIncidente,
+      }, manager);
       if (Array.isArray(v.pasajeros)) {
         for (const p of v.pasajeros) {
           const idAfectadoPas = await crearAfectadoService({ nombreCompleto: p.nombreCompleto, run: p.run || null, telefono: p.telefono || null, edad: p.edad || null, descripcionGravedad: p.descripcionGravedad || null, esEmpresa: false, idIncidente, idDireccion: null, idEstadoCivil: null }, manager);
@@ -176,7 +186,17 @@ export async function crearParteEmergencia(req, res) {
         }
       }
     }
-    for (const m of materialMayor) { await crearDespachoService({ idBomberoMaquinista: Number(m.conductorId), idIncidente, idCarro: Number(m.unidadId), kmSalida: m.kmSalida || null, kmLlegada: m.kmLlegada || null, nPersonal: m.voluntarios || null }, manager); }
+    for (const m of materialMayor) {
+      await crearDespachoService({
+        idBomberoMaquinista: Number(m.conductorId),
+        idIncidente,
+        idCarro: Number(m.unidadId),
+        idBomberoACargo: m.bomberoId ? Number(m.bomberoId) : null,
+        kmSalida: m.kmSalida || null,
+        kmLlegada: m.kmLlegada || null,
+        nPersonal: m.voluntarios || null
+      }, manager);
+    }
     for (const a of accidentados) { await crearBomberoAccidentadoService({ idBombero: Number(a.bomberoId), idIncidente, lesiones: a.lesiones || null, constancia: a.constancia || null, AccionesRealizadas: a.acciones || null, comisaria: a.comisaria || null }, manager); }
     for (const s of otrosServicios) { await crearAcudeServicioService({ idServicio: Number(s.servicioId), idIncidente, unidad: s.tipoUnidad || '', observaciones: s.observaciones || null, nPersonal: s.personal || null, nombrePersonalACargo: s.responsable || null }, manager); }
     // Asistencia en el lugar (enLugar=true, enCuartel=false)

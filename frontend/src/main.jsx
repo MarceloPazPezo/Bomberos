@@ -9,12 +9,11 @@ import Error404 from '@pages/Error404';
 import Root from '@pages/Root';
 
 // Lazy loading para páginas menos críticas (se cargan bajo demanda)
-// Páginas lazy: Admin, Demo, Disponibilidad, Profile, CrearParte, EditarParte,
+// Páginas lazy: Admin, Disponibilidad, Profile, CrearParte, EditarParte,
 //               PartesDeEmergencias, VistaParte, RevisionPartes, VistaParteRevision,
 //               CalendarioOperativo, CalendarioOperativoBasic, BomberosPage, InventarioEpp
 // Páginas inmediatas: Login, Home, Error404, Root (críticas para el funcionamiento básico)
 const Admin = lazy(() => import('@pages/Admin'));
-const Demo = lazy(() => import('@pages/Demo'));
 const Disponibilidad = lazy(() => import('@pages/Disponibilidad'));
 const Profile = lazy(() => import('@pages/Profile'));
 const CrearParte = lazy(() => import('@pages/crearParte'));
@@ -28,7 +27,7 @@ const CalendarioOperativo = lazy(() => import('@pages/CalendarioOperativoAdmin.j
 const CalendarioOperativoBasic = lazy(() => import('@pages/CalendarioOperativoBasic.jsx'));
 const BomberosPage = lazy(() => import('@pages/BomberosPage'));
 const InventarioEpp = lazy(() => import('@pages/InventarioEpp'));
-const PuntosInteres = lazy(() => import('@pages/PuntosInteres'));
+const Mapa = lazy(() => import('@pages/Mapa'));
 const Dashboard = lazy(() => import('@pages/Dashboard'));
 
 // Componente de carga para lazy loading
@@ -78,16 +77,6 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/demo',
-        element: (
-          <ProtectedRoute>
-            <Suspense fallback={<LoadingSpinner />}>
-              <Demo />
-            </Suspense>
-          </ProtectedRoute>
-        ),
-      },
-      {
         path: '/disponibilidad',
         element: (
           <ProtectedRoute requiredPermisos={['disponibilidad:obtener']}>
@@ -118,7 +107,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/crearparte',
+        path: '/crear-parte',
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
@@ -128,7 +117,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: '/editarparte/:id',
+        path: '/editar-parte/:id',
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
@@ -138,7 +127,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: '/partesdeemergencias',
+        path: '/partes-de-emergencias',
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
@@ -222,11 +211,11 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/puntos-interes',
+        path: '/mapa',
         element: (
           <ProtectedRoute requiredPermisos={['puntoGeografico:obtener', 'puntoGeografico:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
-              <PuntosInteres />
+              <Mapa />
             </Suspense>
           </ProtectedRoute>
         ),

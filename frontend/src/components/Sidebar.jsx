@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
-import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdCode, MdPeople, MdLocationOn, MdDashboard, MdQueryStats } from 'react-icons/md';
+import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdPeople, MdLocationOn, MdDashboard, MdQueryStats, MdMap } from 'react-icons/md';
 import { LuCalendarDays, LuClipboardCheck, LuClipboard } from 'react-icons/lu';
 import { FaUserCheck } from 'react-icons/fa';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
@@ -19,12 +19,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
     const mainMenuLinks = [
         { to: '/home', label: 'Inicio', icon: <MdHome size={20} className="mr-2" /> },
-        { to: '/dashboard', label: 'Dashboard', icon: <MdQueryStats size={20} className="mr-2" /> },
-        { to: '/demo', label: 'Demo', icon: <MdCode size={20} className="mr-2" /> }
+        { to: '/dashboard', label: 'Dashboard', icon: <MdQueryStats size={20} className="mr-2" /> }
     ];
 
     const generalLinks = [
-        { to: '/partesdeemergencias', label: 'Partes de Emergencias', icon: <LuClipboard size={20} className="mr-2" /> },
+        { to: '/partes-de-emergencias', label: 'Partes de Emergencias', icon: <LuClipboard size={20} className="mr-2" /> },
         { to: '/calendariooperativobasic', label: 'Calendario Operativo vista básica', icon: <LuCalendarDays size={20} className="mr-2" /> }
     ];
 
@@ -78,7 +77,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         ? 'overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-[#2C80C8] scrollbar-track-transparent scrollbar-thumb-rounded-lg'
                         : 'overflow-hidden pr-0'
                 }`}>
-                    <p className="mt-3 mb-1 px-1 text-[11px] uppercase tracking-wider text-slate-500">Main Menu</p>
+                    <p className="mt-3 mb-1 px-1 text-[11px] uppercase tracking-wider text-slate-500">Menu Principal</p>
                     {mainMenuLinks.map((link) => (
                         <NavLink key={link.to} to={link.to} onClick={() => setSidebarOpen(false)} className={getNavLinkClass}>
                             <span className="flex items-center">{link.icon}{link.label}</span>
@@ -116,11 +115,11 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                     )}
                     {(hasPermiso('puntoGeografico:obtener') || hasPermiso('puntoGeografico:admin')) && (
                         <NavLink
-                            to="/puntos-interes"
+                            to="/mapa"
                             onClick={() => setSidebarOpen(false)}
                             className={getNavLinkClass}
                         >
-                            <span className="flex items-center"><MdLocationOn size={20} className="mr-2" />Puntos de Interés</span>
+                            <span className="flex items-center"><MdMap size={20} className="mr-2" />Mapa</span>
                         </NavLink>
                     )}
 

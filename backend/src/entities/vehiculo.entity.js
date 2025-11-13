@@ -10,6 +10,7 @@ const VehiculoSchema = new EntitySchema({
         color: { type: "varchar", length: 50, nullable: true },
         marca: { type: "varchar", length: 100, nullable: true },
         modelo: { type: "varchar", length: 100, nullable: true },
+        anio: { type: "int", nullable: true },
         descripciondanos: { type: "varchar", length: 500, nullable: true },
         idDueno: { type: "int", nullable: true },
         idConductor: { type: "int", nullable: true },
@@ -45,7 +46,7 @@ const VehiculoSchema = new EntitySchema({
             inverseSide: "vehiculo",
             cascade: true,
         },
-        
+
     },
 });
 export default VehiculoSchema;

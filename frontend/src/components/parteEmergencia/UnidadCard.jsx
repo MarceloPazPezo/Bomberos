@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { Truck, UsersRound, Trash2 } from 'lucide-react';
-
-
+import Select from 'react-select';
+import { formatRutForDisplay } from '@helpers/rutFormatter.js';
 
 function UnidadCard({
   value,
@@ -16,20 +17,7 @@ function UnidadCard({
   loadingUnidades = false,
   errorUnidades = '',
 }) {
-  const baseInput =
-    'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
   const set = (k, v) => onChange({ ...value, [k]: v });
-
-  const setVoluntarios = (raw) => {
-    if (raw === '') return set('voluntarios', '');
-    const n = Number(raw);
-    if (Number.isFinite(n) && n >= 0) set('voluntarios', Math.trunc(n));
-  };
-  const setKm = (k, raw) => {
-    if (raw === '') return set(k, '');
-    const n = Number(raw);
-    if (Number.isFinite(n) && n > 0) set(k, Math.trunc(n));
-  };
 
   const noCompania = !companiaSeleccionada;
   // IDs seleccionados como string para comparar con opciones
@@ -37,9 +25,153 @@ function UnidadCard({
   const selectedConductorId = value.conductorId === '' || value.conductorId === undefined || value.conductorId === null ? '' : String(value.conductorId);
   const selectedBomberoId = value.bomberoId === '' || value.bomberoId === undefined || value.bomberoId === null ? '' : String(value.bomberoId);
 
-  const unidadExiste = selectedUnidadId ? unidades.some(u => String(u.id) === selectedUnidadId) : false;
-  const conductorExiste = selectedConductorId ? conductores.some(c => String(c.id) === selectedConductorId) : false;
-  const bomberoExiste = selectedBomberoId ? bomberos.some(b => String(b.id) === selectedBomberoId) : false;
+  const selectStyles = useMemo(() => ({
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+      borderWidth: '2px',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+      '&:hover': {
+        borderColor: '#4EB9FA',
+      },
+      minHeight: '42px',
+      borderRadius: '10px',
+      fontSize: '0.85rem',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 30,
+      borderRadius: '10px',
+      overflow: 'hidden',
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '260px',
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? '#4EB9FA'
+        : state.isFocused
+          ? '#E0F2FE'
+          : 'white',
+      color: state.isSelected ? '#FFFFFF' : '#1F2937',
+      fontSize: '0.85rem',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontSize: '0.85rem',
+      color: '#9CA3AF',
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: '0.85rem',
+      color: '#1F2937',
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+    input: (base) => ({
+      ...base,
+      fontSize: '0.85rem',
+    }),
+  }), []);
+
+  const unidadOptions = useMemo(() => {
+    return unidades.map((u) => {
+      const label =
+        u.nombre ??
+        u.alias ??
+        u.codigo ??
+        u.patente ??
+        u.nombreCorto ??
+        `Carro ${u.id}`;
+      return {
+        value: String(u.id),
+        label,
+      };
+    });
+  }, [unidades]);
+
+  const conductorOptions = useMemo(() => {
+    return conductores.map((c) => {
+      const nombre = [c.nombres, c.apellidos].filter(Boolean).join(' ').trim() || c.nombreCompleto || `Bombero ${c.id}`;
+      const run = formatRutForDisplay(c.run);
+      return {
+        value: String(c.id),
+        label: run ? `${run} • ${nombre}` : nombre,
+        data: {
+          run: (run || '').toLowerCase(),
+          nombre: nombre.toLowerCase(),
+        },
+      };
+    });
+  }, [conductores]);
+
+  const bomberoOptions = useMemo(() => {
+    return bomberos.map((b) => {
+      const nombre = [b.nombres, b.apellidos].filter(Boolean).join(' ').trim() || `Bombero ${b.id}`;
+      const run = formatRutForDisplay(b.run);
+      return {
+        value: String(b.id),
+        label: run ? `${run} • ${nombre}` : nombre,
+        data: {
+          run: (run || '').toLowerCase(),
+          nombre: nombre.toLowerCase(),
+        },
+      };
+    });
+  }, [bomberos]);
+
+  const unidadValue = useMemo(() => {
+    if (!selectedUnidadId) return null;
+    return (
+      unidadOptions.find((opt) => opt.value === selectedUnidadId) || {
+        value: selectedUnidadId,
+        label: `Unidad ${selectedUnidadId} (no disponible)`,
+        isDisabled: true,
+      }
+    );
+  }, [selectedUnidadId, unidadOptions]);
+
+  const conductorValue = useMemo(() => {
+    if (!selectedConductorId) return null;
+    return (
+      conductorOptions.find((opt) => opt.value === selectedConductorId) ||
+      (() => {
+        const ref = bomberos.find((b) => String(b.id) === selectedConductorId);
+        const nombre = ref ? [ref.nombres, ref.apellidos].filter(Boolean).join(' ').trim() : '';
+        const label = `${nombre || `Bombero ${selectedConductorId}`} (sin licencia disponible)`;
+        return { value: selectedConductorId, label, isDisabled: true };
+      })()
+    );
+  }, [selectedConductorId, conductorOptions, bomberos]);
+
+  const bomberoValue = useMemo(() => {
+    if (!selectedBomberoId) return null;
+    return (
+      bomberoOptions.find((opt) => opt.value === selectedBomberoId) ||
+      (() => {
+        const ref = bomberos.find((o) => String(o.id) === selectedBomberoId);
+        const nombre = ref ? [ref.nombres, ref.apellidos].filter(Boolean).join(' ').trim() : '';
+        const label = `${nombre || `Bombero ${selectedBomberoId}`} (no en listado actual)`;
+        return { value: selectedBomberoId, label, isDisabled: true };
+      })()
+    );
+  }, [selectedBomberoId, bomberoOptions, bomberos]);
+
+  const filterOptionByLabelOrRun = (candidate, input) => {
+    if (!input) return true;
+    const term = input.toLowerCase();
+    const labelMatch = candidate.label.toLowerCase().includes(term);
+    const metaMatch =
+      candidate.data?.run?.includes(term) ||
+      candidate.data?.nombre?.includes(term);
+    return labelMatch || metaMatch;
+  };
+
+  const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
 
   return (
     <div className="rounded-2xl border border-teal-200 bg-teal-50 p-4 relative">
@@ -57,147 +189,139 @@ function UnidadCard({
         <div className="font-medium text-teal-900">Unidad #{index + 1}</div>
       </div>
 
-  <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-3">
+  <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs text-gray-600 mb-1">Unidad</label>
-          <select
-            className={baseInput}
-            value={selectedUnidadId}
-            onChange={(e) => onChange({ ...value, unidadId: e.target.value || '' })}
-            disabled={noCompania || loadingUnidades}
-          >
-            <option value="">
-              {noCompania
+          <Select
+            isDisabled={noCompania || loadingUnidades || !!errorUnidades}
+            isLoading={loadingUnidades}
+            value={unidadValue}
+            options={unidadOptions}
+            menuPortalTarget={selectMenuPortalTarget}
+            onChange={(option) => {
+              set('unidadId', option?.value ?? '');
+            }}
+            placeholder={
+              noCompania
                 ? 'Seleccione compañía en Datos generales…'
                 : loadingUnidades
                   ? 'Cargando…'
-                  : 'Selecciona unidad…'}
-            </option>
-            {errorUnidades && (
-              <option value="" disabled>{errorUnidades}</option>
-            )}
-            {/* Fallback si la unidad precargada no está en la lista actual */}
-            {!unidadExiste && selectedUnidadId && (
-              <option value={selectedUnidadId}>
-                {`Unidad ${selectedUnidadId} (no disponible en esta compañía)`}
-              </option>
-            )}
-            {unidades.map((u) => {
-              const label =
-                u.nombre ??
-                u.alias ??
-                u.codigo ??
-                u.patente ??
-                u.nombreCorto ??
-                `Carro ${u.id}`;
-              return (
-                <option key={u.id} value={String(u.id)}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
+                  : errorUnidades || 'Buscar unidad...'
+            }
+            noOptionsMessage={() =>
+              loadingUnidades ? 'Cargando...' : 'No hay unidades disponibles'
+            }
+            styles={selectStyles}
+            classNamePrefix="unidad-select"
+            filterOption={filterOptionByLabelOrRun}
+            isClearable
+          />
         </div>
 
         <div>
           <label className="block text-xs text-gray-600 mb-1">Conductor</label>
-          <select
-            className={baseInput}
-            value={selectedConductorId}
-            onChange={(e) => set('conductorId', e.target.value || '')}
-            disabled={noCompania || loadingConductores}
-          >
-            <option value="">
-              {noCompania ? 'Seleccione compañía en Datos generales…' : loadingConductores ? 'Cargando…' : 'Selecciona conductor…'}
-            </option>
-            {/* Fallback si el conductor precargado no tiene licencia o no está en la lista */}
-            {!conductorExiste && selectedConductorId && (
-              <option value={selectedConductorId}>
-                {(() => {
-                  const ref = bomberos.find(b => String(b.id) === selectedConductorId);
-                  const nombre = ref ? [ref.nombres, ref.apellidos].filter(Boolean).join(' ').trim() : '';
-                  return `${nombre || `Bombero ${selectedConductorId}`} (no habilitado para conducir)`;
-                })()}
-              </option>
-            )}
-            {conductores.map((c) => {
-              const nombre = [c.nombres, c.apellidos].filter(Boolean).join(' ').trim();
-              const label = nombre || c.nombreCompleto || `Bombero ${c.id}`;
-              return (
-                <option key={c.id} value={String(c.id)}>{label}</option>
-              );
-            })}
-          </select>
+          <Select
+            isDisabled={noCompania || loadingConductores}
+            isLoading={loadingConductores}
+            value={conductorValue}
+            options={conductorOptions}
+            menuPortalTarget={selectMenuPortalTarget}
+            onChange={(option) => set('conductorId', option?.value ?? '')}
+            placeholder={
+              noCompania
+                ? 'Seleccione compañía en Datos generales…'
+                : loadingConductores
+                  ? 'Cargando…'
+                  : 'Buscar conductor...'
+            }
+            noOptionsMessage={() =>
+              loadingConductores ? 'Cargando...' : 'No hay conductores disponibles'
+            }
+            styles={selectStyles}
+            classNamePrefix="conductor-select"
+            filterOption={filterOptionByLabelOrRun}
+            isClearable
+          />
         </div>
 
         <div>
           <label className="block text-xs text-gray-600 mb-1">Bombero a cargo</label>
-          <select
-            className={baseInput}
-            value={selectedBomberoId}
-            onChange={(e) => set('bomberoId', e.target.value || '')}
-            disabled={noCompania || loadingBomberos}
-          >
-            <option value="">
-              {noCompania ? 'Seleccione compañía en Datos generales…' : loadingBomberos ? 'Cargando…' : 'Selecciona bombero…'}
-            </option>
-            {/* Fallback si el bombero precargado no está en la lista actual */}
-            {!bomberoExiste && selectedBomberoId && (
-              <option value={selectedBomberoId}>
-                {(() => {
-                  const ref = bomberos.find(o => String(o.id) === selectedBomberoId);
-                  const nombre = ref ? [ref.nombres, ref.apellidos].filter(Boolean).join(' ').trim() : '';
-                  return `${nombre || `Bombero ${selectedBomberoId}`} (no en listado actual)`;
-                })()}
-              </option>
-            )}
-            {bomberos.map((o) => {
-              const nombre = [o.nombres, o.apellidos].filter(Boolean).join(' ').trim();
-              const label = nombre || `Bombero ${o.id}`;
-              return (
-                <option key={o.id} value={String(o.id)}>{label}</option>
-              );
-            })}
-          </select>
+          <Select
+            isDisabled={noCompania || loadingBomberos}
+            isLoading={loadingBomberos}
+            value={bomberoValue}
+            options={bomberoOptions}
+            menuPortalTarget={selectMenuPortalTarget}
+            onChange={(option) => set('bomberoId', option?.value ?? '')}
+            placeholder={
+              noCompania
+                ? 'Seleccione compañía en Datos generales…'
+                : loadingBomberos
+                  ? 'Cargando…'
+                  : 'Buscar bombero...'
+            }
+            noOptionsMessage={() =>
+              loadingBomberos ? 'Cargando...' : 'No hay bomberos disponibles'
+            }
+            styles={selectStyles}
+            classNamePrefix="bombero-select"
+            filterOption={filterOptionByLabelOrRun}
+            isClearable
+          />
         </div>
 
-        <div className="col-span-2 lg:col-span-1">
+        <div className="sm:col-span-2 md:col-span-1">
           <label className="block text-xs text-gray-600 mb-1">N° total de voluntarios en unidad</label>
           <input
             type="number"
             min={0}
             step={1}
             inputMode="numeric"
-            className={baseInput}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400"
             value={value.voluntarios ?? ''}
-            onChange={(e) => setVoluntarios(e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') return set('voluntarios', '');
+              const n = Number(raw);
+              if (Number.isFinite(n) && n >= 0) set('voluntarios', Math.trunc(n));
+            }}
             placeholder="0"
           />
         </div>
 
-        <div className="col-span-2 lg:col-span-1">
+        <div className="sm:col-span-2 md:col-span-1">
           <label className="block text-xs text-gray-600 mb-1">KM salida</label>
           <input
             type="number"
-            min={1}
+            min={0}
             step={1}
             inputMode="numeric"
-            className={baseInput}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400"
             value={value.kmSalida ?? ''}
-            onChange={(e) => setKm('kmSalida', e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') return set('kmSalida', '');
+              const n = Number(raw);
+              if (Number.isFinite(n) && n >= 0) set('kmSalida', Math.trunc(n));
+            }}
             placeholder="Ej: 12345"
           />
         </div>
-        <div className="col-span-2 lg:col-span-1">
+        <div className="sm:col-span-2 md:col-span-1">
           <label className="block text-xs text-gray-600 mb-1">KM llegada</label>
           <input
             type="number"
-            min={1}
+            min={0}
             step={1}
             inputMode="numeric"
-            className={baseInput}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400"
             value={value.kmLlegada ?? ''}
-            onChange={(e) => setKm('kmLlegada', e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value;
+              if (raw === '') return set('kmLlegada', '');
+              const n = Number(raw);
+              if (Number.isFinite(n) && n >= 0) set('kmLlegada', Math.trunc(n));
+            }}
             placeholder="Ej: 12350"
           />
         </div>

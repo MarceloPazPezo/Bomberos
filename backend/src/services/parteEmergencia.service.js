@@ -1,8 +1,14 @@
 "use strict";
 import { AppDataSource } from "../config/configDb.js";
 import { In } from "typeorm";
+import logger from "../config/configLogger.js";
 
 export async function obtenerPartePorIdService(idIncidente, options = {}) {
+  const startTime = Date.now();
+  const startMemory = process.memoryUsage().heapUsed;
+  
+  logger.info(`[PARTE_SERVICE] Iniciando obtenerPartePorIdService para incidente ${idIncidente}`);
+  
   const manager = AppDataSource.manager;
   const incidenteRepo = manager.getRepository('Incidente');
   const estadoRepo = manager.getRepository('EstadoEstablecido');
@@ -101,22 +107,25 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
     })
   }));
 
-  const vehiculos = (vehiculosRaw || []).map(v => ({
-    id: v.id,
-    patente: v.patente,
-    marca: v.marca || '',
-    modelo: v.modelo || '',
-    anio: null,
-    color: v.color || '',
-    danos_vehiculo: v.descripciondanos || '',
-    dueno: v.dueno ? {
-      id: v.dueno.id, nombreCompleto: v.dueno.nombreCompleto, run: v.dueno.run, telefono: v.dueno.telefono, edad: v.dueno.edad, descripcionGravedad: v.dueno.descripcionGravedad, esEmpresa: v.dueno.esEmpresa,
-    } : null,
-    chofer: v.conductor ? {
-      id: v.conductor.id, nombreCompleto: v.conductor.nombreCompleto, run: v.conductor.run, telefono: v.conductor.telefono, edad: v.conductor.edad, descripcionGravedad: v.conductor.descripcionGravedad, esEmpresa: false,
-    } : null,
-    pasajeros: (v.pasajeros || []).map(p => ({ id: p.afectado?.id, nombreCompleto: p.afectado?.nombreCompleto, run: p.afectado?.run, telefono: p.afectado?.telefono, edad: p.afectado?.edad, descripcionGravedad: p.afectado?.descripcionGravedad, esEmpresa: false, idVinculo: p.vinculo?.id }))
-  }));
+  const vehiculos = (vehiculosRaw || []).map(v => {
+    console.log('[DEBUG obtenerPartePorIdService] Vehiculo desde DB:', { id: v.id, patente: v.patente, anio: v.anio });
+    return {
+      id: v.id,
+      patente: v.patente,
+      marca: v.marca || '',
+      modelo: v.modelo || '',
+      anio: v.anio || null,
+      color: v.color || '',
+      danos_vehiculo: v.descripciondanos || '',
+      dueno: v.dueno ? {
+        id: v.dueno.id, nombreCompleto: v.dueno.nombreCompleto, run: v.dueno.run, telefono: v.dueno.telefono, edad: v.dueno.edad, descripcionGravedad: v.dueno.descripcionGravedad, esEmpresa: v.dueno.esEmpresa,
+      } : null,
+      chofer: v.conductor ? {
+        id: v.conductor.id, nombreCompleto: v.conductor.nombreCompleto, run: v.conductor.run, telefono: v.conductor.telefono, edad: v.conductor.edad, descripcionGravedad: v.conductor.descripcionGravedad, esEmpresa: false,
+      } : null,
+      pasajeros: (v.pasajeros || []).map(p => ({ id: p.afectado?.id, nombreCompleto: p.afectado?.nombreCompleto, run: p.afectado?.run, telefono: p.afectado?.telefono, edad: p.afectado?.edad, descripcionGravedad: p.afectado?.descripcionGravedad, esEmpresa: false, idVinculo: p.vinculo?.id }))
+    };
+  });
   const materialMayor = (despachos || []).map(e => ({ id: `${e.idCarro}-${e.idBomberoMaquinista}`, unidadId: e.idCarro, conductorId: e.idBomberoMaquinista, bomberoId: e.idBomberoMaquinista, voluntarios: e.nPersonal || 0, kmSalida: e.kmSalida || null, kmLlegada: e.kmLlegada || null }));
   // Accidentados: necesitamos companiaId desde FichaBombero (idCompania)
   const accList = accidentadosRaw || [];
@@ -185,6 +194,15 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
     createdAt: incidente.creadoEl,
     updatedAt: incidente.actualizadoEl,
   };
+  
+  const endTime = Date.now();
+  const endMemory = process.memoryUsage().heapUsed;
+  const duration = endTime - startTime;
+  const memoryUsed = Math.round((endMemory - startMemory) / 1024 / 1024);
+  
+  logger.info(`[PARTE_SERVICE] obtenerPartePorIdService completado en ${duration}ms, memoria usada: ${memoryUsed}MB`);
+  
+  return resultado;
 }
 
 // Versión detallada: incluye nombres y objetos enriquecidos en lugar de sólo IDs
@@ -220,8 +238,8 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
     inmRepo.find({ where: { idIncidente }, relations: { habitaAfectados: true, propietario: true, direccion: true } }),
     // Vehículos con dueño/chofer/pasajeros->afectado y vinculo
     vehRepo.find({ where: { idIncidente }, relations: { dueno: true, conductor: true, pasajeros: { afectado: true, vinculo: true } } }),
-    // Despachos con carro y bombero maquinista
-    despRepo.find({ where: { idIncidente }, relations: { carro: true, bomberoMaquinista: true } }),
+    // Despachos con carro, bombero maquinista y bombero a cargo
+    despRepo.find({ where: { idIncidente }, relations: { carro: true, bomberoMaquinista: true, bomberoACargo: true } }),
     // Accidentados (luego completamos compañía via Ficha)
     accRepo.find({ where: { idIncidente }, relations: { bombero: true } }),
     // Otros servicios con nombre de servicio
@@ -292,36 +310,40 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
   }));
 
   // Vehículos detallados
-  const vehiculos = (vehiculosRaw || []).map(v => ({
-    id: v.id,
-    patente: v.patente,
-    marca: v.marca || '',
-    modelo: v.modelo || '',
-    anio: null,
-    color: v.color || '',
-    danos_vehiculo: v.descripciondanos || '',
-    dueno: v.dueno ? {
-      id: v.dueno.id, nombreCompleto: v.dueno.nombreCompleto, run: v.dueno.run || null, telefono: v.dueno.telefono || null, edad: v.dueno.edad || null, descripcionGravedad: v.dueno.descripcionGravedad || null, esEmpresa: !!v.dueno.esEmpresa,
-    } : null,
-    chofer: v.conductor ? {
-      id: v.conductor.id, nombreCompleto: v.conductor.nombreCompleto, run: v.conductor.run || null, telefono: v.conductor.telefono || null, edad: v.conductor.edad || null, descripcionGravedad: v.conductor.descripcionGravedad || null, esEmpresa: false,
-    } : null,
-    pasajeros: (v.pasajeros || []).map(p => ({
-      id: p.afectado?.id ?? null,
-      nombreCompleto: p.afectado?.nombreCompleto || '',
-      run: p.afectado?.run || null,
-      telefono: p.afectado?.telefono || null,
-      edad: p.afectado?.edad || null,
-      descripcionGravedad: p.afectado?.descripcionGravedad || null,
-      esEmpresa: false,
-      vinculo: p.vinculo ? { id: p.vinculo.id, nombre: p.vinculo.nombre } : (p.idVinculo ? { id: p.idVinculo, nombre: null } : null)
-    }))
-  }));
+  const vehiculos = (vehiculosRaw || []).map(v => {
+    console.log('[DEBUG obtenerParteDetalladoPorIdService] Vehiculo desde DB:', { id: v.id, patente: v.patente, anio: v.anio });
+    return {
+      id: v.id,
+      patente: v.patente,
+      marca: v.marca || '',
+      modelo: v.modelo || '',
+      anio: v.anio || null,
+      color: v.color || '',
+      danos_vehiculo: v.descripciondanos || '',
+      dueno: v.dueno ? {
+        id: v.dueno.id, nombreCompleto: v.dueno.nombreCompleto, run: v.dueno.run || null, telefono: v.dueno.telefono || null, edad: v.dueno.edad || null, descripcionGravedad: v.dueno.descripcionGravedad || null, esEmpresa: !!v.dueno.esEmpresa,
+      } : null,
+      chofer: v.conductor ? {
+        id: v.conductor.id, nombreCompleto: v.conductor.nombreCompleto, run: v.conductor.run || null, telefono: v.conductor.telefono || null, edad: v.conductor.edad || null, descripcionGravedad: v.conductor.descripcionGravedad || null, esEmpresa: false,
+      } : null,
+      pasajeros: (v.pasajeros || []).map(p => ({
+        id: p.afectado?.id ?? null,
+        nombreCompleto: p.afectado?.nombreCompleto || '',
+        run: p.afectado?.run || null,
+        telefono: p.afectado?.telefono || null,
+        edad: p.afectado?.edad || null,
+        descripcionGravedad: p.afectado?.descripcionGravedad || null,
+        esEmpresa: false,
+        vinculo: p.vinculo ? { id: p.vinculo.id, nombre: p.vinculo.nombre } : (p.idVinculo ? { id: p.idVinculo, nombre: null } : null)
+      }))
+    };
+  });
 
-  // Material mayor con unidad (carro) y conductor nombre
+  // Material mayor con unidad (carro), conductor y bombero a cargo
   const materialMayor = (despachosRaw || []).map(e => ({
     unidad: e.carro ? { id: e.carro.id, patente: e.carro.patente } : { id: e.idCarro, patente: null },
     conductor: bomberoToPersona(e.bomberoMaquinista) || (e.idBomberoMaquinista ? { id: e.idBomberoMaquinista, nombreCompleto: null, run: null } : null),
+    bomberoACargo: bomberoToPersona(e.bomberoACargo) || (e.idBomberoACargo ? { id: e.idBomberoACargo, nombreCompleto: null, run: null } : null),
     voluntarios: e.nPersonal || 0,
     kmSalida: e.kmSalida || null,
     kmLlegada: e.kmLlegada || null,
@@ -539,6 +561,7 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
   // 5) Vehículos: eliminar faltantes; upsert dueno/chofer; pasajeros recreate por vehiculo
   const actualesVeh = await vehRepo.find({ where: { idIncidente }, relations: { pasajeros: true } });
   const idsPayloadVeh = new Set((payload.vehiculos || []).map(v => v.id).filter(Boolean));
+  console.log('[DEBUG actualizarParteCompletoService] Vehículos recibidos en payload:', payload.vehiculos);
   for (const ex of actualesVeh) { if (!idsPayloadVeh.has(ex.id)) { if (ex.pasajeros?.length) { for (const p of ex.pasajeros) await pasRepo.remove(p); } await vehRepo.remove(ex); } }
   for (const v of (payload.vehiculos || [])) {
     const idDueno = await upsertAfectado(v.dueno);
@@ -546,12 +569,12 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
     if (v.id) {
       const ex = await vehRepo.findOne({ where: { id: v.id }, relations: { pasajeros: true } });
       if (ex) {
-        ex.patente = v.patente; ex.color = v.color || null; ex.marca = v.marca || null; ex.modelo = v.modelo || null; ex.descripciondanos = v.danos_vehiculo || null; ex.idDueno = idDueno || null; ex.idConductor = idConductor || null; await vehRepo.save(ex);
+        ex.patente = v.patente; ex.color = v.color || null; ex.marca = v.marca || null; ex.modelo = v.modelo || null; ex.anio = v.anio || null; ex.descripciondanos = v.danos_vehiculo || null; ex.idDueno = idDueno || null; ex.idConductor = idConductor || null; await vehRepo.save(ex);
         if (ex.pasajeros?.length) { for (const p of ex.pasajeros) await pasRepo.remove(p); }
         if (Array.isArray(v.pasajeros)) { for (const p of v.pasajeros) { const idA = await upsertAfectado(p); const idVinculo = p.idVinculo ? Number(p.idVinculo) : 1; await pasRepo.save(pasRepo.create({ idVehiculo: ex.id, idAfectado: idA, idVinculo, esCopiloto: false })); } }
       }
     } else {
-      const ent = vehRepo.create({ patente: v.patente, color: v.color || null, marca: v.marca || null, modelo: v.modelo || null, descripciondanos: v.danos_vehiculo || null, idDueno: idDueno || null, idConductor: idConductor || null, idIncidente });
+      const ent = vehRepo.create({ patente: v.patente, color: v.color || null, marca: v.marca || null, modelo: v.modelo || null, anio: v.anio || null, descripciondanos: v.danos_vehiculo || null, idDueno: idDueno || null, idConductor: idConductor || null, idIncidente });
       const saved = await vehRepo.save(ent);
       if (Array.isArray(v.pasajeros)) { for (const p of v.pasajeros) { const idA = await upsertAfectado(p); const idVinculo = p.idVinculo ? Number(p.idVinculo) : 1; await pasRepo.save(pasRepo.create({ idVehiculo: saved.id, idAfectado: idA, idVinculo, esCopiloto: false })); } }
     }
@@ -561,7 +584,15 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
   const actualesDesp = await despRepo.find({ where: { idIncidente } });
   if (actualesDesp.length) { for (const d of actualesDesp) await despRepo.remove(d); }
   for (const m of (payload.materialMayor || [])) {
-    await despRepo.save(despRepo.create({ idBomberoMaquinista: Number(m.conductorId), idIncidente, idCarro: Number(m.unidadId), kmSalida: m.kmSalida || null, kmLlegada: m.kmLlegada || null, nPersonal: m.voluntarios || null }));
+    await despRepo.save(despRepo.create({ 
+      idBomberoMaquinista: Number(m.conductorId), 
+      idIncidente, 
+      idCarro: Number(m.unidadId), 
+      idBomberoACargo: m.bomberoId ? Number(m.bomberoId) : null,
+      kmSalida: m.kmSalida || null, 
+      kmLlegada: m.kmLlegada || null, 
+      nPersonal: m.voluntarios || null 
+    }));
   }
 
   // 7) Accidentados: recreate por PK compuesta (idBombero, idIncidente)

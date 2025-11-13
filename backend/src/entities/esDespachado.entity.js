@@ -8,6 +8,7 @@ const EsDespachadoSchema = new EntitySchema({
         idBomberoMaquinista: { type: "int", primary: true },
         idIncidente: { type: "int", primary: true },
         idCarro: { type: "int", primary: true },
+        idBomberoACargo: { type: "int", nullable: true },
         kmSalida: { type: "int", nullable: true },
         kmLlegada: { type: "int", nullable: true },
         nPersonal: { type: "int", nullable: true },
@@ -22,6 +23,12 @@ const EsDespachadoSchema = new EntitySchema({
             type: "many-to-one",
             target: "Bombero",
             joinColumn: { name: "idBomberoMaquinista", referencedColumnName: "id" },
+            onDelete: "RESTRICT",
+        },
+        bomberoACargo: {
+            type: "many-to-one",
+            target: "Bombero",
+            joinColumn: { name: "idBomberoACargo", referencedColumnName: "id" },
             onDelete: "RESTRICT",
         },
         incidente: {

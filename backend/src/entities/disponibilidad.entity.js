@@ -35,7 +35,7 @@ const DisponibilidadSchema = new EntitySchema({
         referencedColumnName: "id",
         onDelete: "CASCADE", // si se borra el bombero, se borran sus disponibilidades
       },
-        eager: true, // activa si quieres cargar siempre el bombero
+      eager: true, // ✅ OK: Bombero no tiene relación inversa eager hacia Disponibilidad
     },
   },
 });

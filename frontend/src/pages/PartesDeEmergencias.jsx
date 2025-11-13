@@ -288,7 +288,7 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
           <Button 
             icon="pi pi-pencil" 
             className="p-button-sm p-button-text p-button-warning" 
-            onClick={() => navigate(`/editarparte/${row.id}`)} 
+            onClick={() => navigate(`/editar-parte/${row.id}`)} 
             tooltip="Actualizar"
             tooltipOptions={{ position: 'top' }}
           />
@@ -543,7 +543,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
             {canEdit && (
               <button
                 className="rounded-md bg-blue-600 text-white px-3 py-2 hover:bg-blue-700 inline-flex items-center justify-center gap-2"
-                onClick={() => parte?.id && navigate(`/editarparte/${parte.id}`)}
+                onClick={() => parte?.id && navigate(`/editar-parte/${parte.id}`)}
               >
                 <Pencil className="h-4 w-4" /> Actualizar parte
               </button>
@@ -727,7 +727,7 @@ export default function PartesDeEmergencias() {
             <div className="ml-auto flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => navigate('/crearParte')}
+                onClick={() => navigate('/crear-parte')}
                 className="inline-flex items-center gap-2 rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <Plus className="h-4 w-4" /> Crear parte de emergencia

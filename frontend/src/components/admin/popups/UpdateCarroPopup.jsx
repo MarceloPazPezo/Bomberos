@@ -216,8 +216,8 @@ const UpdateCarroPopup = ({ show, setShow, onCarroUpdated, onUpdatingChange, car
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
                     <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                            <MdDirectionsCar className="w-6 h-6 text-white" />
+                        <div className="p-2 bg-white rounded-lg">
+                            <MdDirectionsCar className="w-6 h-6 text-[#3A9BD9]" />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">

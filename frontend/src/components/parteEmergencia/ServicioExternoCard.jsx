@@ -1,4 +1,7 @@
+import { useMemo } from 'react';
 import { Handshake, Trash2 } from 'lucide-react';
+import Select from 'react-select';
+import { toStartCase } from '@helpers/textFormatters.js';
 
 
 function ServicioExternoCard({
@@ -12,6 +15,74 @@ function ServicioExternoCard({
 }) {
   const baseInput =
     'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
+
+  const selectStyles = useMemo(() => ({
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+      borderWidth: '2px',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+      '&:hover': {
+        borderColor: '#4EB9FA',
+      },
+      minHeight: '42px',
+      borderRadius: '10px',
+      fontSize: '0.85rem',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 35,
+      borderRadius: '10px',
+      overflow: 'hidden',
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '260px',
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? '#4EB9FA'
+        : state.isFocused
+          ? '#E0F2FE'
+          : 'white',
+      color: state.isSelected ? '#FFFFFF' : '#1F2937',
+      fontSize: '0.85rem',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontSize: '0.85rem',
+      color: '#9CA3AF',
+    }),
+    input: (base) => ({
+      ...base,
+      fontSize: '0.85rem',
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: '0.85rem',
+      color: '#1F2937',
+    }),
+  }), []);
+
+  const servicioOptions = useMemo(() => servicios.map((s) => {
+    const valueOption = s.id?.toString() ?? '';
+    if (!valueOption) return null;
+    const rawName = s.nombre ?? s.label ?? `Servicio ${valueOption}`;
+    const formattedName = toStartCase(rawName);
+    return {
+      value: valueOption,
+      label: formattedName,
+      data: {
+        nombre: (rawName || '').toLowerCase(),
+      },
+    };
+  }).filter(Boolean), [servicios]);
+
+  const selectedServicioOption = useMemo(() => {
+    if (!value.servicioId) return null;
+    return servicioOptions.find((opt) => opt.value === value.servicioId.toString()) || null;
+  }, [value.servicioId, servicioOptions]);
 
   const set = (k, v) => onChange({ ...value, [k]: v });
 
@@ -41,20 +112,19 @@ function ServicioExternoCard({
         {/* Desplegable de servicio */}
         <div className="lg:col-span-2">
           <label className="block text-xs text-gray-600 mb-1">Servicio</label>
-          <select
-            className={baseInput}
-            value={value.servicioId || ''}
-            onChange={(e) => set('servicioId', e.target.value || '')}
-            disabled={loadingServicios}
-          >
-            <option value="">{loadingServicios ? 'Cargando…' : 'Selecciona servicio…'}</option>
-            {errorServicios && <option value="" disabled>{errorServicios}</option>}
-            {servicios.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nombre ?? s.label ?? `Servicio ${s.id}`}
-              </option>
-            ))}
-          </select>
+          <Select
+            isSearchable
+            isClearable
+            isDisabled={loadingServicios}
+            isLoading={loadingServicios}
+            options={servicioOptions}
+            value={selectedServicioOption}
+            onChange={(option) => set('servicioId', option?.value ?? '')}
+            placeholder={loadingServicios ? 'Cargando servicios...' : errorServicios || 'Buscar servicio...'}
+            noOptionsMessage={() => loadingServicios ? 'Cargando...' : 'Sin coincidencias'}
+            styles={selectStyles}
+            classNamePrefix="servicio-select"
+          />
         </div>
 
         {/* Tipo de unidad */}

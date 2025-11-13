@@ -311,6 +311,7 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                 updateData.idTipoSangre = formData.idTipoSangre ? parseInt(formData.idTipoSangre) : null;
             } else if (activeTab === 'direccion') {
                 // Enviar datos de dirección completos
+                console.log('📍 [EditBomberoModal] Preparando datos de dirección para enviar:', direccionData);
                 if (direccionData) {
                     updateData.direccion = {
                         calle: direccionData.calle || null,
@@ -325,11 +326,19 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                         latitud: direccionData.latitud || null,
                         longitud: direccionData.longitud || null
                     };
+                    console.log('📍 [EditBomberoModal] Datos de dirección a enviar:', updateData.direccion);
+                    console.log('📍 [EditBomberoModal] Coordenadas:', {
+                        latitud: updateData.direccion.latitud,
+                        longitud: updateData.direccion.longitud,
+                        tipoLatitud: typeof updateData.direccion.latitud,
+                        tipoLongitud: typeof updateData.direccion.longitud
+                    });
                     // Remover idComuna si es undefined para que no se envíe
                     if (updateData.direccion.idComuna === undefined) {
                         delete updateData.direccion.idComuna;
                     }
                 } else {
+                    console.log('⚠️ [EditBomberoModal] No hay direccionData, enviando null');
                     updateData.direccion = null;
                 }
             }

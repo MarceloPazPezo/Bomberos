@@ -1,9 +1,11 @@
 "use strict";
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
-import { actualizarParteEmergencia, borrarParteEmergencia, 
-    crearParteEmergencia, generarReporteParteEmergenciaPdf, obtenerParteEmergenciaDetallado, 
-    obtenerParteEmergenciaPorId, obtenerUltimoEstadoIncidente } from "../controllers/parteEmergencia.controller.js";
+import {
+    actualizarParteEmergencia, borrarParteEmergencia,
+    crearParteEmergencia, generarReporteParteEmergenciaPdf, obtenerParteEmergenciaDetallado,
+    obtenerParteEmergenciaPorId, obtenerUltimoEstadoIncidente
+} from "../controllers/parteEmergencia.controller.js";
 
 const router = Router();
 router.post("/", crearParteEmergencia);
