@@ -1,31 +1,61 @@
 import PDFDocument from 'pdfkit';
 import { AppDataSource } from '../../config/configDb.js';
-import { CUERPO_LOGO_KEY } from '../../config/configEnv.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import fs from 'fs';
 import { BUCKETS } from '../../config/configMinIO.js';
 import logger from '../../config/configLogger.js';
-import { downloadFile, generateUniqueFileName, getSignedUrl, uploadFile } from '../minio.service.js';
+import {
+  downloadFile,
+  generateUniqueFileName,
+  getSignedUrl,
+  scheduleFileDeletion,
+  uploadFile,
+} from '../minio.service.js';
 import { obtenerParteDetalladoPorIdService } from '../parteEmergencia.service.js';
 
-const DEFAULT_EXPIRY_SECONDS = 30 * 60; // 30 minutos
-const SECTION_SPACING = 12;
-const SMALL_SPACING = 6;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const LOGO_BOMBEROS_PATH = join(__dirname, '../../templates/logoBomberos');
 
-function formatDate(value, withTime = false) {
-  if (!value) return '-';
+const DEFAULT_EXPIRY_SECONDS = 30 * 60; // 30 minutos
+
+// ==================== CONSTANTES DE DISEÑO ====================
+const MARGINS = {
+  top: 40,
+  bottom: 40,
+  left: 40,
+  right: 40,
+};
+
+const COLORS = {
+  primary: '#000000',
+  border: '#000000',
+  headerBg: '#ffffff',
+};
+
+const FONTS = {
+  title: { family: 'Helvetica-Bold', size: 16 },
+  subtitle: { family: 'Helvetica-Bold', size: 11 },
+  normal: { family: 'Helvetica', size: 9 },
+  small: { family: 'Helvetica', size: 8 },
+};
+
+// ==================== UTILIDADES ====================
+
+function formatDate(value) {
+  if (!value) return '';
   try {
     const date = value instanceof Date ? value : new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    const options = withTime
-      ? { dateStyle: 'medium', timeStyle: 'short' }
-      : { dateStyle: 'medium' };
-    return new Intl.DateTimeFormat('es-CL', options).format(date);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
   } catch {
-    return '-';
+    return '';
   }
 }
 
 function formatTime(value) {
-  if (!value) return '-';
+  if (!value) return '';
   if (typeof value === 'string' && /^\d{2}:\d{2}/.test(value)) {
     return value.slice(0, 5);
   }
@@ -40,27 +70,180 @@ function formatTime(value) {
   return String(value);
 }
 
-function writeKeyValue(doc, label, value) {
-  doc.font('Helvetica-Bold').text(`${label}: `, { continued: true });
-  doc.font('Helvetica').text(value ?? '-');
+function formatRun(run) {
+  if (!run) return '';
+  const cleanRun = String(run).replace(/[.-]/g, '');
+  if (cleanRun.length < 2) return run;
+  const dv = cleanRun.slice(-1);
+  const numbers = cleanRun.slice(0, -1);
+  const formatted = numbers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${formatted}-${dv}`;
 }
 
-function writeSectionTitle(doc, title) {
-  doc.moveDown(0.5);
-  doc.font('Helvetica-Bold').fontSize(13).text(title);
-  doc.moveDown(0.2);
-  doc.font('Helvetica').fontSize(11);
-}
+// ==================== FUNCIONES DE DIBUJO ====================
 
-function writeList(doc, items, emptyText = 'Sin registros') {
-  if (!Array.isArray(items) || items.length === 0) {
-    doc.text(`• ${emptyText}`);
-    return;
-  }
-  items.forEach((item) => {
-    doc.text(`• ${item}`);
+function drawHeader(doc, logos, parte) {
+  const { bomberosLogoBuffer, companiaLogoBuffer } = logos;
+  const pageWidth = doc.page.width;
+  const logoSize = 60;
+  const logoY = MARGINS.top;
+
+  const drawLogo = (buffer, x, y, label) => {
+    if (!buffer) return 0;
+    try {
+      const image = doc.openImage(buffer);
+      const scale = Math.min(logoSize / image.width, logoSize / image.height);
+      const drawWidth = image.width * scale;
+      const drawHeight = image.height * scale;
+      const offsetX = x + (logoSize - drawWidth) / 2;
+      const offsetY = y + (logoSize - drawHeight) / 2;
+      doc.image(image, offsetX, offsetY, { width: drawWidth, height: drawHeight });
+      return drawHeight;
+    } catch (error) {
+      logger.warn(`[PDF] Error dibujando logo de ${label}: ${error.message}`);
+      return 0;
+    }
+  };
+
+  const leftLogoHeight = drawLogo(bomberosLogoBuffer, MARGINS.left, logoY, 'Bomberos');
+  const rightLogoHeight = drawLogo(
+    companiaLogoBuffer,
+    pageWidth - MARGINS.right - logoSize,
+    logoY,
+    'compañía',
+  );
+
+  // Texto central
+  const textY = logoY + 5;
+  doc.font(FONTS.normal.family)
+    .fontSize(FONTS.normal.size)
+    .text(parte.compania?.nombre || 'Primera compañía', MARGINS.left + logoSize + 10, textY, {
+      width: pageWidth - (MARGINS.left + logoSize + 10) - (MARGINS.right + logoSize + 10),
+      align: 'center',
+    });
+
+  doc.text('Cuerpo de Bomberos Cabrero', MARGINS.left + logoSize + 10, textY + 12, {
+    width: pageWidth - (MARGINS.left + logoSize + 10) - (MARGINS.right + logoSize + 10),
+    align: 'center',
   });
+
+  // Título
+  doc.font(FONTS.title.family)
+    .fontSize(FONTS.title.size)
+    .text('Parte de emergencias', MARGINS.left, textY + 35, {
+      width: pageWidth - MARGINS.left - MARGINS.right,
+      align: 'center',
+    });
+
+  doc.text(`${parte.subtipo?.claveRadial || parte.id}`, MARGINS.left, textY + 52, {
+    width: pageWidth - MARGINS.left - MARGINS.right,
+    align: 'center',
+  });
+
+  const maxLogoHeight = Math.max(leftLogoHeight, rightLogoHeight, logoSize);
+  doc.y = logoY + maxLogoHeight + 30;
 }
+
+function drawSimpleTable(doc, x, y, width, rows, title = null) {
+  let currentY = y;
+
+  if (title) {
+    doc.font(FONTS.subtitle.family).fontSize(FONTS.subtitle.size);
+    doc.text(title, x, currentY);
+    currentY += 15;
+  }
+
+  rows.forEach(([label, rawValue]) => {
+    const labelText = label ?? '';
+    const valueText = rawValue || '';
+    const labelWidth = width * 0.4;
+    const valueWidth = width - labelWidth;
+
+    doc.font(FONTS.normal.family).fontSize(FONTS.normal.size);
+    const labelHeight = doc.heightOfString(labelText, { width: labelWidth - 6 });
+    const valueHeight = doc.heightOfString(valueText, { width: valueWidth - 6 });
+    const cellHeight = Math.max(18, Math.max(labelHeight, valueHeight) + 10);
+
+    doc.rect(x, currentY, labelWidth, cellHeight).stroke();
+    doc.rect(x + labelWidth, currentY, valueWidth, cellHeight).stroke();
+
+    doc.text(labelText, x + 3, currentY + 5, { width: labelWidth - 6, lineBreak: true });
+    doc.text(valueText, x + labelWidth + 3, currentY + 5, { width: valueWidth - 6, lineBreak: true });
+
+    currentY += cellHeight;
+  });
+
+  return currentY;
+}
+
+function drawWideTable(doc, x, y, width, rows, title = null) {
+  let currentY = y;
+
+  if (title) {
+    doc.font(FONTS.subtitle.family).fontSize(FONTS.subtitle.size);
+    doc.text(title, x, currentY);
+    currentY += 15;
+  }
+
+  rows.forEach(([label, rawValue]) => {
+    const labelText = label ?? '';
+    const valueText = rawValue || '';
+    const labelWidth = width * 0.2;
+    const valueWidth = width - labelWidth;
+
+    doc.font(FONTS.normal.family).fontSize(FONTS.normal.size);
+    const labelHeight = doc.heightOfString(labelText, { width: labelWidth - 6 });
+    const valueHeight = doc.heightOfString(valueText, { width: valueWidth - 6 });
+    const cellHeight = Math.max(18, Math.max(labelHeight, valueHeight) + 10);
+
+    doc.rect(x, currentY, labelWidth, cellHeight).stroke();
+    doc.rect(x + labelWidth, currentY, valueWidth, cellHeight).stroke();
+
+    doc.text(labelText, x + 3, currentY + 5, { width: labelWidth - 6, lineBreak: true });
+    doc.text(valueText, x + labelWidth + 3, currentY + 5, { width: valueWidth - 6, lineBreak: true });
+
+    currentY += cellHeight;
+  });
+
+  return currentY;
+}
+
+function drawMultiColumnTable(doc, x, y, width, headers, rows, title = null) {
+  let currentY = y;
+
+  if (title) {
+    doc.font(FONTS.subtitle.family).fontSize(FONTS.subtitle.size);
+    doc.text(title, x, currentY);
+    currentY += 15;
+  }
+
+  const cellHeight = 18;
+  const numCols = headers.length;
+  const colWidth = width / numCols;
+
+  // Headers
+  headers.forEach((header, i) => {
+    doc.rect(x + (i * colWidth), currentY, colWidth, cellHeight).stroke();
+    doc.font(FONTS.normal.family).fontSize(FONTS.normal.size);
+    doc.text(header, x + (i * colWidth) + 3, currentY + 5, { width: colWidth - 6, lineBreak: false });
+  });
+
+  currentY += cellHeight;
+
+  // Rows
+  rows.forEach((row) => {
+    row.forEach((cell, i) => {
+      doc.rect(x + (i * colWidth), currentY, colWidth, cellHeight).stroke();
+      doc.font(FONTS.normal.family).fontSize(FONTS.normal.size);
+      doc.text(cell || '', x + (i * colWidth) + 3, currentY + 5, { width: colWidth - 6, lineBreak: false });
+    });
+    currentY += cellHeight;
+  });
+
+  return currentY;
+}
+
+// ==================== OBTENER LOGOS ====================
 
 async function fetchLogoBuffer(bucket, key, label) {
   if (!key) return null;
@@ -72,344 +255,327 @@ async function fetchLogoBuffer(bucket, key, label) {
   }
 }
 
-function drawHeader(doc, logos, parte) {
-  const { cuerpoLogo, companiaLogo } = logos;
-  const marginLeft = doc.page.margins.left;
-  const marginRight = doc.page.width - doc.page.margins.right;
-  const headerY = doc.page.margins.top;
-  const logoWidth = 110;
-  let headerHeight = 0;
+async function getLogos(companiaId) {
+  let companiaLogoBuffer = null;
+  let bomberosLogoBuffer = null;
 
-  if (cuerpoLogo) {
-    doc.image(cuerpoLogo, marginLeft, headerY, { fit: [logoWidth, 80], align: 'left' });
-    headerHeight = Math.max(headerHeight, 80);
-  } else {
-    doc.font('Helvetica-Bold').fontSize(10).text('LOGO CUERPO', marginLeft, headerY);
-    doc.font('Helvetica').fontSize(11);
-    headerHeight = Math.max(headerHeight, 12);
-  }
-
-  if (companiaLogo) {
-    doc.image(companiaLogo, marginRight - logoWidth, headerY, { fit: [logoWidth, 80], align: 'right' });
-    headerHeight = Math.max(headerHeight, 80);
-  } else {
-    doc.font('Helvetica-Bold').fontSize(10).text('LOGO COMPAÑÍA', marginRight - logoWidth, headerY, {
-      align: 'right',
-    });
-    doc.font('Helvetica').fontSize(11);
-    headerHeight = Math.max(headerHeight, 12);
-  }
-
-  const titleY = headerY + headerHeight + SMALL_SPACING;
-  doc.moveTo(marginLeft, titleY).lineTo(marginRight, titleY).strokeColor('#333333').lineWidth(1).stroke();
-  doc.moveDown(1.2);
-
-  doc.font('Helvetica-Bold').fontSize(18).text(`Parte de Emergencia #${parte.id}`, {
-    align: 'center',
-  });
-  doc.moveDown(0.2);
-  doc.fontSize(12).text(`Fecha de emisión: ${formatDate(new Date(), true)}`, { align: 'center' });
-  doc.moveDown(0.2);
-  doc.text(`Compañía: ${parte.compania?.nombre || `ID ${parte.compania?.id || '-'}`}`, {
-    align: 'center',
-  });
-  doc.moveDown(0.5);
-  doc.fontSize(11);
-  doc.moveDown();
-}
-
-function appendAntecedentesGenerales(doc, parte) {
-  writeSectionTitle(doc, 'Antecedentes Generales');
-  writeKeyValue(doc, 'Fecha del despacho', formatDate(parte.fecha));
-  writeKeyValue(doc, 'Hora del despacho', formatTime(parte.horaDespacho));
-  writeKeyValue(doc, 'Dirección', [
-    parte?.direccion?.calle,
-    parte?.direccion?.numero,
-    parte?.direccion?.depto ? `Depto ${parte.direccion.depto}` : null,
-  ].filter(Boolean).join(' ') || '-');
-  writeKeyValue(doc, 'Comuna', parte?.direccion?.comuna?.nombre || '-');
-  writeKeyValue(doc, 'Referencia', parte?.direccion?.referencia || '-');
-
-  doc.moveDown(0.4);
-  writeKeyValue(doc, 'Redactor', parte?.redactor?.nombreCompleto || '-');
-  writeKeyValue(doc, 'Bombero a cargo', parte?.bomberoACargo?.nombreCompleto || '-');
-}
-
-function appendTimeline(doc, parte) {
-  writeSectionTitle(doc, 'Secuencia Operativa');
-  const hitos = [
-    ['6-0', parte?.hora6_0],
-    ['6-3', parte?.hora6_3],
-    ['6-9', parte?.hora6_9],
-    ['6-10', parte?.hora6_10],
-  ];
-  hitos.forEach(([label, time]) => {
-    writeKeyValue(doc, label, formatTime(time));
-  });
-}
-
-function appendDescripcion(doc, parte) {
-  writeSectionTitle(doc, 'Descripción Preliminar');
-  doc.text(parte.descripcionPreliminar || '-', {
-    align: 'justify',
-  });
-}
-
-function appendClasificacion(doc, parte) {
-  writeSectionTitle(doc, 'Clasificación del Incidente');
-  writeKeyValue(doc, 'Clasificación', parte?.clasificacion?.nombre || '-');
-  writeKeyValue(doc, 'Clave radial', parte?.subtipo?.claveRadial || '-');
-  writeKeyValue(doc, 'Descripción de clave', parte?.subtipo?.descripcion || '-');
-  writeKeyValue(doc, 'Tipo de incendio', parte?.incendio?.tipo?.nombre || '-');
-  writeKeyValue(doc, 'Fase', parte?.incendio?.fase?.nombre || '-');
-}
-
-function appendInmuebles(doc, inmuebles = []) {
-  writeSectionTitle(doc, 'Inmuebles Afectados');
-  if (!Array.isArray(inmuebles) || inmuebles.length === 0) {
-    doc.text('No se registran inmuebles asociados.');
-    return;
-  }
-  inmuebles.forEach((inmueble, index) => {
-    doc.font('Helvetica-Bold').text(`Inmueble ${index + 1}`);
-    doc.font('Helvetica').text([
-      inmueble?.direccion?.calle || inmueble.calle || '',
-      inmueble?.direccion?.numero || inmueble.numero || '',
-    ].filter(Boolean).join(' ').trim() || 'Dirección no especificada');
-    doc.text(`Tipo construcción: ${inmueble?.tipo_construccion || '-'}`);
-    doc.text(`Pisos: ${inmueble?.n_pisos ?? '-'}`);
-    doc.text(`m² construcción: ${inmueble?.m2_construccion ?? '-'}`);
-    doc.text(`m² afectados: ${inmueble?.m2_afectado ?? '-'}`);
-    doc.text(`Daños vivienda: ${inmueble?.danos_vivienda || '-'}`);
-    doc.text(`Daños anexos: ${inmueble?.danos_anexos || '-'}`);
-    if (inmueble?.dueno || inmueble?.propietario) {
-      const propietario = inmueble.dueno || inmueble.propietario;
-      doc.text(`Propietario: ${propietario?.nombreCompleto || '-'}`);
-      doc.text(`RUN: ${propietario?.run || '-'}`);
-      doc.text(`Teléfono: ${propietario?.telefono || '-'}`);
+  try {
+    if (fs.existsSync(LOGO_BOMBEROS_PATH)) {
+      bomberosLogoBuffer = fs.readFileSync(LOGO_BOMBEROS_PATH);
+      logger.info('[PDF] Logo de Bomberos de Chile cargado desde templates');
     }
-    if (Array.isArray(inmueble?.habitantes) && inmueble.habitantes.length > 0) {
-      doc.text('Habitantes:');
-      inmueble.habitantes.forEach((habitante) => {
-        doc.text(`  • ${habitante?.nombreCompleto || '-'}`);
-      });
-    }
-    doc.moveDown(0.4);
-  });
-}
-
-function appendVehiculos(doc, vehiculos = []) {
-  writeSectionTitle(doc, 'Vehículos Involucrados');
-  if (!Array.isArray(vehiculos) || vehiculos.length === 0) {
-    doc.text('No se registran vehículos asociados.');
-    return;
-  }
-  vehiculos.forEach((vehiculo, index) => {
-    doc.font('Helvetica-Bold').text(`Vehículo ${index + 1}`);
-    doc.font('Helvetica').text(`Patente: ${vehiculo?.patente || '-'}`);
-    doc.text(`Descripción: ${[vehiculo?.marca, vehiculo?.modelo, vehiculo?.anio].filter(Boolean).join(' ') || '-'}`);
-    doc.text(`Color: ${vehiculo?.color || '-'}`);
-    doc.text(`Daños: ${vehiculo?.danos_vehiculo || '-'}`);
-    if (vehiculo?.dueno) {
-      doc.text(`Dueño: ${vehiculo.dueno.nombreCompleto || '-'}`);
-    }
-    if (vehiculo?.chofer) {
-      doc.text(`Chofer: ${vehiculo.chofer.nombreCompleto || '-'}`);
-    }
-    if (Array.isArray(vehiculo?.pasajeros) && vehiculo.pasajeros.length > 0) {
-      doc.text('Pasajeros:');
-      vehiculo.pasajeros.forEach((pasajero) => {
-        const descriptor = pasajero?.vinculo?.nombre ? ` (${pasajero.vinculo.nombre})` : '';
-        doc.text(`  • ${pasajero?.nombreCompleto || '-'}${descriptor}`);
-      });
-    }
-    doc.moveDown(0.4);
-  });
-}
-
-function appendMaterialMayor(doc, materialMayor = []) {
-  writeSectionTitle(doc, 'Material Mayor');
-  if (!Array.isArray(materialMayor) || materialMayor.length === 0) {
-    doc.text('No se registran recursos movilizados.');
-    return;
-  }
-  materialMayor.forEach((material, index) => {
-    doc.font('Helvetica-Bold').text(`Recurso ${index + 1}`);
-    doc.font('Helvetica').text(`Unidad: ${material?.unidad?.patente || '-'}`);
-    doc.text(`Conductor: ${material?.conductor?.nombreCompleto || '-'}`);
-    doc.text(`Voluntarios: ${material?.voluntarios ?? '-'}`);
-    doc.text(`KM salida: ${material?.kmSalida ?? '-'}`);
-    doc.text(`KM llegada: ${material?.kmLlegada ?? '-'}`);
-    doc.moveDown(0.3);
-  });
-}
-
-function appendAccidentados(doc, accidentados = []) {
-  writeSectionTitle(doc, 'Bomberos Accidentados');
-  if (!Array.isArray(accidentados) || accidentados.length === 0) {
-    doc.text('No se reportan bomberos accidentados.');
-    return;
-  }
-  accidentados.forEach((accidentado, index) => {
-    doc.font('Helvetica-Bold').text(`Bombero ${index + 1}`);
-    doc.font('Helvetica').text(`Nombre: ${accidentado?.bombero?.nombreCompleto || '-'}`);
-    doc.text(`Compañía: ${accidentado?.compania?.nombre || '-'}`);
-    doc.text(`Lesiones: ${accidentado?.lesiones || '-'}`);
-    doc.text(`Constancia: ${accidentado?.constancia || '-'}`);
-    doc.text(`Comisaría: ${accidentado?.comisaria || '-'}`);
-    doc.text(`Acciones: ${accidentado?.acciones || '-'}`);
-    doc.moveDown(0.3);
-  });
-}
-
-function appendOtrosServicios(doc, servicios = []) {
-  writeSectionTitle(doc, 'Otros Servicios en el Lugar');
-  if (!Array.isArray(servicios) || servicios.length === 0) {
-    doc.text('No se registran apoyos externos.');
-    return;
-  }
-  servicios.forEach((servicio, index) => {
-    doc.font('Helvetica-Bold').text(`Servicio ${index + 1}`);
-    doc.font('Helvetica').text(`Nombre: ${servicio?.servicio?.nombre || '-'}`);
-    doc.text(`Tipo de unidad: ${servicio?.tipoUnidad || '-'}`);
-    doc.text(`Responsable: ${servicio?.responsable || '-'}`);
-    doc.text(`Personal: ${servicio?.personal ?? '-'}`);
-    doc.text(`Observaciones: ${servicio?.observaciones || '-'}`);
-    doc.moveDown(0.3);
-  });
-}
-
-function appendAsistencia(doc, asistencia) {
-  writeSectionTitle(doc, 'Asistencia de Personal');
-  const enLugar = Array.isArray(asistencia?.lugar)
-    ? asistencia.lugar.map((b) => b?.nombreCompleto || `Bombero #${b?.id ?? '-'}`).join(', ')
-    : '';
-  const enCuartel = Array.isArray(asistencia?.cuartel)
-    ? asistencia.cuartel.map((b) => b?.nombreCompleto || `Bombero #${b?.id ?? '-'}`).join(', ')
-    : '';
-  writeKeyValue(doc, 'En el lugar', enLugar || '-');
-  writeKeyValue(doc, 'En cuartel', enCuartel || '-');
-}
-
-async function buildPdfBuffer(parte, logos, options = {}) {
-  const { pageSize = 'A4' } = options;
-  const doc = new PDFDocument({
-    size: pageSize === 'letter' ? 'letter' : 'A4',
-    margin: 42,
-    bufferPages: true,
-  });
-
-  const chunks = [];
-  doc.on('data', (chunk) => chunks.push(chunk));
-
-  const buildPromise = new Promise((resolve, reject) => {
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
-    doc.on('error', reject);
-  });
-
-  drawHeader(doc, logos, parte);
-  doc.moveDown();
-
-  appendAntecedentesGenerales(doc, parte);
-  doc.moveDown(SECTION_SPACING / 12);
-  appendTimeline(doc, parte);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendClasificacion(doc, parte);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendDescripcion(doc, parte);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendInmuebles(doc, parte.inmuebles);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendVehiculos(doc, parte.vehiculos);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendMaterialMayor(doc, parte.materialMayor);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendAccidentados(doc, parte.accidentados);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendOtrosServicios(doc, parte.otrosServicios);
-  doc.moveDown(SECTION_SPACING / 12);
-
-  appendAsistencia(doc, parte.asistencia);
-
-  doc.addPage();
-  doc.font('Helvetica-Bold').fontSize(12).text('Observaciones finales', { underline: true });
-  doc.moveDown(0.4);
-  doc.font('Helvetica').fontSize(10).text([
-    `Reporte generado automáticamente el ${formatDate(new Date(), true)}.`,
-    'Este documento se almacena temporalmente en el bucket de documentos (MinIO) durante 30 minutos.',
-    'Para cualquier actualización del parte, genere un nuevo documento para garantizar que la información esté sincronizada.',
-  ].join('\n'));
-
-  doc.end();
-
-  return buildPromise;
-}
-
-export async function generarPdfParteEmergencia(idIncidente, options = {}) {
-  const expiresIn = Number.isInteger(options.expiresIn) ? options.expiresIn : DEFAULT_EXPIRY_SECONDS;
-  const pageSize = options.pageSize || 'A4';
-
-  const parte = await obtenerParteDetalladoPorIdService(idIncidente);
-  if (!parte) {
-    const error = new Error('Parte de emergencia no encontrado');
-    error.statusCode = 404;
-    throw error;
+  } catch (error) {
+    logger.warn(`[PDF] No se pudo cargar logo estático de Bomberos: ${error.message}`);
   }
 
-  const companiaId = parte?.compania?.id || parte?.companiaId;
-  let companiaLogoKey = null;
   if (companiaId) {
     try {
       const companiaRepo = AppDataSource.getRepository('Compania');
       const compania = await companiaRepo.findOne({
         where: { id: companiaId },
-        select: ['id', 'logoKEY', 'nombre'],
+        select: ['id', 'logoKEY'],
       });
-      companiaLogoKey = compania?.logoKEY ?? null;
+
+      if (compania?.logoKEY) {
+        companiaLogoBuffer = await fetchLogoBuffer(BUCKETS.COMPANIAS, compania.logoKEY, 'Compañía');
+      }
     } catch (error) {
-      logger.warn(`[PDF] No se pudo obtener compañía ${companiaId}: ${error.message}`);
+      logger.warn(`[PDF] Error obteniendo logo de compañía ${companiaId}: ${error.message}`);
     }
   }
 
-  const [cuerpoLogo, companiaLogo] = await Promise.all([
-    fetchLogoBuffer(BUCKETS.COMPANIES, CUERPO_LOGO_KEY, 'cuerpo'),
-    fetchLogoBuffer(BUCKETS.COMPANIES, companiaLogoKey, 'compañía'),
-  ]);
-
-  const logos = {
-    cuerpoLogo: cuerpoLogo || companiaLogo || null,
-    companiaLogo: companiaLogo || cuerpoLogo || null,
-  };
-
-  const pdfBuffer = await buildPdfBuffer(parte, logos, { pageSize });
-
-  const baseName = `parte_${idIncidente}.pdf`;
-  const uniqueFileName = generateUniqueFileName(baseName, `parte_${idIncidente}`);
-  const objectName = `reportes/parte-emergencia/${idIncidente}/${uniqueFileName}`;
-
-  await uploadFile(BUCKETS.DOCUMENTS, objectName, pdfBuffer, 'application/pdf', {
-    'parte-id': String(idIncidente),
-    'generated-at': new Date().toISOString(),
-    'page-size': pageSize,
-  });
-
-  const signedUrl = await getSignedUrl(BUCKETS.DOCUMENTS, objectName, expiresIn);
-
-  return {
-    bucket: BUCKETS.DOCUMENTS,
-    fileName: objectName,
-    url: signedUrl,
-    expiresIn,
-    expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
-  };
+  return { bomberosLogoBuffer, companiaLogoBuffer };
 }
 
-export default generarPdfParteEmergencia;
+// ==================== GENERACIÓN DEL PDF ====================
 
+export async function generarParteEmergenciaPdfService(idIncidente, options = {}) {
+  try {
+    logger.info(`[PDF] Iniciando generación de PDF para incidente ${idIncidente}`);
+
+    const expirySeconds = typeof options === 'number'
+      ? options
+      : (options?.expiresIn ? Number(options.expiresIn) : DEFAULT_EXPIRY_SECONDS);
+
+    const validExpiry = Number.isInteger(expirySeconds) && expirySeconds > 0
+      ? expirySeconds
+      : DEFAULT_EXPIRY_SECONDS;
+
+    const parte = await obtenerParteDetalladoPorIdService(idIncidente);
+    if (!parte) {
+      throw new Error(`No se encontró el parte de emergencia con ID ${idIncidente}`);
+    }
+
+    const logos = await getLogos(parte.compania?.id);
+
+    const doc = new PDFDocument({
+      margins: MARGINS,
+      size: 'LETTER',
+      bufferPages: true,
+    });
+
+    const chunks = [];
+    doc.on('data', (chunk) => chunks.push(chunk));
+
+    const pageWidth = doc.page.width - MARGINS.left - MARGINS.right;
+
+    // ==================== PÁGINA 1 ====================
+    drawHeader(doc, logos, parte);
+
+    let currentY = doc.y + 10;
+
+    // 1.- Datos generales (2 tablas lado a lado)
+    doc.font(FONTS.subtitle.family).fontSize(FONTS.subtitle.size);
+    doc.text('1.- Datos generales', MARGINS.left, currentY);
+    currentY += 15;
+
+    const col1Width = pageWidth * 0.48;
+    const col2Width = pageWidth * 0.48;
+    const colGap = pageWidth * 0.04;
+
+    // Tabla izquierda
+    const leftRows = [
+      ['Fecha:', formatDate(parte.fecha)],
+      ['Compañía:', parte.compania?.nombre || ''],
+      ['Hr Despacho:', formatTime(parte.horaDespacho)],
+      ['Hr 6-0:', formatTime(parte.hora6_0)],
+      ['Km Salida:', parte.materialMayor?.[0]?.kmSalida?.toString() || ''],
+    ];
+
+    // Tabla derecha
+    const materialMayor = Array.isArray(parte.materialMayor) && parte.materialMayor.length > 0
+      ? parte.materialMayor[0]
+      : null;
+
+    const rightRows = [
+      ['Unidad', parte.materialMayor?.[0]?.unidad?.patente || ''],
+      ['Hora 6-3:', formatTime(parte.hora6_3)],
+      ['Hora 6-9:', formatTime(parte.hora6_9)],
+      ['Hora 6-10:', formatTime(parte.hora6_10)],
+      ['Km Llegada:', parte.materialMayor?.[0]?.kmLlegada?.toString() || ''],
+    ];
+
+    const leftEndY = drawSimpleTable(doc, MARGINS.left, currentY, col1Width, leftRows);
+    const rightEndY = drawSimpleTable(doc, MARGINS.left + col1Width + colGap, currentY, col2Width, rightRows);
+
+    currentY = Math.max(leftEndY, rightEndY) + 20;
+
+    // 2.- Datos del lugar
+    const direccion = [parte?.direccion?.calle, parte?.direccion?.numero].filter(Boolean).join(' ') || '';
+
+    const lugarRows = [
+      ['Comuna:', parte?.direccion?.comuna?.nombre || ''],
+      ['Dirección:', direccion],
+      ['Villa/Poblacion', parte?.direccion?.localidad || ''],
+      ['Tipo de vía', parte?.direccion?.tipoVia || ''],
+    ];
+
+    currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, lugarRows, '2.- Datos del lugar') + 20;
+
+    // 3.- Datos del afectado
+    const primerVehiculoData = Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0
+      ? parte.vehiculos[0]
+      : null;
+
+    // Determinar el primer afectado: priorizar conductor (chofer), luego primer pasajero
+    const primerAfectado = primerVehiculoData?.conductor ||
+      (Array.isArray(primerVehiculoData?.pasajeros) && primerVehiculoData.pasajeros.length > 0
+        ? primerVehiculoData.pasajeros[0]?.afectado || primerVehiculoData.pasajeros[0]
+        : null);
+
+    // Determinar tipo de ocupante solo si hay afectado
+    let tipoOcupante = '';
+    if (primerAfectado) {
+      const esChofer = primerVehiculoData?.conductor && primerAfectado?.id === primerVehiculoData.conductor.id;
+      tipoOcupante = esChofer ? 'chofer' : 'acompañante';
+    }
+
+    const afectadoRows = [
+      ['Rut:', formatRun(primerAfectado?.run)],
+      ['Nombres:', primerAfectado?.nombreCompleto?.split(' ')[0] || ''],
+      ['Apellidos', primerAfectado?.nombreCompleto?.split(' ').slice(1).join(' ') || ''],
+      ['Telefono', primerAfectado?.telefono || ''],
+      ['Estado', primerAfectado?.descripcionGravedad || ''],
+      ['Tipo ocupante', tipoOcupante],
+    ];
+
+    currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, afectadoRows, '3.- Datos del afectado') + 20;
+
+    // 4.- Datos del vehículo
+    const primerVehiculo = Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0
+      ? parte.vehiculos[0]
+      : null;
+
+    const vehiculoRows = [
+      ['Tipo vehículo:', ''],
+      ['Marca vehículo:', primerVehiculo?.marca || ''],
+      ['Modelo vehículo', primerVehiculo?.modelo || ''],
+      ['Patente vehículo', primerVehiculo?.patente || ''],
+      ['Daños', ''],
+    ];
+
+    currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, vehiculoRows, '4.- Datos del vehículo');
+
+    // ==================== PÁGINA 2 ====================
+    doc.addPage({ margins: MARGINS });
+    drawHeader(doc, logos, parte);
+    currentY = doc.y + 10;
+
+    // Descripción preliminar
+    doc.font(FONTS.subtitle.family).fontSize(FONTS.subtitle.size);
+    doc.text('Descripción preliminar', MARGINS.left, currentY);
+    currentY += 15;
+
+    doc.rect(MARGINS.left, currentY, pageWidth, 30).stroke();
+    doc.font(FONTS.normal.family).fontSize(FONTS.normal.size);
+    doc.text(parte.descripcionPreliminar || '', MARGINS.left + 3, currentY + 5, {
+      width: pageWidth - 6,
+      height: 25,
+    });
+    currentY += 40;
+
+    // 5.- Ocupantes del vehículo
+    const ocupantesHeaders = ['Nombre', 'Rut', 'Edad', 'Estado'];
+    const ocupantesRows = primerVehiculo && Array.isArray(primerVehiculo.pasajeros)
+      ? primerVehiculo.pasajeros.map(p => [
+        p?.afectado?.nombreCompleto || '',
+        formatRun(p?.afectado?.run),
+        p?.afectado?.edad?.toString() || '',
+        '',
+      ])
+      : [];
+
+    if (primerAfectado) {
+      ocupantesRows.unshift([
+        primerAfectado.nombreCompleto || '',
+        formatRun(primerAfectado.run),
+        primerAfectado.edad?.toString() || '',
+        '',
+      ]);
+    }
+
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, ocupantesHeaders, ocupantesRows, '5.- Ocupantes del vehículo') + 20;
+
+    // 6.- Otros vehículos afectados
+    const otrosVehiculosHeaders = ['Tipo V.', 'Marca', 'Modelo', 'Patente', 'Rut C.', 'Nombre C.'];
+    const otrosVehiculosRows = Array.isArray(parte.vehiculos) && parte.vehiculos.length > 1
+      ? parte.vehiculos.slice(1).map(v => [
+        '',
+        v.marca || '',
+        v.modelo || '',
+        v.patente || '',
+        formatRun(v.conductor?.run),
+        v.conductor?.nombreCompleto || '',
+      ])
+      : [];
+
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, otrosVehiculosHeaders, otrosVehiculosRows, '6.- Otros vehículos afectados') + 20;
+
+    // 7.- Otros Ocupantes afectados
+    const otrosOcupantesHeaders = ['Nombre', 'Rut', 'Edad', 'Estado'];
+    const otrosOcupantesRows = [];
+
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, otrosOcupantesHeaders, otrosOcupantesRows, '7.- Otros Ocupantes afectados') + 20;
+
+    // 8.- Material mayor
+    const materialHeaders = ['Unidad', 'Maquinista', 'Obac', 'Nro personal'];
+    const materialRows = Array.isArray(parte.materialMayor)
+      ? parte.materialMayor.map(m => [
+        m.unidad?.patente || '',
+        m.conductor?.nombreCompleto || '',
+        m.bomberoACargo?.nombreCompleto || '',
+        m.voluntarios?.toString() || '',
+      ])
+      : [];
+
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, materialHeaders, materialRows, '8.- Material mayor');
+
+    // ==================== PÁGINA 3 ====================
+    doc.addPage({ margins: MARGINS });
+    drawHeader(doc, logos, parte);
+    currentY = doc.y + 10;
+
+    // 9.- bomberos accidentados
+    const accidentadosHeaders = ['Cia', 'Nombre', 'Rut', 'Constancia', 'Comisaria', 'Detalles'];
+    const accidentadosRows = Array.isArray(parte.accidentados)
+      ? parte.accidentados.map(a => [
+        a.compania?.nombre || '',
+        a.bombero?.nombreCompleto || '',
+        formatRun(a.bombero?.run),
+        '',
+        '',
+        a.descripcion || '',
+      ])
+      : [];
+
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, accidentadosHeaders, accidentadosRows, '9.- Bomberos accidentados') + 20;
+
+    // 10.- Otros servicios de emergencia en el lugar
+    const serviciosHeaders = ['Servicios', 'Unidad', 'A cargo', 'Nro personal', 'Observaciones'];
+    const serviciosRows = Array.isArray(parte.otrosServicios)
+      ? parte.otrosServicios.map(s => [
+        s.servicio?.nombre || '',
+        '',
+        '',
+        '',
+        s.observaciones || '',
+      ])
+      : [];
+
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, serviciosHeaders, serviciosRows, '10.- Otros servicios de emergencia en el lugar') + 20;
+
+    // 11.- Asistencia (1 columna)
+    doc.font(FONTS.subtitle.family).fontSize(FONTS.subtitle.size);
+    doc.text('11.- Asistencia:', MARGINS.left, currentY);
+    currentY += 15;
+
+    const asistenciaHeaders = ['Nombre', 'Rut'];
+    const enLugar = Array.isArray(parte.asistencia?.lugar) ? parte.asistencia.lugar : [];
+    const enCuartel = Array.isArray(parte.asistencia?.cuartel) ? parte.asistencia.cuartel : [];
+
+    // Combinar ambas listas en una sola
+    const todosAsistentes = [...enLugar, ...enCuartel];
+
+    const asistenciaRows = todosAsistentes.map(bombero => [
+      bombero?.nombreCompleto || '',
+      formatRun(bombero?.run),
+    ]);
+
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, asistenciaHeaders, asistenciaRows) + 20;
+
+    // Footer
+    doc.font(FONTS.normal.family).fontSize(FONTS.normal.size);
+    doc.text(`Oficial o voluntario que toma el parte: ${parte.redactor?.nombreCompleto || ''}`, MARGINS.left, currentY);
+    currentY += 15;
+    doc.text(`Oficial o voluntario a cargo: ${parte.bomberoACargo?.nombreCompleto || ''}`, MARGINS.left, currentY);
+
+    // Finalizar
+    doc.end();
+
+    const pdfBuffer = await new Promise((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+
+    const fileName = generateUniqueFileName(`parte_emergencia_${idIncidente}`, 'pdf');
+    await uploadFile(BUCKETS.DOCUMENTOS, fileName, pdfBuffer, 'application/pdf');
+    scheduleFileDeletion(BUCKETS.DOCUMENTOS, fileName, validExpiry);
+
+    logger.info(`[PDF] PDF generado y subido exitosamente: ${fileName}`);
+
+    const url = await getSignedUrl(BUCKETS.DOCUMENTOS, fileName, validExpiry);
+
+    return {
+      success: true,
+      url,
+      fileName,
+      expiresIn: validExpiry,
+    };
+  } catch (error) {
+    logger.error(`[PDF] Error generando PDF para incidente ${idIncidente}: ${error.message}`);
+    throw error;
+  }
+}
+
+// Alias para compatibilidad con el controlador
+export const generarPdfParteEmergencia = generarParteEmergenciaPdfService;

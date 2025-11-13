@@ -302,7 +302,7 @@ export async function getCompaniaLogoUrl(req, res) {
     }
 
     // Generar URL firmada
-    const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIES, compania.logoKEY);
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIAS, compania.logoKEY);
     
     return handleSuccess(res, 200, "URL de logo generada exitosamente", { 
       url: signedUrl,
@@ -344,7 +344,7 @@ export async function getCompaniaBannerUrl(req, res) {
     }
 
     // Generar URL firmada
-    const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIES, compania.bannerKEY);
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIAS, compania.bannerKEY);
     
     return handleSuccess(res, 200, "URL de banner generada exitosamente", { 
       url: signedUrl,

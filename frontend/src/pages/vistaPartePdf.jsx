@@ -96,13 +96,13 @@ export default function VistaPartePdf() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-5 py-6 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col flex-1 px-3 sm:px-5 lg:px-6 py-5 gap-4 min-h-[calc(100vh-96px)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-[13px] text-gray-700 hover:text-gray-900"
+            className="inline-flex items-center gap-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium transition"
           >
             Volver al parte
           </button>
@@ -110,14 +110,14 @@ export default function VistaPartePdf() {
             Parte #{id} · Tamaño {pdfData?.pageSize || DEFAULT_PAGE_SIZE}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 justify-end">
           <button
             type="button"
             onClick={() => {
               setRegenerating(true);
               fetchPdf({ pageSize: pdfData?.pageSize || DEFAULT_PAGE_SIZE });
             }}
-            className="inline-flex items-center gap-2 rounded border border-blue-200 bg-blue-50 text-blue-700 px-3 py-1.5 hover:bg-blue-100 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed"
             disabled={regenerating}
           >
             {regenerating ? 'Regenerando...' : 'Regenerar PDF'}
@@ -125,7 +125,7 @@ export default function VistaPartePdf() {
           <button
             type="button"
             onClick={() => pdfData?.url && window.open(pdfData.url, '_blank', 'noopener')}
-            className="inline-flex items-center gap-2 rounded border border-gray-200 bg-white text-gray-700 px-3 py-1.5 hover:bg-gray-50 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-medium transition disabled:bg-blue-300 disabled:cursor-not-allowed"
             disabled={!pdfData?.url}
           >
             Abrir en nueva pestaña
@@ -143,15 +143,16 @@ export default function VistaPartePdf() {
           {error}
         </div>
       )}
-      <div className="h-[75vh] border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-gray-50">
+      <div className="relative flex-1 border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-gray-50">
         {pdfData?.url ? (
           <iframe
             title={`Reporte parte ${id}`}
             src={pdfData.url}
-            className="w-full h-full"
+            className="absolute inset-0 w-full h-full"
+            style={{ minHeight: '100%' }}
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="flex h-full items-center justify-center text-gray-500">
             No se pudo cargar el PDF.
           </div>
         )}

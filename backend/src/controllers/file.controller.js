@@ -11,7 +11,7 @@ export async function uploadProfileImage(req, res) {
     const { bomberoId } = req.params;
     const fileName = minioGenerateUniqueFileName(req.file.originalname, `bombero_${bomberoId}`);
 
-    const result = await minioUploadFile(BUCKETS.PROFILES, fileName, req.file.buffer, req.file.mimetype, {
+    const result = await minioUploadFile(BUCKETS.PERFILES, fileName, req.file.buffer, req.file.mimetype, {
       'original-name': req.file.originalname,
       'bombero-id': bomberoId,
       'upload-date': new Date().toISOString()
@@ -19,7 +19,7 @@ export async function uploadProfileImage(req, res) {
 
     logger.info(`[MINIO] Imagen de perfil subida para bombero ${bomberoId}: ${fileName}`);
 
-    res.status(201).json({ success: true, message: 'Imagen de perfil subida correctamente', data: { fileName, size: result.size, contentType: result.contentType, bucket: BUCKETS.PROFILES } });
+    res.status(201).json({ success: true, message: 'Imagen de perfil subida correctamente', data: { fileName, size: result.size, contentType: result.contentType, bucket: BUCKETS.PERFILES } });
   } catch (error) {
     logger.error('[MINIO] Error subiendo imagen de perfil:', error);
     res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
@@ -31,13 +31,13 @@ export async function uploadCompanyImage(req, res) {
     if (!req.file) return res.status(400).json({ success: false, message: 'No se proporcionó archivo de imagen' });
     const { companiaId } = req.params;
     const fileName = minioGenerateUniqueFileName(req.file.originalname, `compania_${companiaId}`);
-    const result = await minioUploadFile(BUCKETS.COMPANIES, fileName, req.file.buffer, req.file.mimetype, {
+    const result = await minioUploadFile(BUCKETS.COMPANIAS, fileName, req.file.buffer, req.file.mimetype, {
       'original-name': req.file.originalname,
       'compania-id': companiaId,
       'upload-date': new Date().toISOString()
     });
     logger.info(`[MINIO] Imagen de compañía subida para compañía ${companiaId}: ${fileName}`);
-    res.status(201).json({ success: true, message: 'Imagen de compañía subida correctamente', data: { fileName, size: result.size, contentType: result.contentType, bucket: BUCKETS.COMPANIES } });
+    res.status(201).json({ success: true, message: 'Imagen de compañía subida correctamente', data: { fileName, size: result.size, contentType: result.contentType, bucket: BUCKETS.COMPANIAS } });
   } catch (error) {
     logger.error('[MINIO] Error subiendo imagen de compañía:', error);
     res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
@@ -48,9 +48,9 @@ export async function uploadDocument(req, res) {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No se proporcionó archivo de documento' });
     const fileName = minioGenerateUniqueFileName(req.file.originalname);
-    const result = await minioUploadFile(BUCKETS.DOCUMENTS, fileName, req.file.buffer, req.file.mimetype, { 'original-name': req.file.originalname, 'upload-date': new Date().toISOString(), 'uploaded-by': req.user?.id || 'anonymous' });
+    const result = await minioUploadFile(BUCKETS.DOCUMENTOS, fileName, req.file.buffer, req.file.mimetype, { 'original-name': req.file.originalname, 'upload-date': new Date().toISOString(), 'uploaded-by': req.user?.id || 'anonymous' });
     logger.info(`[MINIO] Documento subido: ${fileName}`);
-    res.status(201).json({ success: true, message: 'Documento subido correctamente', data: { fileName, size: result.size, contentType: result.contentType, bucket: BUCKETS.DOCUMENTS } });
+    res.status(201).json({ success: true, message: 'Documento subido correctamente', data: { fileName, size: result.size, contentType: result.contentType, bucket: BUCKETS.DOCUMENTOS } });
   } catch (error) {
     logger.error('[MINIO] Error subiendo documento:', error);
     res.status(500).json({ success: false, message: 'Error interno del servidor', error: error.message });
@@ -61,7 +61,7 @@ export async function uploadTiles(req, res) {
   try {
     if (!req.files || req.files.length === 0) return res.status(400).json({ success: false, message: 'No se proporcionaron archivos de tiles' });
     const { comunaId, isPublic = false } = req.body;
-    const bucket = isPublic === 'true' ? BUCKETS.TILES_PUBLIC : BUCKETS.TILES_PRIVATE;
+    const bucket = isPublic === 'true' ? BUCKETS.TESSELAS_PUBLICAS : BUCKETS.TESSELAS_PRIVADAS;
     const uploadedFiles = [];
     for (const file of req.files) {
       const fileName = minioGenerateUniqueFileName(file.originalname, `comuna_${comunaId}`);

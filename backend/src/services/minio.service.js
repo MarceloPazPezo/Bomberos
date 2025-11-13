@@ -156,7 +156,29 @@ export function generateUniqueFileName(originalName, userId = null) {
 }
 
 export function getPublicTileUrl(fileName) {
-  return `${client.protocol}//${client.host}:${client.port}/${buckets.TILES_PUBLIC}/${fileName}`;
+  return `${client.protocol}//${client.host}:${client.port}/${buckets.TESSELAS_PUBLICAS}/${fileName}`;
+}
+
+export function scheduleFileDeletion(bucket, fileName, delaySeconds) {
+  if (!Number.isFinite(delaySeconds) || delaySeconds <= 0) {
+    logger.warn(`[MINIO] Eliminación programada omitida para ${bucket}/${fileName}: delay inválido (${delaySeconds})`);
+    return null;
+  }
+
+  const timeout = setTimeout(async () => {
+    try {
+      await deleteFile(bucket, fileName);
+      logger.info(`[MINIO] Archivo eliminado automáticamente tras ${delaySeconds}s: ${bucket}/${fileName}`);
+    } catch (error) {
+      logger.error(`[MINIO] Error eliminando automáticamente ${bucket}/${fileName}: ${error.message}`);
+    }
+  }, delaySeconds * 1000);
+
+  if (typeof timeout.unref === 'function') {
+    timeout.unref();
+  }
+
+  return timeout;
 }
 
 // Default export object for backward compatibility (allows importing default minioService)
@@ -171,7 +193,8 @@ const minioService = {
   getFileInfo,
   validateFileType,
   generateUniqueFileName,
-  getPublicTileUrl
+  getPublicTileUrl,
+  scheduleFileDeletion
 };
 
 export default minioService;

@@ -24,12 +24,25 @@ export const minioClient = new Client(minioConfig);
 
 // Configuración de buckets
 export const BUCKETS = {
-  UPLOADS: MINIO_BUCKET_NAME,
-  PROFILES: `${MINIO_BUCKET_NAME}-profiles`,
-  COMPANIES: `${MINIO_BUCKET_NAME}-companies`, 
-  DOCUMENTS: `${MINIO_BUCKET_NAME}-documents`,
-  TILES_PUBLIC: `${MINIO_BUCKET_NAME}-tiles-public`,
-  TILES_PRIVATE: `${MINIO_BUCKET_NAME}-tiles-private`
+  PRINCIPAL: MINIO_BUCKET_NAME,
+  PERFILES: `${MINIO_BUCKET_NAME}-perfiles`,
+  COMPANIAS: `${MINIO_BUCKET_NAME}-companias`,
+  DOCUMENTOS: `${MINIO_BUCKET_NAME}-documentos`,
+  TESSELAS_PUBLICAS: `${MINIO_BUCKET_NAME}-teselas-publicas`,
+  TESSELAS_PRIVADAS: `${MINIO_BUCKET_NAME}-teselas-privadas`
+};
+
+const BUCKET_LIFECYCLES = {
+  [BUCKETS.DOCUMENTOS]: {
+    Rule: [
+      {
+        ID: 'eliminar-documentos-despues-1-dia',
+        Status: 'Enabled',
+        Expiration: { Days: 1 },
+        Filter: { Prefix: '' }
+      }
+    ]
+  }
 };
 
 // Configuración de archivos
@@ -50,23 +63,25 @@ export async function initializeMinIO() {
 
     // Crear buckets si no existen
     const bucketsToCreate = [
-      BUCKETS.UPLOADS,
-      BUCKETS.PROFILES,
-      BUCKETS.COMPANIES,
-      BUCKETS.DOCUMENTS,
-      BUCKETS.TILES_PUBLIC,
-      BUCKETS.TILES_PRIVATE
+      BUCKETS.PRINCIPAL,
+      BUCKETS.PERFILES,
+      BUCKETS.COMPANIAS,
+      BUCKETS.DOCUMENTOS,
+      BUCKETS.TESSELAS_PUBLICAS,
+      BUCKETS.TESSELAS_PRIVADAS
     ];
 
     for (const bucketName of bucketsToCreate) {
       try {
         const exists = await minioClient.bucketExists(bucketName);
+        const lifecycleConfig = BUCKET_LIFECYCLES[bucketName];
+
         if (!exists) {
           await minioClient.makeBucket(bucketName, 'us-east-1');
           logger.info(`[MINIO] Bucket creado: ${bucketName}`);
           
           // Configurar política de acceso público para tiles públicos
-          if (bucketName.includes('tiles-public')) {
+          if (bucketName === BUCKETS.TESSELAS_PUBLICAS) {
             const publicPolicy = {
               Version: '2012-10-17',
               Statement: [
@@ -84,6 +99,15 @@ export async function initializeMinIO() {
           }
         } else {
           logger.info(`[MINIO] Bucket ya existe: ${bucketName}`);
+        }
+
+        if (lifecycleConfig) {
+          try {
+            await minioClient.setBucketLifecycle(bucketName, lifecycleConfig);
+            logger.info(`[MINIO] Ciclo de vida configurado para: ${bucketName}`);
+          } catch (error) {
+            logger.warn(`[MINIO] No se pudo configurar ciclo de vida para ${bucketName}: ${error.message}`);
+          }
         }
       } catch (error) {
         logger.error(`[MINIO] Error creando bucket ${bucketName}:`, error);

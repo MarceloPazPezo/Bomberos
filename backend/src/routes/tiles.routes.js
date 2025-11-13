@@ -15,7 +15,7 @@ router.get('/:comuna/:z/:x/:y', async (req, res) => {
 
     // Intentar obtener el tile desde MinIO
     try {
-      const fileBuffer = await minioService.downloadFile(BUCKETS.TILES_PUBLIC, fileName);
+      const fileBuffer = await minioService.downloadFile(BUCKETS.TESSELAS_PUBLICAS, fileName);
 
       // Configurar headers para tiles
       res.set({
@@ -60,10 +60,10 @@ router.get('/:comuna/:z/:x/:y.json', async (req, res) => {
     const fileName = `${comuna}/${z}/${x}/${y}.png`;
 
     // Verificar si el tile existe
-    const exists = await minioService.fileExists(BUCKETS.TILES_PUBLIC, fileName);
+    const exists = await minioService.fileExists(BUCKETS.TESSELAS_PUBLICAS, fileName);
 
     if (exists) {
-      const fileInfo = await minioService.getFileInfo(BUCKETS.TILES_PUBLIC, fileName);
+      const fileInfo = await minioService.getFileInfo(BUCKETS.TESSELAS_PUBLICAS, fileName);
 
       res.json({
         success: true,
@@ -105,7 +105,7 @@ router.get('/available/:comuna', async (req, res) => {
       prefix += `${z}/`;
     }
 
-    const files = await minioService.listFiles(BUCKETS.TILES_PUBLIC, prefix);
+    const files = await minioService.listFiles(BUCKETS.TESSELAS_PUBLICAS, prefix);
 
     // Organizar tiles por nivel de zoom
     const tilesByZoom = {};
@@ -145,7 +145,7 @@ router.get('/available/:comuna', async (req, res) => {
 
 router.get('/communas', async (req, res) => {
   try {
-    const files = await minioService.listFiles(BUCKETS.TILES_PUBLIC, '');
+    const files = await minioService.listFiles(BUCKETS.TESSELAS_PUBLICAS, '');
 
     // Extraer comunas únicas
     const comunas = new Set();
@@ -177,7 +177,7 @@ router.get('/cache-info/:comuna', async (req, res) => {
   try {
     const { comuna } = req.params;
 
-    const files = await minioService.listFiles(BUCKETS.TILES_PUBLIC, `${comuna}/`);
+    const files = await minioService.listFiles(BUCKETS.TESSELAS_PUBLICAS, `${comuna}/`);
 
     // Calcular información de cache
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);

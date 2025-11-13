@@ -77,7 +77,7 @@ export async function generateFotoPerfilURL(existingURL, fotoKey) {
     }
     
     // Generar URL firmada
-    const signedUrl = await minioService.getSignedUrl(BUCKETS.PROFILES, fotoKey);
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.PERFILES, fotoKey);
     return signedUrl;
   } catch (error) {
     logger.error('generateFotoPerfilURL - Error:', error);
@@ -283,28 +283,33 @@ export async function getBomberoDetallesCompletosService(idBombero) {
       return [null, "Bombero no encontrado"];
     }
 
-    // Si hay dirección, obtener las coordenadas del punto geométrico
-    if (bombero.fichaBombero?.direccion?.id) {
-      try {
-        logger.info(`getBomberoDetallesCompletosService - Obteniendo coordenadas para dirección ID: ${bombero.fichaBombero.direccion.id}`);
-        const direccionRaw = await AppDataSource
-          .getRepository("Direccion")
-          .createQueryBuilder("direccion")
-          .addSelect("ST_Y(direccion.punto)", "lat")
-          .addSelect("ST_X(direccion.punto)", "lng")
-          .where("direccion.id = :id", { id: bombero.fichaBombero.direccion.id })
-          .getRawOne();
+    // Obtener coordenadas del punto geográfico del bombero
+    try {
+      logger.info(`getBomberoDetallesCompletosService - Buscando punto geográfico para bombero ID: ${idBombero}`);
+      const puntoGeoRaw = await AppDataSource
+        .getRepository("PuntoGeografico")
+        .createQueryBuilder("punto")
+        .addSelect("ST_Y(punto.punto)", "lat")
+        .addSelect("ST_X(punto.punto)", "lng")
+        .where("punto.idBombero = :idBombero", { idBombero })
+        .andWhere("punto.categoria = :categoria", { categoria: 'UBICACION_BOMBERO' })
+        .getRawOne();
 
-        if (direccionRaw && direccionRaw.lat && direccionRaw.lng) {
-          bombero.fichaBombero.direccion.latitud = parseFloat(direccionRaw.lat);
-          bombero.fichaBombero.direccion.longitud = parseFloat(direccionRaw.lng);
-          logger.info(`getBomberoDetallesCompletosService - Coordenadas extraídas: lat=${bombero.fichaBombero.direccion.latitud}, lng=${bombero.fichaBombero.direccion.longitud}`);
-        } else {
-          logger.warn(`getBomberoDetallesCompletosService - No se encontraron coordenadas para dirección ID: ${bombero.fichaBombero.direccion.id}`);
+      logger.info(`getBomberoDetallesCompletosService - Resultado de búsqueda de punto geográfico: ${puntoGeoRaw ? `lat=${puntoGeoRaw.lat}, lng=${puntoGeoRaw.lng}` : 'No encontrado'}`);
+
+      if (puntoGeoRaw && puntoGeoRaw.lat && puntoGeoRaw.lng) {
+        // Si existe punto geográfico, usarlo como fuente de coordenadas
+        if (!bombero.fichaBombero.direccion) {
+          bombero.fichaBombero.direccion = {};
         }
-      } catch (error) {
-        logger.warn(`getBomberoDetallesCompletosService - Error al obtener coordenadas: ${error.message}`);
+        bombero.fichaBombero.direccion.latitud = parseFloat(puntoGeoRaw.lat);
+        bombero.fichaBombero.direccion.longitud = parseFloat(puntoGeoRaw.lng);
+        logger.info(`getBomberoDetallesCompletosService - Coordenadas del punto geográfico: lat=${bombero.fichaBombero.direccion.latitud}, lng=${bombero.fichaBombero.direccion.longitud}`);
+      } else {
+        logger.warn(`getBomberoDetallesCompletosService - No se encontró punto geográfico para bombero ID: ${idBombero}`);
       }
+    } catch (error) {
+      logger.warn(`getBomberoDetallesCompletosService - Error al obtener punto geográfico: ${error.message}`);
     }
 
     // Formatear datos del bombero

@@ -705,7 +705,7 @@ export async function getBomberoImagenPerfilUrl(req, res) {
     }
 
     // Generar URL firmada
-    const signedUrl = await minioService.getSignedUrl(BUCKETS.PROFILES, ficha.fotoPerfilKEY);
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.PERFILES, ficha.fotoPerfilKEY);
     
     return handleSuccess(res, 200, "URL de imagen generada exitosamente", { 
       url: signedUrl,
