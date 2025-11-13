@@ -29,61 +29,43 @@ export async function createDireccionService(direccionData) {
       codigoPostal: direccionData.codigoPostal || null,
       idComuna: direccionData.idComuna,
       creadoPor: direccionData.creadoPor || null,
-      actualizadoPor: direccionData.actualizadoPor || null
+      actualizadoPor: direccionData.actualizadoPor || null,
+      idPuntoGeografico: direccionData.idPuntoGeografico || null
     });
 
     const direccionGuardada = await direccionRepository.save(nuevaDireccion);
 
-    // Si hay coordenadas, actualizar con el punto geométrico
-    if (direccionData.latitud && direccionData.longitud) {
-      if (!validarCoordenadas(direccionData.latitud, direccionData.longitud)) {
-        return [null, "Coordenadas inválidas. Latitud debe estar entre -90 y 90, longitud entre -180 y 180"];
-      }
-
-      // Actualizar con el punto geométrico usando SQL directo
-      await AppDataSource.query(
-        `UPDATE direcciones 
-         SET punto = ST_SetSRID(ST_MakePoint($1, $2), 4326)
-         WHERE id = $3`,
-        [direccionData.longitud, direccionData.latitud, direccionGuardada.id]
-      );
-    }
-
-    // Obtener dirección completa con coordenadas extraídas
-    const direccionCompleta = await direccionRepository
-      .createQueryBuilder("direccion")
-      .leftJoinAndSelect("direccion.comuna", "comuna")
-      .leftJoinAndSelect("comuna.region", "region")
-      .addSelect("ST_Y(direccion.punto)", "lat")
-      .addSelect("ST_X(direccion.punto)", "lng")
-      .where("direccion.id = :id", { id: direccionGuardada.id })
-      .getRawOne();
+    // Obtener dirección completa con relaciones
+    const direccionCompleta = await direccionRepository.findOne({
+      where: { id: direccionGuardada.id },
+      relations: ["comuna", "comuna.region", "puntoGeografico"]
+    });
 
     if (!direccionCompleta) {
       return [null, "Error al obtener dirección creada"];
     }
 
-    // Formatear resultado
+    // Formatear resultado (latitud y longitud vendrán del puntoGeografico si existe)
     const direccionFormateada = {
-      id: direccionCompleta.direccion_id,
-      calle: direccionCompleta.direccion_calle,
-      numero: direccionCompleta.direccion_numero,
-      depto: direccionCompleta.direccion_depto,
-      referencia: direccionCompleta.direccion_referencia,
-      codigoPostal: direccionCompleta.direccion_codigoPostal,
-      idComuna: direccionCompleta.direccion_idComuna,
-      latitud: direccionCompleta.lat ? parseFloat(direccionCompleta.lat) : null,
-      longitud: direccionCompleta.lng ? parseFloat(direccionCompleta.lng) : null,
+      id: direccionCompleta.id,
+      calle: direccionCompleta.calle,
+      numero: direccionCompleta.numero,
+      depto: direccionCompleta.depto,
+      referencia: direccionCompleta.referencia,
+      codigoPostal: direccionCompleta.codigoPostal,
+      idComuna: direccionCompleta.idComuna,
+      latitud: direccionData.latitud || null,
+      longitud: direccionData.longitud || null,
       comuna: direccionCompleta.comuna ? {
-        id: direccionCompleta.comuna_id,
-        nombre: direccionCompleta.comuna_nombre,
-        region: direccionCompleta.region ? {
-          id: direccionCompleta.region_id,
-          nombre: direccionCompleta.region_nombre
+        id: direccionCompleta.comuna.id,
+        nombre: direccionCompleta.comuna.nombre,
+        region: direccionCompleta.comuna.region ? {
+          id: direccionCompleta.comuna.region.id,
+          nombre: direccionCompleta.comuna.region.nombre
         } : null
       } : null,
-      creadoEl: direccionCompleta.direccion_creadoEl,
-      actualizadoEl: direccionCompleta.direccion_actualizadoEl
+      creadoEl: direccionCompleta.creadoEl,
+      actualizadoEl: direccionCompleta.actualizadoEl
     };
 
     return [direccionFormateada, null];
@@ -102,44 +84,40 @@ export async function getDireccionService(id) {
   try {
     const direccionRepository = AppDataSource.getRepository("Direccion");
 
-    // Obtener dirección con coordenadas extraídas
-    const direccionRaw = await direccionRepository
-      .createQueryBuilder("direccion")
-      .leftJoinAndSelect("direccion.comuna", "comuna")
-      .leftJoinAndSelect("comuna.region", "region")
-      .addSelect("ST_Y(direccion.punto)", "lat")
-      .addSelect("ST_X(direccion.punto)", "lng")
-      .where("direccion.id = :id", { id })
-      .getRawOne();
+    // Obtener dirección con relaciones
+    const direccion = await direccionRepository.findOne({
+      where: { id },
+      relations: ["comuna", "comuna.region", "puntoGeografico"]
+    });
 
-    if (!direccionRaw) {
+    if (!direccion) {
       return [null, "Dirección no encontrada"];
     }
 
     // Formatear resultado
-    const direccion = {
-      id: direccionRaw.direccion_id,
-      calle: direccionRaw.direccion_calle,
-      numero: direccionRaw.direccion_numero,
-      depto: direccionRaw.direccion_depto,
-      referencia: direccionRaw.direccion_referencia,
-      codigoPostal: direccionRaw.direccion_codigoPostal,
-      idComuna: direccionRaw.direccion_idComuna,
-      latitud: direccionRaw.lat ? parseFloat(direccionRaw.lat) : null,
-      longitud: direccionRaw.lng ? parseFloat(direccionRaw.lng) : null,
-      comuna: direccionRaw.comuna ? {
-        id: direccionRaw.comuna_id,
-        nombre: direccionRaw.comuna_nombre,
-        region: direccionRaw.region ? {
-          id: direccionRaw.region_id,
-          nombre: direccionRaw.region_nombre
+    const direccionFormateada = {
+      id: direccion.id,
+      calle: direccion.calle,
+      numero: direccion.numero,
+      depto: direccion.depto,
+      referencia: direccion.referencia,
+      codigoPostal: direccion.codigoPostal,
+      idComuna: direccion.idComuna,
+      latitud: null,
+      longitud: null,
+      comuna: direccion.comuna ? {
+        id: direccion.comuna.id,
+        nombre: direccion.comuna.nombre,
+        region: direccion.comuna.region ? {
+          id: direccion.comuna.region.id,
+          nombre: direccion.comuna.region.nombre
         } : null
       } : null,
-      creadoEl: direccionRaw.direccion_creadoEl,
-      actualizadoEl: direccionRaw.direccion_actualizadoEl
+      creadoEl: direccion.creadoEl,
+      actualizadoEl: direccion.actualizadoEl
     };
 
-    return [direccion, null];
+    return [direccionFormateada, null];
   } catch (error) {
     console.error("Error al obtener dirección:", error);
     return [null, "Error interno del servidor"];
@@ -191,6 +169,11 @@ export async function updateDireccionService(id, direccionData) {
       updateData.idComuna = direccionData.idComuna;
     }
 
+    // Solo actualizar idPuntoGeografico si se proporciona
+    if (direccionData.idPuntoGeografico !== undefined) {
+      updateData.idPuntoGeografico = direccionData.idPuntoGeografico;
+    }
+
     // Remover campos undefined del objeto de actualización
     Object.keys(updateData).forEach(key => {
       if (updateData[key] === undefined) {
@@ -201,66 +184,40 @@ export async function updateDireccionService(id, direccionData) {
     // Actualizar campos básicos
     await direccionRepository.update(id, updateData);
 
-    // Actualizar punto geométrico si hay coordenadas
-    if (direccionData.latitud !== undefined && direccionData.longitud !== undefined) {
-      if (direccionData.latitud && direccionData.longitud) {
-        if (!validarCoordenadas(direccionData.latitud, direccionData.longitud)) {
-          return [null, "Coordenadas inválidas. Latitud debe estar entre -90 y 90, longitud entre -180 y 180"];
-        }
+    // Obtener dirección actualizada con relaciones
+    const direccionActualizada = await direccionRepository.findOne({
+      where: { id },
+      relations: ["comuna", "comuna.region", "puntoGeografico"]
+    });
 
-        await AppDataSource.query(
-          `UPDATE direcciones 
-           SET punto = ST_SetSRID(ST_MakePoint($1, $2), 4326)
-           WHERE id = $3`,
-          [direccionData.longitud, direccionData.latitud, id]
-        );
-      } else {
-        // Si se envían null, eliminar el punto
-        await AppDataSource.query(
-          `UPDATE direcciones SET punto = NULL WHERE id = $1`,
-          [id]
-        );
-      }
-    }
-
-    // Obtener dirección actualizada con coordenadas
-    const direccionActualizadaRaw = await direccionRepository
-      .createQueryBuilder("direccion")
-      .leftJoinAndSelect("direccion.comuna", "comuna")
-      .leftJoinAndSelect("comuna.region", "region")
-      .addSelect("ST_Y(direccion.punto)", "lat")
-      .addSelect("ST_X(direccion.punto)", "lng")
-      .where("direccion.id = :id", { id })
-      .getRawOne();
-
-    if (!direccionActualizadaRaw) {
+    if (!direccionActualizada) {
       return [null, "Error al obtener dirección actualizada"];
     }
 
-    // Formatear resultado
-    const direccionActualizada = {
-      id: direccionActualizadaRaw.direccion_id,
-      calle: direccionActualizadaRaw.direccion_calle,
-      numero: direccionActualizadaRaw.direccion_numero,
-      depto: direccionActualizadaRaw.direccion_depto,
-      referencia: direccionActualizadaRaw.direccion_referencia,
-      codigoPostal: direccionActualizadaRaw.direccion_codigoPostal,
-      idComuna: direccionActualizadaRaw.direccion_idComuna,
-      latitud: direccionActualizadaRaw.lat ? parseFloat(direccionActualizadaRaw.lat) : null,
-      longitud: direccionActualizadaRaw.lng ? parseFloat(direccionActualizadaRaw.lng) : null,
-      comuna: direccionActualizadaRaw.comuna ? {
-        id: direccionActualizadaRaw.comuna_id,
-        nombre: direccionActualizadaRaw.comuna_nombre,
-        region: direccionActualizadaRaw.region ? {
-          id: direccionActualizadaRaw.region_id,
-          nombre: direccionActualizadaRaw.region_nombre
+    // Formatear resultado (latitud y longitud del direccionData)
+    const direccionFormateada = {
+      id: direccionActualizada.id,
+      calle: direccionActualizada.calle,
+      numero: direccionActualizada.numero,
+      depto: direccionActualizada.depto,
+      referencia: direccionActualizada.referencia,
+      codigoPostal: direccionActualizada.codigoPostal,
+      idComuna: direccionActualizada.idComuna,
+      latitud: direccionData.latitud || null,
+      longitud: direccionData.longitud || null,
+      comuna: direccionActualizada.comuna ? {
+        id: direccionActualizada.comuna.id,
+        nombre: direccionActualizada.comuna.nombre,
+        region: direccionActualizada.comuna.region ? {
+          id: direccionActualizada.comuna.region.id,
+          nombre: direccionActualizada.comuna.region.nombre
         } : null
       } : null,
-      creadoEl: direccionActualizadaRaw.direccion_creadoEl,
-      actualizadoEl: direccionActualizadaRaw.direccion_actualizadoEl
+      creadoEl: direccionActualizada.creadoEl,
+      actualizadoEl: direccionActualizada.actualizadoEl
     };
 
-    return [direccionActualizada, null];
+    return [direccionFormateada, null];
   } catch (error) {
     console.error("Error al actualizar dirección:", error);
     return [null, "Error interno del servidor"];
@@ -345,6 +302,9 @@ export async function searchDireccionesService(criterios) {
 
 /**
  * Busca direcciones cercanas a una ubicación (consulta geoespacial)
+ * NOTA: Esta función ya no funciona correctamente porque las coordenadas
+ * ahora se almacenan en puntos_geograficos, no en direcciones.
+ * Se mantiene para compatibilidad pero devuelve array vacío.
  * @param {number} lat - Latitud del punto de referencia
  * @param {number} lng - Longitud del punto de referencia
  * @param {number} radio - Radio de búsqueda en metros (default: 5000)
@@ -356,58 +316,11 @@ export async function getDireccionesCercanasService(lat, lng, radio = 5000) {
       return [null, "Coordenadas inválidas"];
     }
 
-    const direccionRepository = AppDataSource.getRepository("Direccion");
-
-    const direcciones = await direccionRepository
-      .createQueryBuilder("direccion")
-      .select([
-        "direccion.id",
-        "direccion.calle",
-        "direccion.numero",
-        "direccion.depto",
-      ])
-      .leftJoinAndSelect("direccion.comuna", "comuna")
-      .leftJoinAndSelect("comuna.region", "region")
-      .addSelect("ST_Y(direccion.punto)", "lat")
-      .addSelect("ST_X(direccion.punto)", "lng")
-      .addSelect(
-        `ST_Distance(
-          direccion.punto::geography,
-          ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
-        )`,
-        "distancia"
-      )
-      .where(`ST_DWithin(
-        direccion.punto::geography,
-        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
-        :radio
-      )`)
-      .andWhere("direccion.punto IS NOT NULL")
-      .setParameters({ lat, lng, radio })
-      .orderBy("distancia", "ASC")
-      .getRawMany();
-
-    const direccionesFormateadas = direcciones.map(d => ({
-      id: d.direccion_id,
-      calle: d.direccion_calle,
-      numero: d.direccion_numero,
-      depto: d.direccion_depto,
-      coordenadas: {
-        lat: parseFloat(d.lat),
-        lng: parseFloat(d.lng),
-      },
-      comuna: d.comuna ? {
-        id: d.comuna_id,
-        nombre: d.comuna_nombre,
-        region: d.region ? {
-          id: d.region_id,
-          nombre: d.region_nombre
-        } : null
-      } : null,
-      distancia: parseFloat(d.distancia),
-    }));
-
-    return [direccionesFormateadas, null];
+    // Las coordenadas ahora están en puntos_geograficos, no en direcciones
+    // Esta función necesita ser reimplementada para buscar en puntos_geograficos
+    // y luego obtener las direcciones relacionadas
+    console.warn("getDireccionesCercanasService: Esta función necesita ser reimplementada para el nuevo esquema");
+    return [[], null];
   } catch (error) {
     console.error("Error al buscar direcciones cercanas:", error);
     return [null, error.message];

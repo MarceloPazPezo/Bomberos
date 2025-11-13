@@ -10,7 +10,19 @@ const puntoRepository = AppDataSource.getRepository(PuntoGeograficoSchema);
  */
 export async function createPuntoGeograficoService(data) {
     try {
-        const { nombre, descripcion, lat, lng, idTipoPunto, idCompania, creadoPor } = data;
+        const { 
+            nombre, 
+            descripcion, 
+            lat, 
+            lng, 
+            idTipoPunto, 
+            idCompania, 
+            creadoPor,
+            categoria = 'PUNTO_INTERES',
+            idBombero = null,
+            idIncidente = null,
+            estado = 'BUENO'
+        } = data;
 
         if (!lat || !lng) {
             throw new Error("Latitud y longitud son requeridas");
@@ -21,13 +33,27 @@ export async function createPuntoGeograficoService(data) {
             throw new Error("Coordenadas inválidas. Latitud debe estar entre -90 y 90, longitud entre -180 y 180");
         }
 
+        // Validar categoría
+        const categoriasValidas = ['PUNTO_INTERES', 'UBICACION_BOMBERO', 'INCIDENTE'];
+        if (!categoriasValidas.includes(categoria)) {
+            throw new Error(`Categoría inválida. Debe ser una de: ${categoriasValidas.join(', ')}`);
+        }
+
+        // Validar coherencia de datos según categoría
+        if (categoria === 'UBICACION_BOMBERO' && !idBombero) {
+            throw new Error("idBombero es requerido para categoría UBICACION_BOMBERO");
+        }
+        if (categoria === 'INCIDENTE' && !idIncidente) {
+            throw new Error("idIncidente es requerido para categoría INCIDENTE");
+        }
+
         // Crear la geometría usando query parametrizado (seguro contra SQL injection)
         const result = await AppDataSource.query(
             `INSERT INTO puntos_geograficos 
-            (nombre, descripcion, "idTipoPunto", "idCompania", "creadoPor", punto, "creadoEl", "actualizadoEl")
-            VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_MakePoint($6, $7), 4326), NOW(), NOW())
+            (nombre, descripcion, "idTipoPunto", "idCompania", "creadoPor", categoria, "idBombero", "idIncidente", estado, punto, "creadoEl", "actualizadoEl")
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ST_SetSRID(ST_MakePoint($10, $11), 4326), NOW(), NOW())
             RETURNING id`,
-            [nombre, descripcion, idTipoPunto, idCompania, creadoPor, lng, lat]
+            [nombre, descripcion, idTipoPunto, idCompania, creadoPor, categoria, idBombero, idIncidente, estado, lng, lat]
         );
 
         const idCreado = result[0].id;
@@ -43,11 +69,149 @@ export async function createPuntoGeograficoService(data) {
 }
 
 /**
+ * Crear punto geográfico para un incidente
+ * @param {Object} data - Datos del incidente y coordenadas
+ * @returns {Promise<Array>} Punto creado o error
+ */
+export async function createPuntoGeograficoParaIncidenteService(data) {
+    try {
+        const { idIncidente, lat, lng, idCompania, creadoPor, nombre, descripcion } = data;
+        
+        if (!idIncidente) {
+            throw new Error("idIncidente es requerido");
+        }
+        
+        if (!lat || !lng) {
+            throw new Error("Coordenadas son requeridas");
+        }
+        
+        // Buscar un tipo de punto genérico para incidentes (o crear uno por defecto)
+        const tipoPuntoRepository = AppDataSource.getRepository("TipoPunto");
+        let tipoPunto = await tipoPuntoRepository.findOne({
+            where: { nombre: "Incidente" }
+        });
+        
+        // Si no existe, buscar cualquier tipo de punto activo
+        if (!tipoPunto) {
+            tipoPunto = await tipoPuntoRepository.findOne({
+                where: {},
+                order: { id: 'ASC' }
+            });
+        }
+        
+        if (!tipoPunto) {
+            throw new Error("No hay tipos de punto disponibles");
+        }
+        
+        const nombrePunto = nombre || `Incidente #${idIncidente}`;
+        const descripcionPunto = descripcion || "Ubicación del incidente";
+        
+        return await createPuntoGeograficoService({
+            nombre: nombrePunto,
+            descripcion: descripcionPunto,
+            lat,
+            lng,
+            idTipoPunto: tipoPunto.id,
+            idCompania,
+            creadoPor,
+            categoria: 'INCIDENTE',
+            idIncidente,
+            estado: 'BUENO'
+        });
+    } catch (error) {
+        console.error("Error al crear punto geográfico para incidente:", error);
+        return [null, error.message];
+    }
+}
+
+/**
+ * Crear o actualizar punto geográfico para la ubicación de un bombero
+ * @param {Object} data - Datos del bombero y coordenadas
+ * @returns {Promise<Array>} Punto creado/actualizado o error
+ */
+export async function createOrUpdatePuntoGeograficoParaBomberoService(data) {
+    try {
+        const { idBombero, lat, lng, idCompania, creadoPor, nombre, descripcion } = data;
+        
+        if (!idBombero) {
+            throw new Error("idBombero es requerido");
+        }
+        
+        if (!lat || !lng) {
+            throw new Error("Coordenadas son requeridas");
+        }
+        
+        // Verificar si ya existe un punto para este bombero
+        const puntoGeoRepository = AppDataSource.getRepository("PuntoGeografico");
+        const puntoExistente = await puntoGeoRepository.findOne({
+            where: { 
+                idBombero,
+                categoria: 'UBICACION_BOMBERO'
+            }
+        });
+        
+        if (puntoExistente) {
+            // Actualizar punto existente
+            await AppDataSource.query(
+                `UPDATE puntos_geograficos 
+                SET punto = ST_SetSRID(ST_MakePoint($1, $2), 4326),
+                    nombre = $3,
+                    descripcion = $4,
+                    "actualizadoEl" = NOW()
+                WHERE id = $5`,
+                [lng, lat, nombre || puntoExistente.nombre, descripcion || puntoExistente.descripcion, puntoExistente.id]
+            );
+            
+            const [puntoActualizado] = await getPuntoGeograficoByIdService(puntoExistente.id);
+            return [puntoActualizado, null];
+        }
+        
+        // Crear nuevo punto
+        // Buscar un tipo de punto genérico para ubicaciones de bomberos
+        const tipoPuntoRepository = AppDataSource.getRepository("TipoPunto");
+        let tipoPunto = await tipoPuntoRepository.findOne({
+            where: { nombre: "Ubicación Bombero" }
+        });
+        
+        // Si no existe, buscar cualquier tipo de punto activo
+        if (!tipoPunto) {
+            tipoPunto = await tipoPuntoRepository.findOne({
+                where: {},
+                order: { id: 'ASC' }
+            });
+        }
+        
+        if (!tipoPunto) {
+            throw new Error("No hay tipos de punto disponibles");
+        }
+        
+        const nombrePunto = nombre || `Ubicación Bombero #${idBombero}`;
+        const descripcionPunto = descripcion || "Ubicación de residencia del bombero";
+        
+        return await createPuntoGeograficoService({
+            nombre: nombrePunto,
+            descripcion: descripcionPunto,
+            lat,
+            lng,
+            idTipoPunto: tipoPunto.id,
+            idCompania,
+            creadoPor,
+            categoria: 'UBICACION_BOMBERO',
+            idBombero,
+            estado: 'BUENO'
+        });
+    } catch (error) {
+        console.error("Error al crear/actualizar punto geográfico para bombero:", error);
+        return [null, error.message];
+    }
+}
+
+/**
  * Obtener todos los puntos geográficos
  */
 export async function getPuntosGeograficosService(filtros = {}) {
     try {
-        const { idTipoPunto, idCompania } = filtros;
+        const { idTipoPunto, idCompania, categoria, idBombero, idIncidente } = filtros;
 
         const puntos = await puntoRepository
             .createQueryBuilder("punto")
@@ -56,11 +220,16 @@ export async function getPuntosGeograficosService(filtros = {}) {
                 "punto.nombre",
                 "punto.descripcion",
                 "punto.estado",
+                "punto.categoria",
+                "punto.idBombero",
+                "punto.idIncidente",
                 "punto.creadoEl",
                 "punto.actualizadoEl",
             ])
             .leftJoinAndSelect("punto.tipoPunto", "tipoPunto")
             .leftJoinAndSelect("punto.compania", "compania")
+            .leftJoinAndSelect("punto.bombero", "bombero")
+            .leftJoinAndSelect("punto.incidente", "incidente")
             .addSelect("ST_Y(punto.punto)", "lat")
             .addSelect("ST_X(punto.punto)", "lng");
 
@@ -70,6 +239,18 @@ export async function getPuntosGeograficosService(filtros = {}) {
 
         if (idCompania) {
             puntos.andWhere("punto.idCompania = :idCompania", { idCompania });
+        }
+
+        if (categoria) {
+            puntos.andWhere("punto.categoria = :categoria", { categoria });
+        }
+
+        if (idBombero) {
+            puntos.andWhere("punto.idBombero = :idBombero", { idBombero });
+        }
+
+        if (idIncidente) {
+            puntos.andWhere("punto.idIncidente = :idIncidente", { idIncidente });
         }
 
         const resultado = await puntos.getRawMany();
@@ -93,7 +274,17 @@ export async function getPuntosGeograficosService(filtros = {}) {
                 id: p.compania_id,
                 nombre: p.compania_nombre,
             } : null,
+            bombero: p.bombero_id ? {
+                id: p.bombero_id,
+                nombres: p.bombero_nombres,
+                apellidos: p.bombero_apellidos,
+            } : null,
+            incidente: p.incidente_id ? {
+                id: p.incidente_id,
+                numeroIncidente: p.incidente_numeroIncidente,
+            } : null,
             estado: p.punto_estado,
+            categoria: p.punto_categoria,
             creadoEl: p.punto_creadoEl,
             actualizadoEl: p.punto_actualizadoEl,
         }));

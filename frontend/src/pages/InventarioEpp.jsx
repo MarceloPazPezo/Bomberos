@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ShieldCheckIcon,
-  PlusIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
   UserIcon,
   WrenchScrewdriverIcon,
   CheckCircleIcon,
@@ -11,11 +9,19 @@ import {
   ExclamationTriangleIcon,
   ClockIcon
 } from '@heroicons/react/24/outline';
-import { MdAdd, MdRefresh, MdSearch, MdClear } from 'react-icons/md';
+import { MdRefresh, MdSearch, MdClear, MdShield, MdHelpOutline } from 'react-icons/md';
 import { useAuth } from '@hooks/auth/useAuth';
 import eppService from '@services/epp.service.js';
-import { showSuccessAlert, showErrorAlert, showConfirmAlert } from '@helpers/fireAlert.js';
+import { showSuccessAlert, showErrorAlert } from '@helpers/fireAlert.js';
+import EditEppModal from '@components/epp/EditEppModal.jsx';
 import Tooltip from '@components/Tooltip.jsx';
+
+// PrimeReact para los selects y paginación
+import { Dropdown } from 'primereact/dropdown';
+import { Paginator } from 'primereact/paginator';
+import 'primereact/resources/themes/lara-light-blue/theme.css';
+import 'primereact/resources/primereact.min.css';
+import 'primeicons/primeicons.css';
 
 /**
  * Página de inventario de EPP (Equipos de Protección Personal)
@@ -27,16 +33,14 @@ const InventarioEpp = () => {
   const [epps, setEpps] = useState([]);
   const [tiposEpp, setTiposEpp] = useState([]);
   const [estadosEpp, setEstadosEpp] = useState([]);
-  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Estados de filtros y búsqueda
   const [filters, setFilters] = useState({
     search: '',
-    idTipoEpp: '',
-    idEstadoEpp: '',
-    idBombero: ''
+    idTipoEpp: null,
+    idEstadoEpp: null
   });
   const [pagination, setPagination] = useState({
     page: 1,
@@ -44,11 +48,10 @@ const InventarioEpp = () => {
     total: 0,
     totalPages: 0
   });
+  const [first, setFirst] = useState(0); // Para el Paginator de PrimeReact
 
   // Estados de modales
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedEpp, setSelectedEpp] = useState(null);
 
   /**
@@ -59,18 +62,16 @@ const InventarioEpp = () => {
       setLoading(true);
       setError(null);
 
-      const [eppsResponse, tiposResponse, estadosResponse, statsResponse] = await Promise.all([
+      const [eppsResponse, tiposResponse, estadosResponse] = await Promise.all([
         eppService.getEpp({ page: 1, limit: 10 }),
         eppService.getTiposEpp(),
-        eppService.getEstadosEpp(),
-        eppService.getInventarioStats()
+        eppService.getEstadosEpp()
       ]);
 
       setEpps(eppsResponse.data.epps);
       setPagination(eppsResponse.data.pagination);
       setTiposEpp(tiposResponse.data);
       setEstadosEpp(estadosResponse.data);
-      setStats(statsResponse.data);
 
     } catch (error) {
       console.error('Error cargando datos iniciales:', error);
@@ -91,7 +92,9 @@ const InventarioEpp = () => {
       const params = {
         page: newPage,
         limit: pagination.limit,
-        ...newFilters
+        search: newFilters.search || undefined,
+        idTipoEpp: newFilters.idTipoEpp || undefined,
+        idEstadoEpp: newFilters.idEstadoEpp || undefined
       };
 
       // Remover filtros vacíos
@@ -106,6 +109,7 @@ const InventarioEpp = () => {
       setEpps(response.data.epps);
       setPagination(response.data.pagination);
       setFilters(newFilters);
+      setFirst((newPage - 1) * pagination.limit); // Actualizar first para Paginator
 
     } catch (error) {
       console.error('Error aplicando filtros:', error);
@@ -130,12 +134,55 @@ const InventarioEpp = () => {
   const clearFilters = () => {
     const emptyFilters = {
       search: '',
-      idTipoEpp: '',
-      idEstadoEpp: '',
-      idBombero: ''
+      idTipoEpp: null,
+      idEstadoEpp: null
     };
     setFilters(emptyFilters);
+    setFirst(0);
     applyFilters(emptyFilters, 1);
+  };
+
+  /**
+   * Maneja el cambio de página en el Paginator
+   */
+  const onPageChange = (event) => {
+    setFirst(event.first);
+    const newPage = Math.floor(event.first / event.rows) + 1;
+    const newLimit = event.rows;
+    
+    if (newLimit !== pagination.limit) {
+      setPagination(prev => ({ ...prev, limit: newLimit }));
+    }
+    
+    applyFilters(filters, newPage);
+  };
+
+  /**
+   * Maneja la actualización de un EPP asignado al usuario
+   */
+  const handleUpdateMyEpp = async (eppData) => {
+    try {
+      const { perfilCompletoService } = await import('@services/perfilCompleto.service');
+      await perfilCompletoService.updateEppAsignado(selectedEpp.id, {
+        idEstadoEpp: eppData.idEstadoEpp,
+        descripcionDeEstado: eppData.descripcionDeEstado
+      });
+      showSuccessAlert('Éxito', 'Estado del EPP actualizado exitosamente');
+      loadInitialData();
+    } catch (error) {
+      console.error('Error al actualizar EPP:', error);
+      showErrorAlert('Error', error.response?.data?.message || 'No se pudo actualizar el estado del EPP');
+      throw error;
+    }
+  };
+
+  /**
+   * Verifica si un EPP está asignado al usuario actual
+   */
+  const isMyEpp = (epp) => {
+    if (!epp.aCargoEpps || epp.aCargoEpps.length === 0) return false;
+    const asignacion = epp.aCargoEpps[0];
+    return asignacion.fichaBombero?.bombero?.id === user?.id;
   };
 
   /**
@@ -191,128 +238,82 @@ const InventarioEpp = () => {
     );
   }
 
+  // Preparar opciones para los dropdowns de PrimeReact
+  const tipoOptions = [
+    { label: 'Todos los tipos', value: null },
+    ...tiposEpp.map(tipo => ({ label: tipo.nombre, value: tipo.id }))
+  ];
+
+  const estadoOptions = [
+    { label: 'Todos los estados', value: null },
+    ...estadosEpp.map(estado => ({ label: estado.nombre, value: estado.id }))
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header con estilo de admin tabs */}
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-6 rounded-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-800">Inventario de EPP</h2>
-            <p className="text-gray-600 text-sm mt-1">
-              Gestión de Equipos de Protección Personal
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Estadísticas */}
-            <span className="text-sm text-gray-600">
-              Total: {stats.totalEpps || 0} equipos
-            </span>
-
-            {/* Botón refrescar */}
+    <div className="space-y-4">
+      {/* Header principal con estilo glassmorphism */}
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <MdShield className="h-8 w-8 text-[#4EB9FA]" />
+            <div>
+              <h1 className="text-2xl font-bold text-[#2C3E50]">
+                Inventario de EPP
+              </h1>
+              <p className="text-gray-600 text-sm">
+                Consulta el inventario y actualiza el estado de tus equipos asignados
+              </p>
+            </div>
             <Tooltip
-              id="refresh-epp-btn"
-              content="Actualizar lista de EPP"
-              place="top"
+              id="inventario-epp-help"
+              content="Sistema de gestión de Equipos de Protección Personal. Aquí puedes consultar todo el inventario de EPP del cuerpo de bomberos. Si tienes equipos asignados, puedes actualizar su estado y agregar observaciones sobre su condición."
+              place="bottom"
               variant="dark"
             >
-              <button
-                onClick={loadInitialData}
-                disabled={loading}
-                className={`p-2 rounded-lg shadow transition-all duration-200 border ${
-                  loading 
-                    ? 'bg-gray-400 text-gray-200 border-gray-400 cursor-not-allowed' 
-                    : 'bg-[#4EB9FA] hover:bg-[#3A9BD9] text-white border-[#4EB9FA] hover:-translate-y-0.5 hover:scale-105'
-                }`}
-              >
-                <MdRefresh 
-                  size={18} 
-                  className={loading ? 'animate-spin' : ''} 
-                />
-              </button>
-            </Tooltip>
-
-            {/* Botón crear EPP */}
-            <Tooltip
-              id="create-epp-btn"
-              content="Crear un nuevo EPP en el sistema"
-              place="top"
-              variant="dark"
-            >
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-[#2C3E50] hover:bg-[#34495E] text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 border border-[#2C3E50] hover:-translate-y-0.5 hover:scale-105"
-              >
-                <span className="flex items-center gap-2">
-                  <MdAdd size={18} />
-                  <span className="hidden sm:inline">Crear EPP</span>
-                </span>
-              </button>
+              <MdHelpOutline className="h-5 w-5 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
             </Tooltip>
           </div>
+
+          {/* Botón de refrescar */}
+          <Tooltip
+            id="refresh-inventario-btn"
+            content="Actualizar inventario"
+            place="left"
+            variant="dark"
+          >
+            <button
+              onClick={loadInitialData}
+              disabled={loading}
+              className={`p-2.5 rounded-lg transition-all duration-200 ${
+                loading 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : 'bg-[#4EB9FA] hover:bg-[#3A9BD9] text-white shadow-md hover:shadow-lg'
+              }`}
+            >
+              <MdRefresh 
+                size={20} 
+                className={loading ? 'animate-spin' : ''} 
+              />
+            </button>
+          </Tooltip>
         </div>
+      </div>
 
-        {/* Tarjetas de estadísticas con estilo de admin */}
-        {stats && Object.keys(stats).length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-gradient-to-r from-[#4EB9FA] to-[#3DA8E9] text-white p-4 rounded-lg shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">Total EPP</p>
-                  <p className="text-2xl font-bold">{stats.totalEpps || 0}</p>
-                </div>
-                <ShieldCheckIcon className="w-8 h-8 opacity-80" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">Disponibles</p>
-                  <p className="text-2xl font-bold">{stats.eppsDisponibles || 0}</p>
-                </div>
-                <CheckCircleIcon className="w-8 h-8 opacity-80" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">En Uso</p>
-                  <p className="text-2xl font-bold">{stats.eppsAsignados || 0}</p>
-                </div>
-                <UserIcon className="w-8 h-8 opacity-80" />
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg shadow-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">Disponibilidad</p>
-                  <p className="text-2xl font-bold">{stats.porcentajeDisponibilidad || 0}%</p>
-                  <p className="text-xs opacity-80">{stats.totalTipos || 0} tipos</p>
-                </div>
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-bold">%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Filtros con estilo de admin */}
-        <div className="flex items-center gap-2 mb-6">
+      {/* Contenedor principal */}
+      <div className="bg-white rounded-2xl shadow-xl p-6">
+        {/* Filtros */}
+        <div className="mb-6 space-y-4">
           {/* Buscador */}
-          <div className="relative max-w-md">
+          <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <MdSearch className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              placeholder="Buscar EPP por nombre o descripción..."
+              placeholder="Buscar EPP por nombre, número de serie o descripción..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#4EB9FA] focus:border-[#4EB9FA] text-sm"
             />
             {filters.search && (
               <button
@@ -324,243 +325,219 @@ const InventarioEpp = () => {
             )}
           </div>
 
-          {/* Filtro por tipo */}
-          <select
-            value={filters.idTipoEpp}
-            onChange={(e) => handleFilterChange('idTipoEpp', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
-          >
-            <option value="">Todos los tipos</option>
-            {tiposEpp.map(tipo => (
-              <option key={tipo.id} value={tipo.id}>
-                {tipo.nombre}
-              </option>
-            ))}
-          </select>
+          {/* Filtros con PrimeReact Dropdown */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Filtro por tipo */}
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de EPP
+              </label>
+              <Dropdown
+                value={filters.idTipoEpp}
+                options={tipoOptions}
+                onChange={(e) => handleFilterChange('idTipoEpp', e.value)}
+                placeholder="Seleccione un tipo"
+                className="w-full"
+                showClear={filters.idTipoEpp !== null}
+                filter
+                filterPlaceholder="Buscar tipo..."
+                emptyFilterMessage="No se encontraron tipos"
+              />
+            </div>
 
-          {/* Filtro por estado */}
-          <select
-            value={filters.idEstadoEpp}
-            onChange={(e) => handleFilterChange('idEstadoEpp', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
-          >
-            <option value="">Todos los estados</option>
-            {estadosEpp.map(estado => (
-              <option key={estado.id} value={estado.id}>
-                {estado.nombre}
-              </option>
-            ))}
-          </select>
+            {/* Filtro por estado */}
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estado
+              </label>
+              <Dropdown
+                value={filters.idEstadoEpp}
+                options={estadoOptions}
+                onChange={(e) => handleFilterChange('idEstadoEpp', e.value)}
+                placeholder="Seleccione un estado"
+                className="w-full"
+                showClear={filters.idEstadoEpp !== null}
+                filter
+                filterPlaceholder="Buscar estado..."
+                emptyFilterMessage="No se encontraron estados"
+              />
+            </div>
 
-          {/* Límite por página */}
-          <select
-            value={pagination.limit}
-            onChange={(e) => {
-              setPagination(prev => ({ ...prev, limit: parseInt(e.target.value) }));
-              applyFilters(filters, 1);
-            }}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm"
-          >
-            <option value={5}>5 por página</option>
-            <option value={10}>10 por página</option>
-            <option value={20}>20 por página</option>
-            <option value={50}>50 por página</option>
-          </select>
+            {/* Botón limpiar filtros */}
+            {(filters.search || filters.idTipoEpp || filters.idEstadoEpp) && (
+              <div className="flex-1 min-w-[200px] flex items-end">
+                <button
+                  onClick={clearFilters}
+                  className="w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm font-medium"
+                >
+                  <MdClear className="inline mr-2" />
+                  Limpiar filtros
+                </button>
+              </div>
+            )}
+          </div>
 
-          {/* Estadísticas de filtros */}
-          <span className="text-sm text-gray-600 whitespace-nowrap ml-auto">
-            Mostrando: {epps.length} de {pagination.total} equipos
-            {filters.search && ` | Filtrados: ${epps.length}`}
-          </span>
         </div>
 
-        {/* Lista de EPP con estilo de admin */}
-        <div className="space-y-4">
+        {/* Lista de EPP */}
+        <div className="space-y-3">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
               <p className="text-sm text-red-800">{error}</p>
             </div>
           )}
 
           {epps.length === 0 && !loading ? (
             <div className="text-center py-12">
-              <ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay equipos</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <ShieldCheckIcon className="mx-auto h-16 w-16 text-gray-300" />
+              <h3 className="mt-4 text-lg font-medium text-gray-900">No hay equipos</h3>
+              <p className="mt-2 text-sm text-gray-500">
                 {filters.search || filters.idTipoEpp || filters.idEstadoEpp 
                   ? 'No se encontraron equipos con los filtros aplicados.' 
-                  : 'Comienza creando un nuevo EPP.'}
+                  : 'No hay equipos en el inventario.'}
               </p>
-              {!filters.search && !filters.idTipoEpp && !filters.idEstadoEpp && (
-                <div className="mt-6">
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="bg-[#2C3E50] hover:bg-[#34495E] text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 border border-[#2C3E50] hover:-translate-y-0.5 hover:scale-105"
-                  >
-                    <span className="flex items-center gap-2">
-                      <MdAdd size={18} />
-                      Crear primer EPP
-                    </span>
-                  </button>
-                </div>
-              )}
             </div>
           ) : (
-            <div className="grid gap-4">
+            <>
               {epps.map((epp) => (
-                <div key={epp.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
+                <div 
+                  key={epp.id} 
+                  className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-[#4EB9FA]/30 transition-all duration-200"
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                    {/* Columna 1: Información del EPP */}
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0">
                         {getEstadoIcon(epp.estadosEpp?.nombre)}
                       </div>
                       
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-lg font-medium text-gray-900 truncate">
-                          {epp.nombre}
-                        </h4>
+                        <div className="mb-1">
+                          <h4 className="text-base font-semibold text-gray-900">
+                            {epp.nombre}
+                          </h4>
+                        </div>
                         
-                        <div className="flex items-center space-x-4 mt-1">
-                          <span className="text-sm text-gray-500">
+                        <div className="flex items-center flex-wrap gap-2">
+                          <span className="text-xs text-gray-600">
                             {epp.tipoEpp?.nombre}
                           </span>
-                          
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstadoColor(epp.estadosEpp?.nombre)}`}>
+                          <span className="text-gray-300">•</span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(epp.estadosEpp?.nombre)}`}>
                             {epp.estadosEpp?.nombre}
                           </span>
-                          
-                          {epp.aCargoEpps && epp.aCargoEpps.length > 0 && (
-                            <span className="text-sm text-blue-600">
-                              Asignado a: {epp.aCargoEpps[0].fichaBombero?.bombero?.nombres} {epp.aCargoEpps[0].fichaBombero?.bombero?.apellidos}
-                            </span>
-                          )}
                         </div>
                         
                         {epp.descripcionDeEstado && (
-                          <p className="text-sm text-gray-600 mt-1">
+                          <p className="text-xs text-gray-600 mt-1 line-clamp-1">
                             {epp.descripcionDeEstado}
                           </p>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedEpp(epp);
-                          setShowEditModal(true);
-                        }}
-                        className="text-[#4EB9FA] hover:text-[#3DA8E9] text-sm font-medium px-3 py-1 rounded border border-[#4EB9FA] hover:bg-[#4EB9FA]/10 transition-colors"
-                      >
-                        Editar
-                      </button>
-                      
+                    {/* Columna 2: Mini-card de asignación */}
+                    <div className="flex-shrink-0">
                       {epp.aCargoEpps && epp.aCargoEpps.length > 0 ? (
+                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                          isMyEpp(epp) 
+                            ? 'bg-blue-50 border-blue-200' 
+                            : 'bg-white border-gray-200'
+                        } shadow-sm`}>
+                          <div className={`p-1.5 rounded-full ${
+                            isMyEpp(epp) ? 'bg-blue-100' : 'bg-gray-100'
+                          }`}>
+                            <UserIcon className={`w-4 h-4 ${
+                              isMyEpp(epp) ? 'text-blue-600' : 'text-gray-600'
+                            }`} />
+                          </div>
+                          <div>
+                            <div className={`text-xs font-semibold ${
+                              isMyEpp(epp) ? 'text-blue-900' : 'text-gray-900'
+                            }`}>
+                              {epp.aCargoEpps[0].fichaBombero?.bombero?.nombres}{' '}
+                              {epp.aCargoEpps[0].fichaBombero?.bombero?.apellidos}
+                              {isMyEpp(epp) && (
+                                <span className="ml-1 px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded-full">
+                                  Tú
+                                </span>
+                              )}
+                            </div>
+                            {epp.aCargoEpps[0].fechaAsignacion && (
+                              <div className="text-[10px] text-gray-500">
+                                {new Date(epp.aCargoEpps[0].fechaAsignacion).toLocaleDateString('es-CL', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-white border border-dashed border-gray-300 rounded-lg">
+                          <UserIcon className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs text-gray-500">Sin asignar</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Columna 3: Acciones */}
+                    <div className="flex-shrink-0">
+                      {isMyEpp(epp) ? (
                         <button
                           onClick={() => {
                             setSelectedEpp(epp);
-                            setShowAssignModal(true);
+                            setShowEditModal(true);
                           }}
-                          className="text-yellow-600 hover:text-yellow-800 text-sm font-medium px-3 py-1 rounded border border-yellow-600 hover:bg-yellow-50 transition-colors"
+                          className="px-3 py-1.5 bg-[#4EB9FA] hover:bg-[#3A9BD9] text-white text-xs font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap"
                         >
-                          Desasignar
+                          Actualizar Estado
                         </button>
                       ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedEpp(epp);
-                            setShowAssignModal(true);
-                          }}
-                          className="text-green-600 hover:text-green-800 text-sm font-medium px-3 py-1 rounded border border-green-600 hover:bg-green-50 transition-colors"
-                        >
-                          Asignar
-                        </button>
+                        <span className="text-xs text-gray-400 italic">
+                          Solo lectura
+                        </span>
                       )}
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
+            </>
           )}
         </div>
 
-        {/* Paginación con estilo de admin */}
-        {pagination.totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total} resultados
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => applyFilters(filters, pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                Anterior
-              </button>
-              
-              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                const pageNum = pagination.page <= 3 ? i + 1 : pagination.page - 2 + i;
-                if (pageNum > pagination.totalPages) return null;
-                
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => applyFilters(filters, pageNum)}
-                    className={`px-3 py-1 border rounded-lg text-sm transition-colors ${
-                      pageNum === pagination.page
-                        ? 'bg-[#4EB9FA] text-white border-[#4EB9FA]'
-                        : 'border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-              
-              <button
-                onClick={() => applyFilters(filters, pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                Siguiente
-              </button>
-            </div>
+        {/* Paginación con PrimeReact */}
+        {pagination.total > 0 && (
+          <div className="mt-6 border-t border-gray-200 pt-6">
+            <Paginator
+              first={first}
+              rows={pagination.limit}
+              totalRecords={pagination.total}
+              rowsPerPageOptions={[5, 10, 20, 50]}
+              onPageChange={onPageChange}
+              template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink RowsPerPageDropdown CurrentPageReport"
+              currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} equipos"
+              className="border-0"
+            />
           </div>
         )}
       </div>
 
-      {/* Modales con estilo de admin */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white/95 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Crear Nuevo EPP</h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <XCircleIcon className="w-6 h-6" />
-              </button>
-            </div>
-            <p className="text-gray-600 mb-6">Funcionalidad en desarrollo...</p>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="flex-1 bg-[#4EB9FA] hover:bg-[#3DA8E9] text-white py-2 rounded-lg transition-colors"
-              >
-                Cerrar
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Modal para editar EPP */}
+      {selectedEpp && isMyEpp(selectedEpp) && (
+        <EditEppModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedEpp(null);
+          }}
+          onSave={handleUpdateMyEpp}
+          epp={selectedEpp}
+          tiposEpp={tiposEpp}
+          estadosEpp={estadosEpp}
+          readOnlyFields={['nombre', 'idTipoEpp']}
+        />
       )}
     </div>
   );

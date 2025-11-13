@@ -9,7 +9,8 @@ import {
   limpiarImagenesHuerfanas,
   updateCapacitacion,
   updateContactoEmergencia,
-  updateInformacionPersonal
+  updateInformacionPersonal,
+  updateEppAsignado
 } from "../controllers/perfilCompleto.controller.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
@@ -80,6 +81,13 @@ router.post(
   "/limpiar-imagenes-huerfanas",
   authorizePermisos(["bombero:actualizar_perfil"]),
   limpiarImagenesHuerfanas
+);
+
+router.patch(
+  "/epp/:idEpp",
+  cleanEmptyStrings,
+  authorizePermisos(["bombero:actualizar_perfil"]),
+  updateEppAsignado
 );
 
 export default router;

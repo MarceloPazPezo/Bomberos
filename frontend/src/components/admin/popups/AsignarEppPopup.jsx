@@ -114,52 +114,78 @@ export default function AsignarEppPopup({ show, setShow, epp, onEppAssigned }) {
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col">
-                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
-                    <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-white rounded-lg">
-                            <MdPerson className="w-6 h-6 text-[#3A9BD9]" />
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 rounded-t-2xl bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9]">
+                    <div className="flex items-center space-x-4">
+                        <div className="p-3 bg-white rounded-xl shadow-lg">
+                            <MdPerson className="w-7 h-7 text-[#3A9BD9]" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white">Asignar EPP</h2>
-                            <p className="text-blue-100 text-sm">Asignar "{toStartCase(epp.nombre)}" a un bombero</p>
+                            <h2 className="text-2xl font-bold text-white">
+                                Asignar EPP a Bombero
+                            </h2>
+                            <p className="text-sm mt-1 font-medium text-blue-100">
+                                {toStartCase(epp.nombre)} • {epp.tipoEpp?.nombre ? toStartCase(epp.tipoEpp.nombre) : 'Sin tipo'}
+                            </p>
                         </div>
                     </div>
                     <button
                         onClick={handleClose}
-                        className="p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-lg transition-colors"
+                        className="p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-xl transition-colors"
                         disabled={loading}
                     >
                         <MdClose className="w-6 h-6 text-red-300 hover:text-white" />
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50/50">
+                {/* Body */}
+                <div className="px-8 py-8 bg-gray-50">
                     {loading && (
                         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-b-2xl">
                             <LoadingSpinner />
                         </div>
                     )}
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {/* Información del EPP */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <h3 className="text-sm font-semibold text-blue-900 mb-2">EPP a asignar</h3>
-                            <p className="text-blue-800 font-medium">{toStartCase(epp.nombre)}</p>
-                            {epp.tipoEpp && (
-                                <p className="text-sm text-blue-600 mt-1">Tipo: {toStartCase(epp.tipoEpp.nombre)}</p>
-                            )}
+                        <div className="bg-white rounded-xl p-6 shadow-md border-l-4 border-[#4EB9FA]">
+                            <div className="flex items-start gap-4">
+                                <div className="w-16 h-16 bg-gradient-to-br from-[#4EB9FA] to-[#3A9BD9] rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                                    <MdPerson className="w-8 h-8 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-[#4EB9FA] mb-2">
+                                        EPP a asignar
+                                    </p>
+                                    <p className="text-xl font-bold text-gray-900 mb-1">
+                                        {toStartCase(epp.nombre)}
+                                    </p>
+                                    <div className="space-y-1">
+                                        {epp.tipoEpp && (
+                                            <p className="text-sm text-gray-600">
+                                                <span className="font-medium">Tipo:</span> {toStartCase(epp.tipoEpp.nombre)}
+                                            </p>
+                                        )}
+                                        {epp.estadosEpp && (
+                                            <p className="text-sm text-gray-600">
+                                                <span className="font-medium">Estado:</span> {toStartCase(epp.estadosEpp.nombre)}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Selector de bombero */}
+                        {/* Selector de bombero mejorado */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Seleccione el bombero <span className="text-red-500">*</span>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                Seleccionar Bombero <span className="text-red-500">*</span>
                             </label>
                             {loadingBomberos ? (
-                                <div className="flex items-center justify-center py-8">
-                                    <LoadingSpinner size="sm" />
-                                    <span className="ml-2 text-gray-600">Cargando bomberos...</span>
+                                <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4EB9FA]"></div>
+                                    <p className="mt-4 text-sm text-gray-600">Cargando bomberos...</p>
                                 </div>
                             ) : (
                                 <Select
@@ -171,7 +197,7 @@ export default function AsignarEppPopup({ show, setShow, epp, onEppAssigned }) {
                                     options={selectOptions}
                                     isSearchable={true}
                                     isClearable={true}
-                                    placeholder="Buscar bombero por nombre o RUN..."
+                                    placeholder="Buscar por nombre o RUN..."
                                     noOptionsMessage={() => "No se encontraron bomberos"}
                                     loadingMessage={() => "Cargando..."}
                                     isLoading={loadingBomberos}
@@ -185,52 +211,80 @@ export default function AsignarEppPopup({ show, setShow, epp, onEppAssigned }) {
                                     styles={{
                                         control: (base, state) => ({
                                             ...base,
-                                            borderColor: state.isFocused ? '#3B82F6' : '#D1D5DB',
-                                            boxShadow: state.isFocused ? '0 0 0 2px rgba(59, 130, 246, 0.1)' : 'none',
+                                            borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+                                            borderWidth: '2px',
+                                            boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
                                             '&:hover': {
-                                                borderColor: '#3B82F6'
+                                                borderColor: '#4EB9FA'
                                             },
-                                            minHeight: '42px'
+                                            minHeight: '50px',
+                                            borderRadius: '12px',
+                                            fontSize: '15px'
                                         }),
                                         menu: (base) => ({
                                             ...base,
-                                            zIndex: 9999
+                                            zIndex: 9999,
+                                            borderRadius: '12px',
+                                            overflow: 'hidden',
+                                            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
+                                        }),
+                                        menuList: (base) => ({
+                                            ...base,
+                                            maxHeight: '280px',
+                                            padding: '8px'
                                         }),
                                         option: (base, state) => ({
                                             ...base,
                                             backgroundColor: state.isSelected
-                                                ? '#3B82F6'
+                                                ? '#4EB9FA'
                                                 : state.isFocused
                                                 ? '#EFF6FF'
                                                 : 'white',
                                             color: state.isSelected ? 'white' : '#1F2937',
+                                            borderRadius: '8px',
+                                            padding: '12px',
+                                            margin: '2px 0',
+                                            cursor: 'pointer',
+                                            fontSize: '14px',
                                             '&:active': {
-                                                backgroundColor: '#3B82F6',
+                                                backgroundColor: '#4EB9FA',
                                                 color: 'white'
                                             }
+                                        }),
+                                        placeholder: (base) => ({
+                                            ...base,
+                                            color: '#9CA3AF',
+                                            fontSize: '15px'
+                                        }),
+                                        input: (base) => ({
+                                            ...base,
+                                            fontSize: '15px'
+                                        }),
+                                        singleValue: (base) => ({
+                                            ...base,
+                                            fontSize: '15px',
+                                            color: '#1F2937'
                                         })
                                     }}
-                                    className="text-sm"
                                 />
+                            )}
+                            {!loadingBomberos && selectOptions.length === 0 && (
+                                <p className="mt-2 text-sm text-gray-500 italic">
+                                    No hay bomberos disponibles con ficha activa
+                                </p>
                             )}
                         </div>
 
                         {/* Error */}
                         {error && (
-                            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                                <p className="text-red-700 text-sm">{error}</p>
+                            <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
+                                <p className="text-red-700 text-sm font-medium">{error}</p>
                             </div>
                         )}
-
-                        {/* Advertencia */}
-                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                            <p className="text-yellow-800 text-sm">
-                                <strong>Nota:</strong> El EPP será asignado al bombero seleccionado. Si el EPP ya estaba asignado a otro bombero, será reasignado.
-                            </p>
-                        </div>
                     </div>
                 </div>
 
+                {/* Footer con botones */}
                 <div className="flex justify-end px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
                     <div className="flex space-x-3">
                         <button
@@ -245,15 +299,18 @@ export default function AsignarEppPopup({ show, setShow, epp, onEppAssigned }) {
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading || !selectedFichaBomberoId || loadingBomberos ? 'opacity-50 cursor-not-allowed' : ''}`}
                             disabled={loading || !selectedFichaBomberoId || loadingBomberos}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
                         >
                             {loading ? (
-                                <LoadingSpinner size="sm" />
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    <span>Procesando...</span>
+                                </>
                             ) : (
                                 <>
                                     <MdSave className="w-4 h-4" />
-                                    <span>Asignar EPP</span>
+                                    <span>Asignar</span>
                                 </>
                             )}
                         </button>

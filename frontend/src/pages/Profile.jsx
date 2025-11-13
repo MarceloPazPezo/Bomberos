@@ -20,7 +20,8 @@ import {
   MdClose,
   MdInfo,
   MdCake,
-  MdWaterDrop
+  MdWaterDrop,
+  MdShield
 } from 'react-icons/md';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -32,6 +33,7 @@ import EditPersonalInfoModal from '@components/bomberos/EditPersonalInfoModal';
 import EditContactoEmergenciaModal from '@components/bomberos/EditContactoEmergenciaModal';
 import EditCapacitacionModal from '@components/bomberos/EditCapacitacionModal';
 import EditBomberoModal from '@components/bomberos/EditBomberoModal';
+import EditEppModal from '@components/bomberos/EditEppModal';
 import { perfilCompletoService } from '@services/perfilCompleto.service';
 import { showErrorAlert, showSuccessAlert, showInfoAlert, showConfirmAlert } from '@helpers/fireAlert';
 import { 
@@ -352,8 +354,10 @@ const Profile = () => {
   const [isContactoModalOpen, setIsContactoModalOpen] = useState(false);
   const [isCapacitacionModalOpen, setIsCapacitacionModalOpen] = useState(false);
   const [isBomberoModalOpen, setIsBomberoModalOpen] = useState(false);
+  const [isEppModalOpen, setIsEppModalOpen] = useState(false);
   const [selectedContacto, setSelectedContacto] = useState(null);
   const [selectedCapacitacion, setSelectedCapacitacion] = useState(null);
+  const [selectedEpp, setSelectedEpp] = useState(null);
   
   // Estado para historial
   const [historialData, setHistorialData] = useState([]);
@@ -506,8 +510,10 @@ const Profile = () => {
     setIsContactoModalOpen(false);
     setIsCapacitacionModalOpen(false);
     setIsBomberoModalOpen(false);
+    setIsEppModalOpen(false);
     setSelectedContacto(null);
     setSelectedCapacitacion(null);
+    setSelectedEpp(null);
   };
 
   const handleSavePersonalInfo = async (data) => {
@@ -663,6 +669,27 @@ const Profile = () => {
     }
   };
 
+  // Funciones para EPP
+  const handleEditEpp = (epp) => {
+    setSelectedEpp(epp);
+    setIsEppModalOpen(true);
+  };
+
+  const handleSaveEpp = async (data) => {
+    try {
+      await perfilCompletoService.updateEppAsignado(selectedEpp.id, data);
+      showSuccessAlert('Éxito', 'EPP actualizado correctamente');
+      setIsEppModalOpen(false);
+      setSelectedEpp(null);
+      // Recargar datos del perfil
+      await reloadData();
+    } catch (error) {
+      console.error('Error al actualizar EPP:', error);
+      showErrorAlert('Error', 'No se pudo actualizar el EPP');
+      throw error;
+    }
+  };
+
   // Mostrar loading inicial
   if (loading && !bomberoData) {
     return (
@@ -752,11 +779,12 @@ const Profile = () => {
           <div className="lg:w-2/3 flex flex-col">
             {/* Navegación de pestañas */}
             <div className="border-b border-gray-200 bg-white">
-              <nav className="flex space-x-8 px-6">
+              <nav className="flex space-x-8 px-6 overflow-x-auto">
                 {[
                   { id: 'personal', label: 'Información Personal', icon: MdPerson },
                   { id: 'emergency', label: 'Contactos de Emergencia', icon: MdEmergency },
                   { id: 'training', label: 'Capacitación', icon: MdSchool },
+                  { id: 'epp', label: 'EPP Asignados', icon: MdShield },
                   { id: 'history', label: 'Historial', icon: MdHistory }
                 ].map((tab) => {
                   const Icon = tab.icon;
@@ -1154,6 +1182,84 @@ const Profile = () => {
                         </div>
                       )}
 
+            {activeTab === 'epp' && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-lg font-semibold text-gray-900">EPP Asignados</h4>
+                </div>
+                
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <BomberosLoader size="md" message="Cargando EPP asignados..." />
+                  </div>
+                ) : error ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-red-800 font-medium">Error</span>
+                    </div>
+                    <p className="text-red-700 mt-1">{error}</p>
+                  </div>
+                ) : eppAcargo && eppAcargo.length > 0 ? (
+                  <div className="space-y-4">
+                    {eppAcargo.map((epp) => (
+                      <div key={epp.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-3 flex-1">
+                            <MdShield className="w-6 h-6 text-blue-600 mt-1" />
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-gray-900">
+                                {epp.tipoEpp?.nombre || 'EPP'}
+                              </h5>
+                              <div className="mt-2 space-y-1">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs font-medium text-gray-600">Estado:</span>
+                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                    epp.estadosEpp?.nombre === 'Bueno' ? 'bg-green-100 text-green-800' :
+                                    epp.estadosEpp?.nombre === 'Regular' ? 'bg-yellow-100 text-yellow-800' :
+                                    epp.estadosEpp?.nombre === 'Malo' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {epp.estadosEpp?.nombre || 'Sin estado'}
+                                  </span>
+                                </div>
+                                {epp.descripcionDeEstado && (
+                                  <div className="flex items-start space-x-2">
+                                    <span className="text-xs font-medium text-gray-600">Descripción:</span>
+                                    <p className="text-xs text-gray-700 flex-1">{epp.descripcionDeEstado}</p>
+                                  </div>
+                                )}
+                                {epp.fechaAsignacion && (
+                                  <div className="flex items-center space-x-2">
+                                    <MdDateRange className="w-3 h-3 text-gray-400" />
+                                    <span className="text-xs text-gray-500">
+                                      Asignado: {formatDate(epp.fechaAsignacion)}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex space-x-1">
+                            <button
+                              onClick={() => handleEditEpp(epp)}
+                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                              title="Editar estado y descripción"
+                            >
+                              <MdEdit className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <MdShield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No tienes EPP asignados actualmente</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {activeTab === 'history' && (
               <div className="space-y-3">
@@ -1219,6 +1325,14 @@ const Profile = () => {
         bombero={bomberoData || currentBombero}
         onClose={handleCancelEdit}
         onSave={handleSaveBomberoInfo}
+      />
+
+      {/* Modal de edición de EPP */}
+      <EditEppModal
+        isOpen={isEppModalOpen}
+        epp={selectedEpp}
+        onClose={handleCancelEdit}
+        onSave={handleSaveEpp}
       />
     </div>
   );

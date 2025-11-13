@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     MdLocationOn, MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdRefresh,
     MdCheckCircle, MdWarning, MdCancel, MdBuild, MdBusiness,
-    MdVisibility, MdVisibilityOff
+    MdVisibility, MdVisibilityOff, MdMap
 } from 'react-icons/md';
 import { FaFireExtinguisher } from 'react-icons/fa';
 import toast from 'react-hot-toast';
@@ -21,15 +21,15 @@ import { getJurisdicciones, createJurisdiccion } from '@services/jurisdiccion.se
 import 'maplibre-gl/dist/maplibre-gl.css';
 import BomberosLoader from '@components/BomberosLoader';
 
-const PuntosInteres = () => {
+const Mapa = () => {
     const { bombero: user } = useAuth();
     
     const mapContainer = useRef(null);
     const map = useRef(null);
     const markersRef = useRef({});
-    const tempMarkerRef = useRef(null); // Marcador temporal para nueva ubicación
+    const tempMarkerRef = useRef(null);
     const modoAgregarRef = useRef(false);
-    const openPopupRef = useRef(null); // Referencia al popup abierto actualmente
+    const openPopupRef = useRef(null);
     const [maplibregl, setMaplibregl] = useState(null);
     const [isMapReady, setIsMapReady] = useState(false);
     
@@ -76,14 +76,19 @@ const PuntosInteres = () => {
     const [jurisdicciones, setJurisdicciones] = useState([]);
     const [mostrarJurisdicciones, setMostrarJurisdicciones] = useState(true);
     const [jurisForm, setJurisForm] = useState({ nombre: '', descripcion: '', color: '#22c55e' });
-    // Modo dibujo en el mapa
     const [dibujarJuris, setDibujarJuris] = useState(false);
     const dibujarJurisRef = useRef(false);
-    const [coordsDibujo, setCoordsDibujo] = useState([]); // [[lng,lat], ...]
+    const [coordsDibujo, setCoordsDibujo] = useState([]);
     const [loading, setLoading] = useState(false);
     const [modoAgregar, setModoAgregar] = useState(false);
     
-    // Formulario - idCompania se asigna automáticamente de la compañía del usuario
+    // Filtros de categoría
+    const [filtrosCategorias, setFiltrosCategorias] = useState({
+        PUNTO_INTERES: true,
+        UBICACION_BOMBERO: true,
+        INCIDENTE: true
+    });
+    
     const [formData, setFormData] = useState({
         nombre: '',
         descripcion: '',
@@ -98,7 +103,6 @@ const PuntosInteres = () => {
 
     // Renderiza el ícono SVG para la leyenda
     const renderLegendIcon = (icono, color, nombre) => {
-        // Si el tipo es grifo, muestra un hidrante custom
         if (nombre && nombre.toLowerCase().includes('grifo')) {
             return (
                 <span
@@ -108,7 +112,6 @@ const PuntosInteres = () => {
                 />
             );
         }
-        // Si no, muestra el SVG normal
         return (
             <span
                 className="inline-flex items-center justify-center w-7 h-7 rounded-full border border-gray-200 bg-white shadow"
@@ -118,17 +121,15 @@ const PuntosInteres = () => {
         );
     };
 
-    // Sincronizar modoAgregar con la referencia y limpiar marcador temporal
+    // Sincronizar modoAgregar con la referencia
     useEffect(() => {
         modoAgregarRef.current = modoAgregar;
         
-        // Si salimos del modo agregar, eliminar marcador temporal
         if (!modoAgregar && tempMarkerRef.current) {
             tempMarkerRef.current.remove();
             tempMarkerRef.current = null;
         }
 
-        // Forzar resize del mapa cuando el sidebar aparece/desaparece para evitar tirones
         if (map.current) {
             setTimeout(() => {
                 try { map.current.resize(); } catch {}
@@ -156,11 +157,9 @@ const PuntosInteres = () => {
     useEffect(() => {
         if (!mapContainer.current || map.current || !maplibregl) return;
 
-        // Usar setTimeout para asegurar que el DOM esté completamente renderizado
         const initMap = setTimeout(() => {
             if (!mapContainer.current || map.current) return;
 
-            // Verificar que el contenedor tenga dimensiones
             const containerRect = mapContainer.current.getBoundingClientRect();
             console.log('Dimensiones del contenedor:', containerRect);
             
@@ -190,12 +189,11 @@ const PuntosInteres = () => {
                         source: 'osm'
                     }]
                 },
-                center: [-72.4000, -37.0333], // Cabrero, Región del Bío-Bío
+                center: [-72.4000, -37.0333],
                 zoom: 13,
                 attributionControl: true
             });
 
-            // Esperar a que el mapa esté completamente cargado
             map.current.on('load', () => {
                 console.log('Mapa cargado y listo');
                 setIsMapReady(true);
@@ -205,7 +203,7 @@ const PuntosInteres = () => {
             map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
             map.current.addControl(new maplibregl.FullscreenControl(), 'top-right');
 
-            // Click en el mapa para agregar puntos
+            // Click en el mapa
             map.current.on('click', (e) => {
                 console.log('Click en mapa detectado. Modo agregar:', modoAgregarRef.current);
                 if (dibujarJurisRef.current) {
@@ -218,12 +216,10 @@ const PuntosInteres = () => {
                     const lng = e.lngLat.lng;
                     console.log('Ubicación seleccionada:', { lat, lng });
                     
-                    // Eliminar marcador temporal anterior si existe
                     if (tempMarkerRef.current) {
                         tempMarkerRef.current.remove();
                     }
                     
-                    // Crear marcador temporal con estilo personalizado
                     const el = document.createElement('div');
                     el.className = 'temp-marker';
                     el.style.width = '40px';
@@ -235,7 +231,6 @@ const PuntosInteres = () => {
                     el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
                     el.style.animation = 'bounce 0.5s ease';
                     
-                    // Agregar animación CSS
                     const style = document.createElement('style');
                     style.textContent = `
                         @keyframes bounce {
@@ -261,7 +256,6 @@ const PuntosInteres = () => {
                 }
             });
 
-            // Manejar pérdida de contexto WebGL
             map.current.on('webglcontextlost', (e) => {
                 console.error('WebGL context lost', e);
                 setIsMapReady(false);
@@ -282,7 +276,7 @@ const PuntosInteres = () => {
                 console.error('Error inicializando mapa:', error);
                 toast.error('Error al inicializar el mapa');
             }
-        }, 100); // Esperar 100ms para que el DOM esté listo
+        }, 100);
 
         return () => {
             clearTimeout(initMap);
@@ -295,69 +289,60 @@ const PuntosInteres = () => {
         };
     }, [maplibregl]);
 
-    // Cargar datos iniciales cuando el mapa esté listo
+    // Cargar datos iniciales
     useEffect(() => {
         if (isMapReady) {
             cargarDatos();
         }
     }, [isMapReady]);
 
-    // Actualizar contador de tiempo transcurrido cada segundo (solo cuando la página está visible)
+    // Actualizar contador de tiempo
     useEffect(() => {
         if (!ultimaActualizacion) return;
 
-        // Función para actualizar el tiempo
         const updateTime = () => {
             const ahora = new Date();
             const diferencia = Math.floor((ahora - ultimaActualizacion) / 1000);
             setTiempoTranscurrido(diferencia);
         };
 
-        // Actualizar inmediatamente
         updateTime();
 
-        // Solo crear el interval si la página está visible
         const interval = setInterval(() => {
-            // Verificar si la página está visible
             if (document.visibilityState === 'visible') {
                 updateTime();
             }
         }, 1000);
 
-        // Escuchar cambios de visibilidad de la página
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                // Actualizar inmediatamente cuando la página vuelve a ser visible
                 updateTime();
             }
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
-        // Cleanup: limpiar interval y event listener cuando el componente se desmonte
         return () => {
             clearInterval(interval);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [ultimaActualizacion]);
 
-    // Cleanup adicional cuando el componente se desmonta completamente
+    // Cleanup
     useEffect(() => {
         return () => {
-            // Limpiar cualquier timer que pueda quedar pendiente
             setTiempoTranscurrido(0);
             setUltimaActualizacion(null);
         };
     }, []);
 
-    // Actualizar marcadores cuando cambien los puntos
+    // Actualizar marcadores
     useEffect(() => {
         if (map.current && maplibregl && puntos.length > 0) {
             actualizarMarcadores();
         }
-    }, [puntos, maplibregl]);
+    }, [puntos, maplibregl, filtrosCategorias]);
 
-    // Re-render de jurisdicciones cuando cambia la visibilidad o el set de jurisdicciones
     useEffect(() => {
         if (map.current && maplibregl) {
             actualizarMarcadores();
@@ -369,7 +354,6 @@ const PuntosInteres = () => {
         dibujarJurisRef.current = dibujarJuris;
         if (!dibujarJuris) {
             setCoordsDibujo([]);
-            // limpiar capas temporales de dibujo
             if (map.current) {
                 ['juris-draw-fill','juris-draw-line','juris-draw-points'].forEach(id => {
                     if (map.current.getLayer(id)) map.current.removeLayer(id);
@@ -381,10 +365,9 @@ const PuntosInteres = () => {
         }
     }, [dibujarJuris]);
 
-    // Actualizar previsualización del polígono en dibujo
+    // Actualizar previsualización del polígono
     useEffect(() => {
         if (!map.current || !maplibregl) return;
-        // limpiar anteriores
         ['juris-draw-fill','juris-draw-line','juris-draw-points'].forEach(id => {
             if (map.current.getLayer(id)) map.current.removeLayer(id);
         });
@@ -392,7 +375,6 @@ const PuntosInteres = () => {
             if (map.current.getSource(id)) map.current.removeSource(id);
         });
 
-        // puntos
         if (coordsDibujo.length > 0) {
             const pointsFc = {
                 type: 'FeatureCollection',
@@ -405,7 +387,6 @@ const PuntosInteres = () => {
                 'circle-radius': 4, 'circle-color': '#0ea5e9', 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
         }
 
-        // línea
         if (coordsDibujo.length >= 2) {
             const line = { type: 'Feature', geometry: { type: 'LineString', coordinates: coordsDibujo }, properties: {} };
             map.current.addSource('juris-draw-line-src', { type: 'geojson', data: line });
@@ -413,7 +394,6 @@ const PuntosInteres = () => {
                 'line-color': '#0ea5e9', 'line-width': 2, 'line-dasharray': [2,2] } });
         }
 
-        // polígono si hay 3 o más puntos
         if (coordsDibujo.length >= 3) {
             const closed = [...coordsDibujo, coordsDibujo[0]];
             const poly = { type: 'Feature', geometry: { type: 'Polygon', coordinates: [closed] }, properties: {} };
@@ -438,7 +418,6 @@ const PuntosInteres = () => {
             setTiposPunto(Array.isArray(tiposData) ? tiposData : []);
             setJurisdicciones(Array.isArray(jurisdiccionesData) ? jurisdiccionesData : []);
             
-            // Actualizar timestamp de última actualización
             const ahora = new Date();
             setUltimaActualizacion(ahora);
             setTiempoTranscurrido(0);
@@ -451,9 +430,8 @@ const PuntosInteres = () => {
     };
 
     const actualizarMarcadores = () => {
-        // PRIMERO: Dibujar jurisdicciones como polígonos (DEBEN estar debajo de los puntos)
+        // Dibujar jurisdicciones
         if (map.current && maplibregl) {
-            // Primero eliminar capas/fuentes anteriores para evitar duplicados
             jurisdicciones.forEach((j) => {
                 const sourceId = `jurisdiccion-src-${j.id}`;
                 const fillId = `jurisdiccion-fill-${j.id}`;
@@ -485,8 +463,6 @@ const PuntosInteres = () => {
                         data: polygon
                     });
 
-                    // Agregar capas AL PRINCIPIO del stack para que queden debajo de todo
-                    // Usamos beforeId: undefined para insertar al inicio
                     const layers = map.current.getStyle().layers || [];
                     const firstSymbolLayer = layers.find(layer => layer.type === 'symbol')?.id;
                     
@@ -494,7 +470,7 @@ const PuntosInteres = () => {
                         id: fillId,
                         type: 'fill',
                         source: sourceId,
-                        beforeId: firstSymbolLayer || undefined, // Insertar antes de la primera capa de símbolos
+                        beforeId: firstSymbolLayer || undefined,
                         paint: {
                             'fill-color': j.color || '#22c55e',
                             'fill-opacity': 0.15
@@ -512,7 +488,6 @@ const PuntosInteres = () => {
                         }
                     });
 
-                    // Interacción: popup con información de la jurisdicción (estilo similar a puntos)
                     const showJurisPopup = (e) => {
                         const center = e.lngLat;
                         if (openPopupRef.current && openPopupRef.current.isOpen()) {
@@ -573,13 +548,17 @@ const PuntosInteres = () => {
             }
         }
 
-        // SEGUNDO: Limpiar marcadores anteriores
+        // Limpiar marcadores anteriores
         Object.values(markersRef.current).forEach(marker => marker.remove());
         markersRef.current = {};
 
-        // Crear nuevos marcadores (sin filtro, mostrar todos)
+        // Crear nuevos marcadores (filtrados por categoría)
         puntos.forEach(punto => {
             if (!punto.coordenadas) return;
+            
+            // Filtrar por categoría
+            const categoria = punto.categoria || 'PUNTO_INTERES';
+            if (!filtrosCategorias[categoria]) return;
 
             const el = document.createElement('div');
             el.className = 'custom-marker';
@@ -596,9 +575,7 @@ const PuntosInteres = () => {
             el.style.fontSize = '20px';
             el.style.color = 'white';
             
-            // Agregar icono si está disponible (forzar icono confiable para grifo)
             if (punto.tipoPunto?.icono) {
-                // Inserta SVG y normaliza tamaño/ratio para evitar deformaciones
                 const iconoSvg = document.createElement('div');
                 const nombreTipo = (punto.tipoPunto?.nombre || '').toLowerCase();
                 const iconOverride = nombreTipo.includes('grifo') ? 'CustomHydrant' : punto.tipoPunto.icono;
@@ -610,7 +587,6 @@ const PuntosInteres = () => {
                     if (!svg.getAttribute('preserveAspectRatio')) {
                         svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
                     }
-                    // Asegurar relleno por color del texto (blanco en el marcador)
                     if (!svg.getAttribute('fill')) svg.setAttribute('fill', 'currentColor');
                     svg.style.display = 'block';
                 }
@@ -622,101 +598,110 @@ const PuntosInteres = () => {
                 iconoSvg.style.pointerEvents = 'none';
                 el.appendChild(iconoSvg);
             } else {
-                // Fallback: mostrar las primeras letras del nombre
                 el.textContent = punto.nombre?.substring(0, 2).toUpperCase() || '?';
             }
             
-            // Crear el popup
             const popup = new maplibregl.Popup({
-                    closeButton: true,
-                    closeOnClick: false,
+                closeButton: true,
+                closeOnClick: false,
                 className: 'custom-popup',
-                closeOnMove: false
-                }).setHTML(`
-                    <div class="p-4 min-w-[220px] max-w-[280px]">
-                        <div class="flex items-center gap-3 mb-3">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm" style="background-color: ${punto.tipoPunto?.color || '#FF0000'}">
-                                ${punto.tipoPunto?.icono ? getIconoSvg(punto.tipoPunto.icono).replace('currentColor', 'white').replace('24 24', '18 18') : ''}
-                            </div>
-                            <div class="flex-1">
-                                <h3 class="text-lg font-semibold text-gray-900 leading-tight">${toStartCase(punto.nombre)}</h3>
-                                <p class="text-sm text-gray-500 font-medium">${toStartCase(punto.tipoPunto?.nombre || 'Sin tipo')}</p>
-                            </div>
+                closeOnMove: false,
+                maxWidth: '480px'
+            }).setHTML(`
+                <div class="p-5 min-w-[380px] max-w-[480px]">
+                    <!-- Header con diseño horizontal -->
+                    <div class="flex items-start gap-4 mb-4 pb-4 border-b border-gray-200">
+                        <!-- Icono grande -->
+                        <div class="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-white shadow-lg" style="background: linear-gradient(135deg, ${punto.tipoPunto?.color || '#FF0000'} 0%, ${punto.tipoPunto?.color ? punto.tipoPunto.color + 'dd' : '#CC0000'} 100%)">
+                            ${punto.tipoPunto?.icono ? getIconoSvg(punto.tipoPunto.icono).replace('currentColor', 'white').replace('width="24"', 'width="28"').replace('height="24"', 'height="28"') : '<span class="text-xl font-bold">?</span>'}
                         </div>
                         
-                        ${punto.descripcion ? `
-                            <div class="mb-3">
-                                <p class="text-sm text-gray-700 leading-relaxed">${toStartCase(punto.descripcion)}</p>
+                        <!-- Información principal -->
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-xl font-bold text-gray-900 mb-1 leading-tight">${toStartCase(punto.nombre)}</h3>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style="background-color: ${punto.tipoPunto?.color || '#FF0000'}20; color: ${punto.tipoPunto?.color || '#FF0000'}">
+                                    ${toStartCase(punto.tipoPunto?.nombre || 'Sin tipo')}
+                                </span>
+                                ${punto.compania?.nombre ? `
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                                        </svg>
+                                        ${toStartCase(punto.compania.nombre)}
+                                    </span>
+                                ` : ''}
                             </div>
-                        ` : ''}
-                        
+                        </div>
+                    </div>
+                    
+                    <!-- Descripción -->
+                    ${punto.descripcion ? `
                         <div class="mb-4">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium text-white shadow-sm" style="background-color: ${
+                            <p class="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">${toStartCase(punto.descripcion)}</p>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Información en grid horizontal -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <!-- Estado -->
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs font-medium text-gray-500 mb-2">Estado</div>
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold text-white shadow-sm" style="background-color: ${
                                 punto.estado === 'BUENO' ? '#10B981' : 
                                 punto.estado === 'REGULAR' ? '#F59E0B' : 
                                 punto.estado === 'MALO' ? '#EF4444' : '#6B7280'
                             }">
-                                <div class="w-2 h-2 rounded-full bg-white mr-2"></div>
+                                <div class="w-1.5 h-1.5 rounded-full bg-white mr-1.5"></div>
                                 ${punto.estado === 'BUENO' ? 'Bueno' : 
                                   punto.estado === 'REGULAR' ? 'Regular' : 
                                   punto.estado === 'MALO' ? 'Malo' : 'Fuera de Servicio'}
                             </span>
                         </div>
                         
-                        <div class="space-y-2 mb-3">
-                            <div class="flex items-center gap-2 text-sm text-gray-600">
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                                <span class="font-medium">Compañía:</span>
-                                <span class="text-gray-800">${toStartCase(punto.compania?.nombre || 'N/A')}</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm text-gray-600">
+                        <!-- Fecha -->
+                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                            <div class="text-xs font-medium text-gray-500 mb-2">Registrado</div>
+                            <div class="flex items-center gap-1.5 text-sm text-gray-800">
                                 <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                 </svg>
-                                <span class="font-medium">Fecha:</span>
-                                <span class="text-gray-800 font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                                           ${formatDate(punto.creadoEl)}
-                                </span>
+                                <span class="font-medium font-mono text-xs">${formatDate(punto.creadoEl)}</span>
                             </div>
                         </div>
-                        
-                        <div class="flex gap-2 pt-2 border-t border-gray-100">
-                            <button onclick="window.editarPunto(${punto.id})" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                                Editar
-                            </button>
-                            <button onclick="window.eliminarPunto(${punto.id})" class="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-3 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                                Eliminar
-                            </button>
-                        </div>
                     </div>
-                `);
+                        
+                    <!-- Botones de acción -->
+                    <div class="flex gap-3 pt-3 border-t border-gray-200">
+                        <button onclick="window.editarPunto(${punto.id})" class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Editar
+                        </button>
+                        <button onclick="window.eliminarPunto(${punto.id})" class="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Eliminar
+                        </button>
+                    </div>
+                </div>
+            `);
             
-            // Crear el marcador
             const marker = new maplibregl.Marker({ element: el })
                 .setLngLat([punto.coordenadas.lng, punto.coordenadas.lat])
                 .setPopup(popup)
                 .addTo(map.current);
             
-            // Agregar eventos al popup para controlar qué popup está abierto
             popup.on('open', () => {
-                // Si hay otro popup abierto, cerrarlo
                 if (openPopupRef.current && openPopupRef.current !== popup && openPopupRef.current.isOpen()) {
                     openPopupRef.current.remove();
                 }
-                // Registrar este como el popup abierto
                 openPopupRef.current = popup;
             });
             
             popup.on('close', () => {
-                // Si este popup se cierra, limpiar la referencia
                 if (openPopupRef.current === popup) {
                     openPopupRef.current = null;
                 }
@@ -742,7 +727,6 @@ const PuntosInteres = () => {
                 setEditingId(id);
                 setModoAgregar(true);
                 
-                // Crear marcador temporal para el punto que se está editando
                 setTimeout(() => {
                     if (maplibregl && map.current) {
                         if (tempMarkerRef.current) {
@@ -761,7 +745,6 @@ const PuntosInteres = () => {
                             .setLngLat([punto.coordenadas.lng, punto.coordenadas.lat])
                             .addTo(map.current);
                             
-                        // Centrar mapa en el punto
                         map.current.flyTo({
                             center: [punto.coordenadas.lng, punto.coordenadas.lat],
                             zoom: 15
@@ -819,7 +802,6 @@ const PuntosInteres = () => {
 
         setLoading(true);
         try {
-            // Agregar idCompania del usuario automáticamente
             const dataToSend = {
                 ...formData,
                 idCompania: user.companiaId
@@ -845,7 +827,6 @@ const PuntosInteres = () => {
     };
 
     const cancelarFormulario = () => {
-        // Eliminar marcador temporal si existe
         if (tempMarkerRef.current) {
             tempMarkerRef.current.remove();
             tempMarkerRef.current = null;
@@ -869,7 +850,6 @@ const PuntosInteres = () => {
 
     return (
         <>
-            {/* Estilos CSS personalizados para el popup */}
             <style>{`
                 .custom-popup .maplibregl-popup-close-button {
                     font-size: 20px !important;
@@ -908,15 +888,46 @@ const PuntosInteres = () => {
             <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex-shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                        <MdLocationOn className="w-8 h-8 text-red-600" />
+                        <MdMap className="w-8 h-8 text-blue-600" />
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Puntos de Interés</h1>
-                            <p className="text-sm text-gray-600">Gestiona ubicaciones importantes en el mapa</p>
+                            <h1 className="text-2xl font-bold text-gray-900">Mapa</h1>
+                            <p className="text-sm text-gray-600">Gestiona puntos de interés y jurisdicciones</p>
                         </div>
+                    </div>
+
+                    {/* Filtros de categoría */}
+                    <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                        <span className="text-sm font-medium text-gray-700">Mostrar:</span>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={filtrosCategorias.PUNTO_INTERES}
+                                onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, PUNTO_INTERES: e.target.checked }))}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">Puntos de Interés</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={filtrosCategorias.UBICACION_BOMBERO}
+                                onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, UBICACION_BOMBERO: e.target.checked }))}
+                                className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                            />
+                            <span className="text-sm text-gray-700">Ubicaciones Bomberos</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={filtrosCategorias.INCIDENTE}
+                                onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, INCIDENTE: e.target.checked }))}
+                                className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500"
+                            />
+                            <span className="text-sm text-gray-700">Incidentes</span>
+                        </label>
                     </div>
                     
                     <div className="flex gap-3">
-                        {/* Grupo: Dibujar + Nuevo Punto */}
                         <div className="flex gap-2">
                         <button
                                 type="button"
@@ -934,7 +945,6 @@ const PuntosInteres = () => {
                             {modoAgregar ? 'Cancelar' : 'Nuevo Punto'}
                         </button>
                     </div>
-                        {/* Botón de jurisdicciones movido al mapa como icono */}
                         
                         <button
                             onClick={cargarDatos}
@@ -964,7 +974,6 @@ const PuntosInteres = () => {
                 {/* Mapa */}
                 <div className="flex-1 relative min-w-0">
                     <div ref={mapContainer} className="w-full h-full" />
-                    {/* Toggle jurisdicciones dentro del mapa */}
                     <button
                         type="button"
                         onClick={() => { setMostrarJurisdicciones(v => !v); }}
@@ -1010,8 +1019,8 @@ const PuntosInteres = () => {
                                 <div className="px-4 mt-2">
                                     <ul className="text-[11px] text-gray-500 space-y-1 list-disc pl-4">
                                         <li>Clic para agregar puntos. Necesitas al menos 3.</li>
-                                        <li>Usa “Deshacer” para remover el último vértice.</li>
-                                        <li>“Limpiar” reinicia el dibujo.</li>
+                                        <li>Usa "Deshacer" para remover el último vértice.</li>
+                                        <li>"Limpiar" reinicia el dibujo.</li>
                                     </ul>
                                 </div>
 
@@ -1045,7 +1054,6 @@ const PuntosInteres = () => {
                             </div>
                         </div>
                     )}
-                    {/* Leyenda: oculta mientras se dibuja para no interferir */}
                     {!dibujarJuris && (
                         <div className="absolute bottom-4 left-4 bg-white bg-opacity-95 p-4 rounded-lg shadow-lg border border-gray-200 w-64 z-10">
                             <h4 className="text-md font-bold mb-3 text-gray-800">Leyenda de puntos</h4>
@@ -1068,7 +1076,7 @@ const PuntosInteres = () => {
                         </div>
                     )}
 
-                    {/* Panel lateral - Formulario como overlay para evitar relayout del mapa */}
+                    {/* Panel lateral - Formulario */}
                 {modoAgregar && (
                         <div className="absolute top-0 right-0 h-full w-96 bg-white border-l border-gray-200 overflow-y-auto z-20 shadow-lg">
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -1108,7 +1116,6 @@ const PuntosInteres = () => {
                                         </option>
                                     ))}
                                 </select>
-                                {/* Mostrar icono del tipo seleccionado */}
                                 {formData.idTipoPunto && (
                                     <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                                         {renderIcon(
@@ -1156,7 +1163,6 @@ const PuntosInteres = () => {
                                 />
                             </div>
 
-                            {/* Información de compañía (asignación automática) */}
                             {user?.companiaId && (
                                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                                     <p className="text-sm font-medium text-blue-800 flex items-center gap-2">
@@ -1203,13 +1209,10 @@ const PuntosInteres = () => {
                 )}
                 </div>
             </div>
-
-            {/* Modal Nueva Jurisdicción eliminado: se usa solo el modo de dibujo */}
-
         </div>
         </>
     );
 };
 
-export default PuntosInteres;
+export default Mapa;
 

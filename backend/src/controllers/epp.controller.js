@@ -188,10 +188,11 @@ export async function assignEppToBombero(req, res) {
 export async function unassignEppFromBombero(req, res) {
   try {
     const { id } = req.params;
+    const userId = req.bombero?.id || null;
 
     logger.info(`[EPP_CONTROLLER] Desasignando EPP ${id}`);
 
-    await unassignEppFromBomberoService(id);
+    await unassignEppFromBomberoService(id, userId);
 
     return handleSuccess(res, 200, "EPP desasignado exitosamente");
   } catch (error) {

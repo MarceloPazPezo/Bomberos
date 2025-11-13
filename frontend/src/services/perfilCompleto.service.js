@@ -172,6 +172,22 @@ export const perfilCompletoService = {
       console.error('Error al cambiar contraseña:', error);
       throw error;
     }
+  },
+
+  /**
+   * Actualiza un EPP asignado al bombero
+   * @param {number} idEpp - ID del EPP
+   * @param {Object} eppData - Datos actualizados del EPP
+   * @returns {Promise<Object>} Respuesta de la API
+   */
+  async updateEppAsignado(idEpp, eppData) {
+    try {
+      const response = await axios.patch(`${API_URL}/epp/${idEpp}`, eppData);
+      return response.data;
+    } catch (error) {
+      console.error(`Error al actualizar EPP ${idEpp}:`, error);
+      throw error;
+    }
   }
 };
 

@@ -98,49 +98,49 @@ async function crearEppEjemplo() {
 
     const eppsData = [
       {
-        nombre: "Casco Bombero Principal #001",
+        nombre: "Casco Bombero Principal",
         idTipoEpp: tipos.find(t => t.nombre === "Casco")?.id,
         idEstadoEpp: tipoDisponible.id,
         descripcionDeEstado: "Casco en perfecto estado, recién inspeccionado"
       },
       {
-        nombre: "Chaqueta Anti-incendios #002",
+        nombre: "Chaqueta Anti-incendios",
         idTipoEpp: tipos.find(t => t.nombre === "Chaqueta")?.id,
         idEstadoEpp: tipoDisponible.id,
         descripcionDeEstado: "Chaqueta certificada, sin daños visibles"
       },
       {
-        nombre: "Botas de Seguridad #003",
+        nombre: "Botas De Seguridad",
         idTipoEpp: tipos.find(t => t.nombre === "Botas")?.id,
         idEstadoEpp: tipoMantenimiento.id,
         descripcionDeEstado: "Requiere limpieza y revisión de suela"
       },
       {
-        nombre: "Guantes Térmicos #004",
+        nombre: "Guantes Térmicos",
         idTipoEpp: tipos.find(t => t.nombre === "Guantes")?.id,
         idEstadoEpp: tipoDisponible.id,
         descripcionDeEstado: "Guantes en excelente condición"
       },
       {
-        nombre: "Máscara de Respiración #005",
+        nombre: "Máscara De Respiración",
         idTipoEpp: tipos.find(t => t.nombre === "Máscara")?.id,
         idEstadoEpp: tipoDisponible.id,
         descripcionDeEstado: "Máscara certificada, filtros recientemente cambiados"
       },
       {
-        nombre: "Tanque de Aire #006",
+        nombre: "Tanque De Aire",
         idTipoEpp: tipos.find(t => t.nombre === "Tanque de Aire")?.id,
         idEstadoEpp: tipoDisponible.id,
         descripcionDeEstado: "Tanque con presión óptima, revisión anual al día"
       },
       {
-        nombre: "Linterna LED #007",
+        nombre: "Linterna LED Alta Potencia",
         idTipoEpp: tipos.find(t => t.nombre === "Linterna")?.id,
         idEstadoEpp: tipoDisponible.id,
         descripcionDeEstado: "Linterna de alta potencia, baterías cargadas"
       },
       {
-        nombre: "Hacha de Rescate #008",
+        nombre: "Hacha De Rescate",
         idTipoEpp: tipos.find(t => t.nombre === "Hacha")?.id,
         idEstadoEpp: tipoDisponible.id,
         descripcionDeEstado: "Hacha afilada y en perfecto estado"

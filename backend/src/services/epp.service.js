@@ -7,6 +7,8 @@ import TipoEpp from "../entities/tipoEpp.entity.js";
 import EstadoEpp from "../entities/estadoEpp.entity.js";
 import ACargoEpp from "../entities/aCargoEpp.entity.js";
 import FichaBombero from "../entities/fichaBombero.entity.js";
+import { sendIndividualNotification } from "./notification.service.js";
+import { NOTIFICATION_TYPES } from "../helpers/notification.helper.js";
 
 /**
  * Obtiene todos los EPP con paginación y filtros
@@ -47,10 +49,10 @@ export async function getEppService(query) {
         "bombero.apellidos"
       ]);
 
-    // Filtro de búsqueda
+    // Filtro de búsqueda (case-insensitive)
     if (search) {
       queryBuilder.andWhere(
-        "(epp.nombre LIKE :search OR epp.descripcionDeEstado LIKE :search)",
+        "(LOWER(epp.nombre) LIKE LOWER(:search) OR LOWER(epp.descripcionDeEstado) LIKE LOWER(:search))",
         { search: `%${search}%` }
       );
     }
@@ -240,16 +242,21 @@ export async function assignEppToBomberoService(eppId, fichaBomberoId, userId) {
     const eppRepository = AppDataSource.getRepository(Epp);
     const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
     const aCargoEppRepository = AppDataSource.getRepository(ACargoEpp);
+    const estadoEppRepository = AppDataSource.getRepository(EstadoEpp);
 
-    // Verificar que el EPP existe
-    const epp = await eppRepository.findOne({ where: { id: eppId } });
+    // Verificar que el EPP existe y obtener sus datos completos
+    const epp = await eppRepository.findOne({ 
+      where: { id: eppId },
+      relations: ["tipoEpp"]
+    });
     if (!epp) {
       throw new Error(`EPP con ID ${eppId} no encontrado`);
     }
 
-    // Verificar que la ficha del bombero existe
+    // Verificar que la ficha del bombero existe y obtener datos del bombero
     const fichaBombero = await fichaBomberoRepository.findOne({
-      where: { id: fichaBomberoId }
+      where: { id: fichaBomberoId },
+      relations: ["bombero"]
     });
     if (!fichaBombero) {
       throw new Error(`Ficha de bombero con ID ${fichaBomberoId} no encontrada`);
@@ -264,6 +271,12 @@ export async function assignEppToBomberoService(eppId, fichaBomberoId, userId) {
       throw new Error("Este EPP ya está asignado a otro bombero");
     }
 
+    // Buscar el estado "En Uso" para asignarlo automáticamente
+    const estadoEnUso = await estadoEppRepository.findOne({
+      where: { nombre: "En Uso" }
+    });
+
+    // Crear la asignación
     const asignacion = aCargoEppRepository.create({
       idEpp: eppId,
       idFichaBombero: fichaBomberoId,
@@ -271,6 +284,41 @@ export async function assignEppToBomberoService(eppId, fichaBomberoId, userId) {
     });
 
     const savedAsignacion = await aCargoEppRepository.save(asignacion);
+
+    // Actualizar el estado del EPP a "En Uso" si existe ese estado
+    if (estadoEnUso) {
+      await eppRepository.update(eppId, {
+        idEstadoEpp: estadoEnUso.id,
+        actualizadoEl: new Date(),
+        actualizadoPor: userId
+      });
+      logger.info(`[EPP_SERVICE] Estado del EPP ${eppId} cambiado a "En Uso"`);
+    }
+
+    // Enviar notificación al bombero
+    try {
+      const bomberoId = fichaBombero.bombero.id;
+      const tipoEppNombre = epp.tipoEpp?.nombre || "EPP";
+      
+      await sendIndividualNotification(
+        {
+          type: NOTIFICATION_TYPES.PERSONAL,
+          title: "Nuevo EPP Asignado",
+          message: `Se te ha asignado el equipo: ${epp.nombre} (${tipoEppNombre}). Recuerda mantenerlo en buen estado y reportar cualquier problema.`,
+          data: {
+            eppId: epp.id,
+            eppNombre: epp.nombre,
+            tipoEpp: tipoEppNombre,
+            fechaAsignacion: savedAsignacion.fechaAsignacion
+          }
+        },
+        bomberoId
+      );
+      logger.info(`[EPP_SERVICE] Notificación enviada al bombero ${bomberoId} por asignación de EPP ${eppId}`);
+    } catch (notificationError) {
+      // No fallar la asignación si falla la notificación
+      logger.error(`[EPP_SERVICE] Error enviando notificación de asignación de EPP:`, notificationError);
+    }
 
     logger.info(`[EPP_SERVICE] EPP ${eppId} asignado a ficha ${fichaBomberoId}`);
     return savedAsignacion;
@@ -283,18 +331,74 @@ export async function assignEppToBomberoService(eppId, fichaBomberoId, userId) {
 /**
  * Desasigna un EPP de un bombero
  */
-export async function unassignEppFromBomberoService(eppId) {
+export async function unassignEppFromBomberoService(eppId, userId = null) {
   try {
     const aCargoEppRepository = AppDataSource.getRepository(ACargoEpp);
+    const eppRepository = AppDataSource.getRepository(Epp);
+    const estadoEppRepository = AppDataSource.getRepository(EstadoEpp);
+    const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
+
+    // Obtener la asignación con todas las relaciones necesarias
     const asignacion = await aCargoEppRepository.findOne({
-      where: { idEpp: eppId }
+      where: { idEpp: eppId },
+      relations: ["fichaBombero", "fichaBombero.bombero"]
     });
 
     if (!asignacion) {
       throw new Error("No se encontró asignación para este EPP");
     }
 
+    // Obtener datos del EPP antes de desasignar
+    const epp = await eppRepository.findOne({
+      where: { id: eppId },
+      relations: ["tipoEpp"]
+    });
+
+    // Guardar el ID del bombero para la notificación
+    const bomberoId = asignacion.fichaBombero?.bombero?.id;
+    const eppNombre = epp?.nombre || "EPP";
+    const tipoEppNombre = epp?.tipoEpp?.nombre || "EPP";
+
     await aCargoEppRepository.remove(asignacion);
+
+    // Buscar el estado "Disponible" para asignarlo automáticamente al desasignar
+    const estadoDisponible = await estadoEppRepository.findOne({
+      where: { nombre: "Disponible" }
+    });
+
+    // Actualizar el estado del EPP a "Disponible" si existe ese estado
+    if (estadoDisponible) {
+      await eppRepository.update(eppId, {
+        idEstadoEpp: estadoDisponible.id,
+        actualizadoEl: new Date(),
+        actualizadoPor: userId
+      });
+      logger.info(`[EPP_SERVICE] Estado del EPP ${eppId} cambiado a "Disponible"`);
+    }
+
+    // Enviar notificación al bombero si se obtuvo su ID
+    if (bomberoId) {
+      try {
+        await sendIndividualNotification(
+          {
+            type: NOTIFICATION_TYPES.PERSONAL,
+            title: "EPP Desasignado",
+            message: `El equipo ${eppNombre} (${tipoEppNombre}) ha sido desasignado de tu inventario. Si tienes dudas, contacta con tu superior.`,
+            data: {
+              eppId: eppId,
+              eppNombre: eppNombre,
+              tipoEpp: tipoEppNombre,
+              fechaDesasignacion: new Date()
+            }
+          },
+          bomberoId
+        );
+        logger.info(`[EPP_SERVICE] Notificación enviada al bombero ${bomberoId} por desasignación de EPP ${eppId}`);
+      } catch (notificationError) {
+        // No fallar la desasignación si falla la notificación
+        logger.error(`[EPP_SERVICE] Error enviando notificación de desasignación de EPP:`, notificationError);
+      }
+    }
 
     logger.info(`[EPP_SERVICE] EPP ${eppId} desasignado exitosamente`);
     return true;

@@ -35,6 +35,13 @@ const PuntoGeograficoSchema = new EntitySchema({
             nullable: false,
             comment: "Estado físico/operativo del punto: BUENO, MALO, REGULAR, FUERA_DE_SERVICIO",
         },
+        categoria: {
+            type: "enum",
+            enum: ["PUNTO_INTERES", "UBICACION_BOMBERO", "INCIDENTE"],
+            default: "PUNTO_INTERES",
+            nullable: false,
+            comment: "Categoría del punto: PUNTO_INTERES (manual), UBICACION_BOMBERO (dirección bombero), INCIDENTE (ubicación incidente)",
+        },
         idTipoPunto: {
             type: "int",
             nullable: false,
@@ -44,6 +51,16 @@ const PuntoGeograficoSchema = new EntitySchema({
             type: "int",
             nullable: true,
             comment: "Compañía responsable del punto",
+        },
+        idBombero: {
+            type: "int",
+            nullable: true,
+            comment: "ID del bombero si es una ubicación de bombero (solo para categoria UBICACION_BOMBERO)",
+        },
+        idIncidente: {
+            type: "int",
+            nullable: true,
+            comment: "ID del incidente si es la ubicación de un incidente (solo para categoria INCIDENTE)",
         },
         creadoEl: {
             type: "timestamp",
@@ -81,6 +98,18 @@ const PuntoGeograficoSchema = new EntitySchema({
         {
             name: "IDX_PUNTO_GEOGRAFICO_ESTADO",
             columns: ["estado"],
+        },
+        {
+            name: "IDX_PUNTO_GEOGRAFICO_CATEGORIA",
+            columns: ["categoria"],
+        },
+        {
+            name: "IDX_PUNTO_GEOGRAFICO_BOMBERO",
+            columns: ["idBombero"],
+        },
+        {
+            name: "IDX_PUNTO_GEOGRAFICO_INCIDENTE",
+            columns: ["idIncidente"],
         },
     ],
     relations: {
@@ -121,6 +150,26 @@ const PuntoGeograficoSchema = new EntitySchema({
                 referencedColumnName: "id",
                 onDelete: "SET NULL",
             },
+        },
+        bombero: {
+            type: "many-to-one",
+            target: "Bombero",
+            joinColumn: {
+                name: "idBombero",
+                referencedColumnName: "id",
+                onDelete: "CASCADE",
+            },
+            nullable: true,
+        },
+        incidente: {
+            type: "many-to-one",
+            target: "Incidente",
+            joinColumn: {
+                name: "idIncidente",
+                referencedColumnName: "id",
+                onDelete: "CASCADE",
+            },
+            nullable: true,
         },
     },
 });

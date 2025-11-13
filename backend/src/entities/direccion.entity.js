@@ -57,22 +57,15 @@ const DireccionSchema = new EntitySchema({
             type: "int",
             nullable: false,
         },
-        punto: {
-            type: "geometry",
-            spatialFeatureType: "Point",
-            srid: 4326,
+        idPuntoGeografico: {
+            type: "int",
             nullable: true,
-            comment: "Ubicación geográfica de la dirección (SRID 4326 - WGS 84). Opcional para consultas geoespaciales."
+            comment: "Referencia al punto geográfico asociado a esta dirección",
         },
     },
     indices: [
         { name: "IDX_DIRECCION_IDCOMUNA", columns: ["idComuna"] },
-        {
-            name: "IDX_DIRECCION_PUNTO",
-            columns: ["punto"],
-            spatial: true,
-            comment: "Índice espacial para consultas geoespaciales"
-        },
+        { name: "IDX_DIRECCION_PUNTO_GEOGRAFICO", columns: ["idPuntoGeografico"] },
     ],
     relations: {
         comuna: {
@@ -125,7 +118,16 @@ const DireccionSchema = new EntitySchema({
             target: "FichaBombero",
             inverseSide: "direccion",
         },
-
+        puntoGeografico: {
+            type: "many-to-one",
+            target: "PuntoGeografico",
+            joinColumn: {
+                name: "idPuntoGeografico",
+                referencedColumnName: "id",
+                onDelete: "SET NULL",
+            },
+            nullable: true,
+        },
     },
 });
 

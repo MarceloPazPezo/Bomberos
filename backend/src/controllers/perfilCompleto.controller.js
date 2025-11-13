@@ -9,7 +9,8 @@ import {
   limpiarImagenesHuerfanasService,
   updateCapacitacionService,
   updateContactoEmergenciaService,
-  updateInformacionPersonalService
+  updateInformacionPersonalService,
+  updateEppAsignadoService
 } from "../services/perfilCompleto.service.js";
 import { handleErrorClient, handleErrorServer, handleSuccess } from "../handlers/responseHandlers.js";
 import logger from "../config/configLogger.js";
@@ -313,6 +314,59 @@ export async function limpiarImagenesHuerfanas(req, res) {
     return handleSuccess(res, 200, "Limpieza de imágenes huérfanas completada", resultado);
   } catch (error) {
     logger.error("limpiarImagenesHuerfanas - Error inesperado:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
+  }
+}
+
+/**
+ * Actualiza un EPP asignado al bombero (solo estado y descripción)
+ * PATCH /api/perfil-completo/epp/:idEpp
+ */
+export async function updateEppAsignado(req, res) {
+  try {
+    const idBombero = req.bombero.id;
+    const { idEpp } = req.params;
+    const eppData = req.body;
+    
+    logger.info(`updateEppAsignado - Bombero ${idBombero} actualizando EPP ${idEpp}:`, eppData);
+    
+    // Validar que al menos un campo esté presente
+    if (!eppData.idEstadoEpp && eppData.descripcionDeEstado === undefined) {
+      return handleErrorClient(res, 400, "Debe proporcionar al menos un campo para actualizar (idEstadoEpp o descripcionDeEstado)");
+    }
+
+    // Validar idEstadoEpp si se proporciona
+    if (eppData.idEstadoEpp && (!Number.isInteger(Number(eppData.idEstadoEpp)) || eppData.idEstadoEpp < 1)) {
+      return handleErrorClient(res, 400, "ID de estado de EPP inválido");
+    }
+
+    // Validar descripcionDeEstado si se proporciona
+    if (eppData.descripcionDeEstado !== undefined && eppData.descripcionDeEstado !== null) {
+      if (typeof eppData.descripcionDeEstado !== 'string') {
+        return handleErrorClient(res, 400, "La descripción debe ser un texto");
+      }
+      if (eppData.descripcionDeEstado.length > 255) {
+        return handleErrorClient(res, 400, "La descripción no puede exceder 255 caracteres");
+      }
+    }
+
+    const [epp, error] = await updateEppAsignadoService(idBombero, Number(idEpp), eppData);
+    
+    if (error) {
+      logger.error(`updateEppAsignado - Error: ${error}`);
+      if (error.includes("no está asignado")) {
+        return handleErrorClient(res, 403, error);
+      }
+      if (error.includes("no encontrado") || error.includes("no tiene ficha")) {
+        return handleErrorClient(res, 404, error);
+      }
+      return handleErrorServer(res, 500, error);
+    }
+    
+    logger.info(`updateEppAsignado - EPP ${idEpp} actualizado exitosamente`);
+    return handleSuccess(res, 200, "EPP actualizado exitosamente", epp);
+  } catch (error) {
+    logger.error("updateEppAsignado - Error inesperado:", error);
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }

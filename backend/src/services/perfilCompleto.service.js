@@ -3,6 +3,7 @@ import { AppDataSource } from "../config/configDb.js";
 import minioService from "./minio.service.js";
 import { BUCKETS } from "../config/configMinIO.js";
 import { createDireccionService, updateDireccionService } from "./direccion.service.js";
+import { createOrUpdatePuntoGeograficoParaBomberoService } from "./puntoGeografico.service.js";
 import logger from "../config/configLogger.js";
 
 /**
@@ -114,11 +115,11 @@ export async function updateInformacionPersonalService(idBombero, data) {
           if (ficha.fotoPerfilKEY) {
             try {
               logger.info('Eliminando imagen anterior:', {
-                bucket: BUCKETS.PROFILES,
+                bucket: BUCKETS.PERFILES,
                 fileName: ficha.fotoPerfilKEY
               });
 
-              await minioService.deleteFile(BUCKETS.PROFILES, ficha.fotoPerfilKEY);
+              await minioService.deleteFile(BUCKETS.PERFILES, ficha.fotoPerfilKEY);
               logger.info('Imagen anterior eliminada exitosamente');
             } catch (error) {
               // No fallar si no se puede eliminar la imagen anterior
@@ -129,7 +130,7 @@ export async function updateInformacionPersonalService(idBombero, data) {
           const fileName = minioService.generateUniqueFileName(profileImageFile.originalname, runBombero);
 
           logger.info('Intentando subir nueva imagen:', {
-            bucket: BUCKETS.PROFILES,
+            bucket: BUCKETS.PERFILES,
             fileName,
             runBombero,
             fileSize: profileImageFile.buffer.length,
@@ -138,7 +139,7 @@ export async function updateInformacionPersonalService(idBombero, data) {
 
           try {
             const uploadResult = await minioService.uploadFile(
-              BUCKETS.PROFILES,
+              BUCKETS.PERFILES,
               fileName,
               profileImageFile.buffer,
               profileImageFile.mimetype,
@@ -197,6 +198,26 @@ export async function updateInformacionPersonalService(idBombero, data) {
         logger.info('🏠 updateInformacionPersonalService - Procesando dirección:', data.direccion);
         const direccionData = data.direccion;
 
+        // Determinar si tenemos una dirección física completa o solo coordenadas
+        const tieneDireccionFisica = direccionData.calle && direccionData.numero && direccionData.idComuna;
+        const tieneCoordenadas = direccionData.latitud && direccionData.longitud;
+
+        logger.info('🏠 updateInformacionPersonalService - Tipo de ubicación:', {
+          tieneDireccionFisica,
+          tieneCoordenadas,
+          calle: direccionData.calle,
+          numero: direccionData.numero,
+          idComuna: direccionData.idComuna,
+          latitud: direccionData.latitud,
+          longitud: direccionData.longitud
+        });
+
+        // Validar que si se envía dirección física, esté completa
+        if ((direccionData.calle || direccionData.numero) && !tieneDireccionFisica) {
+          logger.error('🏠 updateInformacionPersonalService - Dirección física incompleta');
+          return [null, 'Para guardar una dirección, debes completar: calle, número y comuna'];
+        }
+
         // Verificar si ya existe una dirección para este bombero
         const direccionExistente = ficha.idDireccion
           ? await manager.getRepository("Direccion").findOne({
@@ -205,46 +226,133 @@ export async function updateInformacionPersonalService(idBombero, data) {
 
         logger.info('🏠 updateInformacionPersonalService - Dirección existente:', direccionExistente);
 
-        if (direccionExistente) {
-          // Actualizar dirección existente
-          logger.info('🏠 updateInformacionPersonalService - Actualizando dirección existente');
-          logger.info('🏠 updateInformacionPersonalService - Datos de dirección a actualizar:', {
-            id: direccionExistente.id,
-            calle: direccionData.calle,
-            numero: direccionData.numero,
-            idComuna: direccionData.idComuna,
-            latitud: direccionData.latitud,
-            longitud: direccionData.longitud,
-            tieneCoordenadas: !!(direccionData.latitud && direccionData.longitud)
-          });
-          const [direccionActualizada, errorDireccion] = await updateDireccionService(
-            direccionExistente.id,
-            direccionData
-          );
+        // CASO 1: Tiene dirección física completa (calle y número)
+        if (tieneDireccionFisica) {
+          if (direccionExistente) {
+            // Actualizar dirección existente
+            logger.info('🏠 updateInformacionPersonalService - Actualizando dirección existente con dirección física');
+            const [direccionActualizada, errorDireccion] = await updateDireccionService(
+              direccionExistente.id,
+              direccionData
+            );
 
-          if (errorDireccion) {
-            logger.error('🏠 updateInformacionPersonalService - Error al actualizar dirección:', errorDireccion);
-            return [null, `Error al actualizar dirección: ${errorDireccion}`];
+            if (errorDireccion) {
+              logger.error('🏠 updateInformacionPersonalService - Error al actualizar dirección:', errorDireccion);
+              return [null, `Error al actualizar dirección: ${errorDireccion}`];
+            }
+            logger.info('🏠 updateInformacionPersonalService - Dirección actualizada exitosamente');
+            
+             // Crear/actualizar punto geográfico si hay coordenadas
+             if (direccionActualizada?.latitud && direccionActualizada?.longitud) {
+               logger.info('🏠 updateInformacionPersonalService - Intentando crear/actualizar punto geográfico con coordenadas:', {
+                 latitud: direccionActualizada.latitud,
+                 longitud: direccionActualizada.longitud,
+                 idBombero
+               });
+               try {
+                 const bomberoData = await manager.getRepository("Bombero").findOne({
+                   where: { id: idBombero }
+                 });
+                 
+                 const [puntoGeo, errorPunto] = await createOrUpdatePuntoGeograficoParaBomberoService({
+                  idBombero,
+                  lat: direccionActualizada.latitud,
+                  lng: direccionActualizada.longitud,
+                  idCompania: ficha.idCompania,
+                  creadoPor: idBombero,
+                  nombre: `Ubicación de ${bomberoData?.nombres?.[0] || 'Bombero'} ${bomberoData?.apellidos?.[0] || ''}`.trim(),
+                  descripcion: `${direccionActualizada.calle} ${direccionActualizada.numero}, ${direccionActualizada.comuna?.nombre || ''}`
+                });
+                
+                if (errorPunto) {
+                  logger.warn('🏠 updateInformacionPersonalService - No se pudo crear/actualizar punto geográfico:', errorPunto);
+                } else {
+                  logger.info('🏠 updateInformacionPersonalService - Punto geográfico creado/actualizado exitosamente');
+                }
+              } catch (errorPuntoGeo) {
+                logger.warn('🏠 updateInformacionPersonalService - Error al crear/actualizar punto geográfico:', errorPuntoGeo);
+              }
+            }
+          } else {
+            // Crear nueva dirección
+            logger.info('🏠 updateInformacionPersonalService - Creando nueva dirección con dirección física');
+            const [nuevaDireccion, errorDireccion] = await createDireccionService(direccionData);
+
+            if (errorDireccion) {
+              logger.error('🏠 updateInformacionPersonalService - Error al crear dirección:', errorDireccion);
+              return [null, `Error al crear dirección: ${errorDireccion}`];
+            }
+            logger.info('🏠 updateInformacionPersonalService - Dirección creada exitosamente:', nuevaDireccion);
+
+            // Actualizar la ficha del bombero con el idDireccion
+            fichaUpdateData.idDireccion = nuevaDireccion.id;
+            logger.info('🏠 updateInformacionPersonalService - Actualizando ficha con idDireccion:', nuevaDireccion.id);
+            
+            // Crear punto geográfico si hay coordenadas
+            if (nuevaDireccion?.latitud && nuevaDireccion?.longitud) {
+              logger.info('🏠 updateInformacionPersonalService - Intentando crear punto geográfico con coordenadas:', {
+                latitud: nuevaDireccion.latitud,
+                longitud: nuevaDireccion.longitud,
+                idBombero
+              });
+              try {
+                const bomberoData = await manager.getRepository("Bombero").findOne({
+                  where: { id: idBombero }
+                });
+                
+                const [puntoGeo, errorPunto] = await createOrUpdatePuntoGeograficoParaBomberoService({
+                  idBombero,
+                  lat: nuevaDireccion.latitud,
+                  lng: nuevaDireccion.longitud,
+                  idCompania: ficha.idCompania,
+                  creadoPor: idBombero,
+                  nombre: `Ubicación de ${bomberoData?.nombres?.[0] || 'Bombero'} ${bomberoData?.apellidos?.[0] || ''}`.trim(),
+                  descripcion: `${nuevaDireccion.calle} ${nuevaDireccion.numero}, ${nuevaDireccion.comuna?.nombre || ''}`
+                });
+                
+                if (errorPunto) {
+                  logger.warn('🏠 updateInformacionPersonalService - No se pudo crear punto geográfico:', errorPunto);
+                } else {
+                  logger.info('🏠 updateInformacionPersonalService - Punto geográfico creado exitosamente');
+                }
+              } catch (errorPuntoGeo) {
+                logger.warn('🏠 updateInformacionPersonalService - Error al crear punto geográfico:', errorPuntoGeo);
+              }
+            }
           }
-          logger.info('🏠 updateInformacionPersonalService - Dirección actualizada exitosamente');
-          logger.info('🏠 updateInformacionPersonalService - Dirección actualizada con coordenadas:', {
-            latitud: direccionActualizada?.latitud,
-            longitud: direccionActualizada?.longitud
-          });
+        }
+        // CASO 2: Solo tiene coordenadas (punto de interés) sin dirección física
+        else if (tieneCoordenadas) {
+          logger.info('🏠 updateInformacionPersonalService - Solo coordenadas (punto de interés), no se crea dirección');
+          
+          // No crear/actualizar dirección, solo crear/actualizar punto geográfico
+          try {
+            const bomberoData = await manager.getRepository("Bombero").findOne({
+              where: { id: idBombero }
+            });
+            
+            const [puntoGeo, errorPunto] = await createOrUpdatePuntoGeograficoParaBomberoService({
+              idBombero,
+              lat: direccionData.latitud,
+              lng: direccionData.longitud,
+              idCompania: ficha.idCompania,
+              creadoPor: idBombero,
+              nombre: `Ubicación de ${bomberoData?.nombres?.[0] || 'Bombero'} ${bomberoData?.apellidos?.[0] || ''}`.trim(),
+              descripcion: direccionData.referencia || 'Punto de interés seleccionado'
+            });
+            
+            if (errorPunto) {
+              logger.error('🏠 updateInformacionPersonalService - Error al crear/actualizar punto geográfico:', errorPunto);
+              return [null, `Error al guardar ubicación: ${errorPunto}`];
+            } else {
+              logger.info('🏠 updateInformacionPersonalService - Punto geográfico creado/actualizado exitosamente (solo coordenadas)');
+            }
+          } catch (errorPuntoGeo) {
+            logger.error('🏠 updateInformacionPersonalService - Error al crear/actualizar punto geográfico:', errorPuntoGeo);
+            return [null, 'Error al guardar la ubicación'];
+          }
         } else {
-          // Crear nueva dirección
-          logger.info('🏠 updateInformacionPersonalService - Creando nueva dirección');
-          const [nuevaDireccion, errorDireccion] = await createDireccionService(direccionData);
-
-          if (errorDireccion) {
-            logger.error('🏠 updateInformacionPersonalService - Error al crear dirección:', errorDireccion);
-            return [null, `Error al crear dirección: ${errorDireccion}`];
-          }
-          logger.info('🏠 updateInformacionPersonalService - Dirección creada exitosamente:', nuevaDireccion);
-
-          // Actualizar la ficha del bombero con el idDireccion
-          fichaUpdateData.idDireccion = nuevaDireccion.id;
-          logger.info('🏠 updateInformacionPersonalService - Actualizando ficha con idDireccion:', nuevaDireccion.id);
+          logger.warn('🏠 updateInformacionPersonalService - No hay datos suficientes para crear dirección ni punto geográfico');
         }
       }
 
@@ -296,7 +404,7 @@ export async function getFichaBomberoService(idBombero) {
  */
 export async function generateImagenPerfilUrlService(fileName) {
   try {
-    const signedUrl = await minioService.getSignedUrl(BUCKETS.PROFILES, fileName);
+    const signedUrl = await minioService.getSignedUrl(BUCKETS.PERFILES, fileName);
     return [signedUrl, null];
   } catch (error) {
     logger.error("generateImagenPerfilUrlService - Error:", error);
@@ -548,6 +656,80 @@ export async function deleteCapacitacionService(idCapacitacion) {
 }
 
 /**
+ * Actualiza un EPP asignado al bombero (solo estado y descripción)
+ * @param {number} idBombero - ID del bombero
+ * @param {number} idEpp - ID del EPP
+ * @param {Object} eppData - Datos a actualizar (idEstadoEpp, descripcionDeEstado)
+ * @returns {Promise<Array>} [epp, error]
+ */
+export async function updateEppAsignadoService(idBombero, idEpp, eppData) {
+  try {
+    const eppRepository = AppDataSource.getRepository("Epp");
+    const aCargoEppRepository = AppDataSource.getRepository("ACargoEpp");
+    const fichaRepository = AppDataSource.getRepository("FichaBombero");
+
+    // Verificar que el bombero tenga ficha
+    const ficha = await fichaRepository.findOne({
+      where: { idBombero }
+    });
+
+    if (!ficha) {
+      return [null, "El bombero no tiene ficha registrada"];
+    }
+
+    // Verificar que el EPP esté asignado al bombero
+    const asignacion = await aCargoEppRepository.findOne({
+      where: {
+        idEpp,
+        idFichaBombero: ficha.id
+      }
+    });
+
+    if (!asignacion) {
+      return [null, "Este EPP no está asignado a tu perfil"];
+    }
+
+    // Verificar que el EPP existe
+    const epp = await eppRepository.findOne({
+      where: { id: idEpp }
+    });
+
+    if (!epp) {
+      return [null, "EPP no encontrado"];
+    }
+
+    // Preparar datos de actualización
+    const updateData = {
+      actualizadoEl: new Date(),
+      actualizadoPor: idBombero
+    };
+
+    if (eppData.idEstadoEpp !== undefined) {
+      updateData.idEstadoEpp = eppData.idEstadoEpp;
+    }
+
+    if (eppData.descripcionDeEstado !== undefined) {
+      updateData.descripcionDeEstado = eppData.descripcionDeEstado;
+    }
+
+    // Actualizar el EPP
+    await eppRepository.update(idEpp, updateData);
+
+    // Obtener el EPP actualizado con todas sus relaciones
+    const eppActualizado = await eppRepository.findOne({
+      where: { id: idEpp },
+      relations: ["tipoEpp", "estadosEpp"]
+    });
+
+    logger.info(`updateEppAsignadoService - EPP ${idEpp} actualizado por bombero ${idBombero}`);
+    return [eppActualizado, null];
+  } catch (error) {
+    logger.error("updateEppAsignadoService - Error:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+/**
  * Limpia imágenes de perfil huérfanas en MinIO
  * Elimina archivos que ya no están referenciados en la base de datos
  * @returns {Promise<Array>} [resultado, error]
@@ -571,7 +753,7 @@ export async function limpiarImagenesHuerfanasService() {
     logger.info(`[LIMPIEZA] Encontradas ${clavesEnUso.size} imágenes en uso en la BD`);
 
     // Obtener todas las imágenes en el bucket de perfiles
-    const imagenesEnMinIO = await minioService.listFiles(BUCKETS.PROFILES);
+    const imagenesEnMinIO = await minioService.listFiles(BUCKETS.PERFILES);
 
     logger.info(`[LIMPIEZA] Encontradas ${imagenesEnMinIO.length} imágenes en MinIO`);
 
@@ -591,7 +773,7 @@ export async function limpiarImagenesHuerfanasService() {
 
     for (const imagen of imagenesHuerfanas) {
       try {
-        await minioService.deleteFile(BUCKETS.PROFILES, imagen.name);
+        await minioService.deleteFile(BUCKETS.PERFILES, imagen.name);
         resultados.eliminadas++;
         resultados.detalles.push({
           archivo: imagen.name,
