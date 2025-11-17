@@ -46,8 +46,9 @@ export const useCompaniaBombero = () => {
         // Usar el nuevo endpoint que tiene mejor lógica de fallback
         const response = await getMiCompania();
         
-        if (!response.success) {
-          throw new Error(response.message);
+        // El backend devuelve { status: "Success", message: "...", data: ... }
+        if (response.status !== 'Success') {
+          throw new Error(response.message || 'Error al obtener la compañía');
         }
 
         setCompaniaInfo(response.data);

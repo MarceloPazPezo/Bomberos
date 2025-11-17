@@ -64,7 +64,8 @@ export const useBomberoCompania = (idCompania = null) => {
         // Para compañías específicas, necesitamos obtener la info de otra manera
         // Por ahora, usamos la respuesta de bomberos que incluye la compañía
         response = await getBomberosByCompania(idCompania);
-        if (response.success && response.data.compania) {
+        // El backend devuelve { status: "Success", message: "...", data: ... }
+        if (response.status === 'Success' && response.data?.compania) {
           setCompania(response.data.compania);
         }
       } else {
@@ -87,7 +88,8 @@ export const useBomberoCompania = (idCompania = null) => {
       
       if (idCompania) {
         response = await getBomberosByCompania(idCompania);
-        if (response.success) {
+        // El backend devuelve { status: "Success", message: "...", data: ... }
+        if (response.status === 'Success') {
           setBomberos(response.data);
         }
       } else {
@@ -114,7 +116,8 @@ export const useBomberoCompania = (idCompania = null) => {
       
       if (idCompania) {
         response = await getEstadisticasBomberosCompania(idCompania);
-        if (response.success) {
+        // El backend devuelve { status: "Success", message: "...", data: ... }
+        if (response.status === 'Success') {
           setEstadisticas(response.data);
         }
       } else {
