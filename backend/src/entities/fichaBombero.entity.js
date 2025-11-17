@@ -48,7 +48,6 @@ const FichaBomberoSchema = new EntitySchema({
       target: "TipoSangre",
       joinColumn: { name: "idTipoSangre", referencedColumnName: "id", onDelete: "SET NULL" },
     },
-    // 1:1 con Bombero (FK en esta tabla)
     bombero: {
       type: "one-to-one",
       target: "Bombero",
@@ -69,8 +68,6 @@ const FichaBomberoSchema = new EntitySchema({
       target: "ContactoEmergencia",
       inverseSide: "fichaBombero",
     },
-
-    // auditoría
     creadoPor: {
       type: "many-to-one",
       target: "Bombero",

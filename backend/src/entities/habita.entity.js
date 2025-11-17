@@ -1,4 +1,3 @@
-// habita.entity.js
 "use strict";
 import { EntitySchema } from "typeorm";
 
@@ -13,13 +12,13 @@ const HabitaSchema = new EntitySchema({
     inmueble: {
       type: "many-to-one",
       target: "Inmueble",
-      joinColumns: [{ name: "inmuebleId", referencedColumnName: "id" }], // 👈 explícito
+      joinColumns: [{ name: "inmuebleId", referencedColumnName: "id" }],
       onDelete: "CASCADE",
     },
     afectado: {
       type: "many-to-one",
       target: "Afectado",
-      joinColumns: [{ name: "afectadoId", referencedColumnName: "id" }], // 👈 explícito
+      joinColumns: [{ name: "afectadoId", referencedColumnName: "id" }],
       onDelete: "CASCADE",
     },
   },

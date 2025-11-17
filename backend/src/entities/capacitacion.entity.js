@@ -31,8 +31,6 @@ const CapacitacionSchema = new EntitySchema({
             target: "FichaBombero",
             joinColumn: { name: "idFichaBombero", referencedColumnName: "id", onDelete: "CASCADE" },
         },
-
-        // auditoría
         creadoPor: {
             type: "many-to-one",
             target: "Bombero",

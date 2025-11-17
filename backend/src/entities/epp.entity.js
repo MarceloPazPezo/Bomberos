@@ -32,8 +32,6 @@ const EppSchema = new EntitySchema({
             target: "TipoEpp",
             joinColumn: { name: "idTipoEpp", referencedColumnName: "id", onDelete: "RESTRICT" },
         },
-
-        // auditoría
         creadoPor: {
             type: "many-to-one",
             target: "Bombero",
@@ -44,8 +42,6 @@ const EppSchema = new EntitySchema({
             target: "Bombero",
             joinColumn: { name: "actualizadoPor", referencedColumnName: "id", onDelete: "SET NULL" },
         },
-
-        // Relación inversa: un Epp puede estar asignado a muchos registros ACargoEpp
         aCargoEpps: {
             type: "one-to-many",
             target: "ACargoEpp",

@@ -21,7 +21,6 @@ const AfectadoSchema = new EntitySchema({
             type: "many-to-one",
             target: "Incidente",
             joinColumn: { name: "idIncidente", referencedColumnName: "id" },
-            // eager: true, // ⚠️ DESHABILITADO: Causa loop infinito con Incidente.afectados
             onDelete: "CASCADE",
         },
         direccion: {

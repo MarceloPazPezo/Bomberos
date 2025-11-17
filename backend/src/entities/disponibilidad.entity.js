@@ -12,7 +12,7 @@ const DisponibilidadSchema = new EntitySchema({
     },
     idBombero: {
       type: "int",
-      nullable: false, // FK -> bomberos.id
+      nullable: false,
     },
     fechaInicio: {
       type: "timestamp with time zone",
@@ -20,7 +20,7 @@ const DisponibilidadSchema = new EntitySchema({
     },
     fechaTermino: {
       type: "timestamp with time zone",
-      nullable: true, // puede estar abierta
+      nullable: true,
     },
   },
   indices: [
@@ -33,9 +33,9 @@ const DisponibilidadSchema = new EntitySchema({
       joinColumn: {
         name: "idBombero",
         referencedColumnName: "id",
-        onDelete: "CASCADE", // si se borra el bombero, se borran sus disponibilidades
+        onDelete: "CASCADE",
       },
-      eager: true, // ✅ OK: Bombero no tiene relación inversa eager hacia Disponibilidad
+      eager: true,
     },
   },
 });
