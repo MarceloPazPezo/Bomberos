@@ -28,7 +28,8 @@ const BomberoProfile = () => {
       try {
         setLoadingDetalles(true);
         const response = await getBomberoDetalles(bombero.id);
-        if (response.success) {
+        // El backend devuelve { status: "Success", message: "...", data: ... }
+        if (response.status === 'Success') {
           setBomberoDetalles(response.data);
         }
       } catch (error) {
@@ -49,7 +50,8 @@ const BomberoProfile = () => {
       try {
         // Obtener detalles del bombero primero para tener el fotoPerfilKEY
         const response = await getBomberoDetalles(bombero.id);
-        if (response.success && response.data?.informacionPersonal?.fotoPerfilKEY) {
+        // El backend devuelve { status: "Success", message: "...", data: ... }
+        if (response.status === 'Success' && response.data?.informacionPersonal?.fotoPerfilKEY) {
           const imageKey = response.data.informacionPersonal.fotoPerfilKEY;
           const existingURL = response.data.informacionPersonal.fotoPerfilURL;
           
