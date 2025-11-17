@@ -36,22 +36,22 @@ export const geocodingService = {
       const params = { comuna };
       if (region) params.region = region;
       
-      console.log('🌐 Llamando a geocodificación API:', `${API_URL}/comuna`, params);
+      console.log('[GeocodingService] Llamando a geocodificación API:', `${API_URL}/comuna`, params);
       const response = await API.get(`${API_URL}/comuna`, { params });
-      console.log('📥 Respuesta de geocodificación:', response.data);
+      console.log('[GeocodingService] Respuesta de geocodificación:', response.data);
       
       // Verificar que la respuesta tenga el formato esperado
       if (response.data && response.data.status === 'Success' && response.data.data) {
         return response.data.data; // { lat, lng }
       } else {
-        console.warn('⚠️ Respuesta de geocodificación con formato inesperado:', response.data);
+        console.warn('[GeocodingService] Respuesta de geocodificación con formato inesperado:', response.data);
         throw new Error('Formato de respuesta inesperado');
       }
     } catch (error) {
-      console.error('❌ Error al geocodificar comuna:', error);
+      console.error('[GeocodingService] Error al geocodificar comuna:', error);
       // Si es un error 404, retornar null en lugar de lanzar error
       if (error.response && error.response.status === 404) {
-        console.warn('⚠️ Comuna no encontrada en servicio de geocodificación');
+        console.warn('[GeocodingService] Comuna no encontrada en servicio de geocodificación');
         return null;
       }
       throw error;

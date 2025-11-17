@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Form from '../Form';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdEvent, MdSave } from 'react-icons/md';
 import PropTypes from 'prop-types';
 
@@ -166,13 +167,14 @@ export default function CreateTipoEventoPopup({ show, setShow, onTipoEventoCreat
         setErrors({});
     };
 
+    if (!show) return null;
+
     return (
-        <div>
-            {show && (
-                <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={handleBackdropClick}
-                >
+        <ModalPortal>
+            <div 
+                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                onClick={handleBackdropClick}
+            >
                     <div className="relative w-full max-w-xs sm:max-w-2xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white shadow-2xl border border-gray-200 max-h-[90vh]">
                         {/* Header mejorado */}
                         <div className="flex items-center px-4 sm:px-6 py-4 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -282,8 +284,7 @@ export default function CreateTipoEventoPopup({ show, setShow, onTipoEventoCreat
                         </div>
                     </div>
                 </div>
-            )}
-        </div>
+        </ModalPortal>
     );
 }
 

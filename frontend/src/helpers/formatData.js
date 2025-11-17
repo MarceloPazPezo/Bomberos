@@ -40,11 +40,11 @@ function formatTempo(date, format) {
         return 'Fecha inválida';
     }
     
-    if (format === "DD-MM-YYYY") {
+    if (format === "DD-MM-YYYY" || format === "DD/MM/YYYY") {
         const day = d.getDate().toString().padStart(2, '0');
         const month = (d.getMonth() + 1).toString().padStart(2, '0');
         const year = d.getFullYear();
-        return `${day}-${month}-${year}`;
+        return `${day}/${month}/${year}`;
     }
     return date;
 }
@@ -121,8 +121,8 @@ export function formatBomberoDataUpdate(bombero) {
         email: bombero.email,
         activo: bombero.activo,
         roles: Array.isArray(bombero.roles) ? bombero.roles : [],
-        creadoEl: formatTempo(bombero.creadoEl, "DD-MM-YYYY"),
-        actualizadoEl: formatTempo(bombero.actualizadoEl, "DD-MM-YYYY"),
+        creadoEl: formatTempo(bombero.creadoEl, "DD/MM/YYYY"),
+        actualizadoEl: formatTempo(bombero.actualizadoEl, "DD/MM/YYYY"),
         creadoPor: bombero.creadoPor,
         actualizadoPor: bombero.actualizadoPor
     };

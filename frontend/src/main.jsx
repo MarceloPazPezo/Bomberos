@@ -38,7 +38,6 @@ const LoadingSpinner = () => (
 );
 
 import ProtectedRoute from '@components/ProtectedRoute';
-import { FireAlertProvider } from '@components/FireAlertProvider';
 import '@styles/styles.css';
 import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
@@ -109,7 +108,7 @@ const router = createBrowserRouter([
       {
         path: '/crear-parte',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={['parte_emergencia:crear', 'parte_emergencia:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <CrearParte />
             </Suspense>
@@ -119,7 +118,7 @@ const router = createBrowserRouter([
       {
         path: '/editar-parte/:id',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={['parte_emergencia:actualizar', 'parte_emergencia:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <EdiarParte />
             </Suspense>
@@ -129,51 +128,47 @@ const router = createBrowserRouter([
       {
         path: '/partes-de-emergencias',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={['parte_emergencia:obtener', 'parte_emergencia:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <PartesDeEmergencias />
             </Suspense>
           </ProtectedRoute>
         )
-      }
-      ,
+      },
       {
-        path: '/vistaparte/:id',
+        path: '/vista-parte/:id',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={['parte_emergencia:obtener', 'parte_emergencia:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaParte />
             </Suspense>
           </ProtectedRoute>
         )
-      }
-      ,
+      },
       {
         path: '/vistaparterev/:id',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={['parte_emergencia:revisar', 'parte_emergencia:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaParteRevision />
             </Suspense>
           </ProtectedRoute>
         )
-      }
-      ,
+      },
       {
-        path: '/vistaparte/:id/pdf',
+        path: '/vista-parte/:id/pdf',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={['parte_emergencia:generar_pdf', 'parte_emergencia:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaPartePdf />
             </Suspense>
           </ProtectedRoute>
         )
-      }
-      ,
+      },
       {
-        path: '/revisionpartes',
+        path: '/revisar-parte',
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={['parte_emergencia:revisar', 'parte_emergencia:admin']}>
             <Suspense fallback={<LoadingSpinner />}>
               <RevisionPartes />
             </Suspense>
@@ -181,7 +176,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: '/calendariooperativo',
+        path: '/calendario-admin',
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
@@ -191,7 +186,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: '/calendariooperativobasic',
+        path: '/calendario',
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
@@ -247,7 +242,7 @@ const router = createBrowserRouter([
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <FireAlertProvider>
+  <>
     <RouterProvider
       router={router}
       future={{
@@ -260,11 +255,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       hideProgressBar={false}
       newestOnTop={true}
       closeOnClick
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
       pauseOnHover
       theme="light"
+      icon={false}
     />
-  </FireAlertProvider>
+  </>
 )

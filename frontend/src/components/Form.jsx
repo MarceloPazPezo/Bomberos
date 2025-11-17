@@ -1,10 +1,11 @@
 import { useForm } from 'react-hook-form';
-import { useState, forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
+import { useState, forwardRef, useImperativeHandle, useEffect, useRef, useMemo } from 'react';
 import { fieldIcons } from '@helpers/fieldIcons';
 import { MdVisibility, MdVisibilityOff, MdAdd, MdRemove } from 'react-icons/md';
 import { FaAsterisk } from "react-icons/fa";
 import MultiSelect from '@components/MultiSelect';
 import Select from '@components/Select';
+import ReactSelect from 'react-select';
 import LoadingSpinner from '@components/LoadingSpinner';
 import { format, parseISO, isValid } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
@@ -82,7 +83,99 @@ const Form = forwardRef(({
     const [fieldErrors, setFieldErrors] = useState({});
     const fieldRefs = useRef({});
 
+    // Estilos para react-select (coincide con el tamaño del Select personalizado)
+    const getReactSelectStyles = (fieldName) => {
+        const hasIcon = fieldIcons[fieldName];
+        return {
+            control: (base, state) => ({
+                ...base,
+                borderColor: state.isFocused ? '#4EB9FA' : errors[fieldName] ? '#EF4444' : 'rgba(44, 62, 80, 0.2)',
+                borderWidth: state.isFocused ? '2px' : '1px',
+                boxShadow: state.isFocused 
+                    ? '0 0 0 2px rgba(78, 185, 250, 0.4)' 
+                    : errors[fieldName] 
+                        ? '0 0 0 2px rgba(239, 68, 68, 0.2)' 
+                        : 'none',
+                '&:hover': {
+                    borderColor: state.isFocused ? '#4EB9FA' : 'rgba(44, 62, 80, 0.3)',
+                },
+                minHeight: '48px', // Mismo tamaño que el Select personalizado
+                borderRadius: '8px',
+                fontSize: '0.875rem',
+                padding: '0',
+                paddingLeft: hasIcon ? '44px' : '12px', // Agregar padding izquierdo si hay icono
+            }),
+            valueContainer: (base) => ({
+                ...base,
+                padding: '2px 8px',
+            }),
+            menu: (base) => ({
+                ...base,
+                zIndex: 25,
+                borderRadius: '8px',
+                overflow: 'hidden',
+            }),
+            menuList: (base) => ({
+                ...base,
+                maxHeight: '260px',
+            }),
+            option: (base, state) => ({
+                ...base,
+                backgroundColor: state.isSelected
+                    ? '#4EB9FA'
+                    : state.isFocused
+                        ? 'rgba(78, 185, 250, 0.1)'
+                        : 'white',
+                color: state.isSelected ? '#FFFFFF' : '#2C3E50',
+                fontSize: '0.875rem',
+                padding: '8px 12px',
+            }),
+            placeholder: (base) => ({
+                ...base,
+                fontSize: '0.875rem',
+                color: 'rgba(44, 62, 80, 0.6)',
+            }),
+            input: (base) => ({
+                ...base,
+                fontSize: '0.875rem',
+            }),
+            singleValue: (base) => ({
+                ...base,
+                fontSize: '0.875rem',
+                color: '#2C3E50',
+            }),
+            multiValue: (base) => ({
+                ...base,
+                backgroundColor: 'rgba(78, 185, 250, 0.1)',
+                borderRadius: '6px',
+            }),
+            multiValueLabel: (base) => ({
+                ...base,
+                color: '#2C3E50',
+                fontSize: '0.875rem',
+            }),
+            multiValueRemove: (base) => ({
+                ...base,
+                color: '#2C3E50',
+                ':hover': {
+                    backgroundColor: '#ef4444',
+                    color: 'white',
+                },
+            }),
+            menuPortal: (base) => ({
+                ...base,
+                zIndex: 9999,
+            }),
+        };
+    };
+
+    const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
+
+    // Inicializar valores por defecto solo una vez al montar
+    const initializedRef = useRef(false);
     useEffect(() => {
+        if (initializedRef.current) return; // Solo ejecutar una vez
+        
         const initialOptions = {};
         fields.forEach((field) => {
             if (field.fieldType === 'multiselect') {
@@ -90,6 +183,19 @@ const Form = forwardRef(({
                 const defaultValue = Array.isArray(field.defaultValue) ? field.defaultValue : [];
                 initialOptions[field.name] = defaultValue;
                 setValue(field.name, defaultValue); // Sincroniza con react-hook-form
+            }
+            
+            // Inicializar react-select con isMulti solo si no hay un valor ya establecido
+            if (field.fieldType === 'react-select' && field.isMulti) {
+                // Verificar si ya hay un valor establecido
+                const currentValue = getValues(field.name);
+                if (!currentValue || (Array.isArray(currentValue) && currentValue.length === 0)) {
+                    // Solo inicializar si no hay valor
+                    const defaultValue = Array.isArray(field.defaultValue) ? field.defaultValue : [];
+                    if (defaultValue.length > 0) {
+                        setValue(field.name, defaultValue); // Sincroniza con react-hook-form
+                    }
+                }
             }
             
             // Configurar validaciones para el Select personalizado
@@ -101,7 +207,8 @@ const Form = forwardRef(({
             }
         });
         setSelectedOptions(initialOptions);
-    }, [fields, setValue, register]);
+        initializedRef.current = true;
+    }, []); // Solo ejecutar una vez al montar
 
     // Detectar errores específicos por campo y hacer auto-focus
     useEffect(() => {
@@ -385,6 +492,83 @@ const Form = forwardRef(({
                             required={field.required}
                             error={!!errors[field.name]}
                         />
+                    )}
+
+                    {field.fieldType === 'react-select' && (
+                        <div className="relative">
+                            {fieldIcons[field.name] && (
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#2C3E50] opacity-70 pointer-events-none z-20">
+                                    {fieldIcons[field.name]({ size: 22 })}
+                                </span>
+                            )}
+                            <ReactSelect
+                                inputId={field.name}
+                                isMulti={field.isMulti || false}
+                                isSearchable={field.isSearchable !== false}
+                                isClearable={field.isClearable !== false}
+                                isDisabled={field.disabled || field.isLoading}
+                                isLoading={field.isLoading}
+                                value={(() => {
+                                    // Obtener el valor actual de react-hook-form
+                                    const currentValue = watch(field.name);
+                                    
+                                    if (field.isMulti) {
+                                        // Para multiselect, el valor debe ser un array de objetos {value, label}
+                                        if (Array.isArray(currentValue) && currentValue.length > 0) {
+                                            // Filtrar las opciones que coinciden con los valores seleccionados
+                                            const selectedOptions = field.options?.filter(opt => 
+                                                currentValue.includes(opt.value)
+                                            ) || [];
+                                            return selectedOptions;
+                                        }
+                                        // NO usar defaultValue si ya hay un valor establecido (aunque esté vacío)
+                                        // Esto previene que se resetee cuando el usuario ya ha interactuado
+                                        return [];
+                                    } else {
+                                        // Para select simple
+                                        if (currentValue !== undefined && currentValue !== null && currentValue !== '') {
+                                            return field.options?.find(opt => opt.value === currentValue) || null;
+                                        }
+                                        // Solo usar defaultValue si no hay valor actual
+                                        return field.options?.find(opt => opt.value === field.defaultValue) || null;
+                                    }
+                                })()}
+                                options={field.options || []}
+                                menuPortalTarget={selectMenuPortalTarget}
+                                onChange={(option) => {
+                                    if (field.isMulti) {
+                                        const values = Array.isArray(option) ? option.map(opt => opt.value) : [];
+                                        setValue(field.name, values, { shouldValidate: true, shouldDirty: true });
+                                        if (field.onChange) {
+                                            // Para multiselect, pasar el array de valores
+                                            const syntheticEvent = { target: { name: field.name, value: values } };
+                                            field.onChange(syntheticEvent);
+                                        }
+                                        // Limpiar errores cuando se selecciona algo
+                                        if (values.length > 0) {
+                                            clearErrors(field.name);
+                                        }
+                                    } else {
+                                        const value = option?.value ?? '';
+                                        setValue(field.name, value, { shouldValidate: true, shouldDirty: true });
+                                        if (field.onChange) {
+                                            // Simular evento para compatibilidad
+                                            const syntheticEvent = { target: { name: field.name, value } };
+                                            field.onChange(syntheticEvent);
+                                        }
+                                        // Limpiar errores cuando se selecciona algo
+                                        if (value) {
+                                            clearErrors(field.name);
+                                        }
+                                    }
+                                }}
+                                placeholder={field.placeholder || "Seleccionar opción..."}
+                                noOptionsMessage={() => field.noOptionsMessage || 'No se encontraron opciones'}
+                                filterOption={field.filterOption}
+                                styles={getReactSelectStyles(field.name)}
+                                classNamePrefix={`react-select-${field.name}`}
+                            />
+                        </div>
                     )}
 
                     {field.fieldType === 'checkbox' && (

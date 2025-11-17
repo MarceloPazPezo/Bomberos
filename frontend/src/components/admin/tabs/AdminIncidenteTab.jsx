@@ -5,6 +5,7 @@ import { useSubtipoIncidente } from '@hooks/subtipoIncidente/useSubtipoIncidente
 import { useClasificacionEmergencia } from '@hooks/clasificacionEmergencia/useClasificacionEmergencia.jsx';
 import { showConfirmAlert } from '@helpers/fireAlert.js';
 import { toStartCase } from '@helpers/textFormatters.js';
+import Select from 'react-select';
 
 // Componentes
 import Tooltip from '@components/Tooltip';
@@ -380,6 +381,76 @@ const AdminIncidenteTab = () => {
     return 'una nueva clasificación de emergencia';
   };
 
+  // Preparar opciones para el select de clasificación
+  const clasificacionFilterOptions = useMemo(() => [
+    { label: 'Todas las clasificaciones', value: '' },
+    ...clasificacionesEmergencia.map(clasificacion => ({ 
+      label: toStartCase(clasificacion.nombre), 
+      value: clasificacion.id.toString() 
+    }))
+  ], [clasificacionesEmergencia]);
+
+  // Valor seleccionado para el select de clasificación
+  const selectedClasificacionFilterOption = useMemo(() => {
+    return clasificacionFilterOptions.find(opt => opt.value === selectedClasificacionFilter) || clasificacionFilterOptions[0];
+  }, [selectedClasificacionFilter, clasificacionFilterOptions]);
+
+  // Estilos para el Select (igual que en crear parte)
+  const selectStyles = useMemo(() => ({
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+      borderWidth: '2px',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+      '&:hover': {
+        borderColor: '#4EB9FA',
+      },
+      minHeight: '44px',
+      borderRadius: '10px',
+      fontSize: '0.9rem',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 25,
+      borderRadius: '10px',
+      overflow: 'hidden',
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '260px',
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? '#4EB9FA'
+        : state.isFocused
+          ? '#E0F2FE'
+          : 'white',
+      color: state.isSelected ? '#FFFFFF' : '#1F2937',
+      fontSize: '0.9rem',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#9CA3AF',
+    }),
+    input: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#1F2937',
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+  }), []);
+
+  const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
+
   if (loading && currentData.length === 0) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -390,9 +461,9 @@ const AdminIncidenteTab = () => {
 
   return (
     <>
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-6 rounded-2xl">
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md p-6 rounded-2xl">
         {/* Header de la sección */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">Gestión de Incidentes</h2>
             <p className="text-gray-600 text-sm mt-1">
@@ -403,31 +474,19 @@ const AdminIncidenteTab = () => {
           <div className="flex items-center gap-4">
             {/* Filtro por clasificación (solo para subtipos) */}
             {activeSubTab === 'subtipos' && clasificacionesEmergencia.length > 0 && (
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MdCategory className="h-5 w-5 text-gray-400" />
-                </div>
-                <select
-                  value={selectedClasificacionFilter}
-                  onChange={(e) => handleClasificacionFilterChange(e.target.value)}
-                  className="block w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white appearance-none cursor-pointer min-w-[200px]"
-                >
-                  <option value="">Todas las clasificaciones</option>
-                  {clasificacionesEmergencia.map((clasificacion) => (
-                    <option key={clasificacion.id} value={clasificacion.id.toString()}>
-                      {toStartCase(clasificacion.nombre)}
-                    </option>
-                  ))}
-                </select>
-                {selectedClasificacionFilter && (
-                  <button
-                    onClick={clearClasificacionFilter}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                    title="Limpiar filtro"
-                  >
-                    <MdClear className="h-5 w-5" />
-                  </button>
-                )}
+              <div className="min-w-[200px]">
+                <Select
+                  inputId="clasificacion-filter"
+                  isSearchable
+                  isClearable
+                  value={selectedClasificacionFilterOption}
+                  options={clasificacionFilterOptions}
+                  onChange={(option) => handleClasificacionFilterChange(option?.value || '')}
+                  placeholder="Todas las clasificaciones"
+                  styles={selectStyles}
+                  classNamePrefix="clasificacion-filter-select"
+                  menuPortalTarget={selectMenuPortalTarget}
+                />
               </div>
             )}
 
@@ -492,41 +551,43 @@ const AdminIncidenteTab = () => {
           </div>
         </div>
 
-        {/* Subtabs para claves radiales, subtipos y clasificaciones */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => handleSubTabChange('claves')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSubTab === 'claves'
-                ? 'bg-[#4EB9FA] text-white shadow-lg'
-                : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-            }`}
-          >
-            <MdRadioButtonChecked size={18} />
-            <span>Claves Radiales</span>
-          </button>
-          <button
-            onClick={() => handleSubTabChange('subtipos')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSubTab === 'subtipos'
-                ? 'bg-[#4EB9FA] text-white shadow-lg'
-                : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-            }`}
-          >
-            <MdWarning size={18} />
-            <span>Subtipos de Incidente</span>
-          </button>
-          <button
-            onClick={() => handleSubTabChange('clasificaciones')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSubTab === 'clasificaciones'
-                ? 'bg-[#4EB9FA] text-white shadow-lg'
-                : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-            }`}
-          >
-            <MdCategory size={18} />
-            <span>Clasificaciones de Emergencia</span>
-          </button>
+        {/* Tabs de filtro con estilo border-bottom */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => handleSubTabChange('claves')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeSubTab === 'claves'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MdRadioButtonChecked size={18} />
+              <span>Claves Radiales</span>
+            </button>
+            <button
+              onClick={() => handleSubTabChange('subtipos')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeSubTab === 'subtipos'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MdWarning size={18} />
+              <span>Subtipos de Incidente</span>
+            </button>
+            <button
+              onClick={() => handleSubTabChange('clasificaciones')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeSubTab === 'clasificaciones'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MdCategory size={18} />
+              <span>Clasificaciones de Emergencia</span>
+            </button>
+          </nav>
         </div>
 
         {/* Tabla con PrimeTableBasic */}

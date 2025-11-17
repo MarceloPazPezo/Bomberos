@@ -23,11 +23,13 @@ const CompaniaBanner = ({
   className = '',
   alt,
   onImageLoad,
-  onImageError
+  onImageError,
+  onFallback
 }) => {
   const [currentSrc, setCurrentSrc] = useState(null);
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const loadImage = async () => {
@@ -35,54 +37,76 @@ const CompaniaBanner = ({
       if (src) {
         setCurrentSrc(src);
         setImageLoading(true);
+        setImageError(false);
+        setIsLoaded(false);
         return;
       }
 
       // Si tenemos una compañía, intentar obtener URL firmada
       if (compania && compania.id) {
+        // Solo resetear el estado si es la primera carga o cambió el ID
+        if (!isLoaded) {
         setImageLoading(true);
         setImageError(false);
+        }
         
         try {
           // Intentar obtener URL firmada directamente usando el ID de la compañía
           const signedUrl = await companiaBannerService.getCompaniaBannerURL(compania.id);
           if (signedUrl) {
+            // Solo actualizar si cambió la URL
+            if (currentSrc !== signedUrl) {
             setCurrentSrc(signedUrl);
+              setIsLoaded(false);
+            }
           } else {
             // Si no se puede obtener URL firmada, usar la existente o por defecto
-            const fallbackSrc = src || companiaBannerService.getDefaultBannerURL();
+            const fallbackSrc = companiaBannerService.getDefaultBannerURL();
+            if (currentSrc !== fallbackSrc) {
             setCurrentSrc(fallbackSrc);
+              setIsLoaded(false);
+            }
             if (!fallbackSrc) {
-              setImageError(true); // Activar error para mostrar fallback
+              setImageError(true);
+              setImageLoading(false);
             }
           }
         } catch (error) {
           console.warn('Error cargando banner de la compañía:', error);
-          const fallbackSrc = src || companiaBannerService.getDefaultBannerURL();
+          const fallbackSrc = companiaBannerService.getDefaultBannerURL();
+          if (currentSrc !== fallbackSrc) {
           setCurrentSrc(fallbackSrc);
+            setIsLoaded(false);
+          }
           setImageError(true);
-        } finally {
           setImageLoading(false);
         }
       } else if (src) {
         setCurrentSrc(src);
         setImageLoading(true);
+        setImageError(false);
+        setIsLoaded(false);
       } else {
         const defaultUrl = companiaBannerService.getDefaultBannerURL();
+        if (currentSrc !== defaultUrl) {
         setCurrentSrc(defaultUrl);
+          setIsLoaded(false);
+        }
         setImageLoading(false);
         if (!defaultUrl) {
-          setImageError(true); // Activar error para mostrar fallback
+          setImageError(true);
         }
       }
     };
 
     loadImage();
-  }, [src, compania]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src, compania?.id]); // Solo dependemos del ID de la compañía, no del objeto completo
 
   const handleImageLoad = () => {
     setImageLoading(false);
     setImageError(false);
+    setIsLoaded(true);
     if (onImageLoad) onImageLoad();
   };
 
@@ -94,25 +118,28 @@ const CompaniaBanner = ({
     if (onImageError) onImageError();
   };
 
+  // Notificar si se está usando fallback
+  useEffect(() => {
+    if (onFallback) {
+      onFallback(imageError || !currentSrc);
+    }
+  }, [onFallback, imageError, currentSrc]);
+
   // Determinar las clases de forma según isRound
   const shapeClasses = isRound ? 'rounded-full' : 'rounded-lg';
   const borderClasses = '';
 
-  // Si hay error o no hay imagen, mostrar fallback con gradiente
+  // Si hay error o no hay imagen, mostrar fallback con gradiente rojo (sin letra)
   if (imageError || !currentSrc) {
     const fallbackClasses = `
       ${shapeClasses}
       ${className}
-      bg-gradient-to-br from-[#4EB9FA] to-[#3A9BD9]
-      flex items-center justify-center
-      text-white font-bold text-lg
+      bg-gradient-to-r from-red-600 via-orange-600 to-red-700
       ${size === 'hero' ? 'h-64' : size === 'banner' ? 'h-48' : 'h-32'}
     `;
     
     return (
-      <div className={fallbackClasses}>
-        {nombre ? nombre.charAt(0).toUpperCase() : 'C'}
-      </div>
+      <div className={fallbackClasses}></div>
     );
   }
 
@@ -136,7 +163,7 @@ const CompaniaBanner = ({
       <img
         src={currentSrc}
         alt={alt || `Banner ${nombre || 'Compañía'}`}
-        className={`${baseClasses} ${imageLoading ? 'hidden' : 'block'}`}
+        className={`${baseClasses} ${imageLoading ? 'opacity-0 absolute' : 'opacity-100 relative'} transition-opacity duration-300`}
         onLoad={handleImageLoad}
         onError={handleImageError}
       />

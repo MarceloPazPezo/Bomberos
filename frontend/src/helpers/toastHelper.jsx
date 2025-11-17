@@ -21,6 +21,7 @@ const toastConfig = {
   pauseOnHover: true,
   draggable: true,
   progress: undefined,
+  icon: false, // Desactivar icono por defecto para usar iconos personalizados
 };
 
 // Componente de icono para toast de éxito general

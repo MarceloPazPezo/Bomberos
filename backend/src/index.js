@@ -29,7 +29,9 @@ import {
 } from "./config/data/initialBombero.js";
 import {
   crearPermisos,
-  crearRoles
+  crearRoles,
+  agregarPermisosCapacitacion,
+  agregarPermisosParteEmergencia
 } from "./config/data/initialRolPermisos.js";
 import {
   crearComunas,
@@ -58,7 +60,8 @@ import {
   crearServicios,
   crearSubTipoIncidente,
   crearTipoDano,
-  crearTiposSangre
+  crearTiposSangre,
+  crearTiposCapacitacion
 } from "./config/data/initialExtra.js";
 import {
   inicializarEpp
@@ -202,6 +205,8 @@ async function setupAPI() {
 
     await crearPermisos();
     await crearRoles();
+    await agregarPermisosCapacitacion(); // Agregar permisos de capacitación si faltan
+    await agregarPermisosParteEmergencia(); // Agregar permisos de partes de emergencia si faltan
     await crearEstadosCiviles();
     await crearVinculos();
     await crearServiciosExternos();
@@ -218,6 +223,7 @@ async function setupAPI() {
     await crearTipoEvento();
     await crearTiposSangre();
     await crearEstadosReporte();
+    await crearTiposCapacitacion(); // Crear tipos de capacitación iniciales
     await inicializarEpp();
     await crearTiposPunto();
 

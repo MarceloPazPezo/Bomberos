@@ -220,7 +220,7 @@ const AdminBomberosTab = () => {
             ? 'bg-green-100 text-green-800'
             : 'bg-red-100 text-red-800'
           }`}>
-          {rowData.activo ? 'Activo' : 'Inactivo'}
+          {rowData.activo ? 'Habilitado' : 'Deshabilitado'}
         </span>
       )
     },
@@ -231,12 +231,15 @@ const AdminBomberosTab = () => {
       style: { width: '140px' },
       body: (rowData) => {
         if (!rowData.creadoEl) return <span className="text-gray-400">-</span>;
-        try {
+          try {
           const date = new Date(rowData.creadoEl);
+          const day = date.getDate().toString().padStart(2, '0');
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const year = date.getFullYear();
           return (
             <div className="flex flex-col text-xs">
               <span className="text-gray-700">
-                {date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                {`${day}/${month}/${year}`}
               </span>
               <span className="text-gray-500">
                 {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
@@ -257,10 +260,13 @@ const AdminBomberosTab = () => {
         if (!rowData.actualizadoEl) return <span className="text-gray-400">-</span>;
         try {
           const date = new Date(rowData.actualizadoEl);
+          const day = date.getDate().toString().padStart(2, '0');
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const year = date.getFullYear();
           return (
             <div className="flex flex-col text-xs">
               <span className="text-gray-700">
-                {date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                {`${day}/${month}/${year}`}
               </span>
               <span className="text-gray-500">
                 {date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
@@ -310,9 +316,11 @@ const AdminBomberosTab = () => {
   }, [fetchBomberos, filterMode]);
 
   const handleFilterChange = useCallback((newMode) => {
-    setFilterMode(newMode);
-    setSelectedBomberos([]); // Limpiar selección al cambiar filtro
-  }, []);
+    if (newMode !== filterMode) {
+      setFilterMode(newMode);
+      setSelectedBomberos([]); // Limpiar selección al cambiar filtro
+    }
+  }, [filterMode]);
 
   const handleCreate = useCallback(() => {
     openModal('createBombero');
@@ -344,7 +352,7 @@ const AdminBomberosTab = () => {
         const nombres = Array.isArray(bombero.nombres) ? bombero.nombres.join(' ') : bombero.nombres || '';
         const apellidos = Array.isArray(bombero.apellidos) ? bombero.apellidos.join(' ') : bombero.apellidos || '';
         const roles = (bombero.roles || []).map(r => r.nombre).join('; ');
-        const estado = bombero.activo ? 'Activo' : 'Inactivo';
+        const estado = bombero.activo ? 'Habilitado' : 'Deshabilitado';
         return [
           `"${nombres.replace(/"/g, '""')}"`,
           `"${apellidos.replace(/"/g, '""')}"`,
@@ -375,9 +383,9 @@ const AdminBomberosTab = () => {
 
   return (
     <>
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-6 rounded-2xl">
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md p-6 rounded-2xl">
         {/* Header de la sección */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">Gestión de Bomberos</h2>
             <p className="text-gray-600 text-sm mt-1">
@@ -386,47 +394,6 @@ const AdminBomberosTab = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Filtro de compañía */}
-            <div className="flex items-center gap-2 border rounded-lg p-1 bg-gray-50">
-              <Tooltip
-                id="filter-mi-compania-btn"
-                content="Mostrar solo bomberos de mi compañía"
-                place="top"
-                variant="dark"
-              >
-                <button
-                  onClick={() => handleFilterChange('miCompania')}
-                  className={`px-3 py-2 rounded-md transition-all flex items-center gap-2 ${
-                    filterMode === 'miCompania'
-                      ? 'bg-[#4EB9FA] text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <MdBusiness size={18} />
-                  <span className="text-sm font-medium">Mi Compañía</span>
-                </button>
-              </Tooltip>
-              
-              <Tooltip
-                id="filter-todas-btn"
-                content="Mostrar todos los bomberos del sistema"
-                place="top"
-                variant="dark"
-              >
-                <button
-                  onClick={() => handleFilterChange('todas')}
-                  className={`px-3 py-2 rounded-md transition-all flex items-center gap-2 ${
-                    filterMode === 'todas'
-                      ? 'bg-[#4EB9FA] text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <MdPeople size={18} />
-                  <span className="text-sm font-medium">Todas</span>
-                </button>
-              </Tooltip>
-            </div>
-
             {/* Botón refrescar */}
             <Tooltip
               id="refresh-bomberos-btn"
@@ -469,12 +436,42 @@ const AdminBomberosTab = () => {
           </div>
         </div>
 
+        {/* Tabs de filtro con estilo border-bottom */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => handleFilterChange('miCompania')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                filterMode === 'miCompania'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              title="Mostrar solo bomberos de mi compañía"
+            >
+              <MdBusiness size={18} />
+              <span>Mi Compañía</span>
+            </button>
+            <button
+              onClick={() => handleFilterChange('todas')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                filterMode === 'todas'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+              title="Mostrar todos los bomberos del sistema"
+            >
+              <MdPeople size={18} />
+              <span>Todas</span>
+            </button>
+          </nav>
+        </div>
+
         {/* Vista de bomberos */}
         {/* Tabla con PrimeTableAdvanced */}
         <PrimeTableAdvanced
           data={bomberos}
           columns={columnsWithActions}
-          loading={bomberosLoading}
+          loading={false}
           onEdit={hasPermiso('bombero:actualizar') || hasPermiso('bombero:admin') ? handleEdit : undefined}
           onDelete={hasPermiso('bombero:eliminar') || hasPermiso('bombero:admin') ? handleDeleteSingle : undefined}
           onRefresh={handleRefresh}

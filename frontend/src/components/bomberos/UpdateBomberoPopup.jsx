@@ -1,32 +1,71 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Form from '../Form';
 import LoadingSpinner from '@components/LoadingSpinner';
-import { MdClose, MdPersonAdd, MdSave } from 'react-icons/md';
+import ImageUploader from '@components/FileUpload/ImageUploader';
+import ModalPortal from '@components/ModalPortal';
+import { MdClose, MdPersonAdd, MdSave, MdPhotoCamera, MdDriveEta, MdPerson, MdInfo } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useRoles } from '@hooks/roles/useRoles';
+import { useCompania } from '@hooks/compania/useCompania';
+import { updateBombero, getBomberoComplete } from '@services/bombero.service.js';
+import fichaBomberoService from '@services/fichaBombero.service.js';
+import { showErrorAlert } from '@helpers/fireAlert.js';
 
 export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdated }) {
     const bomberoData = data || {};
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [loadingData, setLoadingData] = useState(false);
+    const [activeTab, setActiveTab] = useState('bombero'); // 'bombero' o 'ficha'
+    const [profileImage, setProfileImage] = useState(null);
+    const [profileImageError, setProfileImageError] = useState(null);
+    const [existingProfileImageUrl, setExistingProfileImageUrl] = useState(null);
+    const [fichaData, setFichaData] = useState(null);
+    const [formData, setFormData] = useState({
+        // Datos del bombero
+        nombres: '',
+        apellidos: '',
+        run: '',
+        email: '',
+        newPassword: '',
+        roles: [],
+        activo: true,
+        // Datos de la ficha
+        idCompania: '',
+        licenciaClaseF: false,
+        telefono: '',
+        fechaNacimiento: '',
+        fechaIngreso: '',
+        donante: false
+    });
     const formRef = useRef(null);
+
+    // Hooks para datos
+    const { roles, loading: rolesLoading } = useRoles();
+    const { companias, loading: companiasLoading, fetchCompanias } = useCompania();
+
+    // Preparar opciones para los selects
+    const rolesOptions = roles.map(role => ({
+        value: role.id,
+        label: role.nombre
+    }));
+
+    const companiasOptions = companias.map(compania => ({
+        value: String(compania.id), // Asegurar que el value sea string para consistencia
+        label: compania.nombre
+    }));
 
     // Función para enfocar el primer campo con error
     const focusFirstErrorField = () => {
         const errorFields = Object.keys(errors);
         if (errorFields.length > 0) {
             const firstErrorField = errorFields[0];
-            
-            // Buscar el elemento del campo con error
             const fieldElement = document.querySelector(`[name="${firstErrorField}"]`);
             if (fieldElement) {
-                // Hacer scroll hasta el elemento
                 fieldElement.scrollIntoView({ 
                     behavior: 'smooth', 
                     block: 'center' 
                 });
-                
-                // Enfocar el elemento después de un pequeño delay para que el scroll termine
                 setTimeout(() => {
                     fieldElement.focus();
                 }, 300);
@@ -34,247 +73,437 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
         }
     };
 
-    // useEffect para enfocar automáticamente cuando hay errores
     useEffect(() => {
         if (Object.keys(errors).length > 0) {
             focusFirstErrorField();
         }
     }, [errors]);
 
-    // useEffect para manejar tecla Escape y scroll lock
+    // Cargar datos del bombero y su ficha cuando se abre el modal
     useEffect(() => {
-        const handleEscape = (event) => {
-            if (event.key === 'Escape' && show) {
-                handleClose();
-            }
-        };
-
-        if (show) {
-            // Bloquear scroll del body cuando el popup está abierto
-            document.body.style.overflow = 'hidden';
-            document.addEventListener('keydown', handleEscape);
-        } else {
-            // Restaurar scroll del body cuando el popup se cierra
-            document.body.style.overflow = 'unset';
-        }
-
-        return () => {
-            // Limpiar al desmontar el componente
-            document.body.style.overflow = 'unset';
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [show]);
-
-    // Función para manejar click fuera del modal
-    const handleBackdropClick = (e) => {
-        if (e.target === e.currentTarget) {
-            handleClose();
-        }
-    };
-    
-    const handleInputChange = (field, value) => {
-        // Limpiar error del campo cuando el usuario empiece a escribir
-        if (errors[field]) {
-            setErrors(prev => ({ ...prev, [field]: null }));
-        }
-        
-        // Para nombres y apellidos, convertir string a array
-        if (field === 'nombres' || field === 'apellidos') {
-            if (typeof value === 'string' && value.trim()) {
-                // Dividir por espacios y filtrar elementos vacíos
-                const arrayValue = value.split(' ').filter(item => item.trim() !== '');
-                // Retornar para uso posterior en transformedData
-                return arrayValue;
-            }
-        }
-    };
-
-    // Función para manejar cambios en la selección de roles
-    const handleRolesChange = (newSelectedRoles) => {
-        // Buscar el rol "Bombero" en la lista de roles disponibles
-        const bomberoRole = rolesOptions.find(role => role.label === 'Bombero');
-        
-        if (bomberoRole) {
-            // Asegurar que el rol "Bombero" siempre esté seleccionado
-            const hasBomberoRole = newSelectedRoles.some(role => role.value === bomberoRole.value);
-            
-            if (!hasBomberoRole) {
-                // Si no está seleccionado, agregarlo automáticamente
-                newSelectedRoles = [bomberoRole, ...newSelectedRoles];
-            }
-        }
-        
-        // Actualizar el estado local
-        setSelectedRoles(newSelectedRoles);
-        
-        // Limpiar error del campo roles si existe
-        if (errors.roles) {
-            setErrors(prev => ({ ...prev, roles: null }));
-        }
-        
-        return newSelectedRoles;
-    };
-
-    // Hook para obtener roles
-    const { roles, loading: rolesLoading, fetchRoles } = useRoles();
-    
-    // Transformar roles para el multiselect - solo si hay roles disponibles
-    const rolesOptions = useMemo(() => {
-        return roles && roles.length > 0 ? roles
-            .filter(role => {
-                // Filtrar roles que tengan los campos necesarios
-                return role.id && role.nombre;
-            })
-            .map((role) => ({
-                value: role.id,
-                label: role.nombre,
-                isLocked: role.nombre === 'Bombero' // Marcar el rol Bombero como bloqueado
-            })) : [];
-    }, [roles]);
-    
-    // Cargar roles cuando se abre el modal
-    useEffect(() => {
-        if (show && (!roles || roles.length === 0) && !rolesLoading) {
-            fetchRoles(true);
-        }
-    }, [show]);
-
-    // Estado para los roles seleccionados
-    const [selectedRoles, setSelectedRoles] = useState([]);
-
-    // Actualizar valores por defecto cuando se cargan los roles
-    useEffect(() => {
-        if (show && bomberoData && roles && roles.length > 0) {
-            // Obtener roles del bombero para valores por defecto
-            let bomberoRoles = [];
-            if (bomberoData.roles && Array.isArray(bomberoData.roles)) {
-                bomberoRoles = bomberoData.roles.map(role => ({
-                    value: role.id || role,
-                    label: role.nombre || role,
-                    isLocked: (role.nombre || role) === 'Bombero' // Marcar como bloqueado si es Bombero
-                }));
-            }
-            
-            // Buscar el rol "Bombero" directamente en roles (no en rolesOptions para evitar dependencia circular)
-            const bomberoRole = roles.find(role => role.nombre === 'Bombero');
-            if (bomberoRole && !bomberoRoles.some(role => role.value === bomberoRole.id)) {
-                bomberoRoles.unshift({
-                    value: bomberoRole.id,
-                    label: bomberoRole.nombre,
-                    isLocked: true
-                }); // Agregar al inicio
-            }
-            
-            // Actualizar el estado local de roles seleccionados
-            setSelectedRoles(bomberoRoles);
-        }
-    }, [show, bomberoData, roles]);
-
-    const errorData = (errorDetails) => {
-        setErrors(errorDetails || {});
-    };
-
-    const handleSubmit = async (updatedBomberoData) => {
-        if (updatedBomberoData && onBomberoUpdated) {
-            setLoading(true);
-            try {
-                // Función para formatear RUT para API (remover puntos, mantener guión)
-                const formatRutForAPI = (rut) => {
-                    if (!rut) return '';
-                    return rut.replace(/\./g, '');
-                };
-
-                // Buscar el rol "Bombero" en la lista de roles disponibles
-                const bomberoRole = roles.find(role => role.nombre === 'Bombero');
-                const bomberoRoleId = bomberoRole ? bomberoRole.id : null;
-
-                // Transformar los datos para que coincidan con el formato esperado por el backend
-                const transformedData = {
-                    // Formatear RUT para API (sin puntos, solo guión)
-                    run: formatRutForAPI(updatedBomberoData.run),
-                    // Convertir nombres y apellidos de string a array
-                    nombres: updatedBomberoData.nombres ? updatedBomberoData.nombres.split(' ').filter(name => name.trim() !== '') : [],
-                    apellidos: updatedBomberoData.apellidos ? updatedBomberoData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
-                    // Campos básicos requeridos
-                    email: updatedBomberoData.email,
-                    // Solo incluir contraseña si se proporcionó una nueva
-                    ...(updatedBomberoData.newPassword && { password: updatedBomberoData.newPassword }),
-                    // Forzar el rol "Bombero" + roles seleccionados por el usuario
-                    roles: [
-                        ...(bomberoRoleId ? [bomberoRoleId] : []), // Siempre incluir rol Bombero
-                        ...(updatedBomberoData.roles ? updatedBomberoData.roles.map(role => role.value) : [])
-                    ].filter((value, index, self) => self.indexOf(value) === index), // Eliminar duplicados
-                    // Estado activo
-                    activo: updatedBomberoData.activo !== undefined ? updatedBomberoData.activo : bomberoData.activo
-                };
-
-                console.log('DEBUG - bomberoData completo:', bomberoData);
-                console.log('DEBUG - bomberoData.id:', bomberoData.id);
-                const result = await onBomberoUpdated(transformedData, bomberoData.run);
-                if (result.success) {
-                    setShow(false);
-                    setErrors({});
-                } else if (result.error && typeof result.error === 'object') {
-                    // Si el error es un objeto, son errores específicos por campo
-                    errorData(result.error);
-                } else if (result.error) {
-                    // Si el error es un string, es un error general
-                    console.error('Error general:', result.error);
+        const loadBomberoData = async () => {
+            if (show && bomberoData?.id) {
+                setLoadingData(true);
+                try {
+                    // Cargar datos completos del bombero con ficha
+                    const completeData = await getBomberoComplete(bomberoData.id);
+                    
+                    if (completeData && completeData.status === 'Success' && completeData.data) {
+                        const bombero = completeData.data;
+                        const ficha = bombero.ficha;
+                        
+                        // Guardar datos de ficha si existen
+                        if (ficha) {
+                            setFichaData(ficha);
+                            
+                            // Si hay imagen de perfil, obtener la URL
+                            if (ficha.fotoPerfilURL || ficha.fotoPerfilKEY) {
+                                try {
+                                    const imageUrl = await fichaBomberoService.getProfileImageUrl(
+                                        ficha.fotoPerfilURL || ficha.fotoPerfilKEY
+                                    );
+                                    setExistingProfileImageUrl(imageUrl);
+                                } catch (error) {
+                                    console.error('Error al obtener URL de imagen:', error);
+                                }
+                            }
+                            
+                            // Prellenar datos de ficha
+                            setFormData(prev => ({
+                                ...prev,
+                                idCompania: ficha.idCompania ? String(ficha.idCompania) : '', // Usar string vacío para campos opcionales
+                                licenciaClaseF: ficha.licenciaClaseF || false,
+                                telefono: ficha.telefono || '',
+                                fechaNacimiento: ficha.fechaNacimiento ? ficha.fechaNacimiento.split('T')[0] : '',
+                                fechaIngreso: ficha.fechaIngreso ? ficha.fechaIngreso.split('T')[0] : '',
+                                donante: ficha.donante || false
+                            }));
+                        }
+                        
+                        // Prellenar datos del bombero
+                        setFormData(prev => ({
+                            ...prev,
+                            nombres: Array.isArray(bombero.nombres) ? bombero.nombres.join(' ') : bombero.nombres || '',
+                            apellidos: Array.isArray(bombero.apellidos) ? bombero.apellidos.join(' ') : bombero.apellidos || '',
+                            run: bombero.run || '',
+                            email: bombero.email || '',
+                            activo: bombero.activo !== undefined ? bombero.activo : true,
+                            roles: bombero.roles ? bombero.roles.map(role => ({
+                                value: role.id || role,
+                                label: role.nombre || role
+                            })) : []
+                        }));
+                    } else {
+                        // Si no se pueden cargar los datos completos, usar los datos básicos pasados
+                        console.warn('No se pudieron cargar los datos completos, usando datos básicos');
+                        setFormData(prev => ({
+                            ...prev,
+                            nombres: Array.isArray(bomberoData.nombres) ? bomberoData.nombres.join(' ') : bomberoData.nombres || '',
+                            apellidos: Array.isArray(bomberoData.apellidos) ? bomberoData.apellidos.join(' ') : bomberoData.apellidos || '',
+                            run: bomberoData.run || '',
+                            email: bomberoData.email || '',
+                            activo: bomberoData.activo !== undefined ? bomberoData.activo : true,
+                            roles: bomberoData.roles ? bomberoData.roles.map(role => ({
+                                value: role.id || role,
+                                label: role.nombre || role
+                            })) : []
+                        }));
+                    }
+                } catch (error) {
+                    console.error('Error al cargar datos del bombero:', error);
+                    // En caso de error, usar los datos básicos pasados
+                    setFormData(prev => ({
+                        ...prev,
+                        nombres: Array.isArray(bomberoData.nombres) ? bomberoData.nombres.join(' ') : bomberoData.nombres || '',
+                        apellidos: Array.isArray(bomberoData.apellidos) ? bomberoData.apellidos.join(' ') : bomberoData.apellidos || '',
+                        run: bomberoData.run || '',
+                        email: bomberoData.email || '',
+                        activo: bomberoData.activo !== undefined ? bomberoData.activo : true,
+                        roles: bomberoData.roles ? bomberoData.roles.map(role => ({
+                            value: role.id || role,
+                            label: role.nombre || role
+                        })) : []
+                    }));
+                } finally {
+                    setLoadingData(false);
                 }
-            } catch (error) {
-                console.error('Error updating bombero:', error);
-            } finally {
-                setLoading(false);
             }
-        }
-    };
+        };
 
+        loadBomberoData();
+    }, [show, bomberoData?.id]);
+
+    // Cargar compañías cuando se abre el modal
+    useEffect(() => {
+        if (show && companias.length === 0) {
+            fetchCompanias();
+        }
+    }, [show, companias.length, fetchCompanias]);
+
+    // Limpiar estado al cerrar
     const handleClose = () => {
         setShow(false);
+        setErrors({});
+        setActiveTab('bombero');
+        setProfileImage(null);
+        setProfileImageError(null);
+        setExistingProfileImageUrl(null);
+        setFichaData(null);
+        setLoading(false);
+        setLoadingData(false);
+        setFormData({
+            nombres: '',
+            apellidos: '',
+            run: '',
+            email: '',
+            newPassword: '',
+            roles: [],
+            activo: true,
+            idCompania: '',
+            licenciaClaseF: false,
+            telefono: '',
+            fechaNacimiento: '',
+            fechaIngreso: '',
+            donante: false
+        });
     };
 
-    return (
-        <div>
-            {show && (
-                <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={handleBackdropClick}
-                >
-                    <div className="relative w-full max-w-xs sm:max-w-2xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white shadow-2xl border border-gray-200">
-                        {/* Header mejorado */}
-                        <div className="flex items-center px-4 sm:px-6 py-4 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
-                            <div className="flex items-center space-x-3 flex-1">
-                                <div className="p-2 bg-white/20 rounded-lg">
-                                    <MdPersonAdd className="w-6 h-6 text-white" />
-                                </div>
-                                <h2 className="text-xl font-bold text-white">Editar Bombero</h2>
-                            </div>
-                            <button
-                                className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-all duration-200 group"
-                                onClick={handleClose}
-                                aria-label="Cerrar (Esc)"
-                                title="Cerrar (Esc)"
-                            >
-                                <MdClose className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-                            </button>
-                        </div>
+    // Manejar cambio de input
+    const handleInputChange = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+        setErrors(prev => {
+            const newErrors = { ...prev };
+            delete newErrors[field];
+            return newErrors;
+        });
+    };
+
+    // Manejar cambio de roles
+    const handleRolesChange = (selectedRoles) => {
+        handleInputChange('roles', selectedRoles);
+    };
+
+    // Manejar selección de imagen
+    const handleImageSelect = (file) => {
+        setProfileImage(file);
+        setProfileImageError(null);
+    };
+
+    const handleImageRemove = () => {
+        setProfileImage(null);
+        setProfileImageError(null);
+    };
+
+    // Validar datos del bombero
+    const validateBomberoData = (data) => {
+        const newErrors = {};
+
+        if (!data.nombres || data.nombres.trim().length < 2) {
+            newErrors.nombres = 'Los nombres son requeridos (mínimo 2 caracteres)';
+        }
+
+        if (!data.apellidos || data.apellidos.trim().length < 2) {
+            newErrors.apellidos = 'Los apellidos son requeridos (mínimo 2 caracteres)';
+        }
+
+        if (!data.run || !/^\d{1,2}\.\d{3}\.\d{3}-[\dkK]$/.test(data.run)) {
+            newErrors.run = 'RUT inválido. Formato: 12.345.678-9';
+        }
+
+        if (!data.email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email)) {
+            newErrors.email = 'Email inválido';
+        }
+
+        if (data.newPassword && data.newPassword.length < 8) {
+            newErrors.newPassword = 'La contraseña debe tener al menos 8 caracteres';
+        }
+
+        if (!data.roles || data.roles.length === 0) {
+            newErrors.roles = 'Debe seleccionar al menos un rol';
+        }
+
+        return newErrors;
+    };
+
+    // Validar datos de la ficha (opcional)
+    const validateFichaData = (data) => {
+        const newErrors = {};
+
+        if (data.telefono && !/^\+?[\d\s\-\(\)]+$/.test(data.telefono)) {
+            newErrors.telefono = 'Formato de teléfono inválido';
+        }
+
+        return newErrors;
+    };
+
+    // Manejar submit completo
+    const handleSubmit = async () => {
+        setLoading(true);
+        setErrors({});
+
+        try {
+            // Validar datos del bombero
+            const bomberoErrors = validateBomberoData(formData);
+            const fichaErrors = validateFichaData(formData);
+            
+            if (Object.keys(bomberoErrors).length > 0 || Object.keys(fichaErrors).length > 0) {
+                setErrors({ ...bomberoErrors, ...fichaErrors });
+                setLoading(false);
+                return;
+            }
+
+            // Formatear RUT para API
+            const formatRutForAPI = (rut) => {
+                if (!rut) return '';
+                return rut.replace(/\./g, '');
+            };
+
+            // Buscar el rol "Bombero"
+            const bomberoRole = roles.find(role => role.nombre === 'Bombero');
+            const bomberoRoleId = bomberoRole ? bomberoRole.id : null;
+
+            // Transformar datos del bombero para el backend
+            const bomberoTransformedData = {
+                run: formatRutForAPI(formData.run),
+                nombres: formData.nombres ? formData.nombres.split(' ').filter(name => name.trim() !== '') : [],
+                apellidos: formData.apellidos ? formData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
+                email: formData.email,
+                ...(formData.newPassword && { password: formData.newPassword }),
+                roles: [
+                    ...(bomberoRoleId ? [bomberoRoleId] : []),
+                    ...(formData.roles ? formData.roles.map(role => role.value) : [])
+                ].filter((value, index, self) => self.indexOf(value) === index),
+                activo: formData.activo !== undefined ? formData.activo : true
+            };
+
+            // Actualizar bombero
+            const bomberoResult = await onBomberoUpdated(bomberoTransformedData, bomberoData.run, bomberoData.id);
+
+            if (!bomberoResult.success) {
+                setErrors({ general: bomberoResult.error || 'Error al actualizar el bombero' });
+                setLoading(false);
+                return;
+            }
+
+            // Preparar datos de ficha si existen
+            let fichaUpdateData = null;
+            const hasFichaData = formData.idCompania || profileImage || formData.licenciaClaseF || formData.telefono || formData.fechaNacimiento || formData.fechaIngreso || formData.donante !== undefined;
+
+            if (hasFichaData) {
+                fichaUpdateData = {
+                    licenciaClaseF: formData.licenciaClaseF === 'true' || formData.licenciaClaseF === true,
+                    telefono: formData.telefono || null,
+                    fechaNacimiento: formData.fechaNacimiento || null,
+                    fechaIngreso: formData.fechaIngreso || null,
+                    donante: formData.donante === 'true' || formData.donante === true,
+                    idCompania: formData.idCompania ? parseInt(formData.idCompania) : null
+                };
+            }
+
+            // Actualizar o crear ficha
+            if (fichaUpdateData || profileImage) {
+                if (fichaData && fichaData.id) {
+                    // Actualizar ficha existente
+                    if (profileImage) {
+                        // Actualizar imagen de perfil
+                        const imageResult = await fichaBomberoService.updateProfileImage(
+                            fichaData.id,
+                            bomberoData.id,
+                            profileImage
+                        );
                         
-                        {/* Contenido mejorado */}
-                        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 max-h-[70vh] bg-gray-50/50">
+                        if (imageResult.status !== 'Success') {
+                            setErrors({ general: imageResult.message || 'Error al actualizar la imagen de perfil' });
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                    
+                    // Actualizar otros datos de la ficha
+                    if (fichaUpdateData) {
+                        const fichaResult = await fichaBomberoService.updateFichaBombero(fichaData.id, fichaUpdateData);
+                        
+                        if (fichaResult.status !== 'Success') {
+                            setErrors({ general: fichaResult.message || 'Error al actualizar la ficha' });
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                } else if (hasFichaData) {
+                    // Crear nueva ficha
+                    const newFichaData = {
+                        ...fichaUpdateData,
+                        idBombero: bomberoData.id
+                    };
+                    
+                    if (profileImage) {
+                        const fichaResult = await fichaBomberoService.createFichaBomberoWithImage(newFichaData, profileImage);
+                        
+                        if (fichaResult.status !== 'Success') {
+                            setErrors({ general: fichaResult.message || 'Error al crear la ficha' });
+                            setLoading(false);
+                            return;
+                        }
+                    } else {
+                        const fichaResult = await fichaBomberoService.createFichaBombero(newFichaData);
+                        
+                        if (fichaResult.status !== 'Success') {
+                            setErrors({ general: fichaResult.message || 'Error al crear la ficha' });
+                            setLoading(false);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            handleClose();
+        } catch (error) {
+            console.error('Error updating bombero:', error);
+            setErrors({ general: 'Error al actualizar el bombero' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!show) return null;
+
+    return (
+        <ModalPortal>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                {/* Header */}
+                <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
+                    <div className="flex items-center space-x-3">
+                        <div className="p-2 bg-white rounded-lg">
+                            <MdPersonAdd className="w-6 h-6 text-[#3A9BD9]" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-white">
+                                Editar Bombero
+                            </h2>
+                            <p className="text-blue-100 text-sm">
+                                Modifique la información del bombero y su ficha
+                            </p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleClose}
+                        className="p-3 text-white hover:bg-red-500 hover:bg-opacity-80 rounded-lg transition-colors"
+                        disabled={loading}
+                    >
+                        <MdClose className="w-6 h-6 text-red-300 hover:text-white" />
+                    </button>
+                </div>
+
+                {/* Pestañas */}
+                <div className="flex border-b border-gray-200 bg-gray-50">
+                    <button
+                        onClick={() => setActiveTab('bombero')}
+                        className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                            activeTab === 'bombero'
+                                ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                        disabled={loading || loadingData}
+                    >
+                        <div className="flex items-center justify-center space-x-1">
+                            <MdPerson className="w-3 h-3" />
+                            <span>Datos Generales</span>
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('ficha')}
+                        className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                            activeTab === 'ficha'
+                                ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                        disabled={loading || loadingData}
+                    >
+                        <div className="flex items-center justify-center space-x-1">
+                            <MdInfo className="w-3 h-3" />
+                            <span>Ficha Adicional</span>
+                        </div>
+                    </button>
+                </div>
+
+                {/* Contenido */}
+                <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[65vh] bg-gray-50/50">
+                    {(loading || loadingData) && (
+                        <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
+                            <LoadingSpinner />
+                        </div>
+                    )}
+
+                    {activeTab === 'bombero' ? (
+                        // Pestaña 1: Datos básicos del bombero
+                        <div className="space-y-6">
+                            <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <span className="text-blue-600 text-sm font-bold">📋</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-blue-900 text-sm">
+                                        Información Básica del Bombero
+                                    </h3>
+                                    <p className="text-blue-700 text-xs mt-1">
+                                        Modifique los datos esenciales del bombero en el sistema.
+                                    </p>
+                                </div>
+                            </div>
+
                             <Form
+                                key={`bombero-form-${bomberoData?.id || 'new'}-${loadingData ? 'loading' : 'loaded'}`}
                                 ref={formRef}
                                 title={null}
                                 autoComplete="off"
-                                size="max-w-xs sm:max-w-2xl"
-                                defaultValues={{
-                                    nombres: Array.isArray(bomberoData.nombres) ? bomberoData.nombres.join(' ') : bomberoData.nombres || "",
-                                    apellidos: Array.isArray(bomberoData.apellidos) ? bomberoData.apellidos.join(' ') : bomberoData.apellidos || "",
-                                    email: bomberoData.email || "",
-                                    run: bomberoData.run || "",
-                                    newPassword: "",
-                                    roles: selectedRoles, // Usar el estado local
-                                    activo: bomberoData.activo !== undefined ? bomberoData.activo.toString() : 'true'
-                                }}
+                                size="w-full"
+                                defaultValues={formData}
                                 fields={[
                                     {
                                         label: "Nombres",
@@ -317,7 +546,6 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                                         patternMessage: "Formato válido: 12.345.678-9",
                                         errorMessageData: errors.run,
                                         onChange: (e) => {
-                                            // Formateo automático del RUT
                                             let value = e.target.value.replace(/[^\dkK]/g, '');
                                             if (value.length > 1) {
                                                 value = value.slice(0, -1).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.') + '-' + value.slice(-1);
@@ -337,7 +565,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                                         minLength: 5,
                                         maxLength: 255,
                                         pattern: /^[a-zA-Z0-9._%+-]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|live\.com|msn\.com|icloud\.com|me\.com|[a-zA-Z0-9.-]+\.cl)$/,
-                                        patternMessage: "Debe usar un dominio permitido (ej. @gmail.com, @hotmail.com, @example.cl)",
+                                        patternMessage: "Debe usar un dominio permitido",
                                         errorMessageData: errors.email,
                                         onChange: (e) => handleInputChange('email', e.target.value),
                                         autoComplete: "new-email"
@@ -362,7 +590,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                                         name: "roles",
                                         fieldType: 'multiselect',
                                         options: rolesOptions,
-                                        defaultValue: selectedRoles,
+                                        defaultValue: formData.roles,
                                         required: true,
                                         placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles adicionales...",
                                         searchPlaceholder: "Buscar roles...",
@@ -377,59 +605,187 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                                         required: true,
                                         placeholder: "Seleccionar estado",
                                         options: [
-                                            { value: 'true', label: 'Activo' },
-                                            { value: 'false', label: 'Inactivo' }
+                                            { value: 'true', label: 'Habilitado' },
+                                            { value: 'false', label: 'Deshabilitado' }
                                         ],
+                                        defaultValue: formData.activo ? 'true' : 'false',
                                         errorMessageData: errors.activo,
                                         onChange: (e) => handleInputChange('activo', e.target.value === 'true')
                                     }
                                 ]}
-                                onSubmit={handleSubmit}
+                                onSubmit={() => {}} // No submit en esta pestaña
                                 backgroundColor={'#fff'}
                             />
                         </div>
+                    ) : (
+                        // Pestaña 2: Ficha del bombero (opcional)
+                        <div className="space-y-6">
+                            <div className="flex items-start space-x-3 p-3 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
+                                <div className="flex-shrink-0">
+                                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                        <span className="text-green-600 text-sm font-bold">📄</span>
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-semibold text-green-900 text-sm">
+                                        Información Adicional (Opcional)
+                                    </h3>
+                                    <p className="text-green-700 text-xs mt-1">
+                                        Modifique información adicional del bombero como licencia de conducir, imagen de perfil y datos de contacto.
+                                    </p>
+                                </div>
+                            </div>
 
-                        {/* Botones mejorados */}
-                        <div className="flex justify-end space-x-3 px-4 sm:px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
-                            <button
-                                type="button"
-                                onClick={handleClose}
-                                className="flex items-center space-x-2 px-4 py-2.5 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
-                                disabled={loading}
-                            >
-                                <MdClose className="w-4 h-4" />
-                                <span>Cancelar</span>
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    // Activar el submit del formulario
-                                    const form = document.querySelector('form');
-                                    if (form) {
-                                        const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
-                                        form.dispatchEvent(submitEvent);
-                                    }
-                                }}
-                                className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                disabled={loading}
-                            >
-                                {loading ? (
-                                    <>
-                                        <LoadingSpinner variant="spinner" size="sm" color="white" />
-                                        <span>Actualizando...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <MdSave className="w-4 h-4" />
-                                        <span>Actualizar Bombero</span>
-                                    </>
+                            {/* Imagen de perfil */}
+                            <div className="w-full">
+                                <label className="block text-sm font-semibold text-[#2C3E50] mb-1.5">
+                                    <div className="flex items-center gap-1">
+                                        <span>🖼️ Imagen de Perfil</span>
+                                        <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                                    </div>
+                                </label>
+                                {existingProfileImageUrl && !profileImage && (
+                                    <div className="mb-2">
+                                        <p className="text-xs text-gray-600 mb-2">Imagen actual:</p>
+                                        <img 
+                                            src={existingProfileImageUrl} 
+                                            alt="Imagen de perfil actual" 
+                                            className="w-24 h-24 object-cover rounded-lg border border-gray-300"
+                                        />
+                                    </div>
                                 )}
-                            </button>
+                                <ImageUploader
+                                    onFileSelect={handleImageSelect}
+                                    onFileRemove={handleImageRemove}
+                                    value={profileImage}
+                                    error={profileImageError}
+                                    placeholder="Seleccionar nueva imagen de perfil..."
+                                    className="w-full"
+                                    acceptedTypes={['image/jpeg', 'image/png', 'image/webp']}
+                                    maxSize={5 * 1024 * 1024} // 5MB
+                                />
+                            </div>
+
+                            {/* Formulario de ficha */}
+                            <Form
+                                key={`ficha-form-${bomberoData?.id || 'new'}-${loadingData ? 'loading' : 'loaded'}`}
+                                ref={formRef}
+                                title={null}
+                                autoComplete="off"
+                                size="w-full"
+                                defaultValues={formData}
+                                fields={[
+                                    {
+                                        label: "Compañía",
+                                        name: "idCompania",
+                                        fieldType: 'select',
+                                        placeholder: companiasLoading ? "Cargando compañías..." : "Seleccionar compañía (opcional)",
+                                        options: companiasOptions,
+                                        defaultValue: formData.idCompania ? (typeof formData.idCompania === 'string' ? formData.idCompania : String(formData.idCompania)) : '',
+                                        errorMessageData: errors.idCompania,
+                                        onChange: (e) => handleInputChange('idCompania', e.target.value),
+                                        isLoading: companiasLoading
+                                    },
+                                    {
+                                        label: "Licencia de Conducir Clase F",
+                                        name: "licenciaClaseF",
+                                        fieldType: 'select',
+                                        placeholder: "¿Tiene licencia de conducir?",
+                                        options: [
+                                            { value: 'true', label: 'Sí, tiene licencia Clase F' },
+                                            { value: 'false', label: 'No tiene licencia' }
+                                        ],
+                                        defaultValue: formData.licenciaClaseF === true || formData.licenciaClaseF === 'true' ? 'true' : 'false',
+                                        errorMessageData: errors.licenciaClaseF,
+                                        onChange: (e) => handleInputChange('licenciaClaseF', e.target.value)
+                                    },
+                                    {
+                                        label: "Teléfono",
+                                        name: "telefono",
+                                        placeholder: '+56 9 1234 5678',
+                                        fieldType: 'input',
+                                        type: "tel",
+                                        maxLength: 15,
+                                        errorMessageData: errors.telefono,
+                                        onChange: (e) => handleInputChange('telefono', e.target.value),
+                                        autoComplete: "tel"
+                                    },
+                                    {
+                                        label: "Fecha de Nacimiento",
+                                        name: "fechaNacimiento",
+                                        fieldType: 'input',
+                                        type: "date",
+                                        errorMessageData: errors.fechaNacimiento,
+                                        onChange: (e) => handleInputChange('fechaNacimiento', e.target.value)
+                                    },
+                                    {
+                                        label: "Fecha de Ingreso",
+                                        name: "fechaIngreso",
+                                        fieldType: 'input',
+                                        type: "date",
+                                        errorMessageData: errors.fechaIngreso,
+                                        onChange: (e) => handleInputChange('fechaIngreso', e.target.value)
+                                    },
+                                    {
+                                        label: "Es Donante de Órganos",
+                                        name: "donante",
+                                        fieldType: 'select',
+                                        placeholder: "Seleccionar",
+                                        options: [
+                                            { value: 'true', label: 'Sí, es donante de órganos' },
+                                            { value: 'false', label: 'No es donante de órganos' }
+                                        ],
+                                        defaultValue: formData.donante ? 'true' : 'false',
+                                        errorMessageData: errors.donante,
+                                        onChange: (e) => handleInputChange('donante', e.target.value)
+                                    }
+                                ]}
+                                onSubmit={() => {}} // No submit en esta pestaña
+                                backgroundColor={'#fff'}
+                            />
                         </div>
+                    )}
+
+                    {/* Error general */}
+                    {errors.general && (
+                        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-700 text-sm">{errors.general}</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Botones */}
+                <div className="flex justify-end px-6 py-4 bg-white border-t border-gray-200 rounded-b-2xl">
+                    <div className="flex space-x-3">
+                        <button
+                            type="button"
+                            onClick={handleClose}
+                            className="flex items-center space-x-2 px-4 py-2.5 text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 hover:border-red-400 transition-all duration-200 font-medium"
+                            disabled={loading || loadingData}
+                        >
+                            <MdClose className="w-4 h-4 text-red-500" />
+                            <span>Cancelar</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading || loadingData ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            disabled={loading || loadingData}
+                        >
+                            {loading ? (
+                                <LoadingSpinner size="sm" />
+                            ) : (
+                                <>
+                                    <MdSave className="w-4 h-4" />
+                                    <span>Actualizar Bombero</span>
+                                </>
+                            )}
+                        </button>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
+        </ModalPortal>
     );
 }
 

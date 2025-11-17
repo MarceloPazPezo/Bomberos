@@ -17,7 +17,7 @@ const DateDisplay = ({ fechaCreacion, fechaActualizacion, compact = false }) => 
     });
     
     return { 
-      date: `${day}-${month}-${year}`, 
+      date: `${day}/${month}/${year}`, 
       time,
       fullDate: date,
       relative: getRelativeTime(date)

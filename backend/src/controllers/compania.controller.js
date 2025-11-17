@@ -229,8 +229,8 @@ export async function deleteCompania(req, res) {
     if (errorCompaniaDelete) {
       return handleErrorClient(
         res,
-        404,
-        "Error eliminando la compañía",
+        403,
+        "No se puede eliminar la compañía",
         errorCompaniaDelete,
       );
     }

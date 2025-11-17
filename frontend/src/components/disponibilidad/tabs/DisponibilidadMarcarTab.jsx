@@ -10,7 +10,8 @@ import {
 } from 'react-icons/fa';
 import { 
   MdAccessTime, 
-  MdEvent 
+  MdEvent,
+  MdDriveEta
 } from 'react-icons/md';
 import LoadingPage from '@components/LoadingPage';
 import DatePicker from '@components/DatePicker';
@@ -729,19 +730,13 @@ const DisponibilidadMarcarTab = () => {
                 )}
               </div>
 
-              {console.log('🎯 Renderizando botón principal. Estado:', { 
-                updatingMyStatus, 
-                fechaInicio, 
-                disabled: updatingMyStatus || !fechaInicio 
-              })}
-              
               <button
                 type="button"
                 onClick={(e) => {
-                  console.log('🔘🔘🔘 ONCLICK EJECUTADO 🔘🔘🔘');
+                  console.log('[DisponibilidadMarcarTab] ONCLICK ejecutado');
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log('🔘 Estado del botón:', {
+                  console.log('[DisponibilidadMarcarTab] Estado del botón:', {
                     updatingMyStatus,
                     fechaInicio,
                     fechaTermino,
@@ -750,12 +745,6 @@ const DisponibilidadMarcarTab = () => {
                   });
                   handleCreateDisponibilidad();
                 }}
-                onMouseEnter={() => console.log('🖱️ Mouse ENTER en botón principal')}
-                onMouseLeave={() => console.log('🖱️ Mouse LEAVE en botón principal')}
-                onMouseDown={() => console.log('🖱️ Mouse DOWN en botón principal')}
-                onMouseUp={() => console.log('🖱️ Mouse UP en botón principal')}
-                onPointerDown={() => console.log('👆 Pointer DOWN en botón principal')}
-                onPointerUp={() => console.log('👆 Pointer UP en botón principal')}
                 disabled={updatingMyStatus || !fechaInicio}
                 className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 relative z-10"
               >
@@ -805,33 +794,48 @@ const DisponibilidadMarcarTab = () => {
                   }
                   return unique;
                 }, [])
-                .map((disponibilidad, index) => (
-                  <div key={disponibilidad.id} className="border-b border-gray-100 last:border-b-0">
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-2">
-                      {/* Columna de numeración */}
-                      <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-medium">
-                        {index + 1}
-                      </div>
+                .map((disponibilidad, index) => {
+                  const tieneLicenciaClaseF = disponibilidad.licenciaClaseF || disponibilidad.bombero?.licenciaClaseF || false;
+                  
+                  return (
+                    <div key={disponibilidad.id} className="border-b border-gray-100 last:border-b-0">
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-2">
+                        {/* Columna de numeración */}
+                        <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-medium">
+                          {index + 1}
+                        </div>
 
-                      <div className="flex-shrink-0">
-                        <FaUserCheck className="text-green-600 text-sm" />
-                      </div>
+                        <div className="flex-shrink-0 flex items-center gap-1.5">
+                          <FaUserCheck className="text-green-600 text-sm" />
+                          {tieneLicenciaClaseF && (
+                            <MdDriveEta 
+                              className="text-orange-600 text-base" 
+                              title="Maquinista (Licencia Clase F)"
+                            />
+                          )}
+                        </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 text-sm truncate">
-                          {getBomberoInfo(disponibilidad.idBombero, disponibilidad)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatFecha(disponibilidad.fechaInicio).split(' ')[1]}
-                          {disponibilidad.fechaTermino && ` - ${formatFecha(disponibilidad.fechaTermino).split(' ')[1]}`}
-                          <span className="text-blue-600 font-medium ml-2">
-                            ({calcularDuracion(disponibilidad.fechaInicio, disponibilidad.fechaTermino)})
-                          </span>
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 text-sm truncate">
+                            {getBomberoInfo(disponibilidad.idBombero, disponibilidad)}
+                            {tieneLicenciaClaseF && (
+                              <span className="ml-2 text-xs text-orange-600 font-medium" title="Maquinista">
+                                (Maquinista)
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatFecha(disponibilidad.fechaInicio).split(' ')[1]}
+                            {disponibilidad.fechaTermino && ` - ${formatFecha(disponibilidad.fechaTermino).split(' ')[1]}`}
+                            <span className="text-blue-600 font-medium ml-2">
+                              ({calcularDuracion(disponibilidad.fechaInicio, disponibilidad.fechaTermino)})
+                            </span>
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
               {Array.isArray(disponibilidades) && disponibilidades.filter(d => estaDisponible(d)).length === 0 && (
                 <div className="text-center py-6">

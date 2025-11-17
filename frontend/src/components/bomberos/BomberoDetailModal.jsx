@@ -26,11 +26,10 @@ const UserDetailModal = ({ show, setShow, userData }) => {
         return 'Fecha inválida';
       }
       
-      return date.toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     } catch (error) {
       console.error('Error al formatear fecha:', error);
       return 'Fecha inválida';
@@ -333,7 +332,7 @@ const UserDetailModal = ({ show, setShow, userData }) => {
                         userData.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         <div className={`w-2 h-2 rounded-full mr-2 ${userData.activo ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        {userData.activo ? 'Activo' : 'Inactivo'}
+                        {userData.activo ? 'Habilitado' : 'Deshabilitado'}
                       </span>
                     </div>
                   </div>

@@ -31,7 +31,7 @@ const DisponibilidadTabsContainer = () => {
         return <DisponibilidadHistorialTab />;
       default:
         return (
-          <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-8 rounded-2xl text-center">
+          <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md p-8 rounded-2xl text-center">
             <p className="text-gray-500">Pestaña no encontrada o sin permisos</p>
           </div>
         );

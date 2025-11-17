@@ -72,7 +72,7 @@ const BomberosCard = ({
   };
 
   return (
-    <div className={`rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 border-2 overflow-hidden group w-full h-full min-w-[350px] ${
+    <div className={`rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-2 overflow-hidden group w-full h-full min-w-[350px] ${
       bombero.activo 
         ? 'bg-white border-blue-200 hover:border-blue-300' 
         : 'bg-red-50/30 border-red-200 hover:border-red-300'
@@ -94,7 +94,7 @@ const BomberosCard = ({
               bombero.activo ? 'bg-green-300 animate-pulse' : 'bg-red-300'
             }`}></div>
             <span className="text-xs font-semibold text-white">
-              {bombero.activo ? 'ACTIVO' : 'INACTIVO'}
+              {bombero.activo ? 'HABILITADO' : 'DESHABILITADO'}
             </span>
           </div>
         </div>

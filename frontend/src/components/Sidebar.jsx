@@ -2,10 +2,22 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@hooks/auth/useAuth';
-import { MdMenu, MdClose, MdHome, MdAdminPanelSettings, MdPeople, MdLocationOn, MdDashboard, MdQueryStats, MdMap } from 'react-icons/md';
-import { LuCalendarDays, LuClipboardCheck, LuClipboard } from 'react-icons/lu';
-import { FaUserCheck } from 'react-icons/fa';
-import { ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { 
+    MdMenu, 
+    MdClose, 
+    MdHome, 
+    MdAdminPanelSettings, 
+    MdPeople, 
+    MdLocationOn, 
+    MdDashboard, 
+    MdQueryStats, 
+    MdMap,
+    MdAssignment,
+    MdEvent,
+    MdTask,
+    MdHowToReg,
+    MdShield
+} from 'react-icons/md';
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const { hasPermiso } = useAuth();
@@ -23,8 +35,8 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     ];
 
     const generalLinks = [
-        { to: '/partes-de-emergencias', label: 'Partes de Emergencias', icon: <LuClipboard size={20} className="mr-2" /> },
-        { to: '/calendariooperativobasic', label: 'Calendario Operativo vista básica', icon: <LuCalendarDays size={20} className="mr-2" /> }
+        { to: '/partes-de-emergencias', label: 'Partes de Emergencias', icon: <MdAssignment size={20} className="mr-2" /> },
+        { to: '/calendario', label: 'Calendario Operativo vista básica', icon: <MdEvent size={20} className="mr-2" /> }
     ];
 
     const [showHamburger, setShowHamburger] = useState(false);
@@ -89,7 +101,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
                     {hasPermiso('disponibilidad:obtener') && (
                         <NavLink to="/disponibilidad" onClick={() => setSidebarOpen(false)} className={getNavLinkClass}>
-                            <span className="flex items-center"><FaUserCheck size={20} className="mr-2" />Disponibilidad</span>
+                            <span className="flex items-center"><MdHowToReg size={20} className="mr-2" />Disponibilidad</span>
                         </NavLink>
                     )}
 
@@ -110,7 +122,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
                     {hasPermiso('bombero:obtener') && (
                         <NavLink to="/inventario-epp" onClick={() => setSidebarOpen(false)} className={getNavLinkClass}>
-                            <span className="flex items-center"><ShieldCheckIcon className="w-5 h-5 mr-2" />Inventario EPP</span>
+                            <span className="flex items-center"><MdShield size={20} className="mr-2" />Inventario EPP</span>
                         </NavLink>
                     )}
                     {(hasPermiso('puntoGeografico:obtener') || hasPermiso('puntoGeografico:admin')) && (
@@ -123,12 +135,14 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                         </NavLink>
                     )}
 
-                    <NavLink to="/revisionpartes" onClick={() => setSidebarOpen(false)} className={getNavLinkClass}>
-                        <span className="flex items-center"><LuClipboardCheck size={20} className="mr-2" />Revisar Partes de Emergencias</span>
-                    </NavLink>
+                    {(hasPermiso('parte_emergencia:revisar') || hasPermiso('parte_emergencia:admin')) && (
+                        <NavLink to="/revisar-parte" onClick={() => setSidebarOpen(false)} className={getNavLinkClass}>
+                            <span className="flex items-center"><MdTask size={20} className="mr-2" />Revisar Partes de Emergencias</span>
+                        </NavLink>
+                    )}
 
-                    <NavLink to="/calendariooperativo" onClick={() => setSidebarOpen(false)} className={getNavLinkClass}>
-                        <span className="flex items-center"><LuCalendarDays size={20} className="mr-2" />Calendario Operativo vista admin</span>
+                    <NavLink to="/calendario-admin" onClick={() => setSidebarOpen(false)} className={getNavLinkClass}>
+                        <span className="flex items-center"><MdEvent size={20} className="mr-2" />Calendario Operativo vista admin</span>
                     </NavLink>
 
                     {(hasPermiso('bombero:obtener') ||

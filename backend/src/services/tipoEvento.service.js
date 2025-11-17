@@ -139,7 +139,7 @@ export async function deleteTipoEventoService(query) {
 
     return [{ id: tipoEventoFound.id, nombre: tipoEventoFound.nombre }, null];
   } catch (error) {
-    console.error("❌ Error al eliminar un tipo de evento:", error);
+    console.error("Error al eliminar un tipo de evento:", error);
     return [null, "Error interno del servidor"];
   }
 }

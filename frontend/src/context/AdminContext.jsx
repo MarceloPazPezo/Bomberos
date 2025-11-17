@@ -84,9 +84,9 @@ export const AdminProvider = ({ children }) => {
     {
       id: 'extraTabs',
       label: 'Extras',
-      description: 'Gestión de estados civiles, servicios, tipos de evento y vínculos',
+      description: 'Gestión de estados civiles, servicios, tipos de evento, vínculos y tipos de capacitación',
       icon: 'MdSettings',
-      permissions: ['estadoCivil:obtener', 'estadoCivil:admin', 'servicio:obtener', 'servicio:admin', 'tipoEvento:obtener', 'tipoEvento:admin', 'vinculo:obtener', 'vinculo:admin']
+      permissions: ['estadoCivil:obtener', 'estadoCivil:admin', 'servicio:obtener', 'servicio:admin', 'tipoEvento:obtener', 'tipoEvento:admin', 'vinculo:obtener', 'vinculo:admin', 'capacitacion:obtener', 'capacitacion:admin']
     }
   ];
 
@@ -94,24 +94,32 @@ export const AdminProvider = ({ children }) => {
   const availableTabs = useMemo(() => {
     // Solo evaluar permisos si hay permisos disponibles
     if (!bomberoPermisos || bomberoPermisos.length === 0) {
-      console.log('[DEBUG] No hay permisos disponibles');
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG] No hay permisos disponibles');
+      }
       return [];
     }
 
-    console.log('[DEBUG] Permisos del bombero:', bomberoPermisos);
-    console.log('[DEBUG] Buscando permisos tipoEvento:', bomberoPermisos.filter(p => p.includes('tipoEvento')));
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG] Permisos del bombero:', bomberoPermisos);
+      console.log('[DEBUG] Buscando permisos tipoEvento:', bomberoPermisos.filter(p => p.includes('tipoEvento')));
+    }
 
     const filtered = tabsConfig.filter(tab => {
       const hasPermission = tab.permissions.some(permission => bomberoPermisos.includes(permission));
-      console.log(`[DEBUG] Tab ${tab.id}:`, {
-        permissions: tab.permissions,
-        hasPermission,
-        hasPermisoResults: tab.permissions.map(p => ({ permission: p, has: bomberoPermisos.includes(p) }))
-      });
+      if (import.meta.env.DEV) {
+        console.log(`[DEBUG] Tab ${tab.id}:`, {
+          permissions: tab.permissions,
+          hasPermission,
+          hasPermisoResults: tab.permissions.map(p => ({ permission: p, has: bomberoPermisos.includes(p) }))
+        });
+      }
       return hasPermission;
     });
     
-    console.log('[DEBUG] Available tabs:', filtered.map(t => t.id));
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG] Available tabs:', filtered.map(t => t.id));
+    }
     return filtered;
   }, [bomberoPermisos]); // Solo recalcular cuando los permisos cambien
 

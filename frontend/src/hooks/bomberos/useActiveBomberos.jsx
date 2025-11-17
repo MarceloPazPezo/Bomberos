@@ -12,6 +12,8 @@ const getBomberoData = () => {
       id: bombero.id,
       nombres: bombero.nombres || "",
       apellidos: bombero.apellidos || "",
+      companiaId: bombero.companiaId || null,
+      rolId: bombero.rolId || null,
     };
   } catch {
     return null;
@@ -23,7 +25,7 @@ export const useActiveBomberos = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const socketRef = useRef(null);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, bombero } = useAuth();
 
   useEffect(() => {
     const bomberoData = getBomberoData();
@@ -53,7 +55,8 @@ export const useActiveBomberos = () => {
     socket.on("connect", () => {
       setIsConnected(true);
       setConnectionError(null);
-      socket.emit("userActive", bomberoData);
+      // Emitir con el evento correcto que el backend espera
+      socket.emit("bomberoActive", bomberoData);
     });
 
     // Manejar desconexión
@@ -71,18 +74,36 @@ export const useActiveBomberos = () => {
     socket.on("reconnect", () => {
       setIsConnected(true);
       setConnectionError(null);
-      socket.emit("userActive", bomberoData);
+      socket.emit("bomberoActive", bomberoData);
     });
 
-    // Escuchar actualizaciones de bomberos activos y obtener solo el conteo
-    socket.on("updateActiveUsers", (bomberos) => {
-      setActiveBomberos(Array.isArray(bomberos) ? bomberos.length : 0);
+    // Escuchar actualizaciones de bomberos activos con el evento correcto del backend
+    socket.on("updateActiveBomberos", (bomberos) => {
+      try {
+        if (!Array.isArray(bomberos)) {
+          setActiveBomberos(0);
+          return;
+        }
+        
+        // Filtrar solo los bomberos de la misma compañía
+        const companiaId = bombero?.companiaId || getBomberoData()?.companiaId;
+        if (companiaId) {
+          const bomberosCompania = bomberos.filter(b => b && b.companiaId === companiaId);
+          setActiveBomberos(bomberosCompania.length);
+        } else {
+          // Si no hay companiaId, contar todos (fallback)
+          setActiveBomberos(bomberos.length);
+        }
+      } catch (error) {
+        console.error('[useActiveBomberos] Error procesando updateActiveBomberos:', error);
+        setActiveBomberos(0);
+      }
     });
 
     // Limpiar listeners y desconectar al desmontar
     return () => {
       if (socketRef.current) {
-        socketRef.current.off("updateActiveUsers");
+        socketRef.current.off("updateActiveBomberos");
         socketRef.current.off("connect");
         socketRef.current.off("disconnect");
         socketRef.current.off("connect_error");
@@ -94,7 +115,7 @@ export const useActiveBomberos = () => {
       setIsConnected(false);
       setConnectionError(null);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, bombero?.companiaId]);
 
   return { activeBomberos, isConnected, connectionError };
 };

@@ -20,4 +20,14 @@ export async function createJurisdiccion(payload) {
     }
 }
 
+export async function updateJurisdiccion(id, payload) {
+    try {
+        const response = await api.put(`/jurisdicciones/${id}`, payload);
+        return response.data;
+    } catch (error) {
+        console.error('Error actualizando jurisdicción:', error);
+        throw error;
+    }
+}
+
 

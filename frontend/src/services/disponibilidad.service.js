@@ -98,13 +98,31 @@ export const cerrarDisponibilidad = async (statusData) => {
 };
 
 /**
- * Obtiene la disponibilidad activa de un bombero
+ * Obtiene la disponibilidad activa del usuario autenticado
+ * @returns {Promise} Promesa que resuelve con la disponibilidad activa
+ */
+export const getMiDisponibilidadActiva = async () => {
+  try {
+    const response = await axios.get('/disponibilidad/mi-activa');
+    return response.data.data; // Extraer el objeto de disponibilidad de la propiedad data
+  } catch (error) {
+    // Si es 404, significa que no hay disponibilidad activa (esperado)
+    if (error.response?.status === 404) {
+      return null;
+    }
+    console.error('Error al obtener disponibilidad activa:', error);
+    throw error.response?.data || error;
+  }
+};
+
+/**
+ * Obtiene la disponibilidad activa de un bombero (requiere permisos de admin)
  * @param {number} idBombero - ID del bombero
  * @returns {Promise} Promesa que resuelve con la disponibilidad activa
  */
 export const getDisponibilidadActiva = async (idBombero) => {
   try {
-    const response = await axios.get(`/disponibilidad/activa/${idBombero}`);
+    const response = await axios.get(`/disponibilidad/detalle/activa/${idBombero}`);
     return response.data.data; // Extraer el objeto de disponibilidad de la propiedad data
   } catch (error) {
     console.error('Error al obtener disponibilidad activa:', error);

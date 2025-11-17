@@ -4,6 +4,7 @@ import { useEpp } from '@hooks/epp/useEpp.jsx';
 import { getAllBomberosWithFicha } from '@services/bombero.service.js';
 import { showConfirmAlert } from '@helpers/fireAlert.js';
 import { toStartCase } from '@helpers/textFormatters.js';
+import Select from 'react-select';
 
 // Componentes
 import Tooltip from '@components/Tooltip';
@@ -192,6 +193,98 @@ const AdminInventarioEppTab = () => {
   const canCreate = hasPermiso('epp:admin');
   const canEdit = hasPermiso('epp:admin');
 
+  // Preparar opciones para los selects
+  const tipoFilterOptions = useMemo(() => [
+    { label: 'Todos los tipos', value: '' },
+    ...tiposEpp.map(tipo => ({ 
+      label: toStartCase(tipo.nombre), 
+      value: tipo.id.toString() 
+    }))
+  ], [tiposEpp]);
+
+  const estadoFilterOptions = useMemo(() => [
+    { label: 'Todos los estados', value: '' },
+    ...estadosEpp.map(estado => ({ 
+      label: toStartCase(estado.nombre), 
+      value: estado.id.toString() 
+    }))
+  ], [estadosEpp]);
+
+  const asignacionFilterOptions = useMemo(() => [
+    { label: 'Todos', value: '' },
+    { label: 'Asignados', value: 'asignados' },
+    { label: 'En bodega', value: 'disponibles' }
+  ], []);
+
+  // Valores seleccionados para los selects
+  const selectedTipoFilterOption = useMemo(() => {
+    return tipoFilterOptions.find(opt => opt.value === selectedTipoFilter) || tipoFilterOptions[0];
+  }, [selectedTipoFilter, tipoFilterOptions]);
+
+  const selectedEstadoFilterOption = useMemo(() => {
+    return estadoFilterOptions.find(opt => opt.value === selectedEstadoFilter) || estadoFilterOptions[0];
+  }, [selectedEstadoFilter, estadoFilterOptions]);
+
+  const selectedAsignacionFilterOption = useMemo(() => {
+    return asignacionFilterOptions.find(opt => opt.value === selectedAsignacionFilter) || asignacionFilterOptions[0];
+  }, [selectedAsignacionFilter, asignacionFilterOptions]);
+
+  // Estilos para el Select (igual que en crear parte)
+  const selectStyles = useMemo(() => ({
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+      borderWidth: '2px',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+      '&:hover': {
+        borderColor: '#4EB9FA',
+      },
+      minHeight: '44px',
+      borderRadius: '10px',
+      fontSize: '0.9rem',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 25,
+      borderRadius: '10px',
+      overflow: 'hidden',
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '260px',
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? '#4EB9FA'
+        : state.isFocused
+          ? '#E0F2FE'
+          : 'white',
+      color: state.isSelected ? '#FFFFFF' : '#1F2937',
+      fontSize: '0.9rem',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#9CA3AF',
+    }),
+    input: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#1F2937',
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+  }), []);
+
+  const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
+
   // Configuración de columnas con acciones personalizadas
   const columnsWithActions = useMemo(() => {
     const baseColumns = [
@@ -353,75 +446,54 @@ const AdminInventarioEppTab = () => {
             {/* Filtros */}
             {/* Filtro por tipo */}
             {tiposEpp.length > 0 && (
-              <div className="relative">
-                <select
-                  value={selectedTipoFilter}
-                  onChange={(e) => setSelectedTipoFilter(e.target.value)}
-                  className="block w-full pl-8 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white appearance-none cursor-pointer min-w-[150px]"
-                >
-                  <option value="">Todos los tipos</option>
-                  {tiposEpp.map((tipo) => (
-                    <option key={tipo.id} value={tipo.id.toString()}>
-                      {toStartCase(tipo.nombre)}
-                    </option>
-                  ))}
-                </select>
-                {selectedTipoFilter && (
-                  <button
-                    onClick={() => setSelectedTipoFilter('')}
-                    className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
-                  >
-                    <MdClear size={16} />
-                  </button>
-                )}
+              <div className="min-w-[150px]">
+                <Select
+                  inputId="tipo-filter"
+                  isSearchable
+                  isClearable
+                  value={selectedTipoFilterOption}
+                  options={tipoFilterOptions}
+                  onChange={(option) => setSelectedTipoFilter(option?.value || '')}
+                  placeholder="Todos los tipos"
+                  styles={selectStyles}
+                  classNamePrefix="tipo-filter-select"
+                  menuPortalTarget={selectMenuPortalTarget}
+                />
               </div>
             )}
 
             {/* Filtro por estado */}
             {estadosEpp.length > 0 && (
-              <div className="relative">
-                <select
-                  value={selectedEstadoFilter}
-                  onChange={(e) => setSelectedEstadoFilter(e.target.value)}
-                  className="block w-full pl-8 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white appearance-none cursor-pointer min-w-[150px]"
-                >
-                  <option value="">Todos los estados</option>
-                  {estadosEpp.map((estado) => (
-                    <option key={estado.id} value={estado.id.toString()}>
-                      {toStartCase(estado.nombre)}
-                    </option>
-                  ))}
-                </select>
-                {selectedEstadoFilter && (
-                  <button
-                    onClick={() => setSelectedEstadoFilter('')}
-                    className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
-                  >
-                    <MdClear size={16} />
-                  </button>
-                )}
+              <div className="min-w-[150px]">
+                <Select
+                  inputId="estado-filter"
+                  isSearchable
+                  isClearable
+                  value={selectedEstadoFilterOption}
+                  options={estadoFilterOptions}
+                  onChange={(option) => setSelectedEstadoFilter(option?.value || '')}
+                  placeholder="Todos los estados"
+                  styles={selectStyles}
+                  classNamePrefix="estado-filter-select"
+                  menuPortalTarget={selectMenuPortalTarget}
+                />
               </div>
             )}
 
             {/* Filtro por asignación */}
-            <div className="relative">
-              <select
-                value={selectedAsignacionFilter}
-                onChange={(e) => setSelectedAsignacionFilter(e.target.value)}
-                className="block w-full pl-8 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-white appearance-none cursor-pointer min-w-[150px]"
-              >
-                <option value="">Todos</option>
-                <option value="asignados">Asignados</option>
-                <option value="disponibles">En bodega</option>
-              </select>
-              {selectedAsignacionFilter && (
-                <button
-                  onClick={() => setSelectedAsignacionFilter('')}
-                  className="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-gray-600"
-                >
-                  <MdClear size={16} />
-                </button>
-              )}
+            <div className="min-w-[150px]">
+              <Select
+                inputId="asignacion-filter"
+                isSearchable={false}
+                isClearable
+                value={selectedAsignacionFilterOption}
+                options={asignacionFilterOptions}
+                onChange={(option) => setSelectedAsignacionFilter(option?.value || '')}
+                placeholder="Todos"
+                styles={selectStyles}
+                classNamePrefix="asignacion-filter-select"
+                menuPortalTarget={selectMenuPortalTarget}
+              />
             </div>
 
             {/* Estadísticas */}

@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { Accordion, AccordionTab } from 'primereact/accordion';
 import { Button } from 'primereact/button';
+import { MdCake, MdCheckCircle, MdStar } from 'react-icons/md';
 
 // Panel reutilizable de "Próximos eventos"
 // props:
@@ -23,7 +24,13 @@ export default function ProximosEventosPanel({ titulo = 'Próximos eventos', ite
               header={
                 <div className="flex items-center gap-3">
                   <span className="h-2 w-2 rounded-full" style={{ backgroundColor: e.backgroundColor || '#2563eb' }} />
-                  <div className="text-sm">
+                  <div className="flex items-center gap-2">
+                    {/* Icono según tipo */}
+                    {e.tipoRec === 'cumple' && <MdCake className="h-4 w-4 text-pink-600" />}
+                    {e.tipoRec === 'ingreso' && <MdCheckCircle className="h-4 w-4 text-green-600" />}
+                    {e.tipoRec === 'fundacion' && <MdStar className="h-4 w-4 text-yellow-600" />}
+                  </div>
+                  <div className="text-sm flex-1">
                     <div className="font-medium text-slate-800">{e.title}</div>
                     <div className="text-xs text-slate-500">
                       {e.allDay ? dayjs(e.start).format('ddd D MMM') : `${dayjs(e.start).format('ddd D MMM, HH:mm')}${e.end ? ` - ${dayjs(e.end).format('HH:mm')}` : ''}`}

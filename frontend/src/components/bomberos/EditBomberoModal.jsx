@@ -4,7 +4,6 @@ import LoadingSpinner from '@components/LoadingSpinner';
 import BomberoAvatar from './BomberoAvatar';
 import ToggleSwitch from '@components/ToggleSwitch';
 import ImageUploader from '@components/FileUpload/ImageUploader';
-import DocumentUploader from '@components/FileUpload/DocumentUploader';
 import { MdClose, MdEdit, MdSave, MdPhotoCamera, MdLock, MdVisibility, MdVisibilityOff, MdLocationOn } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useRoles } from '@hooks/roles/useRoles';
@@ -23,8 +22,6 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [profileImage, setProfileImage] = useState(null);
     const [profileImageError, setProfileImageError] = useState(null);
-    const [licenseDocuments, setLicenseDocuments] = useState([]);
-    const [licenseDocumentsError, setLicenseDocumentsError] = useState(null);
     const [direccionData, setDireccionData] = useState(null);
     const [formData, setFormData] = useState({
         // Datos editables
@@ -104,8 +101,6 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
             setErrors({});
             setProfileImage(null);
             setProfileImageError(null);
-            setLicenseDocuments([]);
-            setLicenseDocumentsError(null);
             
             // Cargar datos de dirección si existen
             const direccion = bombero.informacionPersonal?.direccion || bombero.ficha?.direccion;
@@ -179,8 +174,6 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
         setActiveTab('personal');
         setProfileImage(null);
         setProfileImageError(null);
-        setLicenseDocuments([]);
-        setLicenseDocumentsError(null);
         setShowPassword(false);
         setShowConfirmPassword(false);
         setLoading(false);
@@ -211,16 +204,6 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
         setProfileImageError(null);
     };
 
-    // Manejar selección de documentos de licencia
-    const handleLicenseDocumentsSelect = (files) => {
-        setLicenseDocuments(files);
-        setLicenseDocumentsError(null);
-    };
-
-    const handleLicenseDocumentsRemove = () => {
-        setLicenseDocuments([]);
-        setLicenseDocumentsError(null);
-    };
 
     // Validar datos personales
     const validatePersonalData = (data) => {
@@ -269,6 +252,52 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
         return newErrors;
     };
 
+    // Validar datos de dirección
+    const validateDireccionData = (data) => {
+        const newErrors = {};
+
+        if (!data) {
+            newErrors.general = 'Debe proporcionar datos de dirección';
+            return newErrors;
+        }
+
+        // Inicializar objeto de errores de dirección
+        const direccionErrors = {};
+
+        // Validar calle/sector (obligatorio)
+        if (!data.calle || data.calle.trim() === '') {
+            direccionErrors.calle = 'La calle/sector es obligatoria';
+        }
+
+        // Validar número (obligatorio)
+        if (!data.numero || data.numero.trim() === '') {
+            direccionErrors.numero = 'El número es obligatorio';
+        } else {
+            // Validar que número solo contenga letras, números, espacios y guiones (no símbolos)
+            const numeroPattern = /^[a-zA-Z0-9\s-]+$/;
+            if (!numeroPattern.test(data.numero)) {
+                direccionErrors.numero = 'El número solo puede contener letras, números, espacios y guiones';
+            }
+        }
+
+        // Validar región (obligatorio)
+        if (!data.idRegion || data.idRegion === '') {
+            direccionErrors.idRegion = 'La región es obligatoria';
+        }
+
+        // Validar comuna (obligatorio)
+        if (!data.idComuna || data.idComuna === '') {
+            direccionErrors.idComuna = 'La comuna es obligatoria';
+        }
+
+        // Solo agregar errores de dirección si hay alguno
+        if (Object.keys(direccionErrors).length > 0) {
+            newErrors.direccion = direccionErrors;
+        }
+
+        return newErrors;
+    };
+
 
     // Manejar submit completo
     const handleSubmit = async () => {
@@ -286,8 +315,7 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
             } else if (activeTab === 'ficha') {
                 validationErrors = validateFichaData(formData);
             } else if (activeTab === 'direccion') {
-                // La dirección es opcional, no requiere validación
-                validationErrors = {};
+                validationErrors = validateDireccionData(direccionData);
             }
             
             if (Object.keys(validationErrors).length > 0) {
@@ -311,7 +339,7 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                 updateData.idTipoSangre = formData.idTipoSangre ? parseInt(formData.idTipoSangre) : null;
             } else if (activeTab === 'direccion') {
                 // Enviar datos de dirección completos
-                console.log('📍 [EditBomberoModal] Preparando datos de dirección para enviar:', direccionData);
+                console.log('[EditBomberoModal] Preparando datos de dirección para enviar:', direccionData);
                 if (direccionData) {
                     updateData.direccion = {
                         calle: direccionData.calle || null,
@@ -326,8 +354,8 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                         latitud: direccionData.latitud || null,
                         longitud: direccionData.longitud || null
                     };
-                    console.log('📍 [EditBomberoModal] Datos de dirección a enviar:', updateData.direccion);
-                    console.log('📍 [EditBomberoModal] Coordenadas:', {
+                    console.log('[EditBomberoModal] Datos de dirección a enviar:', updateData.direccion);
+                    console.log('[EditBomberoModal] Coordenadas:', {
                         latitud: updateData.direccion.latitud,
                         longitud: updateData.direccion.longitud,
                         tipoLatitud: typeof updateData.direccion.latitud,
@@ -338,7 +366,7 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                         delete updateData.direccion.idComuna;
                     }
                 } else {
-                    console.log('⚠️ [EditBomberoModal] No hay direccionData, enviando null');
+                    console.log('[EditBomberoModal] No hay direccionData, enviando null');
                     updateData.direccion = null;
                 }
             }
@@ -347,16 +375,11 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
             if (profileImage) {
                 updateData.profileImage = profileImage;
             }
-            
-            if (licenseDocuments.length > 0) {
-                updateData.licenseDocuments = licenseDocuments;
-            }
 
             console.log('Datos a enviar:', {
                 activeTab,
                 updateData,
-                hasProfileImage: !!profileImage,
-                hasLicenseDocuments: licenseDocuments.length > 0
+                hasProfileImage: !!profileImage
             });
 
             // Mostrar confirmación para cambios importantes
@@ -740,19 +763,18 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                                     </div>
                                     <div>
                                         <h3 className="text-base font-semibold text-gray-900">Licencia de Conducir Clase F</h3>
-                                        <p className="text-xs text-gray-600">Información y documentos de licencia</p>
+                                        <p className="text-xs text-gray-600">Información de licencia</p>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Toggle de Licencia */}
                                     <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                                        <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-2xl">🚗</span>
                                                 <div>
                                                     <span className="font-medium text-gray-900 text-sm">¿Tienes licencia Clase F?</span>
-                                                    <p className="text-xs text-gray-500">Activa para subir documentos</p>
                                                 </div>
                                             </div>
                                             <ToggleSwitch
@@ -766,33 +788,6 @@ export default function EditBomberoModal({ isOpen, bombero, onClose, onSave }) {
                                             <p className="text-sm text-red-600 mt-2">{errors.licenciaClaseF}</p>
                                         )}
                                     </div>
-
-                                    {/* Documentos de Licencia */}
-                                    {formData.licenciaClaseF && (
-                                        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                                            <div className="mb-3">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-lg">📄</span>
-                                                    <span className="font-medium text-gray-900 text-sm">Documentos</span>
-                                                </div>
-                                                <p className="text-xs text-gray-600 mb-2">
-                                                    Sube capturas de tu licencia (máx. 3 archivos, 10MB c/u)
-                                                </p>
-                                            </div>
-                                            
-                                            <DocumentUploader
-                                                onFileSelect={handleLicenseDocumentsSelect}
-                                                onFileRemove={handleLicenseDocumentsRemove}
-                                                value={licenseDocuments}
-                                                error={licenseDocumentsError}
-                                                placeholder="Arrastra documentos aquí..."
-                                                className="w-full"
-                                                acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'application/pdf']}
-                                                maxSize={10 * 1024 * 1024} // 10MB
-                                                maxFiles={3}
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>

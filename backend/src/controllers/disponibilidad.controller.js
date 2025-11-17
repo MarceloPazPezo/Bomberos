@@ -119,3 +119,21 @@ export async function getDisponibilidadActiva(req, res) {
     handleErrorServer(res, 500, error.message);
   }
 }
+
+/**
+ * Obtener disponibilidad activa del usuario autenticado
+ * GET /api/disponibilidad/mi-activa
+ */
+export async function getMiDisponibilidadActiva(req, res) {
+  try {
+    const idBombero = req.bombero.id;
+    
+    const [disponibilidad, disponibilidadError] = await getDisponibilidadActivaService(idBombero);
+
+    if (disponibilidadError) return handleErrorClient(res, 404, disponibilidadError);
+
+    handleSuccess(res, 200, "Disponibilidad activa obtenida", disponibilidad);
+  } catch (error) {
+    handleErrorServer(res, 500, error.message);
+  }
+}

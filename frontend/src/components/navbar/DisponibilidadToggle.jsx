@@ -63,10 +63,10 @@ const DisponibilidadToggle = () => {
       const newDisponibilidad = await createDisponibilidad(disponibilidadData);
       updateAvailability(newDisponibilidad);
       
-      disponibilidadCreatedToast('✅ Te has marcado como disponible desde ahora');
+      disponibilidadCreatedToast('Te has marcado como disponible desde ahora');
     } catch (error) {
       console.error('Error al marcar disponibilidad:', error);
-      toast.error('❌ No se pudo marcar la disponibilidad. Inténtalo nuevamente.', {
+      toast.error('No se pudo marcar la disponibilidad. Inténtalo nuevamente.', {
         position: "bottom-right",
         autoClose: 4000,
         hideProgressBar: false,
@@ -92,10 +92,10 @@ const DisponibilidadToggle = () => {
       await cerrarDisponibilidad(disponibilidadData);
       clearAvailability();
       
-      disponibilidadClosedToast('🔴 Has cerrado tu disponibilidad');
+      disponibilidadClosedToast('Has cerrado tu disponibilidad');
     } catch (error) {
       console.error('Error al cerrar disponibilidad:', error);
-      toast.error('❌ No se pudo cerrar la disponibilidad. Inténtalo nuevamente.', {
+      toast.error('No se pudo cerrar la disponibilidad. Inténtalo nuevamente.', {
         position: "bottom-right",
         autoClose: 4000,
         hideProgressBar: false,

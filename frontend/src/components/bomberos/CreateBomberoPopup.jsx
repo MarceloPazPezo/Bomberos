@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Form from '../Form';
 import LoadingSpinner from '@components/LoadingSpinner';
 import ImageUploader from '@components/FileUpload/ImageUploader';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdPersonAdd, MdSave, MdPhotoCamera, MdDriveEta, MdPerson, MdInfo } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useRoles } from '@hooks/roles/useRoles';
@@ -35,21 +36,28 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
         donante: false
     });
     const formRef = useRef(null);
+    const rolesInitializedRef = useRef(false);
 
     // Hooks para datos
-    const { roles, loading: rolesLoading } = useRoles();
+    const { roles, loading: rolesLoading, fetchRoles } = useRoles();
     const { companias, loading: companiasLoading, fetchCompanias } = useCompania();
 
     // Preparar opciones para los selects
-    const rolesOptions = roles.map(role => ({
+    const rolesOptions = useMemo(() => roles.map(role => ({
         value: role.id,
         label: role.nombre
-    }));
+    })), [roles]);
 
     const companiasOptions = companias.map(compania => ({
         value: compania.id,
         label: compania.nombre
     }));
+
+    // Obtener el rol "Bombero" por defecto
+    const bomberoRoleDefault = useMemo(() => {
+        const bomberoRole = rolesOptions.find(role => role.label === 'Bombero');
+        return bomberoRole ? [bomberoRole.value] : [];
+    }, [rolesOptions]);
 
     // Función para enfocar el primer campo con error
     const focusFirstErrorField = () => {
@@ -81,6 +89,42 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
             fetchCompanias();
         }
     }, [show, companias.length, fetchCompanias]);
+
+    // Cargar roles cuando se abre el modal
+    useEffect(() => {
+        if (show && roles.length === 0) {
+            fetchRoles(true);
+        }
+    }, [show, roles.length, fetchRoles]);
+
+    // Inicializar roles con el valor por defecto solo una vez cuando se abre el modal y se cargan los roles
+    useEffect(() => {
+        // Solo inicializar cuando se abre el modal y los roles están cargados
+        if (show && roles.length > 0 && !rolesInitializedRef.current && bomberoRoleDefault.length > 0) {
+            // Usar setTimeout para asegurar que el Form esté montado
+            const timer = setTimeout(() => {
+                // Verificar que no haya un valor ya establecido (para no sobrescribir selecciones del usuario)
+                const currentRoles = formRef.current?.getValues?.('roles');
+                if (!currentRoles || (Array.isArray(currentRoles) && currentRoles.length === 0)) {
+                    // Sincronizar con react-hook-form primero
+                    if (formRef.current?.setValue) {
+                        formRef.current.setValue('roles', bomberoRoleDefault);
+                    }
+                    // Luego actualizar formData
+                    setFormData(prev => ({
+                        ...prev,
+                        roles: bomberoRoleDefault
+                    }));
+                }
+                rolesInitializedRef.current = true;
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+        // Resetear el flag cuando se cierra el modal
+        if (!show) {
+            rolesInitializedRef.current = false;
+        }
+    }, [show, roles.length, bomberoRoleDefault.length]); // Depende de show y cuando los roles se cargan
 
     // Limpiar estado al cerrar
     const handleClose = () => {
@@ -121,10 +165,6 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
         });
     };
 
-    // Manejar cambio de roles
-    const handleRolesChange = (selectedRoles) => {
-        handleInputChange('roles', selectedRoles);
-    };
 
     // Manejar selección de imagen
     const handleImageSelect = (file) => {
@@ -201,21 +241,31 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                 return rut.replace(/\./g, '');
             };
 
-            // Buscar el rol "Bombero"
+            // Obtener los valores actuales del formulario (incluyendo roles desde react-hook-form)
+            const currentRoles = formRef.current?.getValues 
+                ? (formRef.current.getValues('roles') || formData.roles)
+                : formData.roles;
+            
+            // Transformar datos del bombero para el backend
+            // currentRoles ahora es un array de IDs directamente
+            const selectedRoleIds = Array.isArray(currentRoles) ? currentRoles : [];
+            
+            // Buscar el rol "Bombero" y agregarlo solo si no está ya incluido
             const bomberoRole = roles.find(role => role.nombre === 'Bombero');
             const bomberoRoleId = bomberoRole ? bomberoRole.id : null;
-
-            // Transformar datos del bombero para el backend
+            
+            // Agregar el rol "Bombero" solo si no está ya en la selección
+            const finalRoles = bomberoRoleId && !selectedRoleIds.includes(bomberoRoleId)
+                ? [bomberoRoleId, ...selectedRoleIds]
+                : selectedRoleIds;
+            
             const bomberoTransformedData = {
                 run: formatRutForAPI(formData.run),
                 nombres: formData.nombres ? formData.nombres.split(' ').filter(name => name.trim() !== '') : [],
                 apellidos: formData.apellidos ? formData.apellidos.split(' ').filter(apellido => apellido.trim() !== '') : [],
                 email: formData.email,
                 password: formData.password,
-                roles: [
-                    ...(bomberoRoleId ? [bomberoRoleId] : []),
-                    ...(formData.roles ? formData.roles.map(role => role.value) : [])
-                ].filter((value, index, self) => self.indexOf(value) === index),
+                roles: finalRoles,
                 activo: formData.activo !== undefined ? formData.activo : true
             };
 
@@ -223,11 +273,11 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
             let fichaData = null;
             if (formData.idCompania || profileImage || formData.licenciaClaseF || formData.telefono || formData.fechaNacimiento || formData.fechaIngreso || formData.donante) {
                 fichaData = {
-                    licenciaClaseF: formData.licenciaClaseF === 'true' || formData.licenciaClaseF === true,
+                    licenciaClaseF: formData.licenciaClaseF === true || formData.licenciaClaseF === 'true',
                     telefono: formData.telefono || null,
                     fechaNacimiento: formData.fechaNacimiento || null,
                     fechaIngreso: formData.fechaIngreso || null,
-                    donante: formData.donante === 'true' || formData.donante === true,
+                    donante: formData.donante === true || formData.donante === 'true',
                     idCompania: formData.idCompania ? parseInt(formData.idCompania) : null,
                     idDireccion: formData.idDireccion ? parseInt(formData.idDireccion) : null,
                     idTipoSangre: formData.idTipoSangre ? parseInt(formData.idTipoSangre) : null
@@ -256,7 +306,8 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -431,31 +482,31 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                     {
                                         label: "Roles",
                                         name: "roles",
-                                        fieldType: 'multiselect',
+                                        fieldType: 'react-select',
+                                        isMulti: true,
                                         options: rolesOptions,
-                                        defaultValue: (() => {
-                                            const bomberoRole = rolesOptions.find(role => role.label === 'Bombero');
-                                            return bomberoRole ? [bomberoRole] : [];
-                                        })(),
                                         required: true,
-                                        placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles adicionales...",
-                                        searchPlaceholder: "Buscar roles...",
+                                        placeholder: rolesLoading ? "Cargando roles..." : "Seleccionar roles...",
                                         errorMessageData: errors.roles,
-                                        isLoading: rolesLoading,
-                                        onChange: handleRolesChange
+                                        isLoading: rolesLoading
                                     },
                                     {
                                         label: "Estado",
                                         name: "activo",
-                                        fieldType: 'select',
+                                        fieldType: 'react-select',
                                         required: true,
                                         placeholder: "Seleccionar estado",
                                         options: [
-                                            { value: 'true', label: 'Activo' },
-                                            { value: 'false', label: 'Inactivo' }
+                                            { value: true, label: 'Habilitado' },
+                                            { value: false, label: 'Deshabilitado' }
                                         ],
+                                        defaultValue: true,
                                         errorMessageData: errors.activo,
-                                        onChange: (e) => handleInputChange('activo', e.target.value === 'true')
+                                        onChange: (e) => {
+                                            // Sincronizar formData cuando cambia el valor
+                                            const value = e.target?.value ?? true;
+                                            handleInputChange('activo', value);
+                                        }
                                     }
                                 ]}
                                 onSubmit={() => {}} // No submit en esta pestaña
@@ -513,24 +564,31 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                     {
                                         label: "Compañía",
                                         name: "idCompania",
-                                        fieldType: 'select',
+                                        fieldType: 'react-select',
                                         placeholder: companiasLoading ? "Cargando compañías..." : "Seleccionar compañía (opcional)",
                                         options: companiasOptions,
                                         errorMessageData: errors.idCompania,
-                                        onChange: (e) => handleInputChange('idCompania', e.target.value),
-                                        isLoading: companiasLoading
+                                        isLoading: companiasLoading,
+                                        onChange: (e) => {
+                                            const value = e.target?.value ?? '';
+                                            handleInputChange('idCompania', value);
+                                        }
                                     },
                                     {
                                         label: "Licencia de Conducir Clase F",
                                         name: "licenciaClaseF",
-                                        fieldType: 'select',
+                                        fieldType: 'react-select',
                                         placeholder: "¿Tiene licencia de conducir?",
                                         options: [
-                                            { value: 'true', label: 'Sí, tiene licencia Clase F' },
-                                            { value: 'false', label: 'No tiene licencia' }
+                                            { value: true, label: 'Sí, tiene licencia Clase F' },
+                                            { value: false, label: 'No tiene licencia' }
                                         ],
+                                        defaultValue: false,
                                         errorMessageData: errors.licenciaClaseF,
-                                        onChange: (e) => handleInputChange('licenciaClaseF', e.target.value)
+                                        onChange: (e) => {
+                                            const value = e.target?.value ?? false;
+                                            handleInputChange('licenciaClaseF', value);
+                                        }
                                     },
                                     {
                                         label: "Teléfono",
@@ -546,30 +604,36 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                                     {
                                         label: "Fecha de Nacimiento",
                                         name: "fechaNacimiento",
-                                        fieldType: 'input',
-                                        type: "date",
+                                        fieldType: 'datepicker',
+                                        placeholder: "Seleccionar fecha de nacimiento",
                                         errorMessageData: errors.fechaNacimiento,
-                                        onChange: (e) => handleInputChange('fechaNacimiento', e.target.value)
+                                        onChange: (e) => handleInputChange('fechaNacimiento', e.target.value),
+                                        maxDate: new Date().toISOString().split('T')[0] // No puede ser mayor a hoy
                                     },
                                     {
                                         label: "Fecha de Ingreso",
                                         name: "fechaIngreso",
-                                        fieldType: 'input',
-                                        type: "date",
+                                        fieldType: 'datepicker',
+                                        placeholder: "Seleccionar fecha de ingreso",
                                         errorMessageData: errors.fechaIngreso,
-                                        onChange: (e) => handleInputChange('fechaIngreso', e.target.value)
+                                        onChange: (e) => handleInputChange('fechaIngreso', e.target.value),
+                                        maxDate: new Date().toISOString().split('T')[0] // No puede ser mayor a hoy
                                     },
                                     {
                                         label: "Es Donante de Órganos",
                                         name: "donante",
-                                        fieldType: 'select',
+                                        fieldType: 'react-select',
                                         placeholder: "Seleccionar",
                                         options: [
-                                            { value: 'true', label: 'Sí, es donante de órganos' },
-                                            { value: 'false', label: 'No es donante de órganos' }
+                                            { value: true, label: 'Sí, es donante de órganos' },
+                                            { value: false, label: 'No es donante de órganos' }
                                         ],
+                                        defaultValue: false,
                                         errorMessageData: errors.donante,
-                                        onChange: (e) => handleInputChange('donante', e.target.value)
+                                        onChange: (e) => {
+                                            const value = e.target?.value ?? false;
+                                            handleInputChange('donante', value);
+                                        }
                                     }
                                 ]}
                                 onSubmit={() => {}} // No submit en esta pestaña
@@ -617,6 +681,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }
 

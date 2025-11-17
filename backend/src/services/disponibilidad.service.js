@@ -1,6 +1,7 @@
 "use strict";
 import Disponibilidad from "../entities/disponibilidad.entity.js";
 import Bombero from "../entities/bombero.entity.js";
+import FichaBombero from "../entities/fichaBombero.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 
 export async function createDisponibilidadService(body) {
@@ -55,16 +56,12 @@ export async function getDisponibilidadesService(query = {}) {
     const queryBuilder = disponibilidadRepository
       .createQueryBuilder("disponibilidad")
       .leftJoinAndSelect("disponibilidad.bombero", "bombero")
-      .select([
-        "disponibilidad.id",
-        "disponibilidad.idBombero",
-        "disponibilidad.fechaInicio",
-        "disponibilidad.fechaTermino",
-        "bombero.id",
-        "bombero.nombres",
-        "bombero.apellidos",
-        "bombero.run"
-      ]);
+      .leftJoin(
+        FichaBombero,
+        "fichaBombero",
+        "fichaBombero.idBombero = bombero.id"
+      )
+      .addSelect("fichaBombero.licenciaClaseF", "licenciaClaseF");
 
     if (query.idBombero) {
       queryBuilder.andWhere("disponibilidad.idBombero = :idBombero", { idBombero: query.idBombero });
@@ -75,7 +72,37 @@ export async function getDisponibilidadesService(query = {}) {
 
     const disponibilidades = await queryBuilder.getMany();
 
-    return [disponibilidades, null];
+    // Obtener las fichas de los bomberos para agregar licenciaClaseF
+    const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
+    const bomberosIds = [...new Set(disponibilidades.map(d => d.idBombero))];
+    
+    let fichasMap = {};
+    if (bomberosIds.length > 0) {
+      const fichas = await fichaBomberoRepository
+        .createQueryBuilder("ficha")
+        .where("ficha.idBombero IN (:...ids)", { ids: bomberosIds })
+        .select(["ficha.idBombero", "ficha.licenciaClaseF"])
+        .getMany();
+      
+      fichas.forEach(ficha => {
+        fichasMap[ficha.idBombero] = ficha.licenciaClaseF || false;
+      });
+    }
+
+    // Agregar licenciaClaseF a cada disponibilidad
+    const disponibilidadesConLicencia = disponibilidades.map(disp => {
+      const licenciaClaseF = fichasMap[disp.idBombero] || false;
+      return {
+        ...disp,
+        bombero: {
+          ...disp.bombero,
+          licenciaClaseF
+        },
+        licenciaClaseF // También en el nivel superior para fácil acceso
+      };
+    });
+
+    return [disponibilidadesConLicencia, null];
   } catch (error) {
     console.error("Error al obtener disponibilidades:", error);
     return [null, "Error interno del servidor"];
@@ -152,20 +179,26 @@ export async function getDisponibilidadActivaService(idBombero) {
     const disponibilidadActiva = await disponibilidadRepository
       .createQueryBuilder("disponibilidad")
       .leftJoinAndSelect("disponibilidad.bombero", "bombero")
-      .select([
-        "disponibilidad.id",
-        "disponibilidad.idBombero",
-        "disponibilidad.fechaInicio",
-        "disponibilidad.fechaTermino",
-        "bombero.id",
-        "bombero.nombres",
-        "bombero.apellidos",
-        "bombero.run"
-      ])
       .where("disponibilidad.idBombero = :idBombero", { idBombero })
       .andWhere("(disponibilidad.fechaTermino IS NULL OR disponibilidad.fechaTermino > :now)", { now: new Date() })
       .orderBy("disponibilidad.fechaInicio", "DESC")
       .getOne();
+
+    if (disponibilidadActiva) {
+      // Obtener la ficha del bombero para obtener licenciaClaseF
+      const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
+      const ficha = await fichaBomberoRepository.findOne({
+        where: { idBombero: idBombero },
+        select: ["licenciaClaseF"]
+      });
+      
+      const licenciaClaseF = ficha?.licenciaClaseF || false;
+      disponibilidadActiva.bombero = {
+        ...disponibilidadActiva.bombero,
+        licenciaClaseF
+      };
+      disponibilidadActiva.licenciaClaseF = licenciaClaseF;
+    }
 
     return [disponibilidadActiva, null];
   } catch (error) {

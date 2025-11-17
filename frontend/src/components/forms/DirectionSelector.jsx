@@ -45,7 +45,7 @@ const DirectionSelector = ({
   // Cargar datos iniciales
   useEffect(() => {
     if (initialData) {
-      console.log('📍 [DirectionSelector] Cargando initialData:', initialData);
+      console.log('[DirectionSelector] Cargando initialData:', initialData);
       setIsInitialLoad(true); // Marcar que estamos en carga inicial
       
       const newFormData = {
@@ -60,8 +60,8 @@ const DirectionSelector = ({
         longitud: initialData.longitud || null
       };
       
-      console.log('📍 [DirectionSelector] FormData inicial:', newFormData);
-      console.log('📍 [DirectionSelector] Coordenadas recibidas:', { 
+      console.log('[DirectionSelector] FormData inicial:', newFormData);
+      console.log('[DirectionSelector] Coordenadas recibidas:', { 
         lat: newFormData.latitud, 
         lng: newFormData.longitud,
         tipo: typeof newFormData.latitud,
@@ -77,7 +77,7 @@ const DirectionSelector = ({
           typeof newFormData.longitud === 'number' &&
           !isNaN(newFormData.latitud) && 
           !isNaN(newFormData.longitud)) {
-        console.log('✅ [DirectionSelector] Estableciendo mapLocation con coordenadas:', { lat: newFormData.latitud, lng: newFormData.longitud });
+        console.log('[DirectionSelector] Estableciendo mapLocation con coordenadas:', { lat: newFormData.latitud, lng: newFormData.longitud });
         setMapLocation({
           lat: newFormData.latitud,
           lng: newFormData.longitud
@@ -85,14 +85,14 @@ const DirectionSelector = ({
         // Marcar como seleccionada para mantenerla cuando cambie la comuna
         setUserSelectedLocation(true);
       } else {
-        console.log('⚠️ [DirectionSelector] No hay coordenadas válidas, reseteando userSelectedLocation');
+        console.log('[DirectionSelector] No hay coordenadas válidas, reseteando userSelectedLocation');
         // Si no hay coordenadas guardadas, resetear el estado
         setUserSelectedLocation(false);
       }
       
       // Cargar comunas si hay región
       if (newFormData.idRegion) {
-        console.log('📍 [DirectionSelector] Cargando comunas para región:', newFormData.idRegion);
+        console.log('[DirectionSelector] Cargando comunas para región:', newFormData.idRegion);
         fetchComunasByRegion(newFormData.idRegion);
       }
     }
@@ -113,7 +113,7 @@ const DirectionSelector = ({
   
   useEffect(() => {
     if (formData.idRegion) {
-      console.log('📍 [DirectionSelector] Región cambió:', {
+        console.log('[DirectionSelector] Región cambió:', {
         idRegion: formData.idRegion,
         isInitialLoad,
         regionChangedByUser,
@@ -124,7 +124,7 @@ const DirectionSelector = ({
       
       // Solo limpiar comuna si el usuario cambió la región manualmente (no durante carga inicial)
       if (!isInitialLoad && regionChangedByUser) {
-        console.log('⚠️ [DirectionSelector] Usuario cambió región manualmente, limpiando comuna');
+        console.log('[DirectionSelector] Usuario cambió región manualmente, limpiando comuna');
         setFormData(prev => ({ ...prev, idComuna: '' }));
         // Solo limpiar ubicación si no hay coordenadas guardadas
         if (!formData.latitud || !formData.longitud) {
@@ -133,7 +133,7 @@ const DirectionSelector = ({
         }
         setRegionChangedByUser(false); // Resetear flag
       } else {
-        console.log('✅ [DirectionSelector] Manteniendo comuna durante carga inicial o cambio automático');
+        console.log('[DirectionSelector] Manteniendo comuna durante carga inicial o cambio automático');
       }
     }
   }, [formData.idRegion, fetchComunasByRegion, isInitialLoad, regionChangedByUser]);
@@ -143,8 +143,8 @@ const DirectionSelector = ({
     if (isInitialLoad && comunas.length > 0) {
       // Esperar un momento para asegurar que todo esté cargado
       const timer = setTimeout(() => {
-        console.log('✅ [DirectionSelector] Carga inicial completada, comunas disponibles:', comunas.length);
-        console.log('📍 [DirectionSelector] Estado final después de carga inicial:', {
+        console.log('[DirectionSelector] Carga inicial completada, comunas disponibles:', comunas.length);
+        console.log('[DirectionSelector] Estado final después de carga inicial:', {
           idRegion: formData.idRegion,
           idComuna: formData.idComuna,
           latitud: formData.latitud,
@@ -187,6 +187,16 @@ const DirectionSelector = ({
 
   // Manejar cambios en los campos
   const handleInputChange = (field, value) => {
+    // Validación especial para el campo número: solo letras, números, espacios y guiones
+    if (field === 'numero') {
+      // Permitir solo letras, números, espacios y guiones
+      const numeroPattern = /^[a-zA-Z0-9\s-]*$/;
+      if (!numeroPattern.test(value)) {
+        // Si contiene caracteres no permitidos, no actualizar
+        return;
+      }
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -240,7 +250,7 @@ const DirectionSelector = ({
             value={formData.idRegion}
             onChange={(e) => {
               const newRegion = e.target.value;
-              console.log('📍 [DirectionSelector] Usuario cambió región:', {
+              console.log('[DirectionSelector] Usuario cambió región:', {
                 anterior: formData.idRegion,
                 nueva: newRegion,
                 isInitialLoad,
@@ -271,8 +281,7 @@ const DirectionSelector = ({
             )}
           </select>
           {errors.idRegion && (
-            <p className="mt-1.5 text-sm text-red-600 flex items-center">
-              <span className="mr-1">⚠️</span>
+            <p className="mt-1.5 text-sm text-red-600">
               {errors.idRegion}
             </p>
           )}
@@ -287,7 +296,7 @@ const DirectionSelector = ({
           <select
             value={formData.idComuna}
             onChange={(e) => {
-              console.log('📍 [DirectionSelector] Usuario cambió comuna:', {
+              console.log('[DirectionSelector] Usuario cambió comuna:', {
                 anterior: formData.idComuna,
                 nueva: e.target.value,
                 comunasDisponibles: comunas.length
@@ -309,8 +318,7 @@ const DirectionSelector = ({
             ))}
           </select>
           {errors.idComuna && (
-            <p className="mt-1.5 text-sm text-red-600 flex items-center">
-              <span className="mr-1">⚠️</span>
+            <p className="mt-1.5 text-sm text-red-600">
               {errors.idComuna}
             </p>
           )}
@@ -334,8 +342,7 @@ const DirectionSelector = ({
             } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'}`}
           />
           {errors.calle && (
-            <p className="mt-1.5 text-sm text-red-600 flex items-center">
-              <span className="mr-1">⚠️</span>
+            <p className="mt-1.5 text-sm text-red-600">
               {errors.calle}
             </p>
           )}
@@ -356,8 +363,7 @@ const DirectionSelector = ({
             } ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400'}`}
           />
           {errors.numero && (
-            <p className="mt-1.5 text-sm text-red-600 flex items-center">
-              <span className="mr-1">⚠️</span>
+            <p className="mt-1.5 text-sm text-red-600">
               {errors.numero}
             </p>
           )}

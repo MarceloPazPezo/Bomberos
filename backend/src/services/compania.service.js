@@ -1,6 +1,8 @@
 "use strict";
 import { AppDataSource } from "../config/configDb.js";
 import Compania from "../entities/compania.entity.js";
+import FichaBombero from "../entities/fichaBombero.entity.js";
+import Incidente from "../entities/incidente.entity.js";
 
 /**
  * Obtiene una compañía específica por criterios de búsqueda
@@ -324,21 +326,61 @@ export async function deleteCompaniaService(query) {
     try {
       const { id, nombre, email } = query;
       const companiaRepository = transactionalEntityManager.getRepository(Compania);
+      const fichaBomberoRepository = transactionalEntityManager.getRepository(FichaBombero);
+      const incidenteRepository = transactionalEntityManager.getRepository(Incidente);
+
+      // Buscar la compañía a eliminar
+      const whereConditions = [];
+      if (id !== undefined) {
+        whereConditions.push({ id: parseInt(id, 10) });
+      }
+      if (nombre !== undefined) {
+        whereConditions.push({ nombre });
+      }
+      if (email !== undefined) {
+        whereConditions.push({ email });
+      }
+
+      if (whereConditions.length === 0) {
+        return [null, "Debes proporcionar al menos un criterio de búsqueda (id, nombre o email)."];
+      }
 
       const companiaFound = await companiaRepository.findOne({
-        where: [{ id: id }, { nombre: nombre }, { email: email }],
-        relations: ["direccion"],
+        where: whereConditions,
       });
 
-      if (!companiaFound) return [null, "Compañía no encontrada"];
+      if (!companiaFound) {
+        return [null, "Compañía no encontrada"];
+      }
 
-      // Verificar si hay bomberos asociados a esta compañía
-      // Nota: Esto dependerá de si agregas la relación en el futuro
-      // Por ahora comentado, pero aquí es donde harías la validación
+      // Validar que no tenga fichas de bomberos asociadas
+      const fichasBombero = await fichaBomberoRepository.count({
+        where: { idCompania: companiaFound.id },
+      });
 
-      const companiaDeleted = await companiaRepository.remove(companiaFound);
+      if (fichasBombero > 0) {
+        return [
+          null,
+          `No se puede eliminar la compañía porque tiene ${fichasBombero} ${fichasBombero === 1 ? "bombero asociado" : "bomberos asociados"}. Debe eliminar o reasignar los bomberos primero.`,
+        ];
+      }
 
-      return [companiaDeleted, null];
+      // Validar que no tenga incidentes asociados
+      const incidentes = await incidenteRepository.count({
+        where: { idCompania: companiaFound.id },
+      });
+
+      if (incidentes > 0) {
+        return [
+          null,
+          `No se puede eliminar la compañía porque tiene ${incidentes} ${incidentes === 1 ? "incidente asociado" : "incidentes asociados"}. Debe eliminar o reasignar los incidentes primero.`,
+        ];
+      }
+
+      // Si no tiene relaciones, proceder con la eliminación
+      await companiaRepository.remove(companiaFound);
+
+      return [companiaFound, null];
     } catch (error) {
       console.error("Error al eliminar la compañía:", error);
       return [null, "Error interno del servidor"];

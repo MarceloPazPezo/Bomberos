@@ -141,7 +141,13 @@ const EditEppModal = ({ isOpen, epp, onClose, onSave }) => {
                 <div>
                   <label className="block text-gray-600 font-medium mb-1">Fecha de Asignación</label>
                   <p className="text-gray-900">
-                    {epp?.fechaAsignacion ? new Date(epp.fechaAsignacion).toLocaleDateString('es-CL') : 'No especificada'}
+                    {epp?.fechaAsignacion ? (() => {
+                      const date = new Date(epp.fechaAsignacion);
+                      const day = date.getDate().toString().padStart(2, '0');
+                      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                      const year = date.getFullYear();
+                      return `${day}/${month}/${year}`;
+                    })() : 'No especificada'}
                   </p>
                 </div>
               </div>

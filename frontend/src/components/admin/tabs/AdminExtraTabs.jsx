@@ -4,6 +4,7 @@ import { useEstadoCivil } from '@hooks/estadoCivil/useEstadoCivil.jsx';
 import { useServicio } from '@hooks/servicio/useServicio.jsx';
 import { useTiposEvento } from '@hooks/tiposEvento/useTiposEvento.jsx';
 import { useVinculo } from '@hooks/vinculo/useVinculo.jsx';
+import { useTipoCapacitacion } from '@hooks/tipoCapacitacion/useTipoCapacitacion.jsx';
 import { showConfirmAlert } from '@helpers/fireAlert.js';
 import { toStartCase } from '@helpers/textFormatters.js';
 
@@ -17,6 +18,8 @@ import CreateTipoEventoPopup from '@components/tiposEvento/CreateTipoEventoPopup
 import UpdateTipoEventoPopup from '@components/tiposEvento/UpdateTipoEventoPopup';
 import CreateVinculoPopup from '@components/admin/popups/CreateVinculoPopup';
 import EditVinculoPopup from '@components/admin/popups/EditVinculoPopup';
+import CreateTipoCapacitacionPopup from '@components/admin/popups/CreateTipoCapacitacionPopup';
+import EditTipoCapacitacionPopup from '@components/admin/popups/EditTipoCapacitacionPopup';
 
 // Iconos
 import { 
@@ -25,12 +28,13 @@ import {
   MdPeople,
   MdLocalHospital,
   MdEvent,
-  MdLink
+  MdLink,
+  MdSchool
 } from 'react-icons/md';
 
 /**
  * Componente para la gestión de múltiples entidades administrativas
- * Contiene subtabs para: Estados Civiles, Servicios, Tipos de Evento y Vínculos
+ * Contiene subtabs para: Estados Civiles, Servicios, Tipos de Evento, Vínculos y Tipos de Capacitación
  */
 const AdminExtraTabs = () => {
   const { hasPermiso, refreshTrigger } = useAdmin();
@@ -70,6 +74,16 @@ const AdminExtraTabs = () => {
     deleteVinculo
   } = useVinculo();
 
+  const {
+    tiposCapacitacion,
+    loading: tiposCapacitacionLoading,
+    error: tiposCapacitacionError,
+    fetchTiposCapacitacion,
+    createTipoCapacitacion,
+    updateTipoCapacitacion,
+    deleteTipoCapacitacion
+  } = useTipoCapacitacion();
+
   // Estado local
   const [activeSubTab, setActiveSubTab] = useState('estadosCiviles');
   const [showCreateEstadoCivil, setShowCreateEstadoCivil] = useState(false);
@@ -78,8 +92,11 @@ const AdminExtraTabs = () => {
   const [showUpdateTipoEvento, setShowUpdateTipoEvento] = useState(false);
   const [showCreateVinculo, setShowCreateVinculo] = useState(false);
   const [showEditVinculo, setShowEditVinculo] = useState(false);
+  const [showCreateTipoCapacitacion, setShowCreateTipoCapacitacion] = useState(false);
+  const [showEditTipoCapacitacion, setShowEditTipoCapacitacion] = useState(false);
   const [selectedTipoEvento, setSelectedTipoEvento] = useState(null);
   const [selectedVinculo, setSelectedVinculo] = useState(null);
+  const [selectedTipoCapacitacion, setSelectedTipoCapacitacion] = useState(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -90,9 +107,10 @@ const AdminExtraTabs = () => {
       case 'servicios': return serviciosLoading;
       case 'tiposEvento': return tiposEventoLoading;
       case 'vinculos': return vinculosLoading;
+      case 'tiposCapacitacion': return tiposCapacitacionLoading;
       default: return false;
     }
-  }, [activeSubTab, estadosCivilesLoading, serviciosLoading, tiposEventoLoading, vinculosLoading]);
+  }, [activeSubTab, estadosCivilesLoading, serviciosLoading, tiposEventoLoading, vinculosLoading, tiposCapacitacionLoading]);
 
   const currentData = useMemo(() => {
     switch (activeSubTab) {
@@ -100,9 +118,10 @@ const AdminExtraTabs = () => {
       case 'servicios': return servicios;
       case 'tiposEvento': return tiposEvento;
       case 'vinculos': return vinculos;
+      case 'tiposCapacitacion': return tiposCapacitacion;
       default: return [];
     }
-  }, [activeSubTab, estadosCiviles, servicios, tiposEvento, vinculos]);
+  }, [activeSubTab, estadosCiviles, servicios, tiposEvento, vinculos, tiposCapacitacion]);
 
   // Cargar datos cuando cambia refreshTrigger o el subtab
   useEffect(() => {
@@ -118,7 +137,10 @@ const AdminExtraTabs = () => {
     if (hasPermiso('vinculo:obtener') || hasPermiso('vinculo:admin')) {
       fetchVinculos({ page: 1, limit: 200 }, true);
     }
-  }, [refreshTrigger, hasPermiso, fetchEstadosCiviles, fetchServicios, fetchTiposEvento, fetchVinculos]);
+    if (hasPermiso('capacitacion:obtener') || hasPermiso('capacitacion:admin') || hasPermiso('perfil-completo:obtener')) {
+      fetchTiposCapacitacion({ page: 1, limit: 200 }, true);
+    }
+  }, [refreshTrigger, hasPermiso, fetchEstadosCiviles, fetchServicios, fetchTiposEvento, fetchVinculos, fetchTiposCapacitacion]);
 
   // Handlers
   const handleCreate = () => {
@@ -135,6 +157,9 @@ const AdminExtraTabs = () => {
       case 'vinculos':
         setShowCreateVinculo(true);
         break;
+      case 'tiposCapacitacion':
+        setShowCreateTipoCapacitacion(true);
+        break;
     }
   };
 
@@ -145,6 +170,9 @@ const AdminExtraTabs = () => {
     } else if (activeSubTab === 'vinculos') {
       setSelectedVinculo(item);
       setShowEditVinculo(true);
+    } else if (activeSubTab === 'tiposCapacitacion') {
+      setSelectedTipoCapacitacion(item);
+      setShowEditTipoCapacitacion(true);
     }
   };
 
@@ -161,6 +189,9 @@ const AdminExtraTabs = () => {
         break;
       case 'vinculos':
         await handleDeleteVinculo(item);
+        break;
+      case 'tiposCapacitacion':
+        await handleDeleteTipoCapacitacion(item);
         break;
     }
   };
@@ -217,6 +248,19 @@ const AdminExtraTabs = () => {
     }
   };
 
+  const handleDeleteTipoCapacitacion = async (tipoCapacitacion) => {
+    const result = await showConfirmAlert(
+      '¿Eliminar Tipo de Capacitación?',
+      `¿Estás seguro de que quieres eliminar el tipo de capacitación "${toStartCase(tipoCapacitacion.nombre)}"? Esta acción no se puede deshacer.`,
+      'Sí, eliminar',
+      'Cancelar'
+    );
+
+    if (result.isConfirmed) {
+      await deleteTipoCapacitacion(tipoCapacitacion.id);
+    }
+  };
+
   const handleRefresh = async () => {
     switch (activeSubTab) {
       case 'estadosCiviles':
@@ -230,6 +274,9 @@ const AdminExtraTabs = () => {
         break;
       case 'vinculos':
         await fetchVinculos({ page: 1, limit: 200 }, true);
+        break;
+      case 'tiposCapacitacion':
+        await fetchTiposCapacitacion({ page: 1, limit: 200 }, true);
         break;
     }
   };
@@ -338,6 +385,37 @@ const AdminExtraTabs = () => {
     }
   ], []);
 
+  // Configuración de columnas para Tipos de Capacitación
+  const tiposCapacitacionColumns = useMemo(() => [
+    {
+      field: 'id',
+      header: 'ID',
+      sortable: true,
+      style: { width: '80px' }
+    },
+    {
+      field: 'nombre',
+      header: 'Nombre',
+      sortable: true,
+      body: (rowData) => (
+        <span className="font-medium text-gray-900">{toStartCase(rowData.nombre)}</span>
+      )
+    },
+    {
+      field: 'descripcion',
+      header: 'Descripción',
+      sortable: true,
+      body: (rowData) => (
+        <span className="text-gray-600 text-sm">{rowData.descripcion || 'Sin descripción'}</span>
+      )
+    },
+    {
+      type: 'actions',
+      header: 'Acciones',
+      style: { width: '150px' }
+    }
+  ], []);
+
   // Obtener columnas según subtab activo
   const currentColumns = useMemo(() => {
     switch (activeSubTab) {
@@ -345,9 +423,10 @@ const AdminExtraTabs = () => {
       case 'servicios': return serviciosColumns;
       case 'tiposEvento': return tiposEventoColumns;
       case 'vinculos': return vinculosColumns;
+      case 'tiposCapacitacion': return tiposCapacitacionColumns;
       default: return estadosCivilesColumns;
     }
-  }, [activeSubTab, estadosCivilesColumns, serviciosColumns, tiposEventoColumns, vinculosColumns]);
+  }, [activeSubTab, estadosCivilesColumns, serviciosColumns, tiposEventoColumns, vinculosColumns, tiposCapacitacionColumns]);
 
   // Permisos según subtab activo
   const canCreate = useMemo(() => {
@@ -356,6 +435,7 @@ const AdminExtraTabs = () => {
       case 'servicios': return hasPermiso('servicio:admin');
       case 'tiposEvento': return hasPermiso('tipoEvento:admin');
       case 'vinculos': return hasPermiso('vinculo:admin');
+      case 'tiposCapacitacion': return hasPermiso('capacitacion:admin');
       default: return false;
     }
   }, [activeSubTab, hasPermiso]);
@@ -366,6 +446,7 @@ const AdminExtraTabs = () => {
       case 'servicios': return false; // No tiene edición
       case 'tiposEvento': return hasPermiso('tipoEvento:admin');
       case 'vinculos': return hasPermiso('vinculo:admin');
+      case 'tiposCapacitacion': return hasPermiso('capacitacion:admin');
       default: return false;
     }
   }, [activeSubTab, hasPermiso]);
@@ -375,7 +456,8 @@ const AdminExtraTabs = () => {
     estadosCiviles: 'Estados Civiles',
     servicios: 'Servicios',
     tiposEvento: 'Tipos de Evento',
-    vinculos: 'Vínculos'
+    vinculos: 'Vínculos',
+    tiposCapacitacion: 'Tipos de Capacitación'
   };
 
   // Icons para subtabs
@@ -383,7 +465,8 @@ const AdminExtraTabs = () => {
     estadosCiviles: MdPeople,
     servicios: MdLocalHospital,
     tiposEvento: MdEvent,
-    vinculos: MdLink
+    vinculos: MdLink,
+    tiposCapacitacion: MdSchool
   };
 
   if (loading && currentData.length === 0) {
@@ -396,13 +479,13 @@ const AdminExtraTabs = () => {
 
   return (
     <>
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-6 rounded-2xl">
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md p-6 rounded-2xl">
         {/* Header de la sección */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">Gestión Adicional</h2>
             <p className="text-gray-600 text-sm mt-1">
-              Administra estados civiles, servicios, tipos de evento y vínculos
+              Administra estados civiles, servicios, tipos de evento, vínculos y tipos de capacitación
             </p>
           </div>
           
@@ -439,7 +522,7 @@ const AdminExtraTabs = () => {
             {canCreate && (
               <Tooltip
                 id="create-extra-btn"
-                content={`Crear ${activeSubTab === 'estadosCiviles' ? 'un nuevo estado civil' : activeSubTab === 'servicios' ? 'un nuevo servicio' : activeSubTab === 'tiposEvento' ? 'un nuevo tipo de evento' : 'un nuevo vínculo'} en el sistema`}
+                content={`Crear ${activeSubTab === 'estadosCiviles' ? 'un nuevo estado civil' : activeSubTab === 'servicios' ? 'un nuevo servicio' : activeSubTab === 'tiposEvento' ? 'un nuevo tipo de evento' : activeSubTab === 'vinculos' ? 'un nuevo vínculo' : 'un nuevo tipo de capacitación'} en el sistema`}
                 place="top"
                 variant="dark"
               >
@@ -459,7 +542,7 @@ const AdminExtraTabs = () => {
                       <MdAdd size={18} />
                     )}
                     <span className="hidden sm:inline">
-                      {isCreating ? 'Creando...' : `Crear ${activeSubTab === 'estadosCiviles' ? 'estado civil' : activeSubTab === 'servicios' ? 'servicio' : activeSubTab === 'tiposEvento' ? 'tipo evento' : 'vínculo'}`}
+                      {isCreating ? 'Creando...' : `Crear ${activeSubTab === 'estadosCiviles' ? 'estado civil' : activeSubTab === 'servicios' ? 'servicio' : activeSubTab === 'tiposEvento' ? 'tipo evento' : activeSubTab === 'vinculos' ? 'vínculo' : 'tipo de capacitación'}`}
                     </span>
                   </span>
                 </button>
@@ -468,25 +551,27 @@ const AdminExtraTabs = () => {
           </div>
         </div>
 
-        {/* Subtabs */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {Object.entries(subTabLabels).map(([key, label]) => {
-            const Icon = subTabIcons[key];
-            return (
-              <button
-                key={key}
-                onClick={() => handleSubTabChange(key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  activeSubTab === key
-                    ? 'bg-[#4EB9FA] text-white shadow-lg'
-                    : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-                }`}
-              >
-                <Icon size={18} />
-                <span>{label}</span>
-              </button>
-            );
-          })}
+        {/* Tabs de filtro con estilo border-bottom */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8 flex-wrap">
+            {Object.entries(subTabLabels).map(([key, label]) => {
+              const Icon = subTabIcons[key];
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleSubTabChange(key)}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                    activeSubTab === key
+                      ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </nav>
         </div>
 
         {/* Tabla con PrimeTableBasic */}
@@ -504,10 +589,10 @@ const AdminExtraTabs = () => {
         />
 
         {/* Error */}
-        {(estadosCivilesError || serviciosError || tiposEventoError || vinculosError) && (
+        {(estadosCivilesError || serviciosError || tiposEventoError || vinculosError || tiposCapacitacionError) && (
           <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-sm text-red-800">
-              {estadosCivilesError || serviciosError || tiposEventoError || vinculosError}
+              {estadosCivilesError || serviciosError || tiposEventoError || vinculosError || tiposCapacitacionError}
             </p>
           </div>
         )}
@@ -619,6 +704,58 @@ const AdminExtraTabs = () => {
         onVinculoUpdated={() => {
           fetchVinculos({ page: 1, limit: 200 }, true);
           setIsUpdating(false);
+        }}
+        onUpdatingChange={setIsUpdating}
+      />
+
+      {/* Modal Crear Tipo de Capacitación */}
+      <CreateTipoCapacitacionPopup
+        show={showCreateTipoCapacitacion}
+        setShow={(show) => {
+          setShowCreateTipoCapacitacion(show);
+          if (!show) setIsCreating(false);
+        }}
+        onTipoCapacitacionCreated={async (data) => {
+          setIsCreating(true);
+          try {
+            const result = await createTipoCapacitacion(data);
+            if (result.success) {
+              fetchTiposCapacitacion({ page: 1, limit: 200 }, true);
+            }
+            setIsCreating(false);
+            return result;
+          } catch (error) {
+            setIsCreating(false);
+            return { success: false, error: error.message };
+          }
+        }}
+        onCreatingChange={setIsCreating}
+      />
+
+      {/* Modal Editar Tipo de Capacitación */}
+      <EditTipoCapacitacionPopup
+        show={showEditTipoCapacitacion}
+        setShow={(show) => {
+          setShowEditTipoCapacitacion(show);
+          if (!show) {
+            setSelectedTipoCapacitacion(null);
+            setIsUpdating(false);
+          }
+        }}
+        data={selectedTipoCapacitacion}
+        onTipoCapacitacionUpdated={async (data) => {
+          setIsUpdating(true);
+          try {
+            const result = await updateTipoCapacitacion(selectedTipoCapacitacion.id, data);
+            if (result.success) {
+              fetchTiposCapacitacion({ page: 1, limit: 200 }, true);
+            }
+            setIsUpdating(false);
+            return result;
+          } catch (error) {
+            setIsUpdating(false);
+            return { success: false, error: error.message };
+          }
         }}
         onUpdatingChange={setIsUpdating}
       />

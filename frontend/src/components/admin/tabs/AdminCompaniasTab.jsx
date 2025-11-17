@@ -365,20 +365,6 @@ const AdminCompaniasTab = () => {
                             Editar
                           </button>
                         </Tooltip>
-                        
-                        <Tooltip
-                          id={`delete-compania-${compania.id}`}
-                          content="Eliminar compañía"
-                          place="top"
-                        >
-                          <button
-                            onClick={() => handleDeleteCompania(compania)}
-                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                          >
-                            <MdDelete className="h-4 w-4" />
-                            Eliminar
-                          </button>
-                        </Tooltip>
                       </>
                     )}
                   </div>
@@ -419,7 +405,7 @@ const AdminCompaniasTab = () => {
         onEdit={handleEditCompania}
         onDelete={handleDeleteCompania}
         canEdit={permissions.canAdmin}
-        canDelete={permissions.canAdmin}
+        canDelete={false}
       />
     </>
   );

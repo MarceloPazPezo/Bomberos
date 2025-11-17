@@ -17,6 +17,7 @@ const ImageUploader = ({
   error = null,
   value = null, // Archivo actual
   cropSize = null, // Tamaño del recorte en píxeles (null = usar tamaño mínimo de la imagen)
+  previewUrl = null, // URL de preview existente (para mostrar imagen actual cuando no hay archivo nuevo)
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [croppedUrl, setCroppedUrl] = useState(null);
@@ -24,16 +25,19 @@ const ImageUploader = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef(null);
 
-  // Crear preview cuando se selecciona un archivo
+  // Crear preview cuando se selecciona un archivo o hay una URL de preview
   useEffect(() => {
     if (value && value.cropped) {
       const url = URL.createObjectURL(value);
       setCroppedUrl(url);
       return () => URL.revokeObjectURL(url);
+    } else if (previewUrl && !value) {
+      // Mostrar preview de URL existente cuando no hay archivo nuevo
+      setCroppedUrl(previewUrl);
     } else {
       setCroppedUrl(null);
     }
-  }, [value]);
+  }, [value, previewUrl]);
 
   // Validar archivo
   const validateFile = useCallback((file) => {
@@ -201,6 +205,7 @@ const ImageUploader = ({
 
   const hasError = error || validationError;
   const hasFile = value && !hasError;
+  const hasPreview = croppedUrl && (hasFile || previewUrl);
 
   return (
     <div className={`image-uploader-with-crop ${className}`}>
@@ -230,12 +235,12 @@ const ImageUploader = ({
         onClick={handleClick}
       >
         <div className="text-center">
-          {hasFile && croppedUrl ? (
-            // Preview de imagen recortada
+          {hasPreview ? (
+            // Preview de imagen recortada o existente
             <div className="relative">
               <img
                 src={croppedUrl}
-                alt="Preview recortado"
+                alt="Preview"
                 className="mx-auto w-32 h-32 rounded-lg object-cover border-2 border-gray-200"
               />
               {!disabled && (
@@ -243,14 +248,16 @@ const ImageUploader = ({
                   type="button"
                   onClick={handleRemove}
                   className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                  title="Eliminar imagen"
+                  title={hasFile ? "Eliminar imagen" : "Eliminar logo actual"}
                 >
                   <MdDelete size={16} />
                 </button>
               )}
-              <div className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1" title="Imagen recortada automáticamente">
-                <MdCrop size={12} />
-              </div>
+              {hasFile && (
+                <div className="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full p-1" title="Imagen recortada automáticamente">
+                  <MdCrop size={12} />
+                </div>
+              )}
             </div>
           ) : (
             // Icono de upload
@@ -286,7 +293,7 @@ const ImageUploader = ({
         </div>
 
         {/* Información adicional */}
-        {!hasFile && !hasError && !isProcessing && (
+        {!hasFile && !hasPreview && !hasError && !isProcessing && (
           <div className="mt-2 text-xs text-gray-500">
             Arrastra y suelta una imagen aquí o haz clic para seleccionar
           </div>
@@ -323,6 +330,7 @@ ImageUploader.propTypes = {
   error: PropTypes.string,
   value: PropTypes.object, // File object
   cropSize: PropTypes.number,
+  previewUrl: PropTypes.string, // URL de preview existente
 };
 
 export default ImageUploader;

@@ -144,11 +144,10 @@ const NotificationCenter = React.memo(({ isOpen, onClose }) => {
     } else if (diffInDays < 7) {
       return `Hace ${diffInDays} días`;
     } else {
-      return date.toLocaleDateString('es-ES', {
-        day: 'numeric',
-        month: 'short',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      });
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     }
   }, [currentTime]);
 

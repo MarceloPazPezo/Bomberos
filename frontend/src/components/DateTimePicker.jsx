@@ -126,9 +126,9 @@ const DateTimePicker = ({
     if (!selectedDate) return '';
     
     if (showTime) {
-      return dateHelper.format(selectedDate, 'dd-MM-yyyy HH:mm');
+      return dateHelper.format(selectedDate, 'dd/MM/yyyy HH:mm');
     }
-    return dateHelper.format(selectedDate, 'dd-MM-yyyy');
+    return dateHelper.format(selectedDate, 'dd/MM/yyyy');
   };
 
   const handleDateSelect = (day) => {

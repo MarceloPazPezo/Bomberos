@@ -37,7 +37,7 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
   const [inmueblesRaw, vehiculosRaw, despachos, accidentadosRaw, otrosServiciosRaw, asistenciasRaw, fases] = await Promise.all([
     inmRepo.find({ where: { idIncidente }, relations: { habitaAfectados: true, propietario: true, direccion: true } }),
     vehRepo.find({ where: { idIncidente }, relations: { dueno: true, conductor: true, pasajeros: { afectado: true, vinculo: true } } }),
-    despRepo.find({ where: { idIncidente } }),
+    despRepo.find({ where: { idIncidente }, relations: { bomberoACargo: true } }),
     accRepo.find({ where: { idIncidente } }),
     acudeRepo.find({ where: { idIncidente } }),
     asistRepo.find({ where: { idIncidente } }),
@@ -126,7 +126,7 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
       pasajeros: (v.pasajeros || []).map(p => ({ id: p.afectado?.id, nombreCompleto: p.afectado?.nombreCompleto, run: p.afectado?.run, telefono: p.afectado?.telefono, edad: p.afectado?.edad, descripcionGravedad: p.afectado?.descripcionGravedad, esEmpresa: false, idVinculo: p.vinculo?.id }))
     };
   });
-  const materialMayor = (despachos || []).map(e => ({ id: `${e.idCarro}-${e.idBomberoMaquinista}`, unidadId: e.idCarro, conductorId: e.idBomberoMaquinista, bomberoId: e.idBomberoMaquinista, voluntarios: e.nPersonal || 0, kmSalida: e.kmSalida || null, kmLlegada: e.kmLlegada || null }));
+  const materialMayor = (despachos || []).map(e => ({ id: `${e.idCarro}-${e.idBomberoMaquinista}`, unidadId: e.idCarro, conductorId: e.idBomberoMaquinista, bomberoId: e.idBomberoACargo || null, voluntarios: e.nPersonal || 0, kmSalida: e.kmSalida || null, kmLlegada: e.kmLlegada || null }));
   // Accidentados: necesitamos companiaId desde FichaBombero (idCompania)
   const accList = accidentadosRaw || [];
   let accidentados = [];

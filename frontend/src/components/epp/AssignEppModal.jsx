@@ -205,7 +205,7 @@ const AssignEppModal = ({ isOpen, onClose, onAssign, onUnassign, epp }) => {
                       {searchTerm ? 'No se encontraron bomberos' : 'No hay bomberos disponibles'}
                     </p>
                     <p className="mt-1 text-sm text-gray-500">
-                      {searchTerm ? 'Intenta con otro término de búsqueda' : 'No hay bomberos activos con ficha'}
+                      {searchTerm ? 'Intenta con otro término de búsqueda' : 'No hay bomberos habilitados con ficha'}
                     </p>
                   </div>
                 ) : (

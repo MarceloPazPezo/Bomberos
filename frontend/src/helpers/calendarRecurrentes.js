@@ -17,7 +17,7 @@ export const mapRecurrentesToEvents = (data) => {
     if (cumple) {
       const color = REC_COLORS.cumple;
       events.push({
-        title: `🎂 Cumple: ${p.nombre} ${p.apellido}`,
+        title: `Cumple: ${p.nombre} ${p.apellido}`,
         allDay: true,
         backgroundColor: color.bg,
         borderColor: color.border,
@@ -43,7 +43,7 @@ export const mapRecurrentesToEvents = (data) => {
     if (ingreso) {
       const color = REC_COLORS.ingreso;
       events.push({
-        title: `🏁 Ingreso: ${p.nombre} ${p.apellido}`,
+        title: `Ingreso: ${p.nombre} ${p.apellido}`,
         allDay: true,
         backgroundColor: color.bg,
         borderColor: color.border,
@@ -73,7 +73,7 @@ export const mapRecurrentesToEvents = (data) => {
     if (fund) {
       const color = REC_COLORS.fundacion;
       events.push({
-        title: `🎖 Fundación: ${c.nombre}`,
+        title: `Fundación: ${c.nombre}`,
         allDay: true,
         backgroundColor: color.bg,
         borderColor: color.border,
@@ -143,7 +143,7 @@ export const computeProximosRecurrentes = (recEventosFiltrados, limiteSemanas = 
       const base = dayjs(e.extendedProps.baseDate);
       if (base.isValid()) {
         const years = next.year() - base.year();
-        displayTitle = `🎖 Aniversario #${years} Fundación: ${e.extendedProps?.nombreCompania || ''}`.trim();
+        displayTitle = `Aniversario #${years} Fundación: ${e.extendedProps?.nombreCompania || ''}`.trim();
       }
     }
     if (e?.extendedProps?.tipoRec === 'ingreso' && e?.extendedProps?.baseDate) {
@@ -152,7 +152,7 @@ export const computeProximosRecurrentes = (recEventosFiltrados, limiteSemanas = 
         const years = next.year() - base.year();
         if (years % 5 !== 0) continue;
         const nombre = [e?.extendedProps?.nombre, e?.extendedProps?.apellido].filter(Boolean).join(' ').trim();
-        displayTitle = `🏁 Aniversario de ingreso N°${years} ${nombre}`.trim();
+        displayTitle = `Aniversario de ingreso N°${years} ${nombre}`.trim();
       }
     }
     list.push({
@@ -164,6 +164,7 @@ export const computeProximosRecurrentes = (recEventosFiltrados, limiteSemanas = 
       backgroundColor: e.backgroundColor,
       borderColor: e.borderColor,
       textColor: e.textColor,
+      tipoRec: e.extendedProps?.tipoRec,
       tipoLabel:
         e.extendedProps?.tipoRec === 'cumple' ? 'Cumpleaños' :
         e.extendedProps?.tipoRec === 'ingreso' ? 'Ingreso' :

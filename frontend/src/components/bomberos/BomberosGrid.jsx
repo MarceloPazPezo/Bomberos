@@ -97,14 +97,14 @@ const BomberosGrid = ({
     });
   };
 
-  // Determinar columnas basado en el tamaño de pantalla - máximo 3 por fila
+  // Determinar columnas basado en el tamaño de pantalla - máximo 2 por fila
   const getGridCols = () => {
     const count = bomberosFiltrados.length;
     if (count === 0) return 'grid-cols-1';
     if (count === 1) return 'grid-cols-1 max-w-md mx-auto';
     if (count === 2) return 'grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto';
-    // Para 3+ bomberos: usar todo el ancho disponible con máximo 3 columnas
-    return 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3';
+    // Para 3+ bomberos: usar todo el ancho disponible con máximo 2 columnas
+    return 'grid-cols-1 md:grid-cols-2';
   };
 
   // Mostrar loading
@@ -171,8 +171,8 @@ const BomberosGrid = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">Todos</option>
-                  <option value="true">Activos</option>
-                  <option value="false">Inactivos</option>
+                  <option value="true">Habilitados</option>
+                  <option value="false">Deshabilitados</option>
                 </select>
               </div>
 

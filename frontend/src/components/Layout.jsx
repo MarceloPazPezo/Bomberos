@@ -10,7 +10,7 @@ const Layout = ({
   sidebarOpen,
   setSidebarOpen,
   maxWidth = '7xl',
-  padding = 'px-4 sm:px-6 lg:px-8 py-8'
+  padding = 'px-4 sm:px-6 lg:px-8 py-2'
 }) => {
   // Usar el estado pasado desde Root o el estado local como fallback
   const isSidebarOpen = sidebarOpen !== undefined ? sidebarOpen : !sidebarCollapsed;

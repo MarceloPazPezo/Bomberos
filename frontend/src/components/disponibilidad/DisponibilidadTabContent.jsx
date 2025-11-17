@@ -20,7 +20,7 @@ const DisponibilidadTabContent = () => {
         return <DisponibilidadHistorialTab />;
       default:
         return (
-          <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-8 rounded-2xl text-center">
+          <div className="text-center py-8">
             <p className="text-gray-500">Pestaña no encontrada o sin permisos</p>
           </div>
         );
@@ -28,8 +28,10 @@ const DisponibilidadTabContent = () => {
   };
 
   return (
-    <div className="transition-all duration-300 ease-in-out">
-      {renderActiveTab()}
+    <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-4">
+      <div className="transition-all duration-300 ease-in-out">
+        {renderActiveTab()}
+      </div>
     </div>
   );
 };

@@ -207,7 +207,7 @@ export async function deleteRolService(query) {
 
     return [{ id: rolFound.id, nombre: rolFound.nombre }, null];
   } catch (error) {
-    console.error("❌ Error al eliminar un rol:", error);
+    console.error("Error al eliminar un rol:", error);
     return [null, "Error interno del servidor"];
   }
 }

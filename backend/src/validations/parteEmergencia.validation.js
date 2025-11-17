@@ -50,6 +50,19 @@ const materialMayorSchema = Joi.object({
   voluntarios: Joi.number().integer().min(0).allow(null),
   kmSalida: Joi.number().integer().min(1).allow(null),
   kmLlegada: Joi.number().integer().min(1).allow(null)
+}).custom((value, helpers) => {
+  // Validación: si ambos km están presentes, kmLlegada >= kmSalida
+  if (value.kmSalida !== null && value.kmSalida !== undefined && 
+      value.kmLlegada !== null && value.kmLlegada !== undefined) {
+    const kmSalida = Number(value.kmSalida);
+    const kmLlegada = Number(value.kmLlegada);
+    if (!Number.isNaN(kmSalida) && !Number.isNaN(kmLlegada) && kmLlegada < kmSalida) {
+      return helpers.error('custom.kmInvalid');
+    }
+  }
+  return value;
+}, 'Kilometraje válido').messages({
+  'custom.kmInvalid': 'El kilometraje de llegada debe ser igual o mayor que el de salida.'
 });
 
 const accidentadoSchema = Joi.object({

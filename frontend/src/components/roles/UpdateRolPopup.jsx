@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Form from '../Form';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdSecurity, MdSave, MdCheck, MdExpandMore, MdExpandLess, MdSelectAll, MdClear } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import usePermisos from '@hooks/permisos/usePermisos';
 
-export default function UpdateRolPopupv2({ show, setShow, editingRole, onRoleUpdated }) {
+export default function UpdateRolPopup({ show, setShow, editingRole, onRoleUpdated }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const formRef = useRef(null);
@@ -219,13 +220,14 @@ export default function UpdateRolPopupv2({ show, setShow, editingRole, onRoleUpd
         setErrors({});
     };
 
+    if (!show || !editingRole) return null;
+
     return (
-        <div>
-            {show && editingRole && (
-                <div 
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-                    onClick={handleBackdropClick}
-                >
+        <ModalPortal>
+            <div 
+                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                onClick={handleBackdropClick}
+            >
                     <div className="relative w-full max-w-xs sm:max-w-4xl h-auto p-0 animate-fade-in flex flex-col rounded-2xl bg-white shadow-2xl border border-gray-200 max-h-[90vh]">
                         {/* Header mejorado */}
                         <div className="flex items-center px-4 sm:px-6 py-4 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -452,13 +454,12 @@ export default function UpdateRolPopupv2({ show, setShow, editingRole, onRoleUpd
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+            </div>
+        </ModalPortal>
     );
 }
 
-UpdateRolPopupv2.propTypes = {
+UpdateRolPopup.propTypes = {
     show: PropTypes.bool.isRequired,
     setShow: PropTypes.func.isRequired,
     editingRole: PropTypes.object,

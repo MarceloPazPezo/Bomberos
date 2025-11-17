@@ -108,9 +108,9 @@ const BomberosView = ({
   const handleStatusChange = async (bombero) => {
     const newStatus = bombero.estado === 'Activo' ? 'Inactivo' : 'Activo';
     const result = await showConfirmAlert(
-      `¿${newStatus === 'Activo' ? 'Activar' : 'Desactivar'} bombero?`,
-      `¿Estás seguro de que deseas ${newStatus === 'Activo' ? 'activar' : 'desactivar'} al bombero "${getFullName(bombero)}"?`,
-      newStatus === 'Activo' ? 'Activar' : 'Desactivar',
+      `¿${newStatus === 'Activo' ? 'Habilitar' : 'Deshabilitar'} bombero?`,
+      `¿Estás seguro de que deseas ${newStatus === 'Activo' ? 'habilitar' : 'deshabilitar'} al bombero "${getFullName(bombero)}"?`,
+      newStatus === 'Activo' ? 'Habilitar' : 'Deshabilitar',
       'Cancelar'
     );
 
@@ -123,11 +123,12 @@ const BomberosView = ({
   const formatDate = (dateString) => {
     if (!dateString) return 'No disponible';
     try {
-      return new Date(dateString).toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      });
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Fecha inválida';
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
     } catch {
       return 'Fecha inválida';
     }
@@ -366,7 +367,7 @@ const BomberosView = ({
                             : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
                         }`}
                       >
-                        {bombero.estado === 'Inactivo' ? 'Activar usuario' : 'Desactivar usuario'}
+                        {bombero.estado === 'Inactivo' ? 'Habilitar usuario' : 'Deshabilitar usuario'}
                       </button>
                     )}
                   </div>
@@ -417,7 +418,7 @@ const BomberosView = ({
                             : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
                         }`}
                       >
-                        {bombero.estado === 'Inactivo' ? 'Activar usuario' : 'Desactivar usuario'}
+                        {bombero.estado === 'Inactivo' ? 'Habilitar usuario' : 'Deshabilitar usuario'}
                       </button>
                     )}
                   </div>

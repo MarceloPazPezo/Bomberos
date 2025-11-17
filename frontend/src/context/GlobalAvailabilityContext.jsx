@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@hooks/auth/useAuth';
-import { getDisponibilidades } from '@services/disponibilidad.service';
+import { getMiDisponibilidadActiva } from '@services/disponibilidad.service';
 
 const GlobalAvailabilityContext = createContext();
 
@@ -22,13 +22,14 @@ export const GlobalAvailabilityProvider = ({ children }) => {
 
     try {
       setLoading(true);
-      const disponibilidades = await getDisponibilidades(bombero.id);
-      const activeAvailability = disponibilidades.find(d => 
-        (!d.fechaTermino || new Date(d.fechaTermino) > new Date())
-      );
+      // Usar el endpoint específico para obtener disponibilidad activa del usuario autenticado
+      const activeAvailability = await getMiDisponibilidadActiva();
       setCurrentAvailability(activeAvailability || null);
     } catch (error) {
-      console.error('Error checking availability:', error);
+      // Si es 404, significa que no hay disponibilidad activa (esperado)
+      if (error.response?.status !== 404) {
+        console.error('[GlobalAvailabilityContext] Error checking availability:', error);
+      }
       setCurrentAvailability(null);
     } finally {
       setLoading(false);

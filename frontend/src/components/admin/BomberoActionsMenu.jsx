@@ -98,7 +98,7 @@ const BomberoActionsMenu = ({
     actions.push({
       key: 'status',
       icon: bombero.activo ? <MdLinkOff size={18} /> : <MdLink size={18} />,
-      label: bombero.activo ? 'Desactivar' : 'Activar',
+      label: bombero.activo ? 'Deshabilitar' : 'Habilitar',
       onClick: () => !isDisabled && handleStatusChange(bombero.id, !bombero.activo),
       className: isDisabled
         ? "text-gray-400 cursor-not-allowed bg-gray-50" 
