@@ -1,9 +1,11 @@
+"use strict";
 import { AppDataSource } from "../configDb.js";
 import logger from "../configLogger.js";
 import subTipoIncidente from "../../entities/subtipoIncidente.entity.js"
 import clasificacionEmergencia from "../../entities/clasificacionEmergencia.entity.js";
 import TipoDano from "../../entities/tipoDano.entity.js";
-import faseIncidente from "../../entities/faseIncidente.entity.js";"use strict";
+import faseIncidente from "../../entities/faseIncidente.entity.js";
+import TipoCapacitacion from "../../entities/tipoCapacitacion.entity.js";
 import Servicios from "../../entities/servicio.entity.js";
 
 
@@ -248,4 +250,95 @@ async function crearEstadosReporte() {
   }
 }
 
-export { crearSubTipoIncidente, crearClasificacionEmergencia, crearTipoDano, crearfaseIncidente, crearServicios, crearTiposSangre, crearEstadosReporte };
+async function crearTiposCapacitacion() {
+  try {
+    const tipoCapacitacionRepository = AppDataSource.getRepository(TipoCapacitacion);
+    
+    // Verificar si ya existen tipos de capacitación
+    const tiposExistentes = await tipoCapacitacionRepository.count();
+    if (tiposExistentes > 0) {
+      logger.info(`[SERVER] Tipos de capacitación ya existen (${tiposExistentes} registros)`);
+      return;
+    }
+
+    // Tipos de capacitación comunes para bomberos
+    const tiposCapacitacionData = [
+      {
+        nombre: "Primeros Auxilios",
+        descripcion: "Capacitación básica en atención de emergencias médicas y primeros auxilios"
+      },
+      {
+        nombre: "Rescate Vehicular",
+        descripcion: "Técnicas de rescate y extricación de personas atrapadas en vehículos"
+      },
+      {
+        nombre: "Manejo de Materiales Peligrosos",
+        descripcion: "Capacitación en identificación, manejo y control de materiales peligrosos (HAZMAT)"
+      },
+      {
+        nombre: "Combate de Incendios",
+        descripcion: "Técnicas fundamentales de combate de incendios estructurales y forestales"
+      },
+      {
+        nombre: "Rescate Acuático",
+        descripcion: "Procedimientos de rescate en ambientes acuáticos, ríos, pozos y canales"
+      },
+      {
+        nombre: "Rescate en Altura",
+        descripcion: "Técnicas de rescate vertical y trabajo en altura con cuerdas y equipos especializados"
+      },
+      {
+        nombre: "Búsqueda y Rescate",
+        descripcion: "Técnicas de búsqueda y localización de personas desaparecidas o atrapadas"
+      },
+      {
+        nombre: "Operaciones con Escaleras",
+        descripcion: "Uso seguro y eficiente de escaleras aéreas y de extensión"
+      },
+      {
+        nombre: "Ventilación",
+        descripcion: "Técnicas de ventilación táctica para control de humo y gases en incendios"
+      },
+      {
+        nombre: "Operaciones de Bomba",
+        descripcion: "Operación y mantenimiento de bombas contra incendios y sistemas de agua"
+      },
+      {
+        nombre: "Comunicaciones de Emergencia",
+        descripcion: "Protocolos de comunicación radial y sistemas de emergencia"
+      },
+      {
+        nombre: "Seguridad en Escena",
+        descripcion: "Protocolos de seguridad personal y control de escena en emergencias"
+      },
+      {
+        nombre: "Rescate de Colapso Estructural",
+        descripcion: "Técnicas especializadas para rescate en estructuras colapsadas"
+      },
+      {
+        nombre: "Emergencias con Gases",
+        descripcion: "Procedimientos para emergencias con fugas de gas y gases combustibles"
+      },
+      {
+        nombre: "Manejo de Escombros",
+        descripcion: "Técnicas seguras para remoción y manejo de escombros en emergencias"
+      },
+      {
+        nombre: "Apoyo Psicológico en Emergencias",
+        descripcion: "Primeros auxilios psicológicos y apoyo a víctimas y compañeros"
+      }
+    ];
+
+    for (const tipoData of tiposCapacitacionData) {
+      const tipoEntity = tipoCapacitacionRepository.create(tipoData);
+      await tipoCapacitacionRepository.save(tipoEntity);
+    }
+
+    logger.info(`[SERVER] ${tiposCapacitacionData.length} tipos de capacitación creados exitosamente`);
+  } catch (error) {
+    logger.errorWithContext(error, { function: "crearTiposCapacitacion" });
+    throw error;
+  }
+}
+
+export { crearSubTipoIncidente, crearClasificacionEmergencia, crearTipoDano, crearfaseIncidente, crearServicios, crearTiposSangre, crearEstadosReporte, crearTiposCapacitacion };
