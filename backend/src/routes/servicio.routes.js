@@ -1,0 +1,52 @@
+"use strict";
+import { Router } from 'express';
+import { createServicio, deleteServicio, getAllServicios } from '../controllers/servicio.controller.js';
+import { authenticateJwt } from '../middlewares/authentication.middleware.js';
+import { authorizePermisos } from '../middlewares/authorization.middleware.js';
+import logger from '../config/configLogger.js';
+
+const router = Router();
+
+// Middleware de autenticación para todas las rutas
+router.use(authenticateJwt);
+
+router.get('/', authorizePermisos(['servicio:obtener', 'servicio:admin']), async (req, res) => {
+  try {
+    logger.info('Servicios routes - GET / - Obteniendo todos los servicios');
+    await getAllServicios(req, res);
+  } catch (error) {
+    logger.error('Servicios routes - GET / - Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+});
+
+router.post('/', authorizePermisos(['servicio:admin']), async (req, res) => {
+  try {
+    logger.info('Servicios routes - POST / - Creando nuevo servicio');
+    await createServicio(req, res);
+  } catch (error) {
+    logger.error('Servicios routes - POST / - Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+});
+
+router.delete('/:id', authorizePermisos(['servicio:admin']), async (req, res) => {
+  try {
+    logger.info(`Servicios routes - DELETE /:id - Eliminando servicio con ID: ${req.params.id}`);
+    await deleteServicio(req, res);
+  } catch (error) {
+    logger.error('Servicios routes - DELETE /:id - Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor'
+    });
+  }
+});
+
+export default router;

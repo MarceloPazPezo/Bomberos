@@ -1,0 +1,99 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&amp;display=swap");
+@import "tailwindcss";
+
+
+html,
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  place-items: center;
+  min-width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: 'Poppins', sans-serif;
+}
+#root {
+  min-width: 100%;
+  min-height: 100vh;
+  margin: 0 auto;
+}
+
+.scrollbar-thin {
+  scrollbar-width: auto;
+  scrollbar-color: #5ebffa transparent;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 16px;
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #5ebffa;
+  border-radius: 16px;
+  border: 2px solid #e0e7ef;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Compactar tipografías de FullCalendar en páginas que usen el wrapper fc-compact */
+.fc-compact .fc {
+  font-size: 0.85rem; /* base */
+}
+.fc-compact .fc .fc-toolbar-title {
+  font-size: 2rem;
+}
+.fc-compact .fc .fc-daygrid-day-number,
+.fc-compact .fc .fc-col-header-cell-cushion,
+.fc-compact .fc .fc-timegrid-slot-label {
+  font-size: 0.9rem;
+}
+.fc-compact .fc .fc-event,
+.fc-compact .fc .fc-event-title,
+.fc-compact .fc .fc-event-time {
+  font-size: 0.7rem;
+}
+.fc-compact .fc .fc-multimonth-title {
+  font-size: 1rem;
+}
+
+/* Tamaño reducido para chips del MultiSelect de participación en EventosTab */
+.participacion-multiselect .p-multiselect {
+  font-size: 0.65rem; /* Base más pequeña */
+}
+.participacion-multiselect .p-multiselect-label,
+.participacion-multiselect .p-multiselect-token {
+  font-size: 0.65rem;
+  line-height: 0.9rem;
+}
+.participacion-multiselect .p-multiselect-token {
+  padding: 0.15rem 0.5rem;
+  border-radius: 14px;
+  background-color: #E5E7EB; /* gris claro consistente */
+  color: #374151;
+}
+.participacion-multiselect .p-multiselect-token .p-multiselect-token-icon {
+  font-size: 0.6rem;
+  margin-left: 0.25rem;
+}
+.participacion-multiselect .p-multiselect-trigger {
+  width: 1.25rem; /* disparador más angosto */
+}
+.participacion-multiselect .p-multiselect-trigger-icon {
+  font-size: 0.65rem;
+}
+.participacion-multiselect .p-multiselect-panel .p-multiselect-items {
+  font-size: 0.7rem;
+}
+.participacion-multiselect .p-checkbox .p-checkbox-box {
+  width: 12px;
+  height: 12px;
+}
+.participacion-multiselect .p-multiselect-header {
+  padding: 0.4rem 0.5rem;
+}
+.participacion-multiselect .p-multiselect-item {
+  padding: 0.3rem 0.5rem;
+}

@@ -1,0 +1,8 @@
+/* Estilos para filas de cumplimiento mínimo en AsistenciaTab */
+.cumple-minimo {
+  background-color: #f0fdf4 !important;
+}
+
+.no-cumple-minimo {
+  background-color: #fef2f2 !important;
+}
