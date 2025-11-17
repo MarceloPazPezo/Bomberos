@@ -10,7 +10,7 @@ async function crearPermisos() {
     const permisoRepository = AppDataSource.getRepository(Permiso);
     const count = await permisoRepository.count();
     if (count > 0) {
-      logger.info("[SERVER] Permisos ya existen, omitiendo creación.");
+      // Permisos ya existen, omitiendo creación
       return;
     }
 
@@ -666,7 +666,7 @@ async function crearRoles() {
 
     const count = await roleRepository.count();
     if (count > 0) {
-      logger.info("[SERVER] Roles ya existen, omitiendo creación.");
+      // Roles ya existen, omitiendo creación
       return;
     }
 
@@ -901,9 +901,8 @@ async function agregarPermisosParteEmergencia() {
         const nuevoPermiso = permisoRepository.create(permisoData);
         await permisoRepository.save(nuevoPermiso);
         logger.info(`[SERVER] Permiso "${permisoData.nombre}" creado.`);
-      } else {
-        logger.info(`[SERVER] Permiso "${permisoData.nombre}" ya existe.`);
       }
+      // Si el permiso ya existe, no se registra nada
     }
 
     // Agregar permisos al rol Administrador si existe
@@ -938,11 +937,8 @@ async function agregarPermisosParteEmergencia() {
             .map((p) => p.nombre)
             .join(", ")}`
         );
-      } else {
-        logger.info(
-          "[SERVER] El rol Administrador ya tiene los permisos de partes de emergencia."
-        );
       }
+      // Si el rol ya tiene los permisos, no se registra nada
     }
 
     // Agregar permisos básicos al rol Bombero si existe
@@ -973,11 +969,8 @@ async function agregarPermisosParteEmergencia() {
             .map((p) => p.nombre)
             .join(", ")}`
         );
-      } else {
-        logger.info(
-          "[SERVER] El rol Bombero ya tiene los permisos básicos de partes de emergencia."
-        );
       }
+      // Si el rol ya tiene los permisos, no se registra nada
     }
   } catch (error) {
     logger.errorWithContext(error, { function: "agregarPermisosParteEmergencia" });
@@ -1020,9 +1013,8 @@ async function agregarPermisosCapacitacion() {
         const nuevoPermiso = permisoRepository.create(permisoData);
         await permisoRepository.save(nuevoPermiso);
         logger.info(`[SERVER] Permiso "${permisoData.nombre}" creado.`);
-      } else {
-        logger.info(`[SERVER] Permiso "${permisoData.nombre}" ya existe.`);
       }
+      // Si el permiso ya existe, no se registra nada
     }
 
     // Agregar permisos al rol Administrador si existe
@@ -1049,11 +1041,8 @@ async function agregarPermisosCapacitacion() {
             .map((p) => p.nombre)
             .join(", ")}`
         );
-      } else {
-        logger.info(
-          "[SERVER] El rol Administrador ya tiene los permisos de capacitación."
-        );
       }
+      // Si el rol ya tiene los permisos, no se registra nada
     }
   } catch (error) {
     logger.errorWithContext(error, { function: "agregarPermisosCapacitacion" });
