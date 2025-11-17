@@ -33,7 +33,8 @@ import {
   Flag,
   Home,
   Siren,
-  User as UserIcon
+  User as UserIcon,
+  FileText
 } from 'lucide-react';
 
 const KeyStat = ({ label, value }) => (
@@ -255,7 +256,7 @@ export default function VistaParte({ showEnviarButton = true }) {
       if (!data?.url) {
         throw new Error('No se recibió un enlace válido para el PDF');
       }
-      navigate(`/vistaparte/${id}/pdf`, { state: { pdf: { ...data, pageSize } } });
+      navigate(`/vista-parte/${id}/pdf`, { state: { pdf: { ...data, pageSize } } });
     } catch (err) {
       const message = err?.message || err?.status || 'No se pudo generar el PDF';
       toast.error(message);
@@ -306,47 +307,73 @@ export default function VistaParte({ showEnviarButton = true }) {
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-5 py-6 space-y-4">
       {/* Encabezado (PRIMERA TARJETA) */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2">
-            <button className="inline-flex items-center gap-1.5 text-[13px] text-gray-700 hover:text-gray-900" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-3.5 w-3.5" /> Volver
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex-1 space-y-4">
+            {/* Botón volver mejorado */}
+            <button 
+              type="button"
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium transition"
+            >
+              <ArrowLeft className="h-4 w-4" /> Volver
             </button>
-            <h1 className="text-xl font-bold text-gray-900">Parte de emergencia #{parte.id}</h1>
-            <div className="flex flex-wrap gap-2 text-[13px] text-gray-700">
-              <span className="inline-flex items-center gap-1">
+            
+            {/* Título */}
+            <div>
+              <h1 className="text-2xl font-bold text-[#2C3E50] mb-3">Parte de emergencia #{parte.id}</h1>
+              
+              {/* Información resumida */}
+              <div className="flex flex-wrap gap-3 text-sm text-gray-700 mb-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
                 <Calendar className="h-4 w-4 text-gray-500" /> {fechaIncidente}
               </span>
               {direccion && (
-                <span className="inline-flex items-center gap-1">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
                   <MapPin className="h-4 w-4 text-gray-500" /> {direccion}
                 </span>
               )}
-              <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
                 <Building2 className="h-4 w-4 text-gray-500" /> {parte?.compania?.nombre || `Compañía #${parte?.compania?.id || '-'}`}
               </span>
               {parte?.redactor && (
-                <span className="inline-flex items-center gap-1">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
                   <UserIcon className="h-4 w-4 text-gray-500" /> Redactor: {parte.redactor.nombreCompleto || `#${parte.redactor.id}`}
                 </span>
               )}
             </div>
+              
+              {/* Chips de información */}
             {headerChips}
+            </div>
           </div>
-          <div className="w-64">
+          
+          {/* Sidebar derecho: Fechas y acciones */}
+          <div className="w-80 space-y-4 flex-shrink-0">
+            {/* Fechas */}
             <DateDisplay fechaCreacion={parte?.createdAt || parte?.fechaHoraDespacho} fechaActualizacion={parte?.updatedAt} />
-            <div className="mt-3">
+            
+            {/* Botones de acción */}
+            <div className="space-y-3">
               <button
                 disabled={generandoPdf}
                 onClick={() => handleGenerarPdf('A4')}
-                className="w-full inline-flex items-center justify-center gap-2 rounded border border-emerald-200 bg-emerald-50 text-emerald-700 px-3 py-2 hover:bg-emerald-100 disabled:opacity-60"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white px-4 py-3 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow font-medium"
                 type="button"
               >
-                {generandoPdf ? 'Generando reporte...' : 'Generar reporte PDF'}
+                {generandoPdf ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Generando reporte...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" /> Generar reporte PDF
+                  </>
+                )}
               </button>
-            </div>
+              
             {showEnviarButton && (estadoActual === 'BORRADOR' || estadoActual === 'CORREGIR') && (
-              <div className="mt-3">
                 <button
                   disabled={enviando}
                   onClick={async () => {
@@ -365,12 +392,21 @@ export default function VistaParte({ showEnviarButton = true }) {
                       setEnviando(false);
                     }
                   }}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded border border-blue-200 bg-blue-50 text-blue-700 px-3 py-2 hover:bg-blue-100 disabled:opacity-60"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-3 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow font-medium"
                 >
-                  Enviar para revisión
+                  {enviando ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="h-4 w-4" /> Enviar para revisión
+                    </>
+                  )}
                 </button>
+              )}
               </div>
-            )}
           </div>
         </div>
       </div>
@@ -710,9 +746,82 @@ export default function VistaParte({ showEnviarButton = true }) {
           title={<div className="flex items-center gap-2"><Users className="h-4 w-4 text-gray-700" /> <span>Asistencia a la emergencia</span></div>}
           subTitle={<span className="text-gray-600">Distribución de personal</span>}
         >
-          <div className="grid sm:grid-cols-2 gap-2">
-            <KeyStat label="En el lugar" value={Array.isArray(parte.asistencia.lugar) ? parte.asistencia.lugar.map(x => x?.nombreCompleto || (x?.id ? `Bombero #${x.id}` : '')).filter(Boolean).join(', ') || '-' : '-'} />
-            <KeyStat label="En cuartel" value={Array.isArray(parte.asistencia.cuartel) ? parte.asistencia.cuartel.map(x => x?.nombreCompleto || (x?.id ? `Bombero #${x.id}` : '')).filter(Boolean).join(', ') || '-' : '-'} />
+          <div className="grid sm:grid-cols-2 gap-4">
+            {/* Bomberos en el lugar */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="h-4 w-4 text-green-600" />
+                <h3 className="text-sm font-semibold text-gray-700">En el lugar</h3>
+                {Array.isArray(parte.asistencia.lugar) && parte.asistencia.lugar.length > 0 && (
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                    {parte.asistencia.lugar.length}
+                  </span>
+                )}
+              </div>
+              {Array.isArray(parte.asistencia.lugar) && parte.asistencia.lugar.length > 0 ? (
+                <div className="border border-gray-200 rounded-md">
+                  <DataTable 
+                    value={parte.asistencia.lugar.map((bombero, index) => ({
+                      id: index,
+                      bombero: bombero?.nombreCompleto || (bombero?.id ? `Bombero #${bombero.id}` : '-'),
+                      run: bombero?.run || '-',
+                    }))} 
+                    size="small"
+                    emptyMessage="No hay bomberos registrados"
+                  >
+                    <Column 
+                      header="#" 
+                      body={(data, { rowIndex }) => rowIndex + 1} 
+                      style={{ width: '3rem' }}
+                    />
+                    <Column field="bombero" header="Bombero" />
+                    <Column field="run" header="RUN" />
+                  </DataTable>
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-md p-4 text-center text-sm text-gray-500 bg-gray-50">
+                  No hay bomberos registrados en el lugar
+                </div>
+              )}
+            </div>
+
+            {/* Bomberos en cuartel */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Building2 className="h-4 w-4 text-blue-600" />
+                <h3 className="text-sm font-semibold text-gray-700">En cuartel</h3>
+                {Array.isArray(parte.asistencia.cuartel) && parte.asistencia.cuartel.length > 0 && (
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                    {parte.asistencia.cuartel.length}
+                  </span>
+                )}
+              </div>
+              {Array.isArray(parte.asistencia.cuartel) && parte.asistencia.cuartel.length > 0 ? (
+                <div className="border border-gray-200 rounded-md">
+                  <DataTable 
+                    value={parte.asistencia.cuartel.map((bombero, index) => ({
+                      id: index,
+                      bombero: bombero?.nombreCompleto || (bombero?.id ? `Bombero #${bombero.id}` : '-'),
+                      run: bombero?.run || '-',
+                    }))} 
+                    size="small"
+                    emptyMessage="No hay bomberos registrados"
+                  >
+                    <Column 
+                      header="#" 
+                      body={(data, { rowIndex }) => rowIndex + 1} 
+                      style={{ width: '3rem' }}
+                    />
+                    <Column field="bombero" header="Bombero" />
+                    <Column field="run" header="RUN" />
+                  </DataTable>
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-md p-4 text-center text-sm text-gray-500 bg-gray-50">
+                  No hay bomberos registrados en cuartel
+                </div>
+              )}
+            </div>
           </div>
         </Card>
       )}

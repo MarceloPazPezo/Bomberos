@@ -32,7 +32,7 @@ const DisponibilidadPage = () => {
   if (!hasAnyDisponibilidadPermission) {
     return (
       <div className="p-6">
-        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-8 rounded-2xl text-center">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md p-8 rounded-2xl text-center">
           <div className="flex flex-col items-center justify-center py-12">
             <MdSecurity size={64} className="text-gray-400 mb-4" />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">Acceso Restringido</h3>
@@ -50,30 +50,34 @@ const DisponibilidadPage = () => {
     <DisponibilidadProvider>
       <div>
         {/* Header principal con tabs integrados */}
-        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl mb-4 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <FaUserCheck className="h-8 w-8 text-[#4EB9FA]" />
-              <div>
-                <h1 className="text-2xl font-bold text-[#2C3E50]">Control de Disponibilidad</h1>
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FaUserCheck className="h-8 w-8 text-[#4EB9FA]" />
+                <div>
+                  <h1 className="text-2xl font-bold text-[#2C3E50]">Control de Disponibilidad</h1>
+                </div>
+                <Tooltip
+                  id="disponibilidad-v2-help"
+                  content="Marca tu disponibilidad para emergencias, gestiona horarios y visualiza tu historial. Puedes crear disponibilidades con fecha de inicio y término, usar accesos rápidos, y ver el personal disponible en tiempo real."
+                  place="right"
+                  variant="dark"
+                >
+                  <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+                </Tooltip>
               </div>
-              <Tooltip
-                id="disponibilidad-v2-help"
-                content="Versión mejorada del sistema de disponibilidades con arquitectura modular, notificaciones avanzadas con FireAlert, y actualización en tiempo real mediante sockets. Incluye pestañas separadas para marcar disponibilidad y ver historial."
-                place="bottom"
-                variant="dark"
-              >
-                <MdHelpOutline className="h-5 w-5 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
-              </Tooltip>
+              
+              {/* Navegación de tabs integrada */}
+              <DisponibilidadTabNavigation />
             </div>
-            
-            {/* Navegación de tabs integrada */}
-            <DisponibilidadTabNavigation />
           </div>
         </div>
 
         {/* Contenido de las pestañas */}
-        <DisponibilidadTabContent />
+        <div className="max-w-7xl mx-auto px-4 mt-2">
+          <DisponibilidadTabContent />
+        </div>
       </div>
     </DisponibilidadProvider>
   );

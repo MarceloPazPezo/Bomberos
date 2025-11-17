@@ -14,13 +14,14 @@ import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import Card from '@components/Card';
+import Tooltip from '@components/Tooltip.jsx';
+import { MdHelpOutline } from 'react-icons/md';
 
 // 🔰 Iconos
 import {
   ClipboardList,
   Kanban,
   Plus,
-  Search,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -153,6 +154,7 @@ function KanbanCard({ parte, onClick }) {
 ========================= */
 function EstadoTable({ rows, onOpen, containerClass = "" }) {
   const navigate = useNavigate();
+  const { hasPermiso } = useAuth();
   const [deleting, setDeleting] = useState(false);
   
   // Aplanar datos para filtros y sort
@@ -244,10 +246,12 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
     return arr;
   }, [data, dateFilter, claveFilter, descFilter, globalFilter]);
 
-  const accionesBody = (row) => {
+  const accionesBody = (row, hasPermisoFn) => {
     const estadoKey = (row.estado || '').toUpperCase();
     const canEdit = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
     const puedeBorrar = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
+    const tienePermisoActualizar = hasPermisoFn('parte_emergencia:actualizar') || hasPermisoFn('parte_emergencia:admin');
+    const tienePermisoEliminar = hasPermisoFn('parte_emergencia:eliminar') || hasPermisoFn('parte_emergencia:admin');
     
     const onDelete = async (parte) => {
       if (!parte?.id || deleting) return;
@@ -284,7 +288,7 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
           tooltip="Ver"
           tooltipOptions={{ position: 'top' }}
         />
-        {canEdit && (
+        {canEdit && tienePermisoActualizar && (
           <Button 
             icon="pi pi-pencil" 
             className="p-button-sm p-button-text p-button-warning" 
@@ -293,7 +297,7 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
             tooltipOptions={{ position: 'top' }}
           />
         )}
-        {puedeBorrar && (
+        {puedeBorrar && tienePermisoEliminar && (
           <Button 
             icon="pi pi-trash" 
             className="p-button-sm p-button-text p-button-danger" 
@@ -332,7 +336,7 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
           <Column field="descripcionText" header="Descripción" body={descripcionBody} style={{ minWidth: '14rem' }}></Column>
           <Column field="tipo" header="Tipo" style={{ minWidth: '7rem' }}></Column>
           <Column field="compania" header="Compañía" style={{ minWidth: '9rem' }}></Column>
-          <Column header="Acciones" body={accionesBody} style={{ width: '7rem' }}></Column>
+          <Column header="Acciones" body={(row) => accionesBody(row, hasPermiso)} style={{ width: '7rem' }}></Column>
         </DataTable>
       </div>
     </Card>
@@ -416,31 +420,31 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
       />
       <aside className={`fixed right-0 top-0 h-full w-full sm:w-[560px] bg-white z-50 shadow-xl border-l border-gray-200 flex flex-col transform transition-transform duration-300 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}>
         {/* Header con color por estado */}
-        <header className={`px-4 py-3 border-b flex items-center justify-between ${headerStyle}`}>
-          <div className="text-sm font-semibold inline-flex items-center gap-2">
-            {ICON_BY_ESTADO[estadoKey] || <ClipboardList className="h-4 w-4" />}
+        <header className={`px-5 py-4 border-b flex items-center justify-between shadow-sm ${headerStyle}`}>
+          <div className="text-base font-semibold inline-flex items-center gap-2">
+            {ICON_BY_ESTADO[estadoKey] || <ClipboardList className="h-5 w-5" />}
             <span>Resumen del Reporte</span>
             {prettyEstado && (
-              <span className={`ml-2 px-2 py-0.5 text-[11px] rounded-full ${estadoChip} bg-white/15 text-white border-white/30`}>{prettyEstado}</span>
+              <span className={`ml-2 px-2.5 py-1 text-xs font-medium rounded-full ${estadoChip} bg-white/15 text-white border-white/30`}>{prettyEstado}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="rounded bg-white/10 hover:bg-white/20 text-white px-2 py-1 text-sm inline-flex items-center gap-1 border border-white/20"
+              className="rounded-lg bg-white/90 hover:bg-white text-gray-700 px-3 py-2 text-sm font-medium inline-flex items-center gap-1.5 border border-white/30 shadow-sm hover:shadow transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onNextPrev("prev")}
               title="Anterior"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
-              className="rounded bg-white/10 hover:bg-white/20 text-white px-2 py-1 text-sm inline-flex items-center gap-1 border border-white/20"
+              className="rounded-lg bg-white/90 hover:bg-white text-gray-700 px-3 py-2 text-sm font-medium inline-flex items-center gap-1.5 border border-white/30 shadow-sm hover:shadow transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={() => onNextPrev("next")}
               title="Siguiente"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
             <button
-              className="rounded bg-white/10 hover:bg-white/20 text-white px-2 py-1 text-sm inline-flex items-center gap-1 border border-white/20"
+              className="rounded-lg bg-white/90 hover:bg-white text-gray-700 px-3 py-2 text-sm font-medium inline-flex items-center gap-1.5 border border-white/30 shadow-sm hover:shadow transition-all duration-200 hover:scale-105 active:scale-95"
               onClick={handleClose}
               title="Cerrar"
             >
@@ -450,7 +454,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
         </header>
 
         {/* Contenido */}
-        <div className="p-4 overflow-auto text-sm">
+        <div className="flex-1 p-5 overflow-y-auto text-sm bg-gray-50/30">
           {/* Chips superiores */}
           <div className="flex flex-wrap items-center gap-2">
             {parte.tipo ? (
@@ -535,14 +539,14 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
           {/* Acciones */}
           <div className="mt-6 grid grid-cols-2 gap-3">
             <button
-              className="rounded-md border border-gray-300 px-3 py-2 hover:bg-gray-50 inline-flex items-center justify-center gap-2"
-              onClick={() => parte?.id && navigate(`/vistaparte/${parte.id}`)}
+              className="rounded-lg border-2 border-gray-300 bg-white text-gray-700 px-4 py-2.5 hover:bg-gray-50 hover:border-gray-400 font-medium inline-flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => parte?.id && navigate(`/vista-parte/${parte.id}`)}
             >
               <Eye className="h-4 w-4" /> Ver parte completo
             </button>
             {canEdit && (
               <button
-                className="rounded-md bg-blue-600 text-white px-3 py-2 hover:bg-blue-700 inline-flex items-center justify-center gap-2"
+                className="rounded-lg bg-blue-600 text-white px-4 py-2.5 hover:bg-blue-700 font-medium inline-flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={() => parte?.id && navigate(`/editar-parte/${parte.id}`)}
               >
                 <Pencil className="h-4 w-4" /> Actualizar parte
@@ -550,7 +554,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
             )}
             {puedeBorrar && (
               <button
-                className="col-span-2 rounded-md bg-red-600 text-white px-3 py-2 hover:bg-red-700 inline-flex items-center justify-center gap-2 disabled:opacity-60"
+                className="col-span-2 rounded-lg bg-red-600 text-white px-4 py-2.5 hover:bg-red-700 font-medium inline-flex items-center justify-center gap-2 transition-all duration-200 shadow-sm hover:shadow disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={onDelete}
                 disabled={deleting}
                 title="Eliminar parte (sólo estados Borrador o Corregir)"
@@ -574,7 +578,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
 ========================= */
 export default function PartesDeEmergencias() {
   const navigate = useNavigate();
-  const { bombero } = useAuth();
+  const { bombero, hasPermiso } = useAuth();
   const [query, setQuery] = useState("");
   const [items, setItems] = useState(EMPTY_LIST);
   const [selected, setSelected] = useState(null);
@@ -717,47 +721,54 @@ export default function PartesDeEmergencias() {
     <div className="min-h-[80vh]">
       {/* Confirmación global */}
       <ConfirmDialog />
-      {/* Header superior con tabs de filtro */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-gray-900 inline-flex items-center gap-2">
-              <ClipboardList className="h-5 w-5" /> Partes de Emergencias
-            </h1>
-            <div className="ml-auto flex items-center gap-2">
+      {/* Header principal con estilo glassmorphism */}
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ClipboardList className="h-8 w-8 text-[#4EB9FA]" />
+              <div>
+                <h1 className="text-2xl font-bold text-[#2C3E50]">Partes de Emergencias</h1>
+              </div>
+                <Tooltip
+                  id="partes-emergencias-help"
+                  content="Sistema de gestión de partes de emergencias. Aquí puedes crear, ver y gestionar todos los partes de emergencias reportados. El tablero Kanban te permite organizar los partes por estado para una mejor visualización y gestión."
+                  place="right"
+                  variant="dark"
+                >
+                <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+              </Tooltip>
+            </div>
+            
+            {/* Botón crear parte - Solo visible si tiene permiso */}
+            {(hasPermiso('parte_emergencia:crear') || hasPermiso('parte_emergencia:admin')) && (
               <button
                 type="button"
                 onClick={() => navigate('/crear-parte')}
-                className="inline-flex items-center gap-2 rounded-md bg-blue-600 text-white px-3 py-1.5 text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-3 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus className="h-4 w-4" /> Crear parte de emergencia
               </button>
-
-              {/* Search input con icono */}
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  placeholder="Filtrar por palabra clave"
-                  className="w-72 rounded-md border border-gray-300 bg-white pl-8 pr-3 py-1.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-            </div>
+            )}
           </div>
+        </div>
+      </div>
 
+      {/* Card de contenido con tabs y kanban */}
+      <div className="max-w-7xl mx-auto px-4 mt-2">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-4">
           {/* Tabs */}
-          <div className="mt-3 flex items-center gap-1 overflow-x-auto">
+          <div className="flex items-center gap-0 border-b border-gray-200 overflow-x-auto mb-4">
             <TabButton
               active={activeTab === "BOARD"}
-              label={<span className="inline-flex items-center gap-2"><Kanban className="h-4 w-4" /> Tablero</span>}
+              label={<span className="inline-flex items-center gap-1.5"><Kanban className="h-3.5 w-3.5" /> Tablero</span>}
               onClick={() => setActiveTab("BOARD")}
             />
             {loadingCols && (
-              <span className="text-xs text-gray-500 ml-2">Cargando estados…</span>
+              <span className="text-xs text-gray-500 ml-3 px-2 py-2">Cargando estados…</span>
             )}
             {errorCols && (
-              <span className="text-xs text-rose-600 ml-2">{String(errorCols)}</span>
+              <span className="text-xs text-rose-600 ml-3 px-2 py-2">{String(errorCols)}</span>
             )}
             {columns.map((c) => (
               <TabButton
@@ -765,10 +776,9 @@ export default function PartesDeEmergencias() {
                 active={activeTab === c.key}
                 estadoKey={c.key}
                 label={
-                  <div className="flex items-center gap-2">
-                   
+                  <div className="flex items-center gap-1.5">
                     {c.label}
-                    <span className="ml-1 text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700">
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
                       {(grouped[c.key] || []).length}
                     </span>
                   </div>
@@ -777,17 +787,15 @@ export default function PartesDeEmergencias() {
               />
             ))}
             {loadingItems && (
-              <span className="text-xs text-gray-500 ml-2">Cargando registros…</span>
+              <span className="text-xs text-gray-500 ml-3 px-2 py-2">Cargando registros…</span>
             )}
             {errorItems && (
-              <span className="text-xs text-rose-600 ml-2">{String(errorItems)}</span>
+              <span className="text-xs text-rose-600 ml-3 px-2 py-2">{String(errorItems)}</span>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Contenido */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
+          {/* Contenido */}
+          <div>
         {activeTab === "BOARD" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {columns.map((col) => {
@@ -856,6 +864,8 @@ export default function PartesDeEmergencias() {
             containerClass={CONTAINER_STYLE_BY_ESTADO[activeTab] || "border-gray-200 bg-white"}
           />
         )}
+          </div>
+        </div>
       </div>
 
       {/* Panel de detalle */}
@@ -870,20 +880,50 @@ export default function PartesDeEmergencias() {
 }
 
 /* =========================
-   Botón de Tab con colores + iconos
+   Botón de Tab con colores + iconos (estilo compacto similar a dashboard)
 ========================= */
 function TabButton({ active, label, onClick, estadoKey }) {
-  const styleClass = estadoKey ? (STYLE_BY_ESTADO[estadoKey] || "border-gray-200 bg-gray-100 text-gray-700") : "bg-white border-gray-300 text-gray-900";
   const icon = estadoKey ? (ICON_BY_ESTADO[estadoKey] || null) : null;
+  
+  // Colores por estado para el texto activo
+  const activeTextColorByEstado = {
+    BORRADOR: "text-gray-700",
+    ENVIADO: "text-blue-600",
+    APROBADO: "text-green-600",
+    CORREGIR: "text-red-600",
+  };
+  
+  // Colores por estado para el indicador inferior
+  const activeIndicatorColorByEstado = {
+    BORRADOR: "bg-gray-400",
+    ENVIADO: "bg-blue-500",
+    APROBADO: "bg-green-500",
+    CORREGIR: "bg-red-500",
+  };
+  
+  const activeTextColor = estadoKey 
+    ? (activeTextColorByEstado[estadoKey] || "text-blue-600")
+    : "text-blue-600";
+  
+  const activeIndicatorColor = estadoKey
+    ? (activeIndicatorColorByEstado[estadoKey] || "bg-blue-500")
+    : "bg-blue-500";
+  
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 text-sm rounded-md border inline-flex items-center gap-2 ${active
-        ? `${styleClass} shadow-sm`
-        : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-50"}`}
+      className={`relative px-3 py-2 text-sm font-medium transition-all duration-200 inline-flex items-center gap-1.5 ${
+        active
+          ? `${activeTextColor}`
+          : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+      }`}
     >
-      {icon}
+      {icon && <span className={active ? "" : "text-gray-400"}>{icon}</span>}
       {label}
+      {/* Indicador activo (línea inferior) */}
+      {active && (
+        <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${activeIndicatorColor}`}></div>
+      )}
     </button>
   );
 }

@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import Select from 'react-select';
 import { 
     MdLocationOn, MdAdd, MdEdit, MdDelete, MdClose, MdSave, MdRefresh,
     MdCheckCircle, MdWarning, MdCancel, MdBuild, MdBusiness,
-    MdVisibility, MdVisibilityOff, MdMap
+    MdVisibility, MdVisibilityOff, MdMap, MdHelpOutline
 } from 'react-icons/md';
+import Tooltip from '@components/Tooltip.jsx';
 import { FaFireExtinguisher } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { useAuth } from '@hooks/auth/useAuth';
@@ -17,7 +19,7 @@ import {
     updatePuntoGeografico, 
     deletePuntoGeografico 
 } from '@services/puntoGeografico.service';
-import { getJurisdicciones, createJurisdiccion } from '@services/jurisdiccion.service';
+import { getJurisdicciones, createJurisdiccion, updateJurisdiccion } from '@services/jurisdiccion.service';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import BomberosLoader from '@components/BomberosLoader';
 
@@ -79,6 +81,7 @@ const Mapa = () => {
     const [dibujarJuris, setDibujarJuris] = useState(false);
     const dibujarJurisRef = useRef(false);
     const [coordsDibujo, setCoordsDibujo] = useState([]);
+    const [editingJurisId, setEditingJurisId] = useState(null); // ID de la jurisdicción que se está editando
     const [loading, setLoading] = useState(false);
     const [modoAgregar, setModoAgregar] = useState(false);
     
@@ -100,6 +103,86 @@ const Mapa = () => {
     const [editingId, setEditingId] = useState(null);
     const [ultimaActualizacion, setUltimaActualizacion] = useState(null);
     const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0);
+
+    // Preparar opciones para los selects
+    const tipoPuntoOptions = useMemo(() => {
+        return tiposPunto.map(tipo => ({
+            value: tipo.id.toString(),
+            label: tipo.nombre
+        }));
+    }, [tiposPunto]);
+
+    const estadoOptions = useMemo(() => [
+        { value: 'BUENO', label: 'Bueno' },
+        { value: 'REGULAR', label: 'Regular' },
+        { value: 'MALO', label: 'Malo' },
+        { value: 'FUERA_DE_SERVICIO', label: 'Fuera de Servicio' }
+    ], []);
+
+    const selectedTipoPuntoOption = useMemo(() => {
+        if (!formData.idTipoPunto) return null;
+        return tipoPuntoOptions.find(opt => opt.value === formData.idTipoPunto.toString()) || null;
+    }, [formData.idTipoPunto, tipoPuntoOptions]);
+
+    const selectedEstadoOption = useMemo(() => {
+        return estadoOptions.find(opt => opt.value === formData.estado) || estadoOptions[0];
+    }, [formData.estado, estadoOptions]);
+
+    // Estilos para los Select (igual que en crear parte)
+    const selectStyles = useMemo(() => ({
+        control: (base, state) => ({
+            ...base,
+            borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+            borderWidth: '2px',
+            boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+            '&:hover': {
+                borderColor: '#4EB9FA',
+            },
+            minHeight: '44px',
+            borderRadius: '10px',
+            fontSize: '0.9rem',
+        }),
+        menu: (base) => ({
+            ...base,
+            zIndex: 25,
+            borderRadius: '10px',
+            overflow: 'hidden',
+        }),
+        menuList: (base) => ({
+            ...base,
+            maxHeight: '260px',
+        }),
+        option: (base, state) => ({
+            ...base,
+            backgroundColor: state.isSelected
+                ? '#4EB9FA'
+                : state.isFocused
+                    ? '#E0F2FE'
+                    : 'white',
+            color: state.isSelected ? '#FFFFFF' : '#1F2937',
+            fontSize: '0.9rem',
+        }),
+        placeholder: (base) => ({
+            ...base,
+            fontSize: '0.9rem',
+            color: '#9CA3AF',
+        }),
+        input: (base) => ({
+            ...base,
+            fontSize: '0.9rem',
+        }),
+        singleValue: (base) => ({
+            ...base,
+            fontSize: '0.9rem',
+            color: '#1F2937',
+        }),
+        menuPortal: (base) => ({
+            ...base,
+            zIndex: 9999,
+        }),
+    }), []);
+
+    const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
 
     // Renderiza el ícono SVG para la leyenda
     const renderLegendIcon = (icono, color, nombre) => {
@@ -493,45 +576,84 @@ const Mapa = () => {
                         if (openPopupRef.current && openPopupRef.current.isOpen()) {
                             openPopupRef.current.remove();
                         }
-                        const jurisPopup = new maplibregl.Popup({ closeButton: true, closeOnClick: true, className: 'custom-popup' })
+                        const jurisPopup = new maplibregl.Popup({ 
+                            closeButton: true, 
+                            closeOnClick: true, 
+                            className: 'custom-popup',
+                            closeOnMove: false,
+                            maxWidth: '600px'
+                        })
                             .setLngLat([center.lng, center.lat])
                             .setHTML(`
-                                <div class="p-4 min-w-[240px] max-w-[320px]">
-                                  <div class="flex items-center gap-3 mb-3">
-                                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm" style="background-color: ${j.color || '#16a34a'}">
-                                      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2m4 0h14v-2H7v2m0 4h14v-2H7v2M3 17h2v-2H3v2m0-8h2V7H3v2m4 0h14V7H7v2Z"/></svg>
+                                <div class="p-5 min-w-[450px] max-w-[600px]">
+                                    <!-- Header con diseño horizontal -->
+                                    <div class="flex items-start gap-4 mb-4 pb-4 border-b border-gray-200">
+                                        <!-- Icono grande -->
+                                        <div class="flex-shrink-0 w-14 h-14 rounded-xl flex items-center justify-center text-white shadow-lg" style="background: linear-gradient(135deg, ${j.color || '#16a34a'} 0%, ${j.color ? j.color + 'dd' : '#16a34a'} 100%)">
+                                            <svg class="w-7 h-7" viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2m4 0h14v-2H7v2m0 4h14v-2H7v2M3 17h2v-2H3v2m0-8h2V7H3v2m4 0h14V7H7v2Z"/></svg>
+                                        </div>
+                                        
+                                        <!-- Información principal -->
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="text-xl font-bold text-gray-900 mb-1 leading-tight">${toStartCase(j.nombre || 'Jurisdicción')}</h3>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold" style="background-color: ${j.color || '#16a34a'}20; color: ${j.color || '#16a34a'}">
+                                                    Área de cobertura
+                                                </span>
+                                                ${j.compañia || j.compania ? `
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                                                        </svg>
+                                                        ${toStartCase((j.compania && j.compania.nombre) || '')}
+                                                    </span>
+                                                ` : ''}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex-1">
-                                      <h3 class="text-lg font-semibold text-gray-900 leading-tight">${j.nombre || 'Jurisdicción'}</h3>
-                                      <p class="text-xs font-medium text-gray-500">Área de cobertura</p>
-                                    </div>
-                                  </div>
-
-                                  ${j.descripcion ? `
-                                    <div class="mb-3">
-                                      <p class="text-sm text-gray-700 leading-relaxed">${j.descripcion}</p>
-                                    </div>
-                                  ` : ''}
-
-                                  <div class="space-y-2 mb-1">
-                                    <div class="flex items-center gap-2 text-sm text-gray-600">
-                                      <span class="inline-block w-3 h-3 rounded-full border" style="background-color:${j.color || '#22c55e'}"></span>
-                                      <span class="font-medium">Color:</span>
-                                      <span class="text-gray-800 font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">${j.color || '#22c55e'}</span>
-                                    </div>
-                                    ${j.compañia || j.compania ? `
-                                      <div class="flex items-center gap-2 text-sm text-gray-600">
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M5 21V9l7-4 7 4v12"/></svg>
-                                        <span class="font-medium">Compañía:</span>
-                                        <span class="text-gray-800">${(j.compania && j.compania.nombre) || ''}</span>
-                                      </div>
+                                    
+                                    <!-- Descripción -->
+                                    ${j.descripcion ? `
+                                        <div class="mb-4">
+                                            <p class="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">${toStartCase(j.descripcion)}</p>
+                                        </div>
                                     ` : ''}
-                                    <div class="flex items-center gap-2 text-sm text-gray-600">
-                                      <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                      <span class="font-medium">Creada:</span>
-                                      <span class="text-gray-800 font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">${j.creadoEl ? formatDate(j.creadoEl) : 'N/D'}</span>
+                                    
+                                    <!-- Información en grid horizontal -->
+                                    <div class="grid grid-cols-2 gap-3 mb-4">
+                                        <!-- Color -->
+                                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                                            <div class="text-xs font-medium text-gray-500 mb-2">Color</div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="inline-block w-4 h-4 rounded-full border-2 border-gray-300 shadow-sm" style="background-color:${j.color || '#16a34a'}"></span>
+                                                <span class="text-sm text-gray-800 font-mono text-xs">${j.color || '#16a34a'}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Fecha -->
+                                        <div class="bg-white border border-gray-200 rounded-lg p-3">
+                                            <div class="text-xs font-medium text-gray-500 mb-2">Creada</div>
+                                            <div class="flex items-center gap-1.5 text-sm text-gray-800">
+                                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                                <span class="font-medium font-mono text-xs">${j.creadoEl ? formatDate(j.creadoEl) : 'N/D'}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                  </div>
+                                        
+                                    <!-- Botones de acción -->
+                                    <div class="flex gap-3 pt-3 border-t border-gray-200">
+                                        <button 
+                                            onclick="window.editarJurisdiccion && window.editarJurisdiccion(${j.id})"
+                                            class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                            Editar Jurisdicción
+                                        </button>
+                                    </div>
                                 </div>
                               `)
                             .addTo(map.current);
@@ -606,9 +728,9 @@ const Mapa = () => {
                 closeOnClick: false,
                 className: 'custom-popup',
                 closeOnMove: false,
-                maxWidth: '480px'
+                maxWidth: '600px'
             }).setHTML(`
-                <div class="p-5 min-w-[380px] max-w-[480px]">
+                <div class="p-5 min-w-[450px] max-w-[600px]">
                     <!-- Header con diseño horizontal -->
                     <div class="flex items-start gap-4 mb-4 pb-4 border-b border-gray-200">
                         <!-- Icono grande -->
@@ -716,6 +838,12 @@ const Mapa = () => {
         window.editarPunto = (id) => {
             const punto = puntos.find(p => p.id === id);
             if (punto) {
+                // Cerrar popup si está abierto
+                if (openPopupRef.current) {
+                    openPopupRef.current.remove();
+                    openPopupRef.current = null;
+                }
+                
                 setFormData({
                     nombre: punto.nombre,
                     descripcion: punto.descripcion || '',
@@ -727,6 +855,11 @@ const Mapa = () => {
                 setEditingId(id);
                 setModoAgregar(true);
                 
+                // Ocultar el marcador original mientras se edita
+                if (markersRef.current[id]) {
+                    markersRef.current[id].getElement().style.display = 'none';
+                }
+                
                 setTimeout(() => {
                     if (maplibregl && map.current) {
                         if (tempMarkerRef.current) {
@@ -734,16 +867,43 @@ const Mapa = () => {
                         }
                         
                         const el = document.createElement('div');
-                        el.style.width = '40px';
-                        el.style.height = '40px';
+                        el.style.width = '50px';
+                        el.style.height = '50px';
                         el.style.backgroundImage = 'url(data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzRFQjlGQSIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0xMiAyQzguMTMgMiA1IDUuMTMgNSA5YzAgNS4yNSA3IDEzIDcgMTNzNy03Ljc1IDctMTNjMC0zLjg3LTMuMTMtNy03LTd6bTAgOS41Yy0xLjM4IDAtMi41LTEuMTItMi41LTIuNXMxLjEyLTIuNSAyLjUtMi41IDIuNSAxLjEyIDIuNSAyLjUtMS4xMiAyLjUtMi41IDIuNXoiLz48L3N2Zz4=)';
                         el.style.backgroundSize = 'contain';
                         el.style.backgroundRepeat = 'no-repeat';
-                        el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))';
+                        el.style.backgroundPosition = 'center';
+                        el.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.4))';
+                        el.style.cursor = 'grab';
+                        el.style.zIndex = '1000';
+                        el.title = 'Arrastra para mover el punto';
                         
-                        tempMarkerRef.current = new maplibregl.Marker(el)
+                        // Crear marcador arrastrable cuando se está editando
+                        tempMarkerRef.current = new maplibregl.Marker({
+                            element: el,
+                            draggable: true
+                        })
                             .setLngLat([punto.coordenadas.lng, punto.coordenadas.lat])
                             .addTo(map.current);
+                        
+                        // Cambiar cursor cuando se arrastra
+                        tempMarkerRef.current.on('dragstart', () => {
+                            el.style.cursor = 'grabbing';
+                        });
+                        
+                        tempMarkerRef.current.on('dragend', () => {
+                            el.style.cursor = 'grab';
+                            const lngLat = tempMarkerRef.current.getLngLat();
+                            setFormData(prev => ({
+                                ...prev,
+                                lat: lngLat.lat,
+                                lng: lngLat.lng
+                            }));
+                            toast.success(`Ubicación actualizada: ${lngLat.lat.toFixed(6)}, ${lngLat.lng.toFixed(6)}`, {
+                                duration: 2000,
+                                icon: '📍'
+                            });
+                        });
                             
                         map.current.flyTo({
                             center: [punto.coordenadas.lng, punto.coordenadas.lat],
@@ -781,11 +941,49 @@ const Mapa = () => {
             }
         };
 
+        window.editarJurisdiccion = (id) => {
+            const jurisdiccion = jurisdicciones.find(j => j.id === id);
+            if (jurisdiccion) {
+                // Cerrar popup si está abierto
+                if (openPopupRef.current) {
+                    openPopupRef.current.remove();
+                    openPopupRef.current = null;
+                }
+                
+                // Cargar datos de la jurisdicción en el formulario
+                setJurisForm({
+                    nombre: jurisdiccion.nombre || '',
+                    descripcion: jurisdiccion.descripcion || '',
+                    color: jurisdiccion.color || '#22c55e'
+                });
+                
+                // Cargar coordenadas de la jurisdicción
+                if (jurisdiccion.coordenadas && Array.isArray(jurisdiccion.coordenadas) && jurisdiccion.coordenadas.length > 0) {
+                    const coords = jurisdiccion.coordenadas.map(c => [c.lng, c.lat]);
+                    setCoordsDibujo(coords);
+                }
+                
+                // Activar modo edición
+                setEditingJurisId(id);
+                setDibujarJuris(true);
+                
+                // Centrar mapa en la jurisdicción
+                if (map.current && jurisdiccion.coordenadas && jurisdiccion.coordenadas.length > 0) {
+                    const firstCoord = jurisdiccion.coordenadas[0];
+                    map.current.flyTo({
+                        center: [firstCoord.lng, firstCoord.lat],
+                        zoom: 13
+                    });
+                }
+            }
+        };
+
         return () => {
             delete window.editarPunto;
             delete window.eliminarPunto;
+            delete window.editarJurisdiccion;
         };
-    }, [puntos]);
+    }, [puntos, jurisdicciones]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -831,6 +1029,13 @@ const Mapa = () => {
             tempMarkerRef.current.remove();
             tempMarkerRef.current = null;
         }
+        
+        // Restaurar visibilidad de todos los marcadores
+        Object.values(markersRef.current).forEach(marker => {
+            if (marker && marker.getElement()) {
+                marker.getElement().style.display = '';
+            }
+        });
         
         setFormData({
             nombre: '',
@@ -884,87 +1089,98 @@ const Mapa = () => {
             `}</style>
             
             <div className="flex flex-col h-[calc(100dvh-8rem)] bg-gray-50 overflow-hidden">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <MdMap className="w-8 h-8 text-blue-600" />
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Mapa</h1>
-                            <p className="text-sm text-gray-600">Gestiona puntos de interés y jurisdicciones</p>
-                        </div>
-                    </div>
-
-                    {/* Filtros de categoría */}
-                    <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
-                        <span className="text-sm font-medium text-gray-700">Mostrar:</span>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={filtrosCategorias.PUNTO_INTERES}
-                                onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, PUNTO_INTERES: e.target.checked }))}
-                                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                            />
-                            <span className="text-sm text-gray-700">Puntos de Interés</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={filtrosCategorias.UBICACION_BOMBERO}
-                                onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, UBICACION_BOMBERO: e.target.checked }))}
-                                className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
-                            />
-                            <span className="text-sm text-gray-700">Ubicaciones Bomberos</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={filtrosCategorias.INCIDENTE}
-                                onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, INCIDENTE: e.target.checked }))}
-                                className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500"
-                            />
-                            <span className="text-sm text-gray-700">Incidentes</span>
-                        </label>
-                    </div>
-                    
-                    <div className="flex gap-3">
-                        <div className="flex gap-2">
-                        <button
-                                type="button"
-                                onClick={() => setDibujarJuris(v => !v)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white disabled:bg-gray-400"
-                                title="Dibujar polígono de jurisdicción"
-                            >
-                                {dibujarJuris ? 'Finalizar Dibujo' : 'Dibujar Jurisdicción'}
-                        </button>
-                        <button
-                            onClick={() => setModoAgregar(!modoAgregar)}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white"
-                        >
-                            {modoAgregar ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
-                            {modoAgregar ? 'Cancelar' : 'Nuevo Punto'}
-                        </button>
-                    </div>
-                        
-                        <button
-                            onClick={cargarDatos}
-                            disabled={loading}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        >
-                            <MdRefresh className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                            {loading ? 'Actualizando...' : 'Actualizar'}
-                        </button>
-                        
-                        {ultimaActualizacion && (
-                            <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                                <span className="text-sm text-green-700 font-medium">
-                                    Fecha de última actualización:
-                                </span>
-                                <span className="text-sm text-green-800 font-semibold">
-                                    {formatTiempoTranscurrido(tiempoTranscurrido)}
-                                </span>
+            {/* Header principal con estilo glassmorphism */}
+            <div className="px-4 py-3 w-full">
+                <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                        {/* Título con icono y tooltip */}
+                        <div className="flex items-center gap-3">
+                            <MdMap className="h-8 w-8 text-[#4EB9FA]" />
+                            <div>
+                                <h1 className="text-2xl font-bold text-[#2C3E50]">Mapa</h1>
                             </div>
-                        )}
+                            <Tooltip
+                                id="mapa-help"
+                                content="Gestiona puntos de interés, ubicaciones de bomberos, incidentes y jurisdicciones en el mapa. Puedes agregar nuevos puntos, dibujar polígonos de jurisdicción, filtrar por categorías y visualizar información geográfica relevante."
+                                place="right"
+                                variant="dark"
+                            >
+                                <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+                            </Tooltip>
+                        </div>
+
+                        {/* Filtros de categoría */}
+                        <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                            <span className="text-sm font-medium text-gray-700">Mostrar:</span>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={filtrosCategorias.PUNTO_INTERES}
+                                    onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, PUNTO_INTERES: e.target.checked }))}
+                                    className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                />
+                                <span className="text-sm text-gray-700">Puntos de Interés</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={filtrosCategorias.UBICACION_BOMBERO}
+                                    onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, UBICACION_BOMBERO: e.target.checked }))}
+                                    className="w-4 h-4 text-green-600 rounded focus:ring-2 focus:ring-green-500"
+                                />
+                                <span className="text-sm text-gray-700">Ubicaciones Bomberos</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={filtrosCategorias.INCIDENTE}
+                                    onChange={(e) => setFiltrosCategorias(prev => ({ ...prev, INCIDENTE: e.target.checked }))}
+                                    className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500"
+                                />
+                                <span className="text-sm text-gray-700">Incidentes</span>
+                            </label>
+                        </div>
+                        
+                        {/* Botones de acción */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setDibujarJuris(v => !v)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white disabled:bg-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                                    title="Dibujar polígono de jurisdicción"
+                                >
+                                    {dibujarJuris ? 'Finalizar Dibujo' : 'Dibujar Jurisdicción'}
+                                </button>
+                                <button
+                                    onClick={() => setModoAgregar(!modoAgregar)}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition-all duration-200 shadow-sm hover:shadow-md"
+                                >
+                                    {modoAgregar ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
+                                    {modoAgregar ? 'Cancelar' : 'Nuevo Punto'}
+                                </button>
+                            </div>
+                            
+                            <button
+                                onClick={cargarDatos}
+                                disabled={loading}
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
+                            >
+                                <MdRefresh className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                                {loading ? 'Actualizando...' : 'Actualizar'}
+                            </button>
+                            
+                            {ultimaActualizacion && (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                                    <span className="text-sm text-green-700 font-medium">
+                                        Última actualización:
+                                    </span>
+                                    <span className="text-sm text-green-800 font-semibold">
+                                        {formatTiempoTranscurrido(tiempoTranscurrido)}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -984,53 +1200,115 @@ const Mapa = () => {
                         {mostrarJurisdicciones ? <MdVisibility className="w-6 h-6" /> : <MdVisibilityOff className="w-6 h-6" />}
                     </button>
                     {dibujarJuris && (
-                        <div className="absolute top-4 left-4 z-10 w-[420px] max-w-[92vw]">
-                            <div className="bg-white/95 backdrop-blur rounded-xl shadow-xl border border-gray-200 overflow-hidden">
-                                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-gray-900">Dibujar jurisdicción</h4>
-                                        <p className="text-xs text-gray-500">Haz clic en el mapa para agregar vértices</p>
-                                    </div>
-                                    <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">{coordsDibujo.length} puntos</span>
+                        <div className="absolute top-0 right-0 h-full w-96 bg-white border-l border-gray-200 overflow-y-auto z-20 shadow-lg">
+                            <div className="p-6 space-y-4">
+                                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                    {editingJurisId ? <MdEdit className="w-6 h-6" /> : <MdAdd className="w-6 h-6" />}
+                                    {editingJurisId ? 'Editar Jurisdicción' : 'Nueva Jurisdicción'}
+                                </h2>
+                                
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p className="text-sm font-medium text-blue-800 flex items-center gap-2 mb-1">
+                                        <MdLocationOn className="w-5 h-5" />
+                                        {editingJurisId ? 'Modifica el polígono haciendo clic en el mapa' : 'Haz clic en el mapa para agregar vértices'}
+                                    </p>
+                                    <p className="text-xs text-blue-700">
+                                        Puntos agregados: <span className="font-semibold">{coordsDibujo.length}</span> {coordsDibujo.length < 3 && '(mínimo 3)'}
+                                    </p>
                                 </div>
 
-                                <div className="px-4 pt-3 grid grid-cols-3 gap-3">
-                                    <div className="col-span-2">
-                                        <label className="block text-xs text-gray-600 mb-1">Nombre</label>
-                                        <input
-                                            type="text"
-                                            value={jurisForm.nombre}
-                                            onChange={(e)=>setJurisForm({ ...jurisForm, nombre: e.target.value })}
-                                            className="w-full px-2 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Ej: Zona Norte"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs text-gray-600 mb-1">Color</label>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Nombre *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={jurisForm.nombre}
+                                        onChange={(e)=>setJurisForm({ ...jurisForm, nombre: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        placeholder="Ej: Zona Norte"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Descripción
+                                    </label>
+                                    <textarea
+                                        value={jurisForm.descripcion}
+                                        onChange={(e)=>setJurisForm({ ...jurisForm, descripcion: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        rows="3"
+                                        placeholder="Descripción de la jurisdicción..."
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Color
+                                    </label>
+                                    <div className="flex items-center gap-3">
                                         <input
                                             type="color"
                                             value={jurisForm.color}
                                             onChange={(e)=>setJurisForm({ ...jurisForm, color: e.target.value })}
-                                            className="w-full h-9 rounded"
+                                            className="w-16 h-10 rounded border border-gray-300 cursor-pointer"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={jurisForm.color}
+                                            onChange={(e)=>setJurisForm({ ...jurisForm, color: e.target.value })}
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                                            placeholder="#22c55e"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="px-4 mt-2">
-                                    <ul className="text-[11px] text-gray-500 space-y-1 list-disc pl-4">
-                                        <li>Clic para agregar puntos. Necesitas al menos 3.</li>
-                                        <li>Usa "Deshacer" para remover el último vértice.</li>
-                                        <li>"Limpiar" reinicia el dibujo.</li>
+                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <p className="text-xs font-medium text-gray-700 mb-2">Instrucciones:</p>
+                                    <ul className="text-xs text-gray-600 space-y-1 list-disc pl-4">
+                                        <li>Clic en el mapa para agregar vértices</li>
+                                        <li>Necesitas al menos 3 puntos para crear el polígono</li>
+                                        <li>Usa los botones para deshacer o limpiar</li>
                                     </ul>
                                 </div>
 
-                                <div className="px-4 py-3 flex flex-wrap items-center gap-2 border-t border-gray-100">
-                                    <button type="button" onClick={()=>setCoordsDibujo(prev=>prev.slice(0,-1))} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800">Deshacer</button>
-                                    <button type="button" onClick={()=>{ setCoordsDibujo([]); }} className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800">Limpiar</button>
-                                    <button type="button" onClick={()=>setDibujarJuris(false)} className="px-3 py-1.5 rounded-lg bg-gray-600 hover:bg-gray-700 text-white ml-auto">Salir</button>
+                                <div className="flex gap-2 pt-2">
+                                    <button 
+                                        type="button" 
+                                        onClick={()=>setCoordsDibujo(prev=>prev.slice(0,-1))} 
+                                        disabled={coordsDibujo.length === 0}
+                                        className="flex-1 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+                                    >
+                                        Deshacer
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={()=>{ setCoordsDibujo([]); }} 
+                                        disabled={coordsDibujo.length === 0}
+                                        className="flex-1 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800 disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed text-sm font-medium"
+                                    >
+                                        Limpiar
+                                    </button>
+                                </div>
+                                <div className="flex gap-3 pt-4 border-t border-gray-200">
                                     <button
                                         type="button"
-                                        disabled={coordsDibujo.length < 3 || loading}
+                                        onClick={() => {
+                                            setDibujarJuris(false);
+                                            setCoordsDibujo([]);
+                                            setEditingJurisId(null);
+                                            setJurisForm({ nombre: '', descripcion: '', color: '#22c55e' });
+                                        }}
+                                        className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                                    >
+                                        <MdClose className="w-5 h-5" />
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={coordsDibujo.length < 3 || loading || !jurisForm.nombre.trim()}
                                         onClick={async()=>{
                                             if (!user?.companiaId) { toast.error('No se pudo obtener la compañía del usuario'); return; }
                                             try {
@@ -1039,22 +1317,53 @@ const Mapa = () => {
                                                 const first = coordenadas[0];
                                                 const last = coordenadas[coordenadas.length-1];
                                                 if (first.lat !== last.lat || first.lng !== last.lng) coordenadas.push({ ...first });
-                                                await createJurisdiccion({ nombre: jurisForm.nombre || 'Jurisdicción', descripcion: jurisForm.descripcion || '', color: jurisForm.color || '#22c55e', coordenadas, idCompania: user.companiaId });
-                                                toast.success('Jurisdicción creada');
+                                                
+                                                if (editingJurisId) {
+                                                    // Actualizar jurisdicción existente
+                                                    const result = await updateJurisdiccion(editingJurisId, {
+                                                        nombre: jurisForm.nombre || 'Jurisdicción',
+                                                        descripcion: jurisForm.descripcion || '',
+                                                        color: jurisForm.color || '#22c55e',
+                                                        coordenadas
+                                                    });
+                                                    if (result?.status === 'Success') {
+                                                        toast.success('Jurisdicción actualizada');
+                                                    } else {
+                                                        toast.error('Error al actualizar la jurisdicción');
+                                                    }
+                                                } else {
+                                                    // Crear nueva jurisdicción
+                                                    await createJurisdiccion({ 
+                                                        nombre: jurisForm.nombre || 'Jurisdicción', 
+                                                        descripcion: jurisForm.descripcion || '', 
+                                                        color: jurisForm.color || '#22c55e', 
+                                                        coordenadas, 
+                                                        idCompania: user.companiaId 
+                                                    });
+                                                    toast.success('Jurisdicción creada');
+                                                }
+                                                
                                                 setDibujarJuris(false);
                                                 setCoordsDibujo([]);
+                                                setEditingJurisId(null);
+                                                setJurisForm({ nombre: '', descripcion: '', color: '#22c55e' });
                                                 await cargarDatos();
-                                            } catch (e) { toast.error('Error al crear la jurisdicción'); } finally { setLoading(false); }
+                                            } catch (e) { 
+                                                toast.error(editingJurisId ? 'Error al actualizar la jurisdicción' : 'Error al crear la jurisdicción'); 
+                                            } finally { 
+                                                setLoading(false); 
+                                            }
                                         }}
-                                        className="w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300"
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
                                     >
-                                        {loading ? 'Guardando…' : 'Guardar'}
+                                        <MdSave className="w-5 h-5" />
+                                        {loading ? 'Guardando…' : editingJurisId ? 'Actualizar' : 'Guardar'}
                                     </button>
                                 </div>
                             </div>
                         </div>
                     )}
-                    {!dibujarJuris && (
+                    {!dibujarJuris && !modoAgregar && (
                         <div className="absolute bottom-4 left-4 bg-white bg-opacity-95 p-4 rounded-lg shadow-lg border border-gray-200 w-64 z-10">
                             <h4 className="text-md font-bold mb-3 text-gray-800">Leyenda de puntos</h4>
                             <ul className="space-y-3">
@@ -1067,11 +1376,11 @@ const Mapa = () => {
                             </ul>
                         </div>
                     )}
-                    {modoAgregar && (
-                        <div className="absolute top-4 left-4 bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 shadow-lg">
+                    {(modoAgregar || dibujarJuris) && (
+                        <div className="absolute top-4 left-4 bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 shadow-lg z-10">
                             <p className="text-sm font-medium text-yellow-800">
                                 <MdLocationOn className="inline w-5 h-5 mr-1" />
-                                Haz clic en el mapa para seleccionar la ubicación
+                                {modoAgregar ? 'Haz clic en el mapa para seleccionar la ubicación' : 'Haz clic en el mapa para agregar vértices al polígono'}
                             </p>
                         </div>
                     )}
@@ -1103,19 +1412,18 @@ const Mapa = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Tipo de Punto *
                                 </label>
-                                <select
-                                    required
-                                    value={formData.idTipoPunto}
-                                    onChange={(e) => setFormData({ ...formData, idTipoPunto: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="">Selecciona un tipo</option>
-                                    {tiposPunto.map(tipo => (
-                                        <option key={tipo.id} value={tipo.id}>
-                                            {tipo.nombre}
-                                        </option>
-                                    ))}
-                                </select>
+                                <Select
+                                    inputId="tipoPunto"
+                                    isSearchable
+                                    isClearable
+                                    value={selectedTipoPuntoOption}
+                                    options={tipoPuntoOptions}
+                                    onChange={(option) => setFormData({ ...formData, idTipoPunto: option?.value || '' })}
+                                    placeholder="Selecciona un tipo"
+                                    styles={selectStyles}
+                                    classNamePrefix="tipo-punto-select"
+                                    menuPortalTarget={selectMenuPortalTarget}
+                                />
                                 {formData.idTipoPunto && (
                                     <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                                         {renderIcon(
@@ -1131,17 +1439,17 @@ const Mapa = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Estado del Punto *
                                 </label>
-                                <select
-                                    required
-                                    value={formData.estado}
-                                    onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                >
-                                    <option value="BUENO">Bueno</option>
-                                    <option value="REGULAR">Regular</option>
-                                    <option value="MALO">Malo</option>
-                                    <option value="FUERA_DE_SERVICIO">Fuera de Servicio</option>
-                                </select>
+                                <Select
+                                    inputId="estadoPunto"
+                                    isSearchable={false}
+                                    value={selectedEstadoOption}
+                                    options={estadoOptions}
+                                    onChange={(option) => setFormData({ ...formData, estado: option?.value || 'BUENO' })}
+                                    placeholder="Selecciona un estado"
+                                    styles={selectStyles}
+                                    classNamePrefix="estado-punto-select"
+                                    menuPortalTarget={selectMenuPortalTarget}
+                                />
                                 <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                                     {formData.estado === 'BUENO' && <><MdCheckCircle className="text-green-600" /> Estado Bueno</>}
                                     {formData.estado === 'REGULAR' && <><MdWarning className="text-yellow-600" /> Estado Regular</>}

@@ -3,6 +3,7 @@ import Layout from '@components/Layout';
 import { GlobalAvailabilityProvider } from '@context/GlobalAvailabilityContext';
 import { NotificationProvider } from '@context/NotificationContext';
 import { AuthProvider } from '@context/AuthContext';
+import { FireAlertProvider } from '@components/FireAlertProvider';
 import { useAuth } from '@hooks/auth/useAuth';
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
@@ -14,7 +15,9 @@ function Root() {
     <AuthProvider>
       <GlobalAvailabilityProvider>
         <NotificationProvider>
+          <FireAlertProvider>
           <AuthWrapper sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          </FireAlertProvider>
         </NotificationProvider>
       </GlobalAvailabilityProvider>
     </AuthProvider>

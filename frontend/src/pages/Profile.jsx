@@ -21,7 +21,8 @@ import {
   MdInfo,
   MdCake,
   MdWaterDrop,
-  MdShield
+  MdShield,
+  MdHelpOutline
 } from 'react-icons/md';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -44,6 +45,7 @@ import {
   capacitacionUpdatedToast,
   capacitacionDeletedToast
 } from '@helpers/toastHelper';
+import Tooltip from '@components/Tooltip.jsx';
 
 // PrimeReact
 import { DataTable } from 'primereact/datatable';
@@ -69,8 +71,9 @@ const HistorialTable = ({ data }) => {
 
   // Preparar datos para la tabla
   const tableData = useMemo(() => {
-    return data.map(item => ({
+    return data.map((item, index) => ({
       ...item,
+      id: item.id || item.ref_id || `${item.fecha}_${item.tipo}_${item.descripcion}_${index}`,
       fechaStr: item.fecha || item.createdAt || item.creadoEl || '',
       tipoStr: item.tipo || '',
       descripcionStr: item.descripcion || '',
@@ -694,7 +697,7 @@ const Profile = () => {
   if (loading && !bomberoData) {
     return (
       <div className="p-3 sm:p-4 lg:p-6">
-        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl p-6 flex items-center justify-center min-h-[400px]">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6 flex items-center justify-center min-h-[400px]">
           <BomberosLoader size="lg" message="Cargando tu perfil..." />
         </div>
       </div>
@@ -704,24 +707,29 @@ const Profile = () => {
   return (
     <div className="p-3 sm:p-4 lg:p-6">
       {/* Header principal */}
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl mb-3 p-4">
-            <div className="flex items-center justify-between">
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl mb-3 p-6">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <MdPerson className="h-6 w-6 text-[#4EB9FA]" />
-              <div>
-              <h1 className="text-xl font-bold text-[#2C3E50]">
+            <MdPerson className="h-8 w-8 text-[#4EB9FA]" />
+            <div>
+              <h1 className="text-2xl font-bold text-[#2C3E50]">
                 Mi Perfil
               </h1>
-              <p className="text-gray-600 text-xs">
-                Gestiona tu información personal y profesional
-              </p>
             </div>
+            <Tooltip
+              id="perfil-help"
+              content="Gestiona tu información personal y profesional. Aquí puedes editar tus datos personales, agregar contactos de emergencia, registrar capacitaciones, ver tu historial y gestionar tu equipo de protección personal (EPP)."
+              place="right"
+              variant="dark"
+            >
+              <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+            </Tooltip>
           </div>
-            </div>
-          </div>
+        </div>
+      </div>
 
       {/* Layout principal: 1/3 imagen + 2/3 pestañas */}
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl overflow-hidden">
         <div className="flex flex-col lg:flex-row min-h-[500px]">
           {/* Sección de imagen de perfil (1/3) - Formato Carnet */}
           <div className="lg:w-1/3 bg-linear-to-br from-[#4EB9FA] to-[#3A9BD9] flex flex-col relative overflow-hidden">
@@ -808,14 +816,14 @@ const Profile = () => {
 
             {/* Contenido de las pestañas */}
             <div className="flex-1 p-4 bg-gray-50 overflow-y-auto">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[350px]">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[350px] w-full">
             {activeTab === 'personal' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="text-lg font-semibold text-gray-900">Datos Personales</h4>
                   <button
                     onClick={() => handleEditSection('personal')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     <MdEdit className="w-4 h-4" />
                     <span>Editar</span>
@@ -906,7 +914,7 @@ const Profile = () => {
                     </div>
 
                     {/* Información Extra - Nuevo diseño tipo carnet */}
-                    <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200 shadow-lg">
+                    <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200 shadow-md">
                       <h5 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                         <MdInfo className="w-5 h-5 text-amber-600 mr-2" />
                         Información Adicional
@@ -1030,7 +1038,7 @@ const Profile = () => {
                   <h4 className="text-lg font-semibold text-gray-900">Contactos de Emergencia</h4>
                   <button
                     onClick={() => handleEditSection('emergency')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     <MdAdd className="w-4 h-4" />
                     <span>Agregar Contacto</span>
@@ -1049,9 +1057,9 @@ const Profile = () => {
                     <p className="text-red-700 mt-1">{error}</p>
                   </div>
                 ) : contactosEmergencia.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                     {contactosEmergencia.map((contacto) => (
-                      <div key={contacto.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div key={contacto.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200 w-full">
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-3 flex-1">
                             <MdEmergency className="w-8 h-8 text-blue-600 mt-1" />
@@ -1090,7 +1098,7 @@ const Profile = () => {
                     <p className="text-gray-600">No hay contactos de emergencia registrados</p>
                     <button
                       onClick={() => handleEditSection('emergency')}
-                      className="mt-4 flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors mx-auto"
+                      className="mt-4 flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 mx-auto"
                     >
                       <MdAdd className="w-4 h-4" />
                       <span>Agregar primer contacto</span>
@@ -1106,7 +1114,7 @@ const Profile = () => {
                   <h4 className="text-lg font-semibold text-gray-900">Capacitaciones</h4>
                         <button
                     onClick={() => handleEditSection('training')}
-                    className="flex items-center space-x-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
                         >
                     <MdAdd className="w-4 h-4" />
                     <span>Agregar Capacitación</span>
@@ -1125,9 +1133,9 @@ const Profile = () => {
                     <p className="text-red-700 mt-1">{error}</p>
                   </div>
                 ) : capacitaciones.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 w-full">
                     {capacitaciones.map((capacitacion) => (
-                      <div key={capacitacion.id} className="bg-green-50 p-4 rounded-lg border border-green-200">
+                      <div key={capacitacion.id} className="bg-green-50 p-4 rounded-lg border border-green-200 w-full">
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-3 flex-1">
                             <MdSchool className="w-6 h-6 text-green-600 mt-1" />
@@ -1172,7 +1180,7 @@ const Profile = () => {
                     <p className="text-gray-600">No hay capacitaciones registradas</p>
                     <button
                       onClick={() => handleEditSection('training')}
-                      className="mt-4 flex items-center space-x-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors mx-auto"
+                      className="mt-4 flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 mx-auto"
                     >
                       <MdAdd className="w-4 h-4" />
                       <span>Agregar primera capacitación</span>
@@ -1200,9 +1208,9 @@ const Profile = () => {
                     <p className="text-red-700 mt-1">{error}</p>
                   </div>
                 ) : eppAcargo && eppAcargo.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4 w-full">
                     {eppAcargo.map((epp) => (
-                      <div key={epp.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div key={epp.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200 w-full">
                         <div className="flex items-start justify-between">
                           <div className="flex items-start space-x-3 flex-1">
                             <MdShield className="w-6 h-6 text-blue-600 mt-1" />
@@ -1279,7 +1287,7 @@ const Profile = () => {
                     <p className="text-red-700 mt-1">{errorHistorial}</p>
                     <button
                       onClick={loadHistorial}
-                      className="mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
+                      className="mt-3 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
                     >
                       Reintentar
                     </button>

@@ -1,21 +1,19 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useRef } from 'react';
 import { login } from '@services/auth.service.js';
 import useLogin from '@hooks/auth/useLogin.jsx';
 import { showErrorAlert } from "../helpers/sweetAlert.js";
 import Form from '@components/Form';
-import { MdPerson, MdClose, MdSecurity, MdDashboard, MdTrendingUp, MdArrowForward, MdLocalFireDepartment, MdEmergency, MdGroup } from 'react-icons/md';
-import { useRutFormatter, formatRutForAPI, formatRutForDisplay } from '@helpers/rutFormatter.js';
+import { MdLocalFireDepartment, MdEmergency, MdGroup } from 'react-icons/md';
+import { useRutFormatter, formatRutForAPI } from '@helpers/rutFormatter.js';
 
 const Login = () => {
     const navigate = useNavigate();
-    const [showBaseUsers, setShowBaseUsers] = useState(false);
     const formRef = useRef(null);
     const {
         errorRut,
         errorPassword,
         errorData,
-        clearErrors
     } = useLogin();
 
     // Hook para formateo de RUT
@@ -23,34 +21,6 @@ const Login = () => {
         (fieldName, value) => formRef.current?.setValue(fieldName, value),
         'run'
     );
-
-    // Usuarios base del initialSetup
-    const baseUsers = [
-        {
-            name: "Admin Principal",
-            email: "admin@example.com",
-            run: "1234567-4",
-            password: "user1234",
-            role: "Administrador",
-            description: "Usuario administrador con acceso total al sistema"
-        },
-        {
-            name: "Juan Andrés Pérez",
-            email: "editor.juan@example.com", 
-            run: "12345678-5",
-            password: "user1234",
-            role: "Supervisor",
-            description: "Usuario supervisor con permisos limitados"
-        },
-        {
-            name: "Ana Lucia López",
-            email: "ana.lopez@example.com",
-            run: "18765432-7", 
-            password: "user1234",
-            role: "Usuario",
-            description: "Usuario básico (Nota: Este usuario está inactivo)"
-        }
-    ];
 
     const loginSubmit = async (data) => {
         try {
@@ -73,19 +43,6 @@ const Login = () => {
         }
     };
 
-
-
-    const selectBaseUser = (user) => {
-        if (formRef.current) {
-            // Formatear RUT para visualización (con puntos y guión)
-            const formattedRut = formatRutForDisplay(user.run);
-            formRef.current.setValue('run', formattedRut);
-            formRef.current.setValue('password', user.password);
-        }
-        clearErrors(); // Limpiar errores al seleccionar un usuario
-        setShowBaseUsers(false);
-    };
-
     return (
         <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 p-4">
             {/* Efectos de fondo sutiles */}
@@ -100,8 +57,12 @@ const Login = () => {
                 <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-white/95 backdrop-blur-sm px-6 py-8">
                     <div className="w-full max-w-sm">
                         <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-red-500 to-orange-600 rounded-full mb-3">
-                                <MdLocalFireDepartment className="w-6 h-6 text-white" />
+                            <div className="inline-flex items-center justify-center w-12 h-12 mb-3">
+                                <img 
+                                    src="/favicon.png" 
+                                    alt="Logo Bomberos" 
+                                    className="w-12 h-12 object-contain"
+                                />
                             </div>
                             <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-1">Sistema Bomberos</h1>
                             <p className="text-gray-600 text-base">Accede al sistema de gestión de emergencias</p>
@@ -136,26 +97,11 @@ const Login = () => {
                             footerContent={
                                 <div className="text-center text-gray-400 text-xs mt-3">
                                     <p className="leading-tight">
-                                        ¿No tienes cuenta o se te olvidaron tus credenciales? 
-                                        <span className="block sm:inline sm:ml-1">
-                                            Contacta al administrador: <a href="mailto:admin@bomberos.cl" className="underline text-red-500 hover:text-red-600">admin@bomberos.cl</a>
-                                        </span>
+                                        ¿No tienes cuenta o se te olvidaron tus credenciales? Contacta al administrador del sistema.
                                     </p>
                                 </div>
                             }
                         />
-                        
-                        {/* Botón para usuarios base - Movido debajo del formulario */}
-                        <div className="mt-4">
-                            <button
-                                type="button"
-                                onClick={() => setShowBaseUsers(true)}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-50 to-slate-50 text-blue-700 border border-blue-200 rounded-xl hover:from-blue-100 hover:to-slate-100 hover:border-blue-300 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-sm"
-                            >
-                                <MdPerson className="w-4 h-4" />
-                                <span className="font-medium">Usar usuario base para pruebas</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
                 {/* Lado derecho: Diseño moderno con iconos y gradientes */}
@@ -213,125 +159,6 @@ const Login = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Modal de usuarios base */}
-            {showBaseUsers && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden border border-white/20">
-                        {/* Header del modal */}
-                        <div className="flex items-center justify-between p-6 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-slate-50">
-                            <div className="flex items-center space-x-3">
-                                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
-                                    <MdPerson className="w-6 h-6 text-white" />
-                                </div>
-                                <h2 className="text-2xl font-bold text-slate-800">Usuarios Base para Pruebas</h2>
-                            </div>
-                            <button
-                                onClick={() => setShowBaseUsers(false)}
-                                className="p-2 hover:bg-white/50 rounded-full transition-all duration-200 hover:scale-110"
-                            >
-                                <MdClose className="w-6 h-6 text-gray-500" />
-                            </button>
-                        </div>
-
-                        {/* Contenido del modal */}
-                        <div className="p-6 overflow-y-auto max-h-[60vh]">
-                            <p className="text-gray-600 mb-6">
-                                Selecciona uno de los usuarios predefinidos para iniciar sesión rápidamente:
-                            </p>
-                            
-                            <div className="space-y-4">
-                                {baseUsers.map((user, index) => (
-                                    <div
-                                        key={index}
-                                        className="group relative bg-gradient-to-br from-white to-gray-50 border border-gray-200/50 rounded-2xl p-6 hover:border-blue-300 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-[1.02] overflow-hidden"
-                                        onClick={() => selectBaseUser(user)}
-                                    >
-                                        {/* Efecto de fondo en hover */}
-                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                        
-                                        <div className="relative z-10 flex items-start justify-between">
-                                            <div className="flex-1">
-                                                {/* Header de la tarjeta */}
-                                                <div className="flex items-center space-x-3 mb-3">
-                                                    <div className={`p-2 rounded-xl ${
-                                                        user.role === 'Administrador' ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                                                        user.role === 'Supervisor' ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                                                        'bg-gradient-to-r from-green-500 to-green-600'
-                                                    }`}>
-                                                        <MdPerson className="w-5 h-5 text-white" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-bold text-gray-900 text-lg">{user.name}</h3>
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
-                                                            user.role === 'Administrador' ? 'bg-red-100 text-red-700' :
-                                                            user.role === 'Supervisor' ? 'bg-orange-100 text-orange-700' :
-                                                            'bg-green-100 text-green-700'
-                                                        }`}>
-                                                            {user.role}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                
-                                                <p className="text-gray-600 mb-4 text-sm leading-relaxed">{user.description}</p>
-                                                
-                                                {/* Información del usuario */}
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                                                    <div className="flex items-center space-x-2">
-                                                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                                        <span className="font-medium text-gray-700">Email:</span>
-                                                        <span className="text-gray-600 truncate">{user.email}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
-                                                        <span className="font-medium text-gray-700">RUT:</span>
-                                                        <span className="text-gray-600 font-mono">{formatRutForDisplay(user.run)}</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2 md:col-span-2">
-                                                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                                                        <span className="font-medium text-gray-700">Contraseña:</span>
-                                                        <span className="text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded-md">{user.password}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            {/* Botón de selección */}
-                                            <div className="ml-6 flex-shrink-0">
-                                                <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 text-sm font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 group-hover:scale-110">
-                                                    <span className="flex items-center space-x-2">
-                                                        <span>Seleccionar</span>
-                                                        <MdArrowForward className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-                                                    </span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Footer del modal */}
-                        <div className="p-6 border-t border-gray-200/50 bg-gradient-to-r from-gray-50 to-blue-50/30">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                    <div className="p-2 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full">
-                                        <span className="text-white text-sm">💡</span>
-                                    </div>
-                                    <p className="text-sm text-gray-600">
-                                        <span className="font-semibold text-gray-800">Tip:</span> Estos usuarios se crean automáticamente en el initialSetup
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setShowBaseUsers(false)}
-                                    className="px-6 py-2 text-gray-600 hover:text-gray-800 hover:bg-white/50 rounded-xl transition-all duration-200 font-medium"
-                                >
-                                    Cancelar
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </main>
     );
 };

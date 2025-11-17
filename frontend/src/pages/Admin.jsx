@@ -1,10 +1,101 @@
 import React from 'react';
-import { AdminProvider } from '@context/AdminContext';
+import { AdminProvider, useAdmin } from '@context/AdminContext';
 import AdminTabsContainer from '@components/admin/AdminTabsContainer';
 import AdminModalsProvider from '@components/admin/AdminModalsProvider';
 import { useAuth } from '@hooks/auth/useAuth';
-import { MdSecurity, MdHelpOutline } from 'react-icons/md';
+import {
+  MdSecurity,
+  MdHelpOutline,
+  MdPeople,
+  MdVpnKey,
+  MdBusiness,
+  MdLocationOn,
+  MdDirectionsCar,
+  MdShield,
+  MdInventory,
+  MdRadioButtonChecked,
+  MdSettings
+} from 'react-icons/md';
 import Tooltip from '@components/Tooltip.jsx';
+
+/**
+ * Componente interno que usa el contexto Admin
+ */
+const AdminContent = () => {
+  const { activeTab, availableTabs, handleTabChange } = useAdmin();
+
+  const iconMap = {
+    MdPeople,
+    MdSecurity,
+    MdVpnKey,
+    MdBusiness,
+    MdLocationOn,
+    MdDirectionsCar,
+    MdShield,
+    MdInventory,
+    MdRadioButtonChecked,
+    MdSettings
+  };
+
+  return (
+    <div className="min-h-[80vh]">
+      {/* Header principal con tabs integradas */}
+      <div className="px-4 py-3">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <MdSecurity className="h-8 w-8 text-[#4EB9FA]" />
+              <div>
+                <h1 className="text-2xl font-bold text-[#2C3E50]">
+                  Administración
+                </h1>
+              </div>
+              <Tooltip
+                id="admin-help"
+                content="Sistema de administración modular para gestionar bomberos, roles, permisos, compañías y configuraciones del sistema. Cada sección tiene permisos granulares para mayor seguridad."
+                place="right"
+                variant="dark"
+              >
+                <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+              </Tooltip>
+            </div>
+          </div>
+          
+          {/* Pestañas */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              {availableTabs.map((tab) => {
+                const IconComponent = iconMap[tab.icon];
+                const isActive = activeTab === tab.id;
+
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                      isActive
+                        ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                    title={tab.description}
+                  >
+                    {IconComponent && <IconComponent size={18} />}
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido de las pestañas */}
+      <div className="px-4 mt-2">
+        <AdminTabsContainer />
+      </div>
+    </div>
+  );
+};
 
 /**
  * Componente principal de administración refactorizado
@@ -60,25 +151,7 @@ const Admin = () => {
   return (
     <AdminProvider>
       <AdminModalsProvider>
-        <div className="p-3 sm:p-4 lg:p-6">
-          {/* Header principal */}
-          <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl mb-4 p-6">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[#2C3E50]">Administración</h1>
-              <Tooltip
-                id="admin2-help"
-                content="Sistema de administración modular para gestionar bomberos, roles, permisos, compañías y configuraciones del sistema. Cada sección tiene permisos granulares para mayor seguridad."
-                place="bottom"
-                variant="dark"
-              >
-                <MdHelpOutline className="h-5 w-5 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* Contenedor de pestañas */}
-          <AdminTabsContainer />
-        </div>
+        <AdminContent />
       </AdminModalsProvider>
     </AdminProvider>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   ShieldCheckIcon,
   MagnifyingGlassIcon,
@@ -16,12 +16,12 @@ import { showSuccessAlert, showErrorAlert } from '@helpers/fireAlert.js';
 import EditEppModal from '@components/epp/EditEppModal.jsx';
 import Tooltip from '@components/Tooltip.jsx';
 
-// PrimeReact para los selects y paginación
-import { Dropdown } from 'primereact/dropdown';
+// PrimeReact para la paginación
 import { Paginator } from 'primereact/paginator';
 import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
+import Select from 'react-select';
 
 /**
  * Página de inventario de EPP (Equipos de Protección Personal)
@@ -238,69 +238,134 @@ const InventarioEpp = () => {
     );
   }
 
-  // Preparar opciones para los dropdowns de PrimeReact
-  const tipoOptions = [
+  // Preparar opciones para los selects
+  const tipoOptions = useMemo(() => [
     { label: 'Todos los tipos', value: null },
     ...tiposEpp.map(tipo => ({ label: tipo.nombre, value: tipo.id }))
-  ];
+  ], [tiposEpp]);
 
-  const estadoOptions = [
+  const estadoOptions = useMemo(() => [
     { label: 'Todos los estados', value: null },
     ...estadosEpp.map(estado => ({ label: estado.nombre, value: estado.id }))
-  ];
+  ], [estadosEpp]);
+
+  // Valores seleccionados para los selects
+  const selectedTipoOption = useMemo(() => {
+    return tipoOptions.find(opt => opt.value === filters.idTipoEpp) || tipoOptions[0];
+  }, [filters.idTipoEpp, tipoOptions]);
+
+  const selectedEstadoOption = useMemo(() => {
+    return estadoOptions.find(opt => opt.value === filters.idEstadoEpp) || estadoOptions[0];
+  }, [filters.idEstadoEpp, estadoOptions]);
+
+  // Estilos para el Select (igual que en crear parte)
+  const selectStyles = useMemo(() => ({
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+      borderWidth: '2px',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+      '&:hover': {
+        borderColor: '#4EB9FA',
+      },
+      minHeight: '44px',
+      borderRadius: '10px',
+      fontSize: '0.9rem',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 25,
+      borderRadius: '10px',
+      overflow: 'hidden',
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '260px',
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? '#4EB9FA'
+        : state.isFocused
+          ? '#E0F2FE'
+          : 'white',
+      color: state.isSelected ? '#FFFFFF' : '#1F2937',
+      fontSize: '0.9rem',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#9CA3AF',
+    }),
+    input: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#1F2937',
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+  }), []);
+
+  const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
 
   return (
-    <div className="space-y-4">
+    <div className="min-h-[80vh]">
       {/* Header principal con estilo glassmorphism */}
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl rounded-2xl p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MdShield className="h-8 w-8 text-[#4EB9FA]" />
-            <div>
-              <h1 className="text-2xl font-bold text-[#2C3E50]">
-                Inventario de EPP
-              </h1>
-              <p className="text-gray-600 text-sm">
-                Consulta el inventario y actualiza el estado de tus equipos asignados
-              </p>
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MdShield className="h-8 w-8 text-[#4EB9FA]" />
+              <div>
+                <h1 className="text-2xl font-bold text-[#2C3E50]">
+                  Inventario de EPP
+                </h1>
+              </div>
+              <Tooltip
+                id="inventario-epp-help"
+                content="Sistema de gestión de Equipos de Protección Personal. Aquí puedes consultar todo el inventario de EPP del cuerpo de bomberos. Si tienes equipos asignados, puedes actualizar su estado y agregar observaciones sobre su condición."
+                place="right"
+                variant="dark"
+              >
+                <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+              </Tooltip>
             </div>
+
+            {/* Botón de refrescar */}
             <Tooltip
-              id="inventario-epp-help"
-              content="Sistema de gestión de Equipos de Protección Personal. Aquí puedes consultar todo el inventario de EPP del cuerpo de bomberos. Si tienes equipos asignados, puedes actualizar su estado y agregar observaciones sobre su condición."
-              place="bottom"
+              id="refresh-inventario-btn"
+              content="Actualizar inventario"
+              place="left"
               variant="dark"
             >
-              <MdHelpOutline className="h-5 w-5 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+              <button
+                onClick={loadInitialData}
+                disabled={loading}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  loading 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-[#4EB9FA] hover:bg-[#3A9BD9] text-white shadow-sm hover:shadow-md'
+                }`}
+              >
+                <MdRefresh 
+                  size={18} 
+                  className={loading ? 'animate-spin' : ''} 
+                />
+              </button>
             </Tooltip>
           </div>
-
-          {/* Botón de refrescar */}
-          <Tooltip
-            id="refresh-inventario-btn"
-            content="Actualizar inventario"
-            place="left"
-            variant="dark"
-          >
-            <button
-              onClick={loadInitialData}
-              disabled={loading}
-              className={`p-2.5 rounded-lg transition-all duration-200 ${
-                loading 
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                  : 'bg-[#4EB9FA] hover:bg-[#3A9BD9] text-white shadow-md hover:shadow-lg'
-              }`}
-            >
-              <MdRefresh 
-                size={20} 
-                className={loading ? 'animate-spin' : ''} 
-              />
-            </button>
-          </Tooltip>
         </div>
       </div>
 
       {/* Contenedor principal */}
-      <div className="bg-white rounded-2xl shadow-xl p-6">
+      <div className="max-w-7xl mx-auto px-4 mt-2">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-4">
         {/* Filtros */}
         <div className="mb-6 space-y-4">
           {/* Buscador */}
@@ -325,23 +390,24 @@ const InventarioEpp = () => {
             )}
           </div>
 
-          {/* Filtros con PrimeReact Dropdown */}
+          {/* Filtros con Select de react-select */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Filtro por tipo */}
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tipo de EPP
               </label>
-              <Dropdown
-                value={filters.idTipoEpp}
+              <Select
+                inputId="tipo-epp-filter"
+                isSearchable
+                isClearable
+                value={selectedTipoOption}
                 options={tipoOptions}
-                onChange={(e) => handleFilterChange('idTipoEpp', e.value)}
+                onChange={(option) => handleFilterChange('idTipoEpp', option?.value || null)}
                 placeholder="Seleccione un tipo"
-                className="w-full"
-                showClear={filters.idTipoEpp !== null}
-                filter
-                filterPlaceholder="Buscar tipo..."
-                emptyFilterMessage="No se encontraron tipos"
+                styles={selectStyles}
+                classNamePrefix="tipo-epp-select"
+                menuPortalTarget={selectMenuPortalTarget}
               />
             </div>
 
@@ -350,16 +416,17 @@ const InventarioEpp = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Estado
               </label>
-              <Dropdown
-                value={filters.idEstadoEpp}
+              <Select
+                inputId="estado-epp-filter"
+                isSearchable
+                isClearable
+                value={selectedEstadoOption}
                 options={estadoOptions}
-                onChange={(e) => handleFilterChange('idEstadoEpp', e.value)}
+                onChange={(option) => handleFilterChange('idEstadoEpp', option?.value || null)}
                 placeholder="Seleccione un estado"
-                className="w-full"
-                showClear={filters.idEstadoEpp !== null}
-                filter
-                filterPlaceholder="Buscar estado..."
-                emptyFilterMessage="No se encontraron estados"
+                styles={selectStyles}
+                classNamePrefix="estado-epp-select"
+                menuPortalTarget={selectMenuPortalTarget}
               />
             </div>
 
@@ -402,7 +469,7 @@ const InventarioEpp = () => {
               {epps.map((epp) => (
                 <div 
                   key={epp.id} 
-                  className="bg-gray-50 border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-[#4EB9FA]/30 transition-all duration-200"
+                  className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md hover:border-[#4EB9FA]/30 transition-all duration-200"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                     {/* Columna 1: Información del EPP */}
@@ -443,7 +510,7 @@ const InventarioEpp = () => {
                           isMyEpp(epp) 
                             ? 'bg-blue-50 border-blue-200' 
                             : 'bg-white border-gray-200'
-                        } shadow-sm`}>
+                        } shadow-sm hover:shadow-md transition-all duration-200`}>
                           <div className={`p-1.5 rounded-full ${
                             isMyEpp(epp) ? 'bg-blue-100' : 'bg-gray-100'
                           }`}>
@@ -465,17 +532,19 @@ const InventarioEpp = () => {
                             </div>
                             {epp.aCargoEpps[0].fechaAsignacion && (
                               <div className="text-[10px] text-gray-500">
-                                {new Date(epp.aCargoEpps[0].fechaAsignacion).toLocaleDateString('es-CL', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric'
-                                })}
+                                {(() => {
+                                  const date = new Date(epp.aCargoEpps[0].fechaAsignacion);
+                                  const day = date.getDate().toString().padStart(2, '0');
+                                  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                                  const year = date.getFullYear();
+                                  return `${day}/${month}/${year}`;
+                                })()}
                               </div>
                             )}
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 px-3 py-2 bg-white border border-dashed border-gray-300 rounded-lg">
+                        <div className="flex items-center gap-2 px-3 py-2 bg-white border border-dashed border-gray-300 rounded-lg shadow-sm">
                           <UserIcon className="w-4 h-4 text-gray-400" />
                           <span className="text-xs text-gray-500">Sin asignar</span>
                         </div>
@@ -490,7 +559,7 @@ const InventarioEpp = () => {
                             setSelectedEpp(epp);
                             setShowEditModal(true);
                           }}
-                          className="px-3 py-1.5 bg-[#4EB9FA] hover:bg-[#3A9BD9] text-white text-xs font-medium rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                          className="px-3 py-1.5 bg-[#4EB9FA] hover:bg-[#3A9BD9] text-white text-xs font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                         >
                           Actualizar Estado
                         </button>
@@ -522,6 +591,7 @@ const InventarioEpp = () => {
             />
           </div>
         )}
+        </div>
       </div>
 
       {/* Modal para editar EPP */}

@@ -2,8 +2,9 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getIncidentesRevision, cambiarEstadoIncidente } from '@services/incidentes.service.js';
-import Card from '@components/Card.jsx';
 import { useGlobalFireAlert } from '@components/FireAlertProvider.jsx';
+import { MdAssignment, MdHelpOutline } from 'react-icons/md';
+import Tooltip from '@components/Tooltip.jsx';
 // PrimeReact
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -200,18 +201,47 @@ export default function RevisionPartes() {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Card de filtros eliminada por solicitud; la DataTable provee búsqueda y filtros */}
+    <div className="min-h-[80vh]">
+      {/* Header principal con estilo glassmorphism */}
+      <div className="max-w-7xl mx-auto px-4 py-3">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MdAssignment className="h-8 w-8 text-[#4EB9FA]" />
+              <div>
+                <h1 className="text-2xl font-bold text-[#2C3E50]">
+                  Revisar Partes de Emergencias
+                </h1>
+              </div>
+              <Tooltip
+                id="revision-partes-help"
+                content="Sistema de revisión de partes de emergencias. Aquí puedes revisar, aprobar o solicitar correcciones de los partes de emergencias enviados. Los partes con estado 'ENVIADO' están pendientes de revisión."
+                place="right"
+                variant="dark"
+              >
+                <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+              </Tooltip>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <Card title={`Revision de partes de emergencia (${rows.length})`}>
-        {loading ? (
-          <div className="text-sm text-gray-500">Cargando…</div>
-        ) : (
-          <TablaRevision rows={rows} onOpen={onOpen} onChangeEstado={onChangeEstado} />
-        )}
-      </Card>
-
-      
+      {/* Contenido principal */}
+      <div className="max-w-7xl mx-auto px-4 mt-2">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-4">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Partes pendientes de revisión ({rows.length})
+            </h2>
+          </div>
+          
+          {loading ? (
+            <div className="text-sm text-gray-500 py-8 text-center">Cargando…</div>
+          ) : (
+            <TablaRevision rows={rows} onOpen={onOpen} onChangeEstado={onChangeEstado} />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

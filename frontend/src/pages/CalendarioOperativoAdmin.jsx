@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ReactDOMServer from 'react-dom/server';
 import dayjs from 'dayjs';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import 'dayjs/locale/es';
+import { MdCalendarToday, MdHelpOutline, MdEdit, MdDelete, MdCake, MdCheckCircle, MdStar } from 'react-icons/md';
+import Tooltip from '@components/Tooltip.jsx';
+import { useAuth } from '@hooks/auth/useAuth';
 
 // Servicios
 import { getEventos, createEvento, getTiposEvento,  updateEvento, deleteEvento, getEventosRecurrentes } from '../services/calendario.service.js';
@@ -35,8 +39,6 @@ import { buildTipoColorMap, getTipoBgFromMap } from '@helpers/calendarColors';
 import { formatHeaderFecha, mapEventosConColores } from '@helpers/calendarFormat';
 import { mapRecurrentesToEvents, computeProximosEventos, computeProximosRecurrentes } from '@helpers/calendarRecurrentes';
 import { showConfirmAlert } from '@helpers/fireAlert.js';
-import { MdEdit, MdDelete } from 'react-icons/md';
-import { useAuth } from '@hooks/auth/useAuth';
 
 dayjs.extend(localizedFormat);
 dayjs.locale('es');
@@ -49,8 +51,14 @@ const VISTAS = {
 };
 
 const CalendarioOperativo = () => {
-  const { bombero } = useAuth();
+  const { bombero, hasPermiso } = useAuth();
   const calendarRef = useRef(null);
+
+  // Verificar permisos
+  const puedeObtenerEventos = hasPermiso('evento:obtener') || hasPermiso('evento:admin');
+  const puedeCrearEventos = hasPermiso('evento:crear') || hasPermiso('evento:admin');
+  const puedeActualizarEventos = hasPermiso('evento:actualizar') || hasPermiso('evento:admin');
+  const puedeEliminarEventos = hasPermiso('evento:eliminar') || hasPermiso('evento:admin');
 
   // CSS importado desde helper
 
@@ -104,6 +112,10 @@ const CalendarioOperativo = () => {
 
   // ====== Cargar tipos y eventos (calendario normal) ======
   useEffect(() => {
+    if (!puedeObtenerEventos) {
+      setLoading(false);
+      return;
+    }
     const cargar = async () => {
       setLoading(true);
       try {
@@ -124,7 +136,7 @@ const CalendarioOperativo = () => {
         const mapped = mapEventosConColores((ev?.data || ev || []), tiposOpt, getColorForTipo);
         setEventos(mapped);
 
-        const regionesOpt = (regs || []).map((r) => ({
+        const regionesOpt = (regs?.data || regs || []).map((r) => ({
           label: r.nombre || r.name,
           value: r.id || r.codigo || r.value,
         }));
@@ -137,7 +149,7 @@ const CalendarioOperativo = () => {
       }
     };
     cargar();
-  }, []);
+  }, [puedeObtenerEventos]);
 
   const eventosFiltrados = useMemo(() => {
     if (!filtroTipos || filtroTipos.length === 0) return eventos;
@@ -191,6 +203,10 @@ const CalendarioOperativo = () => {
   };
 
   const abrirDialogoCrear = () => {
+    if (!puedeCrearEventos) {
+      toast.error('No tienes permisos para crear eventos');
+      return;
+    }
     const baseDate = dayjs();
     const inicio = baseDate.hour(10).minute(0).second(0).millisecond(0).toDate();
     const fin = baseDate.hour(11).minute(0).second(0).millisecond(0).toDate();
@@ -213,6 +229,10 @@ const CalendarioOperativo = () => {
   };
 
   const onGuardarEvento = async () => {
+    if (!puedeCrearEventos) {
+      toast.error('No tienes permisos para crear eventos');
+      return;
+    }
     try {
       if (!form.titulo || (form.allDay ? !form.fecha : (!form.inicio || !form.fin)) || !form.tipo) {
         toast.warn('Completa título y fechas');
@@ -319,6 +339,10 @@ const CalendarioOperativo = () => {
   };
 
   const onEditClick = async () => {
+    if (!puedeActualizarEventos) {
+      toast.error('No tienes permisos para editar eventos');
+      return;
+    }
     const f = prefillEditFormFromSelected();
     setEditForm(f);
     setEditMode(true);
@@ -369,6 +393,10 @@ const CalendarioOperativo = () => {
   };
 
   const onDeleteClick = async () => {
+    if (!puedeEliminarEventos) {
+      toast.error('No tienes permisos para eliminar eventos');
+      return;
+    }
     try {
       if (!selectedEvent?.id) return;
 
@@ -400,6 +428,10 @@ const CalendarioOperativo = () => {
   };
 
   const onGuardarEdicion = async () => {
+    if (!puedeActualizarEventos) {
+      toast.error('No tienes permisos para actualizar eventos');
+      return;
+    }
     try {
       if (!selectedEvent) return;
       const f = editForm;
@@ -456,7 +488,9 @@ const CalendarioOperativo = () => {
       onChangeVista={cambiarVista}
       loading={loading}
       getTipoBg={getTipoBg}
-      extraRight={<Button icon="pi pi-plus" label="Crear evento" onClick={abrirDialogoCrear} className="ml-2 p-button-sm" />}
+      extraRight={puedeCrearEventos ? (
+        <Button icon="pi pi-plus" label="Crear evento" onClick={abrirDialogoCrear} className="ml-2 p-button-sm" />
+      ) : null}
     />
   );
 
@@ -596,13 +630,70 @@ const CalendarioOperativo = () => {
 
   // ===================== RENDER =====================
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto px-4 sm:px-6 lg:px-1 ">
-        {/* Estilos locales para truncar textos largos en eventos FullCalendar */}
-        <style>{FC_TRUNCATE_CSS}</style>
-        <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
-          {/* =================== Pestaña 1: Calendario normal =================== */}
-          <TabPanel header="Calendario Operativo"  >
+    <div className="min-h-[80vh]">
+      <style>{FC_TRUNCATE_CSS}</style>
+      
+      {/* Header principal con estilo glassmorphism */}
+      <div className="px-4 py-3">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <MdCalendarToday className="h-8 w-8 text-[#4EB9FA]" />
+              <div>
+                <h1 className="text-2xl font-bold text-[#2C3E50]">
+                  Calendario Operativo (Admin)
+                </h1>
+              </div>
+              <Tooltip
+                id="calendario-admin-help"
+                content="Calendario operativo administrativo. Aquí puedes crear, editar y eliminar eventos operativos, gestionar los tipos de eventos, y ver los hitos institucionales. También puedes registrar asistencia de bomberos a eventos."
+                place="right"
+                variant="dark"
+              >
+                <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+              </Tooltip>
+            </div>
+          </div>
+          
+          {/* Pestañas */}
+          <div className="mt-4 border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveIndex(0)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeIndex === 0
+                    ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Calendario Operativo
+              </button>
+              <button
+               	onClick={() => setActiveIndex(1)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeIndex === 1
+                    ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Hitos de la institución
+              </button>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      {/* Contenido principal */}
+      <div className="px-4 mt-2">
+        <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-4">
+          <style>{`
+            .p-tabview-nav {
+              display: none !important;
+            }
+          `}</style>
+          <TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} className="border-0">
+            {/* =================== Pestaña 1: Calendario normal =================== */}
+            <TabPanel header="Calendario Operativo">
             <ToolbarNormal />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -617,7 +708,7 @@ const CalendarioOperativo = () => {
                   height="auto"
                   firstDay={1}
                   navLinks={true}
-                  selectable={true}
+                  selectable={puedeCrearEventos}
                   dayMaxEvents={3}
                   events={eventosFiltrados}
                   eventClick={onEventClick}
@@ -626,7 +717,7 @@ const CalendarioOperativo = () => {
                       info.el.style.color = info.event.extendedProps.textColor;
                     }
                   }}
-                  dateClick={onDateClick}
+                  dateClick={puedeCrearEventos ? onDateClick : undefined}
                   eventTimeFormat={{ hour: '2-digit', minute: '2-digit', meridiem: false }}
                   slotMinTime="07:00:00"
                   slotMaxTime="23:00:00"
@@ -647,8 +738,8 @@ const CalendarioOperativo = () => {
             </div>
           </TabPanel>
 
-          {/* =================== Pestaña 2: Recurrentes (solo ver) =================== */}
-          <TabPanel header="Hitos de la institución" >
+            {/* =================== Pestaña 2: Recurrentes (solo ver) =================== */}
+            <TabPanel header="Hitos de la institución">
             {recToolbar()}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -669,8 +760,8 @@ const CalendarioOperativo = () => {
                     try {
                       const ev = arg.event;
                       const props = ev.extendedProps || {};
-                      // Por defecto usar el título tal cual
                       let text = ev.title || '';
+                      
                       if (props?.tipoRec === 'fundacion' && props?.baseDate && ev.start) {
                         const base = dayjs(props.baseDate);
                         const occ = dayjs(ev.start);
@@ -679,7 +770,6 @@ const CalendarioOperativo = () => {
                           text = `Aniversario #${years} ${props.nombreCompania || ''}`.trim();
                         }
                       } else if (props?.tipoRec === 'ingreso' && props?.baseDate && ev.start) {
-                        // Mostrar "Aniversario de ingreso N°X Nombre Apellido"
                         const base = dayjs(props.baseDate);
                         const occ = dayjs(ev.start);
                         if (base.isValid() && occ.isValid()) {
@@ -688,7 +778,39 @@ const CalendarioOperativo = () => {
                           text = `Aniversario de ingreso N°${years} ${nombre}`.trim();
                         }
                       }
-                      return { domNodes: [document.createTextNode(text)] };
+                      
+                      // Obtener icono según tipo usando react-icons
+                      let iconSvg = '';
+                      if (props?.tipoRec === 'cumple') {
+                        // Icono de pastel/cumpleaños de Material Design
+                        iconSvg = ReactDOMServer.renderToStaticMarkup(
+                          <MdCake style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
+                        );
+                      } else if (props?.tipoRec === 'ingreso') {
+                        // Icono de check circle de Material Design
+                        iconSvg = ReactDOMServer.renderToStaticMarkup(
+                          <MdCheckCircle style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
+                        );
+                      } else if (props?.tipoRec === 'fundacion') {
+                        // Icono de estrella de Material Design
+                        iconSvg = ReactDOMServer.renderToStaticMarkup(
+                          <MdStar style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
+                        );
+                      }
+                      
+                      const container = document.createElement('div');
+                      container.style.display = 'inline-flex';
+                      container.style.alignItems = 'center';
+                      container.style.gap = '4px';
+                      if (iconSvg) {
+                        const iconDiv = document.createElement('span');
+                        iconDiv.innerHTML = iconSvg;
+                        container.appendChild(iconDiv);
+                      }
+                      const textNode = document.createTextNode(text);
+                      container.appendChild(textNode);
+                      
+                      return { domNodes: [container] };
                     } catch {
                       return { domNodes: [document.createTextNode(arg.event.title || '')] };
                     }
@@ -723,8 +845,9 @@ const CalendarioOperativo = () => {
                 onVerEnCalendario={gotoFechaRec}
               />
             </div>
-          </TabPanel>
-        </TabView>
+            </TabPanel>
+          </TabView>
+        </div>
       </div>
 
       {/* ====== Diálogo: Crear (normal) ====== */}
@@ -972,12 +1095,16 @@ const CalendarioOperativo = () => {
                 <span className="text-xs text-slate-400 italic">Solo lectura</span>
               ) : (
                 <>
-                  <button className="p-1 rounded hover:bg-slate-100" title="Editar" type="button" onClick={onEditClick}>
-                    <MdEdit className="h-4 w-4" />
-                  </button>
-                  <button className="p-1 rounded hover:bg-slate-100" title="Eliminar" type="button" onClick={onDeleteClick}>
-                    <MdDelete className="h-4 w-4" />
-                  </button>
+                  {puedeActualizarEventos && (
+                    <button className="p-1 rounded hover:bg-slate-100" title="Editar" type="button" onClick={onEditClick}>
+                      <MdEdit className="h-4 w-4" />
+                    </button>
+                  )}
+                  {puedeEliminarEventos && (
+                    <button className="p-1 rounded hover:bg-slate-100" title="Eliminar" type="button" onClick={onDeleteClick}>
+                      <MdDelete className="h-4 w-4" />
+                    </button>
+                  )}
                 </>
               )}
             </div>

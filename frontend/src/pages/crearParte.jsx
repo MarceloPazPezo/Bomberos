@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useContext, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Services
 import { regionService } from '../services/region.service.js';
@@ -16,6 +17,7 @@ import { crearParteEmergencia } from '../services/parteEmergencia.service.js';
 
 // UI
 import { toast } from 'react-toastify';
+import { showConfirmAlert } from '../helpers/fireAlert.js';
 import {
   ClipboardList,
   Home,
@@ -110,6 +112,7 @@ function useBomberosPorCompania() {
    Componente principal
 ================================ */
 const CrearParte = () => {
+  const navigate = useNavigate();
   // Usuario autenticado (redactor)
   const { bombero } = useContext(AuthContext);
   const { loading: configLoading, getConfigValue } = useCompaniaConfig();
@@ -321,7 +324,8 @@ const CrearParte = () => {
   /* ---------- Validación ---------- */
   const [errors, setErrors] = useState({});
   const hasError = (k) => !!errors[k];
-  const baseInput = 'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
+  const baseInput = 'w-full border border-gray-300 rounded-md px-3 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 h-[44px]';
+  const baseTextarea = 'w-full border border-gray-300 rounded-md px-3 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
   const inputCls = (k) =>
     `${baseInput} ${hasError(k) ? 'ring-2 ring-red-400 border-red-300' : ''}`;
 
@@ -394,11 +398,20 @@ const CrearParte = () => {
     if (materialMayor.length === 0) {
       nextErrors.materialMayor = 'Debe agregar al menos una unidad.';
     } else {
+      // Validar campos completos y válidos
       const invalidRow = materialMayor.find(
         (r) => !r.unidadId || !r.conductorId || !r.bomberoId || !isPositiveInt(r.voluntarios) || !isPositiveInt(r.kmSalida) || !isPositiveInt(r.kmLlegada)
       );
       if (invalidRow) {
         nextErrors.materialMayor = 'Complete todos los campos de la(s) unidad(es). Voluntarios y KM deben ser enteros > 0.';
+      } else {
+        // Validar que kmLlegada >= kmSalida
+        const kmInvalidRow = materialMayor.find(
+          (r) => isPositiveInt(r.kmSalida) && isPositiveInt(r.kmLlegada) && Number(r.kmLlegada) < Number(r.kmSalida)
+        );
+        if (kmInvalidRow) {
+          nextErrors.materialMayor = 'El kilometraje de llegada debe ser igual o mayor que el de salida.';
+        }
       }
     }
 
@@ -478,6 +491,19 @@ const CrearParte = () => {
       if (firstEl?.scrollIntoView) firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+
+    // Mostrar confirmación antes de guardar
+    const confirmResult = await showConfirmAlert(
+      '¿Confirmar guardado?',
+      '¿Estás seguro de que deseas guardar este parte de emergencia?',
+      'Sí, guardar',
+      'Cancelar'
+    );
+
+    if (!confirmResult.isConfirmed) {
+      return;
+    }
+
     setSubmitting(true);
     try {
       const fechaTrim = (fecha || '').trim();
@@ -537,9 +563,11 @@ const CrearParte = () => {
       // Envío al backend
       const resp = await crearParteEmergencia(payload);
       console.log('Parte creada:', resp);
-      toast.success('🚒 Parte creada con éxito.', {
+      toast.success('Parte creada con éxito.', {
         position: 'top-right', autoClose: 3500, hideProgressBar: false, closeOnClick: true,
       });
+      // Redirigir a partes de emergencias
+      navigate('/partes-de-emergencias');
     } catch (err) {
       console.error('Error al crear parte:', err);
       toast.error(err?.message || 'Ocurrió un error al guardar el parte. Inténtalo nuevamente.', {
@@ -983,9 +1011,14 @@ const CrearParte = () => {
               <div className="grid md:grid-cols-4 gap-3">
                 <div className="md:col-span-2" data-error-key="companiaId">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Compañía:</label>
-                  <div className={`${inputCls('companiaId')} bg-gray-50 text-gray-700`}> 
-                    {getConfigValue('company_name') || (companias.find(c => c.id === companiaId)?.nombre) || bombero?.compania?.nombre || (loadingCompanias ? 'Cargando…' : '—')}
-                  </div>
+                  <Dropdown
+                    value={companiaId || null}
+                    options={companias.map(c => ({ label: c.nombre, value: c.id }))}
+                    placeholder={loadingCompanias ? 'Cargando…' : (getConfigValue('company_name') || bombero?.compania?.nombre || '—')}
+                    disabled={true}
+                    className={hasError('companiaId') ? 'p-invalid' : ''}
+                    style={{ width: '100%' }}
+                  />
                   {hasError('companiaId') && <p className="mt-1 text-xs text-red-600">{errors.companiaId}</p>}
                 </div>
 
@@ -1131,7 +1164,7 @@ const CrearParte = () => {
                   <textarea
                     id="descripcionPreliminar"
                     rows={3}
-                    className={baseInput}
+                    className={`${baseTextarea} min-h-[80px] ${hasError('descripcionPreliminar') ? 'ring-2 ring-red-400 border-red-300' : ''}`}
                     placeholder="Resumen breve de lo ocurrido…"
                     value={descripcionPreliminar}
                     onChange={(e) => setDescripcionPreliminar(e.target.value)}

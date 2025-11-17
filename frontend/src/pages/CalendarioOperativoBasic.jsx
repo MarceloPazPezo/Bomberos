@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import ReactDOMServer from 'react-dom/server';
 import dayjs from 'dayjs';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
 import 'dayjs/locale/es';
+import { MdCalendarToday, MdHelpOutline, MdCake, MdCheckCircle, MdStar } from 'react-icons/md';
+import Tooltip from '@components/Tooltip.jsx';
 
 // Servicios (solo lectura)
 import { getEventos, getTiposEvento, getEventosRecurrentes } from '../services/calendario.service.js';
@@ -317,11 +320,69 @@ const CalendarioOperativoBasic = () => {
 	);
 
 	return (
-		<div className="min-h-screen bg-slate-50">
-				<style>{FC_TRUNCATE_CSS}</style>
-			<div className="mx-auto px-4 sm:px-6 lg:px-1 ">
-				<TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)}>
-					<TabPanel header="Calendario Operativo">
+		<div className="min-h-[80vh]">
+			<style>{FC_TRUNCATE_CSS}</style>
+			
+			{/* Header principal con estilo glassmorphism */}
+			<div className="px-4 py-3">
+				<div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-6">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-3">
+							<MdCalendarToday className="h-8 w-8 text-[#4EB9FA]" />
+							<div>
+								<h1 className="text-2xl font-bold text-[#2C3E50]">
+									Calendario Operativo
+								</h1>
+							</div>
+							<Tooltip
+								id="calendario-operativo-help"
+								content="Calendario operativo del cuerpo de bomberos. Aquí puedes ver todos los eventos operativos programados y los hitos institucionales como cumpleaños, aniversarios de ingreso y fundaciones de compañías."
+								place="right"
+								variant="dark"
+							>
+								<MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
+							</Tooltip>
+						</div>
+					</div>
+					
+					{/* Pestañas */}
+					<div className="mt-4 border-b border-gray-200">
+						<nav className="-mb-px flex space-x-8">
+							<button
+								onClick={() => setActiveIndex(0)}
+								className={`py-2 px-1 border-b-2 font-medium text-sm ${
+									activeIndex === 0
+										? 'border-[#4EB9FA] text-[#4EB9FA]'
+										: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+								}`}
+							>
+								Calendario Operativo
+							</button>
+							<button
+								onClick={() => setActiveIndex(1)}
+								className={`py-2 px-1 border-b-2 font-medium text-sm ${
+									activeIndex === 1
+										? 'border-[#4EB9FA] text-[#4EB9FA]'
+										: 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+								}`}
+							>
+								Hitos de la institución
+							</button>
+						</nav>
+					</div>
+				</div>
+			</div>
+
+			{/* Contenido principal */}
+			<div className="px-4 mt-2">
+				<div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-4">
+					<style>{`
+						.p-tabview-nav {
+							display: none !important;
+						}
+					`}</style>
+					<TabView activeIndex={activeIndex} onTabChange={(e) => setActiveIndex(e.index)} className="border-0">
+						<TabPanel header="Calendario Operativo">
 						<Toolbar />
 						<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 							<div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-4 fc-compact">
@@ -361,7 +422,7 @@ const CalendarioOperativoBasic = () => {
 						</div>
 					</TabPanel>
 
-								<TabPanel header="Hitos de la institución">
+						<TabPanel header="Hitos de la institución">
 									<CalendarRecToolbar
 										recFiltroTipos={recFiltroTipos}
 										onChangeFiltro={setRecFiltroTipos}
@@ -389,6 +450,7 @@ const CalendarioOperativoBasic = () => {
 											const ev = arg.event;
 											const props = ev.extendedProps || {};
 											let text = ev.title || '';
+											
 											if (props?.tipoRec === 'fundacion' && props?.baseDate && ev.start) {
 												const base = dayjs(props.baseDate);
 												const occ = dayjs(ev.start);
@@ -405,7 +467,39 @@ const CalendarioOperativoBasic = () => {
 													text = `Aniversario de ingreso N°${years} ${nombre}`.trim();
 												}
 											}
-											return { domNodes: [document.createTextNode(text)] };
+											
+											// Obtener icono según tipo usando react-icons
+											let iconSvg = '';
+											if (props?.tipoRec === 'cumple') {
+												// Icono de pastel/cumpleaños de Material Design
+												iconSvg = ReactDOMServer.renderToStaticMarkup(
+													<MdCake style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
+												);
+											} else if (props?.tipoRec === 'ingreso') {
+												// Icono de check circle de Material Design
+												iconSvg = ReactDOMServer.renderToStaticMarkup(
+													<MdCheckCircle style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
+												);
+											} else if (props?.tipoRec === 'fundacion') {
+												// Icono de estrella de Material Design
+												iconSvg = ReactDOMServer.renderToStaticMarkup(
+													<MdStar style={{ width: '14px', height: '14px', display: 'inline-block', verticalAlign: 'middle', marginRight: '4px' }} />
+												);
+											}
+											
+											const container = document.createElement('div');
+											container.style.display = 'inline-flex';
+											container.style.alignItems = 'center';
+											container.style.gap = '4px';
+											if (iconSvg) {
+												const iconDiv = document.createElement('span');
+												iconDiv.innerHTML = iconSvg;
+												container.appendChild(iconDiv);
+											}
+											const textNode = document.createTextNode(text);
+											container.appendChild(textNode);
+											
+											return { domNodes: [container] };
 										} catch {
 											return { domNodes: [document.createTextNode(arg.event.title || '')] };
 										}
@@ -435,8 +529,9 @@ const CalendarioOperativoBasic = () => {
 												onVerEnCalendario={gotoFechaRec}
 											/>
 						</div>
-					</TabPanel>
-				</TabView>
+						</TabPanel>
+					</TabView>
+				</div>
 			</div>
 
 			{/* Diálogo detalle de evento (solo lectura) */}
