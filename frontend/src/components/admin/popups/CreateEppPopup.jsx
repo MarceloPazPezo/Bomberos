@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Form from '@components/Form';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdShield, MdSave } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useEpp } from '@hooks/epp/useEpp.jsx';
@@ -25,6 +26,21 @@ export default function CreateEppPopup({ show, setShow, onEppCreated, onCreating
             fetchEstadosEpp();
         }
     }, [show, fetchTiposEpp, fetchEstadosEpp]);
+
+    // Preparar opciones para los selects
+    const tiposOptions = useMemo(() => {
+        return tiposEpp.map(tipo => ({
+            value: tipo.id.toString(),
+            label: toStartCase(tipo.nombre)
+        }));
+    }, [tiposEpp]);
+
+    const estadosOptions = useMemo(() => {
+        return estadosEpp.map(estado => ({
+            value: estado.id.toString(),
+            label: toStartCase(estado.nombre)
+        }));
+    }, [estadosEpp]);
 
     // Validar campo en tiempo real
     const validateField = (field, value) => {
@@ -135,7 +151,8 @@ export default function CreateEppPopup({ show, setShow, onEppCreated, onCreating
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
                     <div className="flex items-center space-x-3">
@@ -184,27 +201,37 @@ export default function CreateEppPopup({ show, setShow, onEppCreated, onCreating
                                 {
                                     label: "Tipo de EPP",
                                     name: "idTipoEpp",
-                                    fieldType: 'select',
+                                    fieldType: 'react-select',
+                                    placeholder: 'Buscar tipo de EPP...',
+                                    options: tiposOptions,
                                     required: true,
-                                    options: tiposEpp.map(tipo => ({
-                                        value: tipo.id.toString(),
-                                        label: toStartCase(tipo.nombre)
-                                    })),
-                                    placeholder: 'Seleccione un tipo',
                                     errorMessageData: errors.idTipoEpp,
+                                    isSearchable: true,
+                                    isClearable: true,
+                                    noOptionsMessage: 'No se encontraron tipos de EPP',
+                                    filterOption: (candidate, rawInput) => {
+                                        if (!rawInput) return true;
+                                        const term = rawInput.toLowerCase();
+                                        return candidate.label.toLowerCase().includes(term);
+                                    },
                                     onChange: (e) => handleInputChange('idTipoEpp', e.target.value)
                                 },
                                 {
                                     label: "Estado",
                                     name: "idEstadoEpp",
-                                    fieldType: 'select',
+                                    fieldType: 'react-select',
+                                    placeholder: 'Buscar estado...',
+                                    options: estadosOptions,
                                     required: true,
-                                    options: estadosEpp.map(estado => ({
-                                        value: estado.id.toString(),
-                                        label: toStartCase(estado.nombre)
-                                    })),
-                                    placeholder: 'Seleccione un estado',
                                     errorMessageData: errors.idEstadoEpp,
+                                    isSearchable: true,
+                                    isClearable: true,
+                                    noOptionsMessage: 'No se encontraron estados',
+                                    filterOption: (candidate, rawInput) => {
+                                        if (!rawInput) return true;
+                                        const term = rawInput.toLowerCase();
+                                        return candidate.label.toLowerCase().includes(term);
+                                    },
                                     onChange: (e) => handleInputChange('idEstadoEpp', e.target.value)
                                 },
                                 {
@@ -260,6 +287,7 @@ export default function CreateEppPopup({ show, setShow, onEppCreated, onCreating
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Form from '@components/Form';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdRadioButtonChecked, MdSave } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { updateClaveRadial } from '@services/claveRadial.service';
@@ -179,10 +180,11 @@ export default function EditClaveRadialPopup({ show, setShow, data, onClaveRadia
     if (!show || !claveRadialData || !claveRadialData.id) return null;
 
     return (
-        <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={handleBackdropClick}
-        >
+        <ModalPortal>
+            <div 
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+                onClick={handleBackdropClick}
+            >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -294,6 +296,7 @@ export default function EditClaveRadialPopup({ show, setShow, data, onClaveRadia
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }
 

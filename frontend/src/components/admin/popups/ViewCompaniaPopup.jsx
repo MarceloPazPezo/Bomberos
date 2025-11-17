@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { MdClose, MdBusiness, MdEmail, MdPhone, MdLocationOn, MdCalendarToday, MdEdit, MdDelete, MdLanguage, MdDescription } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import CompaniaLogo from '@components/companias/CompaniaLogo';
+import ModalPortal from '@components/ModalPortal';
 
 export default function ViewCompaniaPopup({ 
     show, 
@@ -17,6 +18,37 @@ export default function ViewCompaniaPopup({
     const handleClose = () => {
         setShow(false);
     };
+
+    // Función para manejar click fuera del modal
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+            handleClose();
+        }
+    };
+
+    // Manejar tecla Escape y scroll lock
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape' && show) {
+                handleClose();
+            }
+        };
+
+        if (show) {
+            // Bloquear scroll del body cuando el popup está abierto
+            document.body.style.overflow = 'hidden';
+            document.addEventListener('keydown', handleEscape);
+        } else {
+            // Restaurar scroll del body cuando el popup se cierra
+            document.body.style.overflow = 'unset';
+        }
+
+        return () => {
+            // Limpiar al desmontar el componente
+            document.body.style.overflow = 'unset';
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [show]);
 
     const handleEdit = () => {
         if (onEdit) {
@@ -45,7 +77,11 @@ export default function ViewCompaniaPopup({
     if (!show || !companiaData) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+            <div 
+                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                onClick={handleBackdropClick}
+            >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -229,7 +265,8 @@ export default function ViewCompaniaPopup({
                     </button>
                 </div>
             </div>
-        </div>
+            </div>
+        </ModalPortal>
     );
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Form from '@components/Form';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdLink, MdSave } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { updateVinculo } from '@services/vinculo.service';
@@ -179,10 +180,11 @@ export default function EditVinculoPopup({ show, setShow, data, onVinculoUpdated
     if (!show) return null;
 
     return (
-        <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={handleBackdropClick}
-        >
+        <ModalPortal>
+            <div 
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+                onClick={handleBackdropClick}
+            >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -294,13 +296,14 @@ export default function EditVinculoPopup({ show, setShow, data, onVinculoUpdated
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }
 
 EditVinculoPopup.propTypes = {
     show: PropTypes.bool.isRequired,
     setShow: PropTypes.func.isRequired,
-    data: PropTypes.object.isRequired,
+    data: PropTypes.object,
     onVinculoUpdated: PropTypes.func,
     onUpdatingChange: PropTypes.func
 };

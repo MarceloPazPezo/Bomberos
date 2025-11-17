@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { MdClose, MdDirectionsCar, MdSave, MdError } from 'react-icons/md';
 import { carroUpdatedToast } from '@helpers/toastHelper.jsx';
 import Form from '@components/Form.jsx';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import PropTypes from 'prop-types';
 import { getCompanias } from '@services/compania.service.js';
 
@@ -64,6 +65,14 @@ const UpdateCarroPopup = ({ show, setShow, onCarroUpdated, onUpdatingChange, car
             setLoadingCompanias(false);
         }
     };
+
+    // Preparar opciones para el select de compañías
+    const companiasOptions = useMemo(() => {
+        return companias.map(compania => ({
+            value: compania.id.toString(),
+            label: compania.nombre
+        }));
+    }, [companias]);
 
     // Efecto para setear el valor de compañía cuando las compañías se carguen
     useEffect(() => {
@@ -211,7 +220,8 @@ const UpdateCarroPopup = ({ show, setShow, onCarroUpdated, onUpdatingChange, car
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -298,17 +308,22 @@ const UpdateCarroPopup = ({ show, setShow, onCarroUpdated, onUpdatingChange, car
                                 {
                                     label: "Compañía",
                                     name: "idCompania",
-                                    fieldType: 'select',
+                                    fieldType: 'react-select',
+                                    placeholder: loadingCompanias ? "Cargando compañías..." : "Buscar compañía...",
+                                    options: companiasOptions,
                                     required: true,
                                     errorMessageData: errors.idCompania,
-                                    onChange: (e) => handleInputChange('idCompania', e.target.value),
-                                    options: [
-                                        { value: '', label: loadingCompanias ? 'Cargando compañías...' : 'Seleccionar compañía...' },
-                                        ...companias.map(compania => ({
-                                            value: compania.id.toString(),
-                                            label: compania.nombre
-                                        }))
-                                    ]
+                                    isLoading: loadingCompanias,
+                                    defaultValue: formData.idCompania ? formData.idCompania.toString() : '',
+                                    isSearchable: true,
+                                    isClearable: true,
+                                    noOptionsMessage: loadingCompanias ? 'Cargando...' : 'No se encontraron compañías',
+                                    filterOption: (candidate, rawInput) => {
+                                        if (!rawInput) return true;
+                                        const term = rawInput.toLowerCase();
+                                        return candidate.label.toLowerCase().includes(term);
+                                    },
+                                    onChange: (e) => handleInputChange('idCompania', e.target.value)
                                 }
                             ]}
                             onSubmit={() => {}}
@@ -356,6 +371,7 @@ const UpdateCarroPopup = ({ show, setShow, onCarroUpdated, onUpdatingChange, car
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 };
 

@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { MdClose, MdDirectionsCar, MdSave, MdError } from 'react-icons/md';
 import { carroCreatedToast } from '@helpers/toastHelper.jsx';
 import Form from '@components/Form.jsx';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import PropTypes from 'prop-types';
 import { getCompanias } from '@services/compania.service.js';
 import { useCarro } from '@hooks/carro/useCarro.jsx';
@@ -46,6 +47,14 @@ const CreateCarroPopup = ({ show, setShow, onCarroCreated, onCreatingChange }) =
             setLoadingCompanias(false);
         }
     };
+
+    // Preparar opciones para el select de compañías
+    const companiasOptions = useMemo(() => {
+        return companias.map(compania => ({
+            value: compania.id.toString(),
+            label: compania.nombre
+        }));
+    }, [companias]);
 
     // Limpiar formulario al cerrar
     const handleClose = () => {
@@ -193,7 +202,8 @@ const CreateCarroPopup = ({ show, setShow, onCarroCreated, onCreatingChange }) =
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -274,22 +284,25 @@ const CreateCarroPopup = ({ show, setShow, onCarroCreated, onCreatingChange }) =
                                     value: formData.capacidadPasajeros,
                                     autoComplete: "off"
                                 },
-                                       {
-                                           label: "Compañía",
-                                           name: "idCompania",
-                                           fieldType: 'select',
-                                           required: true,
-                                           errorMessageData: errors.idCompania,
-                                           onChange: (e) => handleInputChange('idCompania', e.target.value),
-                                           value: formData.idCompania,
-                                           options: [
-                                               { value: '', label: loadingCompanias ? 'Cargando compañías...' : 'Seleccionar compañía...' },
-                                               ...companias.map(compania => ({
-                                                   value: compania.id.toString(),
-                                                   label: compania.nombre
-                                               }))
-                                           ]
-                                       }
+                                {
+                                    label: "Compañía",
+                                    name: "idCompania",
+                                    fieldType: 'react-select',
+                                    placeholder: loadingCompanias ? "Cargando compañías..." : "Buscar compañía...",
+                                    options: companiasOptions,
+                                    required: true,
+                                    errorMessageData: errors.idCompania,
+                                    isLoading: loadingCompanias,
+                                    isSearchable: true,
+                                    isClearable: true,
+                                    noOptionsMessage: loadingCompanias ? 'Cargando...' : 'No se encontraron compañías',
+                                    filterOption: (candidate, rawInput) => {
+                                        if (!rawInput) return true;
+                                        const term = rawInput.toLowerCase();
+                                        return candidate.label.toLowerCase().includes(term);
+                                    },
+                                    onChange: (e) => handleInputChange('idCompania', e.target.value)
+                                }
                             ]}
                             onSubmit={() => {}} // No submit en el formulario, manejamos con botón
                             backgroundColor={'#fff'}
@@ -336,6 +349,7 @@ const CreateCarroPopup = ({ show, setShow, onCarroCreated, onCreatingChange }) =
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 };
 

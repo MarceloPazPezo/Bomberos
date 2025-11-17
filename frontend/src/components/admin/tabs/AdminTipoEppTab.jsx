@@ -8,6 +8,7 @@ import EppService from '@services/epp.service';
 
 // Componentes
 import Tooltip from '@components/Tooltip';
+import ModalPortal from '@components/ModalPortal';
 import PrimeTableBasic from '@components/PrimeTableBasic.jsx';
 import BomberosLoader from '@components/BomberosLoader.jsx';
 import CreateTipoEppPopup from '@components/admin/popups/CreateTipoEppPopup';
@@ -170,7 +171,7 @@ const AdminTipoEppTab = () => {
     setActiveSubTab(subTab);
   };
 
-  // Handler para mostrar detalle
+  // Handler para mostrar detalle (solo estadísticas)
   const handleShowDetail = async (item) => {
     setDetailData(item);
     setShowDetailModal(true);
@@ -179,13 +180,25 @@ const AdminTipoEppTab = () => {
     
     try {
       const filters = activeSubTab === 'tipos' 
-        ? { idTipoEpp: item.id, limit: 500 }
-        : { idEstadoEpp: item.id, limit: 500 };
+        ? { idTipoEpp: item.id, limit: 1, page: 1 }
+        : { idEstadoEpp: item.id, limit: 1, page: 1 };
       
       const response = await EppService.searchEpp(filters);
-      const epps = response?.data || response || [];
-      setDetailEpps(Array.isArray(epps) ? epps : []);
+      
+      // Solo necesitamos el total de la paginación para mostrar el contador
+      let total = 0;
+      if (response?.status === 'Success' && response?.data) {
+        total = response.data.pagination?.total || 0;
+      } else if (response?.pagination?.total) {
+        total = response.pagination.total;
+      } else if (response?.data?.pagination?.total) {
+        total = response.data.pagination.total;
+      }
+      
+      // Guardamos el total en detailEpps.length para mantener compatibilidad con el render
+      setDetailEpps(Array(total).fill(null).map((_, i) => ({ id: i, placeholder: true })));
     } catch (error) {
+      console.error('Error al cargar estadísticas de EPP:', error);
       setDetailEpps([]);
     } finally {
       setDetailLoading(false);
@@ -249,15 +262,6 @@ const AdminTipoEppTab = () => {
     ? hasPermiso('tipo_epp:admin') 
     : hasPermiso('estado_epp:admin');
 
-  // EPPs filtrados para el modal de detalle
-  const filteredDetailEpps = useMemo(() => {
-    if (!detailSearchTerm) return detailEpps;
-    const term = detailSearchTerm.toLowerCase();
-    return detailEpps.filter(epp => 
-      epp.nombre?.toLowerCase().includes(term) ||
-      epp.descripcionDeEstado?.toLowerCase().includes(term)
-    );
-  }, [detailEpps, detailSearchTerm]);
 
   if (loading && currentData.length === 0) {
     return (
@@ -269,9 +273,9 @@ const AdminTipoEppTab = () => {
 
   return (
     <>
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-6 rounded-2xl">
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md p-6 rounded-2xl">
         {/* Header de la sección */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">Gestión de EPP</h2>
             <p className="text-gray-600 text-sm mt-1">
@@ -341,30 +345,32 @@ const AdminTipoEppTab = () => {
           </div>
         </div>
 
-        {/* Subtabs para tipos y estados */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => handleSubTabChange('tipos')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSubTab === 'tipos'
-                ? 'bg-[#4EB9FA] text-white shadow-lg'
-                : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-            }`}
-          >
-            <MdCategory size={18} />
-            <span>Tipos de EPP</span>
-          </button>
-          <button
-            onClick={() => handleSubTabChange('estados')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSubTab === 'estados'
-                ? 'bg-[#4EB9FA] text-white shadow-lg'
-                : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-            }`}
-          >
-            <MdCheckCircle size={18} />
-            <span>Estados de EPP</span>
-          </button>
+        {/* Tabs de filtro con estilo border-bottom */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => handleSubTabChange('tipos')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeSubTab === 'tipos'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MdCategory size={18} />
+              <span>Tipos de EPP</span>
+            </button>
+            <button
+              onClick={() => handleSubTabChange('estados')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeSubTab === 'estados'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MdCheckCircle size={18} />
+              <span>Estados de EPP</span>
+            </button>
+          </nav>
         </div>
 
         {/* Tabla con PrimeTableBasic */}
@@ -444,7 +450,8 @@ const AdminTipoEppTab = () => {
 
       {/* Modal de Detalle */}
       {showDetailModal && detailData && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -457,7 +464,7 @@ const AdminTipoEppTab = () => {
                     {toStartCase(detailData.nombre)}
                   </h2>
                   <p className="text-blue-100 text-sm">
-                    {detailEpps.length} EPP(s) {activeSubTab === 'tipos' ? 'de este tipo' : 'con este estado'}
+                    {detailLoading ? 'Cargando...' : `${detailEpps.length} EPP(s) ${activeSubTab === 'tipos' ? 'de este tipo' : 'con este estado'}`}
                   </p>
                 </div>
               </div>
@@ -476,72 +483,24 @@ const AdminTipoEppTab = () => {
 
             {/* Contenido */}
             <div className="flex-1 overflow-y-auto px-6 py-4 max-h-[65vh] bg-gray-50/50">
-              {/* Buscador */}
-              <div className="mb-4">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <MdSearch className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    value={detailSearchTerm}
-                    onChange={(e) => setDetailSearchTerm(e.target.value)}
-                    placeholder="Buscar EPP..."
-                    className="block w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4EB9FA] focus:border-[#4EB9FA] text-sm bg-white"
-                  />
-                  {detailSearchTerm && (
-                    <button
-                      onClick={() => setDetailSearchTerm('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                    >
-                      <MdClear className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Lista de EPPs */}
               {detailLoading ? (
                 <div className="flex justify-center items-center py-12">
-                  <BomberosLoader size="md" message="Cargando EPPs..." />
-                </div>
-              ) : filteredDetailEpps.length > 0 ? (
-                <div className="space-y-2">
-                  {filteredDetailEpps.map((epp, idx) => (
-                    <div
-                      key={epp.id}
-                      className="flex items-center gap-3 px-4 py-3 bg-white rounded-lg border border-gray-200 hover:border-[#4EB9FA] hover:shadow-md transition-all duration-200"
-                    >
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] flex items-center justify-center text-white font-semibold text-sm">
-                        {idx + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{epp.nombre || 'Sin nombre'}</p>
-                        {epp.descripcionDeEstado && (
-                          <p className="text-xs text-gray-500 mt-1 truncate">{epp.descripcionDeEstado}</p>
-                        )}
-                      </div>
-                      {activeSubTab === 'tipos' && epp.estadosEpp && (
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                          {toStartCase(epp.estadosEpp.nombre)}
-                        </span>
-                      )}
-                      {activeSubTab === 'estados' && epp.tipoEpp && (
-                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
-                          {toStartCase(epp.tipoEpp.nombre)}
-                        </span>
-                      )}
-                    </div>
-                  ))}
+                  <BomberosLoader size="md" message="Cargando estadísticas..." />
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <MdShield className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500 text-lg font-medium">
-                    {detailSearchTerm ? 'No se encontraron EPPs' : 'Sin EPPs asociados'}
+                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] mb-6">
+                    <span className="text-4xl font-bold text-white">{detailEpps.length}</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                    {detailEpps.length === 0 ? 'Sin EPPs asociados' : `${detailEpps.length} EPP${detailEpps.length !== 1 ? 's' : ''} ${activeSubTab === 'tipos' ? 'de este tipo' : 'con este estado'}`}
+                  </h3>
+                  <p className="text-gray-500 text-sm">
+                    {detailEpps.length === 0 
+                      ? `Este ${activeSubTab === 'tipos' ? 'tipo' : 'estado'} de EPP no tiene equipos asignados actualmente.`
+                      : `Total de equipos ${activeSubTab === 'tipos' ? 'que pertenecen a este tipo' : 'que tienen este estado'} en el inventario.`
+                    }
                   </p>
-                  {detailSearchTerm && (
-                    <p className="text-gray-400 text-sm mt-1">Intenta con otro término de búsqueda</p>
-                  )}
                 </div>
               )}
             </div>
@@ -564,6 +523,7 @@ const AdminTipoEppTab = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </>
   );

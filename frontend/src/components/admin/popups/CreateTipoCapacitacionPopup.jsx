@@ -2,23 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import Form from '@components/Form';
 import LoadingSpinner from '@components/LoadingSpinner';
 import ModalPortal from '@components/ModalPortal';
-import { MdClose, MdPublic, MdSave } from 'react-icons/md';
+import { MdClose, MdSchool, MdSave } from 'react-icons/md';
 import PropTypes from 'prop-types';
-import { updateRegion } from '@services/region.service';
+import { createTipoCapacitacion } from '@services/tipoCapacitacion.service';
+import { toStartCase } from '@helpers/textFormatters.js';
 import { toast } from 'react-toastify';
 
-export default function EditRegionPopup({ show, setShow, data, onRegionUpdated }) {
-    const regionData = data || {};
+export default function CreateTipoCapacitacionPopup({ show, setShow, onTipoCapacitacionCreated, onCreatingChange }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState({
+        nombre: '',
+        descripcion: ''
+    });
     const formRef = useRef(null);
-
-    // Limpiar errores cuando se abre el modal
-    useEffect(() => {
-        if (show && regionData) {
-            setErrors({});
-        }
-    }, [show, regionData]);
 
     // Función para enfocar el primer campo con error
     const focusFirstErrorField = () => {
@@ -44,54 +41,54 @@ export default function EditRegionPopup({ show, setShow, data, onRegionUpdated }
         }
     }, [errors]);
 
-    // Manejar tecla Escape
-    useEffect(() => {
-        const handleEscape = (event) => {
-            if (event.key === 'Escape' && show) {
-                handleClose();
-            }
-        };
-
-        if (show) {
-            document.body.style.overflow = 'hidden';
-            document.addEventListener('keydown', handleEscape);
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-
-        return () => {
-            document.body.style.overflow = 'unset';
-            document.removeEventListener('keydown', handleEscape);
-        };
-    }, [show]);
-
-    // Función para manejar click fuera del modal
-    const handleBackdropClick = (e) => {
-        if (e.target === e.currentTarget && !loading) {
-            handleClose();
-        }
-    };
-
     // Limpiar estado al cerrar
     const handleClose = () => {
-        if (loading) return;
         setShow(false);
         setErrors({});
+        setLoading(false);
+        setFormData({
+            nombre: '',
+            descripcion: ''
+        });
     };
 
-    // Manejar cambio de input
+    // Validar un campo específico en tiempo real
+    const validateField = (field, value) => {
+        if (field === 'nombre') {
+            if (!value || value.trim().length === 0) {
+                return 'El nombre no puede estar vacío.';
+            } else if (value.trim().length < 2) {
+                return 'El nombre debe tener como mínimo 2 caracteres.';
+            } else if (value.trim().length > 100) {
+                return 'El nombre debe tener como máximo 100 caracteres.';
+            }
+        }
+        return null;
+    };
+
+    // Manejar cambio de input con validación en tiempo real
     const handleInputChange = (field, value) => {
+        setFormData(prev => ({
+            ...prev,
+            [field]: value
+        }));
+        
+        // Validación en tiempo real
+        const fieldError = validateField(field, value);
         setErrors(prev => {
             const newErrors = { ...prev };
-            delete newErrors[field];
+            if (fieldError) {
+                newErrors[field] = fieldError;
+            } else {
+                delete newErrors[field];
+            }
             return newErrors;
         });
     };
 
-    // Validar datos de la región (idéntico al backend)
-    const validateRegionData = (data) => {
+    // Validar datos del tipo de capacitación
+    const validateTipoCapacitacionData = (data) => {
         const newErrors = {};
-        const namePattern = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s'-]+$/;
 
         if (!data.nombre || data.nombre.trim().length === 0) {
             newErrors.nombre = 'El nombre no puede estar vacío.';
@@ -99,53 +96,55 @@ export default function EditRegionPopup({ show, setShow, data, onRegionUpdated }
             newErrors.nombre = 'El nombre debe tener como mínimo 2 caracteres.';
         } else if (data.nombre.trim().length > 100) {
             newErrors.nombre = 'El nombre debe tener como máximo 100 caracteres.';
-        } else if (!namePattern.test(data.nombre.trim())) {
-            newErrors.nombre = 'El nombre solo puede contener letras, espacios, apóstrofes o guiones.';
         }
 
         return newErrors;
     };
 
-    // Manejar submit desde el Form
-    const handleSubmit = async (formValues) => {
+    // Manejar submit
+    const handleSubmit = async () => {
         setLoading(true);
+        if (onCreatingChange) onCreatingChange(true);
         setErrors({});
 
         try {
             // Validar datos
-            const regionErrors = validateRegionData(formValues);
+            const tipoErrors = validateTipoCapacitacionData(formData);
             
-            if (Object.keys(regionErrors).length > 0) {
-                setErrors(regionErrors);
+            if (Object.keys(tipoErrors).length > 0) {
+                setErrors(tipoErrors);
                 setLoading(false);
+                if (onCreatingChange) onCreatingChange(false);
                 return;
             }
 
-            // Actualizar región
-            const result = await updateRegion(regionData.id, { 
-                nombre: formValues.nombre.trim() 
+            // Crear tipo de capacitación
+            const result = await createTipoCapacitacion({ 
+                nombre: formData.nombre.trim(),
+                descripcion: formData.descripcion?.trim() || null
             });
 
             if (!result) {
-                setErrors({ general: 'Error al actualizar la región' });
+                setErrors({ general: 'Error al crear el tipo de capacitación' });
                 setLoading(false);
+                if (onCreatingChange) onCreatingChange(false);
                 return;
             }
 
-            toast.success('Región actualizada exitosamente');
+            toast.success(`Tipo de capacitación "${toStartCase(result.nombre)}" creado exitosamente`);
             handleClose();
             
             // Notificar al componente padre
-            if (onRegionUpdated) {
-                onRegionUpdated(result);
+            if (onTipoCapacitacionCreated) {
+                onTipoCapacitacionCreated(result);
             }
         } catch (error) {
-            console.error('Error updating region:', error);
-            const errorMessage = error.response?.data?.message || error.message || 'Error al actualizar la región';
+            const errorMessage = error.response?.data?.message || error.message || 'Error al crear el tipo de capacitación';
             setErrors({ general: errorMessage });
             toast.error(errorMessage);
         } finally {
             setLoading(false);
+            if (onCreatingChange) onCreatingChange(false);
         }
     };
 
@@ -153,23 +152,20 @@ export default function EditRegionPopup({ show, setShow, data, onRegionUpdated }
 
     return (
         <ModalPortal>
-            <div 
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
-                onClick={handleBackdropClick}
-            >
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
                     <div className="flex items-center space-x-3">
                         <div className="p-2 bg-white rounded-lg">
-                            <MdPublic className="w-6 h-6 text-[#3A9BD9]" />
+                            <MdSchool className="w-6 h-6 text-[#3A9BD9]" />
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">
-                                Editar Región
+                                Crear Nuevo Tipo de Capacitación
                             </h2>
                             <p className="text-blue-100 text-sm">
-                                Modifique la información de la región
+                                Complete la información para registrar un nuevo tipo de capacitación
                             </p>
                         </div>
                     </div>
@@ -192,33 +188,38 @@ export default function EditRegionPopup({ show, setShow, data, onRegionUpdated }
 
                     <div className="space-y-6">
                         <Form
-                            key={`edit-region-${regionData.id || 'new'}`}
                             ref={formRef}
                             title={null}
                             autoComplete="off"
                             size="w-full"
-                            defaultValues={{
-                                nombre: regionData.nombre || ''
-                            }}
+                            defaultValues={formData}
                             fields={[
                                 {
-                                    label: "Nombre de la Región",
+                                    label: "Nombre del Tipo de Capacitación",
                                     name: "nombre",
-                                    placeholder: 'Ej: Región del Biobío',
+                                    placeholder: 'Ej: Primeros Auxilios, Rescate en Altura...',
                                     fieldType: 'input',
                                     type: "text",
                                     required: true,
                                     minLength: 2,
                                     maxLength: 100,
-                                    pattern: /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s'-]+$/,
-                                    patternMessage: "El nombre solo puede contener letras, espacios, apóstrofes o guiones.",
                                     errorMessageData: errors.nombre,
-                                    defaultValue: regionData.nombre || '',
                                     onChange: (e) => handleInputChange('nombre', e.target.value),
+                                    autoComplete: "off"
+                                },
+                                {
+                                    label: "Descripción",
+                                    name: "descripcion",
+                                    placeholder: 'Descripción opcional del tipo de capacitación...',
+                                    fieldType: 'textarea',
+                                    rows: 4,
+                                    required: false,
+                                    errorMessageData: errors.descripcion,
+                                    onChange: (e) => handleInputChange('descripcion', e.target.value),
                                     autoComplete: "off"
                                 }
                             ]}
-                            onSubmit={handleSubmit}
+                            onSubmit={() => {}} // No submit automático
                             backgroundColor={'#fff'}
                         />
                     </div>
@@ -245,22 +246,16 @@ export default function EditRegionPopup({ show, setShow, data, onRegionUpdated }
                         </button>
                         <button
                             type="button"
-                            onClick={() => {
-                                // Obtener los valores del formulario y llamar a handleSubmit
-                                if (formRef.current?.getValues) {
-                                    const formValues = formRef.current.getValues();
-                                    handleSubmit(formValues);
-                                }
-                            }}
+                            onClick={handleSubmit}
                             className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            disabled={loading}
+                            disabled={loading || !formData.nombre.trim()}
                         >
                             {loading ? (
                                 <LoadingSpinner size="sm" />
                             ) : (
                                 <>
                                     <MdSave className="w-4 h-4" />
-                                    <span>Actualizar Región</span>
+                                    <span>Crear Tipo de Capacitación</span>
                                 </>
                             )}
                         </button>
@@ -272,10 +267,10 @@ export default function EditRegionPopup({ show, setShow, data, onRegionUpdated }
     );
 }
 
-EditRegionPopup.propTypes = {
+CreateTipoCapacitacionPopup.propTypes = {
     show: PropTypes.bool.isRequired,
     setShow: PropTypes.func.isRequired,
-    data: PropTypes.object.isRequired,
-    onRegionUpdated: PropTypes.func
+    onTipoCapacitacionCreated: PropTypes.func,
+    onCreatingChange: PropTypes.func
 };
 

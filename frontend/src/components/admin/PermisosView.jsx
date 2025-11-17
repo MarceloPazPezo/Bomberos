@@ -4,6 +4,7 @@ import { MdSecurity, MdApi, MdDescription, MdCategory, MdRefresh, MdSearch, MdCl
 import BomberosLoader from '@components/BomberosLoader';
 import Tooltip from '@components/Tooltip';
 import usePermisos from '@hooks/permisos/usePermisos';
+import Select from 'react-select';
 
 const PermisosView = () => {
   const { permisos, permisosByCategory, loading, error, initialized, refreshPermisos } = usePermisos();
@@ -21,6 +22,76 @@ const PermisosView = () => {
 
   // Obtener todas las categorías disponibles
   const categories = Object.keys(permisosByCategory || {});
+
+  // Preparar opciones para el select de categorías
+  const categoryOptions = useMemo(() => [
+    { value: '', label: 'Todas las categorías' },
+    ...categories.map(category => ({
+      value: category,
+      label: category
+    }))
+  ], [categories]);
+
+  // Valor seleccionado para el select
+  const selectedCategoryOption = useMemo(() => {
+    return categoryOptions.find(opt => opt.value === selectedCategory) || categoryOptions[0];
+  }, [selectedCategory, categoryOptions]);
+
+  // Estilos para el Select (igual que en crear parte)
+  const selectStyles = useMemo(() => ({
+    control: (base, state) => ({
+      ...base,
+      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
+      borderWidth: '2px',
+      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
+      '&:hover': {
+        borderColor: '#4EB9FA',
+      },
+      minHeight: '44px',
+      borderRadius: '10px',
+      fontSize: '0.9rem',
+    }),
+    menu: (base) => ({
+      ...base,
+      zIndex: 25,
+      borderRadius: '10px',
+      overflow: 'hidden',
+    }),
+    menuList: (base) => ({
+      ...base,
+      maxHeight: '260px',
+    }),
+    option: (base, state) => ({
+      ...base,
+      backgroundColor: state.isSelected
+        ? '#4EB9FA'
+        : state.isFocused
+          ? '#E0F2FE'
+          : 'white',
+      color: state.isSelected ? '#FFFFFF' : '#1F2937',
+      fontSize: '0.9rem',
+    }),
+    placeholder: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#9CA3AF',
+    }),
+    input: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+    }),
+    singleValue: (base) => ({
+      ...base,
+      fontSize: '0.9rem',
+      color: '#1F2937',
+    }),
+    menuPortal: (base) => ({
+      ...base,
+      zIndex: 9999,
+    }),
+  }), []);
+
+  const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
 
   // Inicializar categorías colapsadas cuando cambien las categorías
   useEffect(() => {
@@ -248,16 +319,18 @@ const PermisosView = () => {
 
           {/* Filtro por categoría */}
           <div className="lg:w-64">
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4EB9FA] focus:border-transparent text-sm"
-            >
-              <option value="">Todas las categorías</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
+            <Select
+              inputId="categoria-filter"
+              isSearchable
+              isClearable={false}
+              value={selectedCategoryOption}
+              options={categoryOptions}
+              onChange={(option) => setSelectedCategory(option?.value || '')}
+              placeholder="Seleccionar categoría..."
+              styles={selectStyles}
+              classNamePrefix="categoria-select"
+              menuPortalTarget={selectMenuPortalTarget}
+            />
           </div>
 
           {/* Botones de acción */}

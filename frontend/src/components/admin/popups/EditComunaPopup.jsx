@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Form from '@components/Form';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdLocationCity, MdSave } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { updateComuna } from '@services/region.service';
@@ -37,10 +38,12 @@ export default function EditComunaPopup({ show, setShow, data, onComunaUpdated }
     };
 
     // Preparar opciones para el select de regiones
-    const regionesOptions = regiones.map(region => ({
-        value: region.id.toString(),
-        label: region.nombre
-    }));
+    const regionesOptions = useMemo(() => {
+        return regiones.map(region => ({
+            value: region.id.toString(),
+            label: region.nombre
+        }));
+    }, [regiones]);
 
     // Función para enfocar el primer campo con error
     const focusFirstErrorField = () => {
@@ -181,10 +184,11 @@ export default function EditComunaPopup({ show, setShow, data, onComunaUpdated }
     if (!show) return null;
 
     return (
-        <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-            onClick={handleBackdropClick}
-        >
+        <ModalPortal>
+            <div 
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+                onClick={handleBackdropClick}
+            >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -249,13 +253,21 @@ export default function EditComunaPopup({ show, setShow, data, onComunaUpdated }
                                 {
                                     label: "Región",
                                     name: "idRegion",
-                                    fieldType: 'select',
-                                    placeholder: loadingRegiones ? "Cargando regiones..." : "Seleccionar región",
+                                    fieldType: 'react-select',
+                                    placeholder: loadingRegiones ? "Cargando regiones..." : "Buscar región...",
                                     options: regionesOptions,
                                     required: true,
                                     errorMessageData: errors.idRegion,
                                     isLoading: loadingRegiones,
                                     defaultValue: (comunaData.region?.id || comunaData.idRegion || '').toString(),
+                                    isSearchable: true,
+                                    isClearable: true,
+                                    noOptionsMessage: loadingRegiones ? 'Cargando...' : 'No se encontraron regiones',
+                                    filterOption: (candidate, rawInput) => {
+                                        if (!rawInput) return true;
+                                        const term = rawInput.toLowerCase();
+                                        return candidate.label.toLowerCase().includes(term);
+                                    },
                                     onChange: (e) => handleInputChange('idRegion', e.target.value)
                                 }
                             ]}
@@ -309,6 +321,7 @@ export default function EditComunaPopup({ show, setShow, data, onComunaUpdated }
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }
 

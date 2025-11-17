@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 
 // Componentes
 import Tooltip from '@components/Tooltip';
+import ModalPortal from '@components/ModalPortal';
 import CreateRegionPopup from '@components/admin/popups/CreateRegionPopup';
 import CreateComunaPopup from '@components/admin/popups/CreateComunaPopup';
 import EditRegionPopup from '@components/admin/popups/EditRegionPopup';
@@ -277,9 +278,9 @@ const AdminDireccionesTab = () => {
 
   return (
     <>
-      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-xl p-6 rounded-2xl">
+      <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md p-6 rounded-2xl">
         {/* Header de la sección */}
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-800">Gestión de Direcciones</h2>
             <p className="text-gray-600 text-sm mt-1">
@@ -390,30 +391,32 @@ const AdminDireccionesTab = () => {
           </div>
         </div>
 
-        {/* Subtabs para regiones y comunas */}
-        <div className="flex gap-2 mb-6">
-          <button
-            onClick={() => handleSubTabChange('regiones')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSubTab === 'regiones'
-                ? 'bg-[#4EB9FA] text-white shadow-lg'
-                : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-            }`}
-          >
-            <MdPublic size={18} />
-            <span>Regiones</span>
-          </button>
-          <button
-            onClick={() => handleSubTabChange('comunas')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              activeSubTab === 'comunas'
-                ? 'bg-[#4EB9FA] text-white shadow-lg'
-                : 'text-gray-600 hover:text-[#4EB9FA] hover:bg-[#4EB9FA]/10'
-            }`}
-          >
-            <MdLocationCity size={18} />
-            <span>Comunas</span>
-          </button>
+        {/* Tabs de filtro con estilo border-bottom */}
+        <div className="border-b border-gray-200 mb-6">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => handleSubTabChange('regiones')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeSubTab === 'regiones'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MdPublic size={18} />
+              <span>Regiones</span>
+            </button>
+            <button
+              onClick={() => handleSubTabChange('comunas')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeSubTab === 'comunas'
+                  ? 'border-[#4EB9FA] text-[#4EB9FA]'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <MdLocationCity size={18} />
+              <span>Comunas</span>
+            </button>
+          </nav>
         </div>
 
         {/* Contenido principal */}
@@ -642,7 +645,8 @@ const AdminDireccionesTab = () => {
 
       {/* Modal Detalle Región */}
       {showRegionDetail && regionDetail && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
             {/* Header con gradiente similar a CreateBomberoPopup */}
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -746,6 +750,7 @@ const AdminDireccionesTab = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Modales - TODO: Implementar cuando estén disponibles */}

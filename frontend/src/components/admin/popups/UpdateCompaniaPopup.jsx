@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Form from '@components/Form';
 import LoadingSpinner from '@components/LoadingSpinner';
+import ImageUploader from '@components/FileUpload/ImageUploader';
+import ModalPortal from '@components/ModalPortal';
 import { MdClose, MdBusiness, MdSave, MdInfo, MdError, MdImage, MdLanguage, MdDescription, MdDelete } from 'react-icons/md';
 import PropTypes from 'prop-types';
 import { useCompania } from '@hooks/compania/useCompania';
@@ -165,9 +167,8 @@ export default function UpdateCompaniaPopup({ show, setShow, companiaData, onCom
         }));
     };
 
-    // Manejar subida de imagen
-    const handleImageUpload = (event) => {
-        const file = event.target.files[0];
+    // Manejar subida de imagen con recorte 1:1
+    const handleImageSelect = (file) => {
         if (file) {
             // Validar archivo
             const fieldError = validateField('logo', file);
@@ -179,7 +180,7 @@ export default function UpdateCompaniaPopup({ show, setShow, companiaData, onCom
                 return;
             }
 
-            // Crear preview
+            // Crear preview del archivo recortado
             const reader = new FileReader();
             reader.onload = (e) => {
                 setFormData(prev => ({
@@ -199,7 +200,7 @@ export default function UpdateCompaniaPopup({ show, setShow, companiaData, onCom
     };
 
     // Eliminar imagen
-    const removeImage = () => {
+    const handleImageRemove = () => {
         setFormData(prev => ({
             ...prev,
             logo: null,
@@ -406,7 +407,8 @@ export default function UpdateCompaniaPopup({ show, setShow, companiaData, onCom
     if (!show || !companiaData) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <ModalPortal>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] rounded-t-2xl">
@@ -511,17 +513,6 @@ export default function UpdateCompaniaPopup({ show, setShow, companiaData, onCom
                                     autoComplete: "off"
                                 },
                                 {
-                                    label: "Logo de la Compañía (Opcional)",
-                                    name: "logo",
-                                    fieldType: 'image',
-                                    accept: "image/jpeg,image/jpg,image/png,image/gif",
-                                    helpText: "JPG, PNG o GIF (máx. 5MB)",
-                                    preview: formData.logoPreview,
-                                    onChange: handleImageUpload,
-                                    onRemove: removeImage,
-                                    errorMessageData: errors.logo
-                                },
-                                {
                                     label: "Banner de la Compañía (Opcional)",
                                     name: "banner",
                                     fieldType: 'banner',
@@ -544,6 +535,32 @@ export default function UpdateCompaniaPopup({ show, setShow, companiaData, onCom
                                 sitioWeb: formData.sitioWeb
                             }}
                         />
+
+                        {/* Logo de la Compañía con recorte 1:1 */}
+                        <div className="w-full">
+                            <label className="block text-sm font-semibold text-[#2C3E50] mb-2">
+                                <div className="flex items-center gap-2">
+                                    <MdImage className="w-4 h-4 text-[#4EB9FA]" />
+                                    <span>Logo de la Compañía (Opcional)</span>
+                                </div>
+                            </label>
+                            <ImageUploader
+                                onFileSelect={handleImageSelect}
+                                onFileRemove={handleImageRemove}
+                                value={formData.logo}
+                                previewUrl={formData.logoPreview && !formData.logo ? formData.logoPreview : null}
+                                error={errors.logo}
+                                placeholder="Seleccionar logo de la compañía..."
+                                className="w-full"
+                                acceptedTypes={['image/jpeg', 'image/png', 'image/webp', 'image/gif']}
+                                maxSize={5 * 1024 * 1024} // 5MB
+                            />
+                            <p className="text-xs text-gray-500 mt-2">
+                                {formData.logoPreview && !formData.logo 
+                                    ? 'Logo actual mostrado arriba. Selecciona uno nuevo para reemplazarlo y se recortará automáticamente en formato cuadrado 1:1.'
+                                    : 'Se recortará automáticamente en formato cuadrado 1:1. JPG, PNG, WEBP o GIF (máx. 5MB)'}
+                            </p>
+                        </div>
                     </div>
 
                     {/* Errores de unicidad - más sutiles */}
@@ -602,6 +619,7 @@ export default function UpdateCompaniaPopup({ show, setShow, companiaData, onCom
                 </div>
             </div>
         </div>
+        </ModalPortal>
     );
 }
 
