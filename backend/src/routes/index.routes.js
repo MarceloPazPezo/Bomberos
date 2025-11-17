@@ -38,6 +38,7 @@ import jurisdiccionRoutes from "./jurisdiccion.routes.js";
 import tipoEppRoutes from "./tipoEpp.routes.js";
 import estadoEppRoutes from "./estadoEpp.routes.js";
 import vinculoRoutes from "./vinculo.routes.js";
+import tipoCapacitacionRoutes from "./tipoCapacitacion.routes.js";
 import claveRadialRoutes from "./claveRadial.routes.js";
 import clasificacionEmergenciaRoutes from "./clasificacionEmergencia.routes.js";
 import geocodingRoutes from "./geocoding.routes.js";
@@ -85,6 +86,7 @@ router
   .use("/tipo-epp", tipoEppRoutes)
   .use("/estado-epp", estadoEppRoutes)
   .use("/vinculo", vinculoRoutes)
+  .use("/tipo-capacitacion", tipoCapacitacionRoutes)
   .use("/clave-radial", claveRadialRoutes)
   .use("/geocoding", geocodingRoutes)
   .use("/clasificacion-emergencia", clasificacionEmergenciaRoutes)

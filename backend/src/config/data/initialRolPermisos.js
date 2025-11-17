@@ -446,6 +446,104 @@ async function crearPermisos() {
         metodo: "*",
       },
       {
+        nombre: "evento:obtener",
+        descripcion: "Permite obtener la lista de eventos del calendario",
+        categoria: "Eventos del Calendario",
+        ruta: "/api/calendario/eventos",
+        metodo: "GET",
+      },
+      {
+        nombre: "evento:crear",
+        descripcion: "Permite crear eventos en el calendario",
+        categoria: "Eventos del Calendario",
+        ruta: "/api/calendario/eventos",
+        metodo: "POST",
+      },
+      {
+        nombre: "evento:actualizar",
+        descripcion: "Permite actualizar eventos del calendario",
+        categoria: "Eventos del Calendario",
+        ruta: "/api/calendario/eventos/*",
+        metodo: "PUT",
+      },
+      {
+        nombre: "evento:eliminar",
+        descripcion: "Permite eliminar eventos del calendario",
+        categoria: "Eventos del Calendario",
+        ruta: "/api/calendario/eventos/*",
+        metodo: "DELETE",
+      },
+      {
+        nombre: "evento:admin",
+        descripcion: "Permite administración completa de eventos del calendario (crear, actualizar, eliminar)",
+        categoria: "Eventos del Calendario",
+        ruta: "/api/calendario/eventos/*",
+        metodo: "*",
+      },
+      {
+        nombre: "capacitacion:obtener",
+        descripcion: "Permite obtener la lista de tipos de capacitación",
+        categoria: "Tipos de Capacitación",
+        ruta: "/api/tipo-capacitacion",
+        metodo: "GET",
+      },
+      {
+        nombre: "capacitacion:admin",
+        descripcion: "Permite administración completa de tipos de capacitación (crear, actualizar, eliminar)",
+        categoria: "Tipos de Capacitación",
+        ruta: "/api/tipo-capacitacion/*",
+        metodo: "*",
+      },
+      {
+        nombre: "parte_emergencia:crear",
+        descripcion: "Permite crear/redactar partes de emergencia",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia",
+        metodo: "POST",
+      },
+      {
+        nombre: "parte_emergencia:obtener",
+        descripcion: "Permite obtener partes de emergencia (generalmente de la compañía del usuario)",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia",
+        metodo: "GET",
+      },
+      {
+        nombre: "parte_emergencia:actualizar",
+        descripcion: "Permite actualizar partes de emergencia (solo si no están ENVIADO/APROBADO)",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/:id",
+        metodo: "PUT",
+      },
+      {
+        nombre: "parte_emergencia:eliminar",
+        descripcion: "Permite eliminar partes de emergencia",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/incidente/:id",
+        metodo: "DELETE",
+      },
+      {
+        nombre: "parte_emergencia:revisar",
+        descripcion: "Permite ver partes enviados para revisión, aprobar y rechazar partes",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/incidentes/revision",
+        metodo: "GET",
+      },
+      {
+        nombre: "parte_emergencia:generar_pdf",
+        descripcion: "Permite generar PDF de partes de emergencia",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/:id/reporte/pdf",
+        metodo: "POST",
+      },
+      {
+        nombre: "parte_emergencia:admin",
+        descripcion: "Permite administración completa de partes de emergencia (incluye todos los permisos anteriores)",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/*",
+        metodo: "*",
+      },
+      {
         nombre: "tipoPunto:obtener",
         descripcion: "Permite obtener la lista de tipos de punto",
         categoria: "Puntos Geográficos",
@@ -661,6 +759,20 @@ async function crearRoles() {
           "clasificacion_emergencia:admin",
           "tipoEvento:obtener",
           "tipoEvento:admin",
+          "evento:obtener",
+          "evento:crear",
+          "evento:actualizar",
+          "evento:eliminar",
+          "evento:admin",
+          "capacitacion:obtener",
+          "capacitacion:admin",
+          "parte_emergencia:crear",
+          "parte_emergencia:obtener",
+          "parte_emergencia:actualizar",
+          "parte_emergencia:eliminar",
+          "parte_emergencia:revisar",
+          "parte_emergencia:generar_pdf",
+          "parte_emergencia:admin",
           "tipoPunto:obtener",
           "tipoPunto:crear",
           "tipoPunto:actualizar",
@@ -719,4 +831,234 @@ async function crearRoles() {
   }
 }
 
-export { crearPermisos, crearRoles };
+/**
+ * Agregar permisos faltantes de partes de emergencia si no existen
+ */
+async function agregarPermisosParteEmergencia() {
+  try {
+    const permisoRepository = AppDataSource.getRepository(Permiso);
+    const roleRepository = AppDataSource.getRepository(Rol);
+
+    // Verificar y crear permisos de partes de emergencia si no existen
+    const permisosParteEmergencia = [
+      {
+        nombre: "parte_emergencia:crear",
+        descripcion: "Permite crear/redactar partes de emergencia",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia",
+        metodo: "POST",
+      },
+      {
+        nombre: "parte_emergencia:obtener",
+        descripcion: "Permite obtener partes de emergencia (generalmente de la compañía del usuario)",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia",
+        metodo: "GET",
+      },
+      {
+        nombre: "parte_emergencia:actualizar",
+        descripcion: "Permite actualizar partes de emergencia (solo si no están ENVIADO/APROBADO)",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/:id",
+        metodo: "PUT",
+      },
+      {
+        nombre: "parte_emergencia:eliminar",
+        descripcion: "Permite eliminar partes de emergencia",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/incidente/:id",
+        metodo: "DELETE",
+      },
+      {
+        nombre: "parte_emergencia:revisar",
+        descripcion: "Permite ver partes enviados para revisión, aprobar y rechazar partes",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/incidentes/revision",
+        metodo: "GET",
+      },
+      {
+        nombre: "parte_emergencia:generar_pdf",
+        descripcion: "Permite generar PDF de partes de emergencia",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/:id/reporte/pdf",
+        metodo: "POST",
+      },
+      {
+        nombre: "parte_emergencia:admin",
+        descripcion: "Permite administración completa de partes de emergencia (incluye todos los permisos anteriores)",
+        categoria: "Partes de Emergencia",
+        ruta: "/api/parteEmergencia/*",
+        metodo: "*",
+      },
+    ];
+
+    for (const permisoData of permisosParteEmergencia) {
+      const permisoExistente = await permisoRepository.findOne({
+        where: { nombre: permisoData.nombre },
+      });
+
+      if (!permisoExistente) {
+        const nuevoPermiso = permisoRepository.create(permisoData);
+        await permisoRepository.save(nuevoPermiso);
+        logger.info(`[SERVER] Permiso "${permisoData.nombre}" creado.`);
+      } else {
+        logger.info(`[SERVER] Permiso "${permisoData.nombre}" ya existe.`);
+      }
+    }
+
+    // Agregar permisos al rol Administrador si existe
+    const rolAdmin = await roleRepository.findOne({
+      where: { nombre: "Administrador" },
+      relations: ["permisos"],
+    });
+
+    if (rolAdmin) {
+      const permisosParteEmergenciaObjetos = await permisoRepository.findBy({
+        nombre: In([
+          "parte_emergencia:crear",
+          "parte_emergencia:obtener",
+          "parte_emergencia:actualizar",
+          "parte_emergencia:eliminar",
+          "parte_emergencia:revisar",
+          "parte_emergencia:generar_pdf",
+          "parte_emergencia:admin",
+        ]),
+      });
+
+      const permisosExistentesNombres = rolAdmin.permisos.map((p) => p.nombre);
+      const permisosAAgregar = permisosParteEmergenciaObjetos.filter(
+        (p) => !permisosExistentesNombres.includes(p.nombre)
+      );
+
+      if (permisosAAgregar.length > 0) {
+        rolAdmin.permisos = [...rolAdmin.permisos, ...permisosAAgregar];
+        await roleRepository.save(rolAdmin);
+        logger.info(
+          `[SERVER] Permisos de partes de emergencia agregados al rol Administrador: ${permisosAAgregar
+            .map((p) => p.nombre)
+            .join(", ")}`
+        );
+      } else {
+        logger.info(
+          "[SERVER] El rol Administrador ya tiene los permisos de partes de emergencia."
+        );
+      }
+    }
+
+    // Agregar permisos básicos al rol Bombero si existe
+    const rolBombero = await roleRepository.findOne({
+      where: { nombre: "Bombero" },
+      relations: ["permisos"],
+    });
+
+    if (rolBombero) {
+      const permisosBasicos = await permisoRepository.findBy({
+        nombre: In([
+          "parte_emergencia:crear",
+          "parte_emergencia:obtener",
+          "parte_emergencia:generar_pdf",
+        ]),
+      });
+
+      const permisosExistentesNombres = rolBombero.permisos.map((p) => p.nombre);
+      const permisosAAgregar = permisosBasicos.filter(
+        (p) => !permisosExistentesNombres.includes(p.nombre)
+      );
+
+      if (permisosAAgregar.length > 0) {
+        rolBombero.permisos = [...rolBombero.permisos, ...permisosAAgregar];
+        await roleRepository.save(rolBombero);
+        logger.info(
+          `[SERVER] Permisos básicos de partes de emergencia agregados al rol Bombero: ${permisosAAgregar
+            .map((p) => p.nombre)
+            .join(", ")}`
+        );
+      } else {
+        logger.info(
+          "[SERVER] El rol Bombero ya tiene los permisos básicos de partes de emergencia."
+        );
+      }
+    }
+  } catch (error) {
+    logger.errorWithContext(error, { function: "agregarPermisosParteEmergencia" });
+    throw error;
+  }
+}
+
+/**
+ * Agregar permisos faltantes de capacitación si no existen
+ */
+async function agregarPermisosCapacitacion() {
+  try {
+    const permisoRepository = AppDataSource.getRepository(Permiso);
+    const roleRepository = AppDataSource.getRepository(Rol);
+
+    // Verificar y crear permisos de capacitación si no existen
+    const permisosCapacitacion = [
+      {
+        nombre: "capacitacion:obtener",
+        descripcion: "Permite obtener la lista de tipos de capacitación",
+        categoria: "Tipos de Capacitación",
+        ruta: "/api/tipo-capacitacion",
+        metodo: "GET",
+      },
+      {
+        nombre: "capacitacion:admin",
+        descripcion: "Permite administración completa de tipos de capacitación (crear, actualizar, eliminar)",
+        categoria: "Tipos de Capacitación",
+        ruta: "/api/tipo-capacitacion/*",
+        metodo: "*",
+      },
+    ];
+
+    for (const permisoData of permisosCapacitacion) {
+      const permisoExistente = await permisoRepository.findOne({
+        where: { nombre: permisoData.nombre },
+      });
+
+      if (!permisoExistente) {
+        const nuevoPermiso = permisoRepository.create(permisoData);
+        await permisoRepository.save(nuevoPermiso);
+        logger.info(`[SERVER] Permiso "${permisoData.nombre}" creado.`);
+      } else {
+        logger.info(`[SERVER] Permiso "${permisoData.nombre}" ya existe.`);
+      }
+    }
+
+    // Agregar permisos al rol Administrador si existe
+    const rolAdmin = await roleRepository.findOne({
+      where: { nombre: "Administrador" },
+      relations: ["permisos"],
+    });
+
+    if (rolAdmin) {
+      const permisosCapacitacionObjetos = await permisoRepository.findBy({
+        nombre: In(["capacitacion:obtener", "capacitacion:admin"]),
+      });
+
+      const permisosExistentesNombres = rolAdmin.permisos.map((p) => p.nombre);
+      const permisosAAgregar = permisosCapacitacionObjetos.filter(
+        (p) => !permisosExistentesNombres.includes(p.nombre)
+      );
+
+      if (permisosAAgregar.length > 0) {
+        rolAdmin.permisos = [...rolAdmin.permisos, ...permisosAAgregar];
+        await roleRepository.save(rolAdmin);
+        logger.info(
+          `[SERVER] Permisos de capacitación agregados al rol Administrador: ${permisosAAgregar
+            .map((p) => p.nombre)
+            .join(", ")}`
+        );
+      } else {
+        logger.info(
+          "[SERVER] El rol Administrador ya tiene los permisos de capacitación."
+        );
+      }
+    }
+  } catch (error) {
+    logger.errorWithContext(error, { function: "agregarPermisosCapacitacion" });
+    throw error;
+  }
+}
+
+export { crearPermisos, crearRoles, agregarPermisosCapacitacion, agregarPermisosParteEmergencia };

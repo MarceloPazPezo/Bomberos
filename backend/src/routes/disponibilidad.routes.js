@@ -9,6 +9,7 @@ import {
   getDisponibilidad,
   getDisponibilidadActiva,
   getDisponibilidades,
+  getMiDisponibilidadActiva,
 } from "../controllers/disponibilidad.controller.js";
 
 const router = Router();
@@ -39,6 +40,11 @@ router.delete(
   "/detalle/:id",
   authorizePermisos(["disponibilidad:admin"]),
   deleteDisponibilidad,
+);
+router.get(
+  "/mi-activa",
+  authorizePermisos(["disponibilidad:obtener", "disponibilidad:crear", "disponibilidad:actualizar"]),
+  getMiDisponibilidadActiva,
 );
 router.get(
   "/detalle/activa/:idBombero",
