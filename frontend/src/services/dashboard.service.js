@@ -93,7 +93,6 @@ export async function getHeatmapDisponibilidad(fechaInicio, fechaFin, idcompania
       fechaFin,
       idcompania
     });
-    console.log("Heatmap Disponibilidad Response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error fetching heatmap disponibilidad:", error);
@@ -254,3 +253,68 @@ export async function getPorcentajeParticipacion(fechaInicio, fechaFin, idsEvent
     throw error;
   }
 }
+
+/**
+ * Obtiene el porcentaje de participación de voluntarios en incidentes
+ * @param {number} fechaInicio - Timestamp de inicio
+ * @param {number} fechaFin - Timestamp de fin
+ * @param {number} idcompania - ID de la compañía
+ */
+export async function getPorcentajeParticipacionIncidentes(fechaInicio, fechaFin, idcompania) {
+  try {
+    const response = await axios.post('/dashboard/compania/kpi/participacionIncidentes', {
+      fechaInicio,
+      fechaFin,
+      idcompania
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching porcentaje participación incidentes:', error);
+    throw error;
+  }
+}
+
+/**
+ * Obtiene el ranking de clasificaciones de emergencia para Bump Chart
+ * @param {number} fechaInicio - Timestamp de inicio
+ * @param {number} fechaFin - Timestamp de fin
+ * @param {number} idcompania - ID de la compañía
+ * @param {string} agrupacion - Tipo de agrupación: 'dias', 'meses', 'años'
+ */
+export async function getRankingClasificaciones(fechaInicio, fechaFin, idcompania, agrupacion = 'dias') {
+  try {
+    const response = await axios.post('/dashboard/compania/incidente/rankingClasificaciones', {
+      fechaInicio,
+      fechaFin,
+      idcompania,
+      agrupacion
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching ranking clasificaciones:', error);
+    throw error;
+  }
+}
+
+/**
+ * Obtiene los incidentes agrupados por periodo (días, meses, años)
+ * @param {number} fechaInicio - Timestamp de inicio
+ * @param {number} fechaFin - Timestamp de fin
+ * @param {number} idcompania - ID de la compañía
+ * @param {string} agrupacion - 'dias' | 'meses' | 'años'
+ */
+export async function getIncidentesPorPeriodo(fechaInicio, fechaFin, idcompania, agrupacion = 'dias') {
+  try {
+    const response = await axios.post('/dashboard/compania/incidente/periodo', {
+      fechaInicio,
+      fechaFin,
+      idcompania,
+      agrupacion
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching incidentes por periodo:', error);
+    throw error;
+  }
+}
+

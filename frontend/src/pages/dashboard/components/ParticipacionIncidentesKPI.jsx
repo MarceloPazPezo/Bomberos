@@ -1,10 +1,10 @@
 import React from 'react';
 import PropTypes from 'prop-types';
-import { MdPeople } from 'react-icons/md';
+import { MdShowChart } from 'react-icons/md';
 
-const AsistenciaPromedioKPI = ({ 
-  promedio = 0, 
-  totalIncidentes = 0, 
+const ParticipacionIncidentesKPI = ({ 
+  porcentaje = 0, 
+  asistenciaPromedio = 0, 
   totalVoluntarios = 0,
   filtroActivo = 'mensual', 
   onFiltroChange, 
@@ -14,42 +14,30 @@ const AsistenciaPromedioKPI = ({
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <div className="p-2 bg-blue-100 rounded-lg">
-          <MdPeople className="text-blue-600" size={20} />
+        <div className="p-2 bg-green-100 rounded-lg">
+          <MdShowChart className="text-green-600" size={20} />
         </div>
         <h3 className="text-sm font-semibold text-gray-700">
-          Asistencia Promedio
+          Participación en Incidentes
         </h3>
       </div>
 
       {/* KPI Value */}
       {loading ? (
         <div className="flex items-center justify-center py-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
         </div>
       ) : (
         <>
           <div className="mb-3">
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-blue-600">
-                {promedio || 0}
+              <span className="text-3xl font-bold text-green-600">
+                {Number(porcentaje || 0).toFixed(1)}%
               </span>
-              <span className="text-sm text-gray-500">voluntarios</span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">por incidente</p>
+            <p className="text-xs text-gray-500 mt-1">participación promedio</p>
           </div>
 
-          {/* Stats adicionales */}
-          <div className="grid grid-cols-2 gap-2 mb-3 pt-3 border-t border-gray-100">
-            <div>
-              <p className="text-xs text-gray-500">Total incidentes</p>
-              <p className="text-sm font-semibold text-gray-700">{totalIncidentes || 0}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">Total voluntarios asistentes</p>
-              <p className="text-sm font-semibold text-gray-700">{totalVoluntarios || 0}</p>
-            </div>
-          </div>
         </>
       )}
 
@@ -59,7 +47,7 @@ const AsistenciaPromedioKPI = ({
           onClick={() => onFiltroChange('semanal')}
           className={`flex-1 px-2 py-1.5 text-xs font-medium rounded transition-colors ${
             filtroActivo === 'semanal'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-green-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -69,7 +57,7 @@ const AsistenciaPromedioKPI = ({
           onClick={() => onFiltroChange('mensual')}
           className={`flex-1 px-2 py-1.5 text-xs font-medium rounded transition-colors ${
             filtroActivo === 'mensual'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-green-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -79,7 +67,7 @@ const AsistenciaPromedioKPI = ({
           onClick={() => onFiltroChange('anual')}
           className={`flex-1 px-2 py-1.5 text-xs font-medium rounded transition-colors ${
             filtroActivo === 'anual'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-green-600 text-white'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
@@ -90,15 +78,13 @@ const AsistenciaPromedioKPI = ({
   );
 };
 
-AsistenciaPromedioKPI.propTypes = {
-  promedio: PropTypes.number,
-  totalIncidentes: PropTypes.number,
+ParticipacionIncidentesKPI.propTypes = {
+  porcentaje: PropTypes.number,
+  asistenciaPromedio: PropTypes.number,
   totalVoluntarios: PropTypes.number,
   filtroActivo: PropTypes.oneOf(['semanal', 'mensual', 'anual']),
   onFiltroChange: PropTypes.func.isRequired,
   loading: PropTypes.bool,
 };
 
-
-
-export default AsistenciaPromedioKPI;
+export default ParticipacionIncidentesKPI;

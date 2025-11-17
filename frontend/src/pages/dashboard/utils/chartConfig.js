@@ -2,73 +2,7 @@
  * Configuraciones de Chart.js para gráficos del dashboard
  */
 
-export const getIncidentesPorDiaChartOptions = () => ({
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      position: 'top',
-      labels: {
-        font: {
-          size: 13,
-          family: "'Inter', sans-serif",
-        },
-        color: '#2C3E50',
-      },
-    },
-    title: {
-      display: true,
-      text: 'Incidentes por Día de la Semana',
-      font: {
-        size: 16,
-        weight: 'bold',
-        family: "'Inter', sans-serif",
-      },
-      color: '#2C3E50',
-      padding: {
-        top: 10,
-        bottom: 20,
-      },
-    },
-    tooltip: {
-      backgroundColor: 'rgba(44, 62, 80, 0.9)',
-      titleFont: {
-        size: 14,
-      },
-      bodyFont: {
-        size: 13,
-      },
-      padding: 12,
-      cornerRadius: 8,
-    },
-  },
-  scales: {
-    y: {
-      beginAtZero: true,
-      ticks: {
-        stepSize: 1,
-        color: '#64748b',
-        font: {
-          size: 12,
-        },
-      },
-      grid: {
-        color: 'rgba(0, 0, 0, 0.05)',
-      },
-    },
-    x: {
-      ticks: {
-        color: '#64748b',
-        font: {
-          size: 12,
-        },
-      },
-      grid: {
-        display: false,
-      },
-    },
-  },
-});
+
 
 /**
  * Función para procesar datos de incidentes por día
@@ -101,7 +35,12 @@ export const processIncidentesPorDiaData = (responseData) => {
 /**
  * Configuraciones de Chart.js para gráfico de incidentes por mes
  */
-export const getIncidentesPorMesChartOptions = () => ({
+// (Eliminado gráfico por mes individual - reemplazado por getIncidentesPorPeriodoChartOptions)
+
+/**
+ * Configuraciones para gráfico unificado de Incidentes por Período (días | meses | años)
+ */
+export const getIncidentesPorPeriodoChartOptions = (titulo = 'Incidentes por Período') => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -109,24 +48,28 @@ export const getIncidentesPorMesChartOptions = () => ({
       position: 'top',
       labels: {
         font: {
-          size: 13,
+          size: 12,
           family: "'Inter', sans-serif",
         },
         color: '#2C3E50',
       },
     },
     title: {
-      display: false,
+      display: true,
+      text: titulo,
+      font: {
+        size: 14,
+        weight: 'bold',
+        family: "'Inter', sans-serif",
+      },
+      color: '#2C3E50',
+      padding: { top: 6, bottom: 10 },
     },
     tooltip: {
       backgroundColor: 'rgba(44, 62, 80, 0.9)',
-      titleFont: {
-        size: 14,
-      },
-      bodyFont: {
-        size: 13,
-      },
-      padding: 12,
+      titleFont: { size: 13 },
+      bodyFont: { size: 12 },
+      padding: 10,
       cornerRadius: 8,
     },
   },
@@ -136,49 +79,35 @@ export const getIncidentesPorMesChartOptions = () => ({
       ticks: {
         stepSize: 1,
         color: '#64748b',
-        font: {
-          size: 12,
-        },
+        font: { size: 11 },
       },
-      grid: {
-        color: 'rgba(0, 0, 0, 0.05)',
-      },
+      grid: { color: 'rgba(0, 0, 0, 0.05)' },
     },
     x: {
-      ticks: {
-        color: '#64748b',
-        font: {
-          size: 12,
-        },
-      },
-      grid: {
-        display: false,
-      },
+      ticks: { color: '#64748b', font: { size: 11 } },
+      grid: { display: false },
     },
   },
 });
 
 /**
- * Función para procesar datos de incidentes por mes
+ * Procesa datos [{ periodo, orden_periodo, cantidad }]
  */
-export const processIncidentesPorMesData = (responseData) => {
-  if (!responseData || !Array.isArray(responseData)) {
-    return null;
-  }
+export const processIncidentesPorPeriodoData = (responseArray) => {
+  if (!Array.isArray(responseArray)) return null;
+  // Ordenar por orden_periodo si viene definido
+  const sorted = [...responseArray].sort((a, b) => (a.orden_periodo || 0) - (b.orden_periodo || 0));
+  const labels = sorted.map(i => i.periodo);
+  const valores = sorted.map(i => Number(i.cantidad) || 0);
 
-  const labels = responseData.map(item => 
-    item.mes.charAt(0).toUpperCase() + item.mes.slice(1)
-  );
-  const valores = responseData.map(item => item.cantidad);
-  
   return {
-    labels: labels,
+    labels,
     datasets: [
       {
         label: 'Cantidad de Incidentes',
         data: valores,
-        backgroundColor: 'rgba(76, 175, 80, 0.6)',
-        borderColor: 'rgba(76, 175, 80, 1)',
+        backgroundColor: 'rgba(78, 185, 250, 0.6)',
+        borderColor: 'rgba(78, 185, 250, 1)',
         borderWidth: 2,
         borderRadius: 6,
       },
@@ -1200,4 +1129,226 @@ export const processEvolucionEventosData = (responseData) => {
     ]
   };
 };
+
+/**
+ * ====================================
+ * GRÁFICO DE LÍNEAS MÚLTIPLES - CLASIFICACIONES
+ * ====================================
+ */
+
+/**
+ * Opciones del gráfico de líneas para evolución de clasificaciones
+ */
+export const getRankingClasificacionesChartOptions = () => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    mode: 'index',
+    intersect: false,
+  },
+  plugins: {
+    legend: {
+      position: 'right',
+      align: 'center',
+      labels: {
+        font: {
+          size: 11,
+          family: "'Inter', sans-serif",
+        },
+        color: '#2C3E50',
+        padding: 8,
+        usePointStyle: true,
+        pointStyle: 'circle',
+        generateLabels: (chart) => {
+          const datasets = chart.data.datasets;
+          return datasets.map((dataset, i) => ({
+            text: dataset.label,
+            fillStyle: dataset.borderColor,
+            strokeStyle: dataset.borderColor,
+            lineWidth: 2,
+            hidden: !chart.isDatasetVisible(i),
+            index: i,
+            pointStyle: 'circle',
+          }));
+        },
+      },
+      maxHeight: 300,
+      maxWidth: 220,
+    },
+    title: {
+      display: false,
+    },
+    tooltip: {
+      backgroundColor: 'rgba(44, 62, 80, 0.95)',
+      titleFont: {
+        size: 13,
+        weight: 'bold',
+      },
+      bodyFont: {
+        size: 12,
+      },
+      padding: 12,
+      cornerRadius: 8,
+      displayColors: true,
+      callbacks: {
+        title: (tooltipItems) => {
+          return tooltipItems[0].label;
+        },
+        label: (context) => {
+          const cantidad = context.parsed.y;
+          const clasificacion = context.dataset.label.split(' (')[0];
+          return `${clasificacion}: ${cantidad} incidente${cantidad !== 1 ? 's' : ''}`;
+        },
+      },
+    },
+  },
+  scales: {
+    x: {
+      grid: {
+        color: '#e5e7eb',
+        drawBorder: false,
+      },
+      ticks: {
+        color: '#64748b',
+        font: {
+          size: 11,
+          family: "'Inter', sans-serif",
+        },
+      },
+      title: {
+        display: true,
+        text: 'Periodo',
+        color: '#64748b',
+        font: {
+          size: 12,
+          weight: 'bold',
+        },
+      },
+    },
+    y: {
+      beginAtZero: true,
+      grid: {
+        color: '#e5e7eb',
+        drawBorder: false,
+      },
+      ticks: {
+        color: '#64748b',
+        font: {
+          size: 11,
+          family: "'Inter', sans-serif",
+        },
+        stepSize: 1,
+        callback: function(value) {
+          if (Number.isInteger(value)) {
+            return value;
+          }
+        },
+      },
+      title: {
+        display: true,
+        text: 'Cantidad de Incidentes',
+        color: '#64748b',
+        font: {
+          size: 12,
+          weight: 'bold',
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Procesa los datos del backend para el gráfico de líneas de clasificaciones
+ * Convierte conteos SQL en datasets de Chart.js (cantidad en eje Y)
+ */
+export const processRankingClasificacionesData = (responseData) => {
+  if (!responseData || responseData.length === 0) {
+    return {
+      labels: [],
+      datasets: [],
+    };
+  }
+
+  // Paleta de colores distintivos para cada clasificación
+  const colorPalette = [
+    { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)' },    // Rojo
+    { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' },   // Ámbar
+    { border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },   // Verde
+    { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },   // Azul
+    { border: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.1)' },   // Violeta
+    { border: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)' },   // Rosa
+    { border: '#14b8a6', bg: 'rgba(20, 184, 166, 0.1)' },   // Teal
+    { border: '#f97316', bg: 'rgba(249, 115, 22, 0.1)' },   // Naranja
+    { border: '#06b6d4', bg: 'rgba(6, 182, 212, 0.1)' },    // Cyan
+    { border: '#a855f7', bg: 'rgba(168, 85, 247, 0.1)' },   // Púrpura
+  ];
+
+  // Extraer periodos únicos (en orden)
+  const periodosMap = new Map();
+  responseData.forEach(row => {
+    if (!periodosMap.has(row.periodo)) {
+      periodosMap.set(row.periodo, row.orden_periodo);
+    }
+  });
+  
+  const periodos = Array.from(periodosMap.entries())
+    .sort((a, b) => a[1] - b[1])
+    .map(([periodo]) => periodo);
+
+  // Agrupar por clasificación
+  const clasificacionesMap = new Map();
+  responseData.forEach(row => {
+    const key = row.id_clasificacion;
+    if (!clasificacionesMap.has(key)) {
+      clasificacionesMap.set(key, {
+        id: row.id_clasificacion,
+        nombre: row.nombre_clasificacion,
+        total: row.total_incidentes,
+        cantidades: new Map(),
+      });
+    }
+    const clasif = clasificacionesMap.get(key);
+    clasif.cantidades.set(row.periodo, row.cantidad);
+  });
+
+  // Ordenar clasificaciones por total de incidentes (descendente)
+  const clasificacionesOrdenadas = Array.from(clasificacionesMap.values())
+    .sort((a, b) => b.total - a.total);
+
+  // Crear datasets - AHORA EL EJE Y ES LA CANTIDAD
+  const datasets = clasificacionesOrdenadas.map((clasif, index) => {
+    const colorIndex = index % colorPalette.length;
+    const colors = colorPalette[colorIndex];
+
+    // Construir array de CANTIDADES para cada periodo
+    const data = periodos.map(periodo => {
+      return clasif.cantidades.get(periodo) || 0; // ← CANTIDAD en lugar de ranking
+    });
+
+    return {
+      label: `${clasif.nombre} (${clasif.total} total)`,
+      data: data,
+      borderColor: colors.border,
+      backgroundColor: colors.bg,
+      borderWidth: 2.5,
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      pointBackgroundColor: colors.border,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointHoverBackgroundColor: colors.border,
+      pointHoverBorderColor: '#fff',
+      pointHoverBorderWidth: 3,
+      fill: false, // Sin relleno bajo la línea
+      tension: 0.3, // Suavizado de líneas
+      spanGaps: false,
+    };
+  });
+
+  return {
+    labels: periodos,
+    datasets: datasets,
+  };
+};
+
 

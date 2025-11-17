@@ -17,6 +17,7 @@ const DisponibilidadSchema = new EntitySchema({
     fechaInicio: {
       type: "timestamp with time zone",
       nullable: false,
+      createDate: true,
     },
     fechaTermino: {
       type: "timestamp with time zone",

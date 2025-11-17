@@ -10,6 +10,7 @@ import {
   incidentesPorFranjaHoraria,
   heatmapDiaHora,
   asistenciaPromedio,
+  porcentajeParticipacionIncidentes,
   heatmapDisponibilidad,
   cantidadDeEventosDiasdelaSemana,
   cantidadDeEventosMeses,
@@ -18,7 +19,10 @@ import {
   promedioAsistenciaPorTipoEvento,
   tendenciaMensualAsistencia,
   evolucionEventosYAsistentes,
-  porcentajeParticipacion
+  porcentajeParticipacion,
+  rankingClasificaciones,
+  incidentesPorPeriodo,
+  rankingAsistencia
 } from '../controllers/dashboard.controller.js';
 
 import { getTiposEvento } from '../controllers/tipoEvento.controller.js';
@@ -44,6 +48,14 @@ router.post('/compania/incidente/heatmapDiaHora', authorizeRoles(['Administrador
 router.post('/compania/incidente/heatmapDisponibilidad', authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), heatmapDisponibilidad);
 
 router.post('/compania/kpi/asistenciaPromedio', authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), asistenciaPromedio);
+
+router.post('/compania/kpi/participacionIncidentes', authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), porcentajeParticipacionIncidentes);
+
+// Nuevo: ranking de clasificaciones de emergencia (Bump Chart)
+router.post('/compania/incidente/rankingClasificaciones', authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), rankingClasificaciones);
+
+// Nuevo: incidentes agrupados por periodo (días, meses, años)
+router.post('/compania/incidente/periodo', authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), incidentesPorPeriodo);
 
 // ============================================
 // Rutas para Dashboard de Eventos
@@ -71,6 +83,9 @@ router.post('/compania/evento/participacion', authorizeRoles(['Administrador', '
 
 // Obtener lista de tipos de evento para los filtros del dashboard
 router.get('/tipos-evento', authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getTiposEvento);
+
+// Nuevo: ranking de asistencia de voluntarios (incidentes + eventos)
+router.post('/compania/asistencia/ranking', authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), rankingAsistencia);
 
 
 export default router;

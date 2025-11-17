@@ -4,7 +4,7 @@ import { generarReporteParteEmergenciaPdf, obtenerParteEmergenciaPorId } from '.
 import { obtenerUltimoEstadoIncidente } from '@services/parteEmergencia.service.js';
 import { cambiarEstadoIncidente } from '@services/incidentes.service.js';
 import { getCompaniaById } from '@services/compania.service.js';
-import { getRegiones, getComunas } from '@services/region.service.js';
+import { getRegiones, getComunas, regionService } from '@services/region.service.js';
 import { AuthContext } from '../context/AuthContext.jsx';
 import { getClasificacionesEmergencia, getSubtiposIncidente, getTiposDano, getFasesIncidente } from '@services/subtipoIncidente.service.js';
 import { getBomberosPorCompania } from '@services/bombero.service.js';
@@ -36,13 +36,6 @@ import {
   User as UserIcon,
   FileText
 } from 'lucide-react';
-
-const KeyStat = ({ label, value }) => (
-  <div className="bg-gray-50 border border-gray-200 rounded-md p-2">
-    <div className="text-[11px] text-gray-500">{label}</div>
-    <div className="text-[13px] font-medium text-gray-900">{value ?? '-'}</div>
-  </div>
-);
 
 const normalizeArray = (res, nestedKey) => {
   if (Array.isArray(res)) return res;
@@ -106,7 +99,8 @@ export default function VistaParte({ showEnviarButton = true }) {
           bomberos,
           carros,
           servicios,
-          comunas
+          comunas,
+          comunaDetalle
         ] = await Promise.all([
           getRegiones().catch(() => []),
           getClasificacionesEmergencia().catch(() => []),
@@ -117,6 +111,8 @@ export default function VistaParte({ showEnviarButton = true }) {
           p.companiaId ? getCarrosByCompania(p.companiaId).catch(() => []) : Promise.resolve([]),
           getServicios().catch(() => []),
           p.regionId ? getComunas(p.regionId).catch(() => []) : Promise.resolve([]),
+          p.comunaId ? regionService.getComunaById(p.comunaId).catch(() => null) : Promise.resolve(null),
+  
         ]);
 
         const regionesArr = normalizeArray(regiones, 'regiones');
@@ -130,6 +126,39 @@ export default function VistaParte({ showEnviarButton = true }) {
 
         const subtipos = p.clasificacionId ? await getSubtiposIncidente(p.clasificacionId).catch(() => []) : [];
 
+        // Cargar bomberos y compañías de los accidentados
+        const accidentadosCompaniaIds = Array.isArray(p.accidentados) 
+          ? [...new Set(p.accidentados.map(a => a.companiaId).filter(Boolean))]
+          : [];
+        
+        const accidentadosCompanias = await Promise.all(
+          accidentadosCompaniaIds.map(id => getCompaniaById(id).catch(() => null))
+        );
+
+        const accidentadosBomberosPorCompania = await Promise.all(
+          accidentadosCompaniaIds.map(id => getBomberosPorCompania(id).catch(() => []))
+        );
+
+        // Crear un mapa de compañías y bomberos de accidentados
+        const companiaMap = {};
+        const bomberoMap = {};
+        
+        accidentadosCompaniaIds.forEach((companiaId, idx) => {
+          const companiaData = accidentadosCompanias[idx];
+          if (companiaData) {
+            const comp = companiaData?.data ?? companiaData;
+            companiaMap[companiaId] = { id: comp.id, nombre: comp.nombre };
+          }
+          
+          const bomberosData = accidentadosBomberosPorCompania[idx];
+          if (Array.isArray(bomberosData)) {
+            bomberosData.forEach(b => {
+              const nombreCompleto = [b.nombres, b.apellidos].filter(Boolean).join(' ').trim() || null;
+              bomberoMap[b.id] = { id: b.id, nombreCompleto, run: b.run };
+            });
+          }
+        });
+
         const findById = (arr, id) => Array.isArray(arr) ? arr.find(x => String(x.id) === String(id)) : undefined;
         const companiaObj = companiasDetalle?.data ?? companiasDetalle ?? null;
         const clasificacionObj = findById(clasificacionesArr, p.clasificacionId) || null;
@@ -137,7 +166,9 @@ export default function VistaParte({ showEnviarButton = true }) {
         const tipoDanoObj = findById(tiposDanoArr, p.tipoIncendioId) || null;
         const faseObj = findById(fasesArr, p.faseId) || null;
         const regionObj = findById(regionesArr, p.regionId) || null;
-        const comunaObj = findById(comunasArr, p.comunaId) || null;
+        // Usar comunaDetalle (cargada por ID) o buscar en comunas (cargadas por región)
+        const comunaDetalleData = comunaDetalle?.data ?? comunaDetalle;
+        const comunaObj = comunaDetalleData || findById(comunasArr, p.comunaId) || null;
         const bomberoById = (id) => {
           const b = findById(bomberosArr, id);
           if (!b) return id ? { id, nombreCompleto: `Bombero #${id}` } : null;
@@ -190,8 +221,8 @@ export default function VistaParte({ showEnviarButton = true }) {
             kmLlegada: m.kmLlegada ?? null,
           })) : [],
           accidentados: Array.isArray(p.accidentados) ? p.accidentados.map(a => ({
-            bombero: bomberoById(a.bomberoId),
-            compania: a.companiaId ? ((companiasDetalle?.data ?? companiasDetalle)?.id === a.companiaId ? { id: a.companiaId, nombre: (companiasDetalle?.data ?? companiasDetalle)?.nombre } : { id: a.companiaId, nombre: null }) : null,
+            bombero: bomberoMap[a.bomberoId] || (a.bomberoId ? { id: a.bomberoId, nombreCompleto: null } : null),
+            compania: companiaMap[a.companiaId] || (a.companiaId ? { id: a.companiaId, nombre: null } : null),
             lesiones: a.lesiones || '',
             constancia: a.constancia || '',
             comisaria: a.comisaria || '',
@@ -427,7 +458,7 @@ export default function VistaParte({ showEnviarButton = true }) {
           {/* Columna derecha: ubicación */}
           <div className="flex-1 flex flex-col gap-2">
             <div className="flex items-center gap-3"><i className="pi pi-map-marker text-2xl text-gray-700" /><span className="font-semibold">Dirección:</span><span>{direccion || '-'}</span></div>
-            <div className="flex items-center gap-3"><i className="pi pi-compass text-2xl text-gray-700" /><span className="font-semibold">Comuna:</span><span>{parte?.direccion?.comuna?.nombre || (parte?.direccion?.comuna?.id ? `#${parte.direccion.comuna.id}` : '-')}</span></div>
+            <div className="flex items-center gap-3"><i className="pi pi-compass text-2xl text-gray-700" /><span className="font-semibold">Comuna:</span><span>{parte?.direccion?.comuna?.nombre || '-'}</span></div>
             <div className="flex items-center gap-3"><i className="pi pi-building text-2xl text-gray-700" /><span className="font-semibold">Depto:</span><span>{parte?.direccion?.depto || '-'}</span></div>
             <div className="flex items-center gap-3"><i className="pi pi-info-circle text-2xl text-gray-700" /><span className="font-semibold">Referencia:</span><span>{parte?.direccion?.referencia || '-'}</span></div>
           </div>
@@ -555,13 +586,17 @@ export default function VistaParte({ showEnviarButton = true }) {
                 <div>
                   <div className="text-[13px] font-semibold text-gray-700 mb-1.5">Habitantes</div>
                   <div className="border border-gray-200 rounded-md">
-                    <DataTable value={(Array.isArray(row.habitantes) ? row.habitantes : []).map(h => ({
-                      nombre: h?.nombreCompleto ?? '-',
-                      run: h?.run ?? '-',
-                      telefono: h?.telefono ?? '-',
-                      edad: h?.edad ?? '-',
-                      gravedad: h?.descripcionGravedad ?? '-',
-                    }))} size="small" emptyMessage="Sin datos">
+                    <DataTable value={
+                      (Array.isArray(row.habitantes) && row.habitantes.length > 0)
+                        ? row.habitantes.map(h => ({
+                          nombre: h?.nombreCompleto ?? '-',
+                          run: h?.run ?? '-',
+                          telefono: h?.telefono ?? '-',
+                          edad: h?.edad ?? '-',
+                          gravedad: h?.descripcionGravedad ?? '-',
+                        }))
+                        : [{ nombre: '-', run: '-', telefono: '-', edad: '-', gravedad: '-' }]
+                    } size="small">
                       <Column field="nombre" header="Nombre" />
                       <Column field="run" header="RUN" />
                       <Column field="telefono" header="Telefono" />
@@ -636,7 +671,7 @@ export default function VistaParte({ showEnviarButton = true }) {
                             esEmpresa: (typeof o?.esEmpresa === 'boolean' ? (o.esEmpresa ? 'Sí' : 'No') : '-')
                           }))
                           : [{ chofer: '', nombre: '-', run: '-', telefono: '-', edad: '-', gravedad: '-', vinculo: '-', esEmpresa: '-' }]
-                      } size="small" emptyMessage="Sin datos">
+                      } size="small">
                         <Column field="chofer" header="Chofer" />
                         <Column field="nombre" header="Nombre" />
                         <Column field="run" header="RUN" />
@@ -722,8 +757,8 @@ export default function VistaParte({ showEnviarButton = true }) {
         >
           <div className="border border-gray-200 rounded-md">
             <DataTable value={parte.accidentados.map(a => ({
-              bombero: a.bombero?.nombreCompleto || (a.bombero?.id ? `Bombero #${a.bombero.id}` : '-'),
-              compania: a.compania?.nombre || (a.compania?.id ? `Compañía #${a.compania.id}` : '-'),
+              bombero: a.bombero?.nombreCompleto || '-',
+              compania: a.compania?.nombre || '-',
               lesiones: a.lesiones || '-',
               constancia: a.constancia || '-',
               comisaria: a.comisaria || '-',

@@ -9,9 +9,9 @@ const CustomFilters = ({
   onFechaFinChange
 }) => {
   return (
-    <div className="flex flex-wrap gap-4 items-end">
-      <div className="flex-1 min-w-[200px]">
-        <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700 mb-2">
+    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-end">
+      <div className="flex-1 min-w-0 sm:min-w-[200px]">
+        <label htmlFor="fechaInicio" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
           Fecha Inicio
         </label>
         <Calendar
@@ -25,8 +25,8 @@ const CustomFilters = ({
           placeholder="Seleccione fecha inicio"
         />
       </div>
-      <div className="flex-1 min-w-[200px]">
-        <label htmlFor="fechaFin" className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="flex-1 min-w-0 sm:min-w-[200px]">
+          <label htmlFor="fechaFin" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
           Fecha Fin
         </label>
         <Calendar

@@ -12,6 +12,7 @@ import {
   getIncidentesPorFranjaHoraria,
   getHeatmapDiaHora,
   getAsistenciaPromedio,
+  getPorcentajeParticipacionIncidentes,
   getHeatmapDisponibilidad,
   getcantidadDeEventosDiasdelaSemana,
   getcantidadDeEventosMeses,
@@ -20,7 +21,10 @@ import {
   getPromedioAsistenciaPorTipoEvento,
   getTendenciaMensualAsistencia,
   getEvolucionEventosYAsistentes,
-  getPorcentajeParticipacion
+  getPorcentajeParticipacion,
+  getRankingClasificaciones,
+  getIncidentesPorPeriodo,
+  getRankingAsistencia
 } from "../services/dasboard.service.js";
 
 
@@ -103,6 +107,20 @@ export async function asistenciaPromedio(req, res) {
     
     const data = await getAsistenciaPromedio(fechaInicio, fechaFin, idcompania);
     handleSuccess(res, 200, "Asistencia promedio de voluntarios por incidente", data);
+  } catch (error) {
+    handleErrorServer(res, 500, error.message || "Error interno del servidor");
+  }
+}
+
+export async function porcentajeParticipacionIncidentes(req, res) {
+  try {
+    const { fechaInicio, fechaFin, idcompania } = req.body;
+    if (!fechaInicio || !fechaFin) {
+      return handleErrorClient(res, "Faltan parámetros obligatorios: fechaInicio y fechaFin", 400);
+    }
+    
+    const data = await getPorcentajeParticipacionIncidentes(fechaInicio, fechaFin, idcompania);
+    handleSuccess(res, 200, "Porcentaje de participación de voluntarios en incidentes", data);
   } catch (error) {
     handleErrorServer(res, 500, error.message || "Error interno del servidor");
   }
@@ -242,3 +260,48 @@ export async function porcentajeParticipacion(req, res) {
     handleErrorServer(res, 500, error.message || "Error interno del servidor");
   }
 }
+
+export async function incidentesPorPeriodo(req, res) {
+  try {
+    const { fechaInicio, fechaFin, idcompania, agrupacion } = req.body;
+    if (!fechaInicio || !fechaFin) {
+      return handleErrorClient(res, "Faltan parámetros obligatorios: fechaInicio y fechaFin", 400);
+    }
+    const agrupacionValida = ['dias','meses','años'].includes(agrupacion) ? agrupacion : 'dias';
+    const data = await getIncidentesPorPeriodo(fechaInicio, fechaFin, idcompania || null, agrupacionValida);
+    handleSuccess(res, 200, `Incidentes agrupados por ${agrupacionValida}`, data);
+  } catch (error) {
+    handleErrorServer(res, 500, error.message || 'Error interno del servidor');
+  }
+}
+
+export async function rankingClasificaciones(req, res) {
+  try {
+    const { fechaInicio, fechaFin, idcompania, agrupacion } = req.body;
+    if (!fechaInicio || !fechaFin) {
+      return handleErrorClient(res, "Faltan parámetros obligatorios: fechaInicio y fechaFin", 400);
+    }
+    
+    // Validar agrupación
+    const agrupacionValida = ['dias', 'meses', 'años'].includes(agrupacion) ? agrupacion : 'dias';
+    
+    const data = await getRankingClasificaciones(fechaInicio, fechaFin, idcompania, agrupacionValida);
+    handleSuccess(res, 200, "Ranking de clasificaciones de emergencia por periodo", data);
+  } catch (error) {
+    handleErrorServer(res, 500, error.message || "Error interno del servidor");
+  }
+}
+
+export async function rankingAsistencia(req, res) {
+  try {
+    const { fechaInicio, fechaFin, idcompania } = req.body;
+    if (!fechaInicio || !fechaFin || !idcompania) {
+      return handleErrorClient(res, "Faltan parámetros obligatorios: fechaInicio, fechaFin e idcompania", 400);
+    }
+    const data = await getRankingAsistencia(fechaInicio, fechaFin, idcompania);
+    handleSuccess(res, 200, "Ranking de asistencia de voluntarios", data);
+  } catch (error) {
+    handleErrorServer(res, 500, error.message || "Error interno del servidor");
+  }
+}
+
