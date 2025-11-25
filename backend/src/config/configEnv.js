@@ -34,6 +34,11 @@ export const MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY || 'minioadmin123';
 export const MINIO_BUCKET_NAME = process.env.MINIO_BUCKET_NAME || 'bomberos-uploads';
 export const SIGNED_URL_EXPIRY = process.env.SIGNED_URL_EXPIRY || '3600';
 
+// Configuración de MinIO para acceso externo (URLs firmadas)
+export const MINIO_EXTERNAL_ENDPOINT = process.env.MINIO_EXTERNAL_ENDPOINT || 'localhost';
+export const MINIO_EXTERNAL_PORT = process.env.MINIO_EXTERNAL_PORT || '9000';
+export const MINIO_EXTERNAL_USE_SSL = process.env.MINIO_EXTERNAL_USE_SSL || 'false';
+
 // Configuración de Redis
 export const REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 export const REDIS_PORT = parseInt(process.env.REDIS_PORT, 10) || 6379;

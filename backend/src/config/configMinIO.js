@@ -1,12 +1,15 @@
 import { Client } from 'minio';
-import { 
-  MINIO_ACCESS_KEY, 
+import {
+  MINIO_ACCESS_KEY,
   MINIO_BUCKET_NAME,
-  MINIO_ENDPOINT, 
-  MINIO_PORT, 
-  MINIO_SECRET_KEY, 
-  MINIO_USE_SSL, 
-  SIGNED_URL_EXPIRY 
+  MINIO_ENDPOINT,
+  MINIO_PORT,
+  MINIO_SECRET_KEY,
+  MINIO_USE_SSL,
+  SIGNED_URL_EXPIRY,
+  MINIO_EXTERNAL_ENDPOINT,
+  MINIO_EXTERNAL_PORT,
+  MINIO_EXTERNAL_USE_SSL
 } from './configEnv.js';
 import logger from './configLogger.js';
 
@@ -52,6 +55,9 @@ export const FILE_CONFIG = {
   ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
   ALLOWED_TILE_TYPES: ['image/png', 'image/jpeg', 'application/octet-stream'],
   SIGNED_URL_EXPIRY: parseInt(SIGNED_URL_EXPIRY) || 3600, // 1 hora por defecto
+  MINIO_EXTERNAL_ENDPOINT,
+  MINIO_EXTERNAL_PORT,
+  MINIO_EXTERNAL_USE_SSL
 };
 
 // Función para inicializar MinIO y crear buckets
@@ -79,7 +85,7 @@ export async function initializeMinIO() {
         if (!exists) {
           await minioClient.makeBucket(bucketName, 'us-east-1');
           logger.info(`[MINIO] Bucket creado: ${bucketName}`);
-          
+
           // Configurar política de acceso público para tiles públicos
           if (bucketName === BUCKETS.TESSELAS_PUBLICAS) {
             const publicPolicy = {
@@ -93,7 +99,7 @@ export async function initializeMinIO() {
                 }
               ]
             };
-            
+
             await minioClient.setBucketPolicy(bucketName, JSON.stringify(publicPolicy));
             logger.info(`[MINIO] Política pública configurada para: ${bucketName}`);
           }

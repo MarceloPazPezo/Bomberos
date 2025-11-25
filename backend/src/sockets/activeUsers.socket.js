@@ -12,7 +12,6 @@ export function emitDisponibilidadUpdate(io, eventType, data) {
       data: data,
       timestamp: new Date().toISOString()
     });
-    console.log(`[SOCKET] Emitido evento de disponibilidad: ${eventType}`, data);
   }
 }
 
@@ -25,30 +24,30 @@ export function handleSocketConnection(io) {
     // bomberoData: { id, nombres, apellidos, companiaId?, rolId? }
     socket.on("bomberoActive", async (bomberoData) => {
       if (!bomberoData || !bomberoData.id) return;
-      
+
       let entry = activeBomberos.get(bomberoData.id);
       if (!entry) {
         entry = { bomberoData, sockets: new Set() };
         activeBomberos.set(bomberoData.id, entry);
       }
       entry.sockets.add(socket.id);
-      
+
       console.log(`[SOCKET] Bombero activo: ${bomberoData.id} (${bomberoData.nombres || ''} ${bomberoData.apellidos || ''}) (socket: ${socket.id})`);
-      
-             // Suscribir a notificaciones si es la primera conexión del usuario
-             if (entry.sockets.size === 1) {
-               try {
-                 const { subscribeUserToNotifications } = await import('./notifications.socket.js');
-                 await subscribeUserToNotifications(bomberoData.id, socket.id, {
-                   companiaId: bomberoData.companiaId,
-                   rolId: bomberoData.rolId
-                 });
-                 console.log(`[SOCKET] Usuario ${bomberoData.id} suscrito a notificaciones`);
-               } catch (error) {
-                 console.error('[SOCKET] Error suscribiendo a notificaciones:', error);
-               }
-             }
-      
+
+      // Suscribir a notificaciones si es la primera conexión del usuario
+      if (entry.sockets.size === 1) {
+        try {
+          const { subscribeUserToNotifications } = await import('./notifications.socket.js');
+          await subscribeUserToNotifications(bomberoData.id, socket.id, {
+            companiaId: bomberoData.companiaId,
+            rolId: bomberoData.rolId
+          });
+          console.log(`[SOCKET] Usuario ${bomberoData.id} suscrito a notificaciones`);
+        } catch (error) {
+          console.error('[SOCKET] Error suscribiendo a notificaciones:', error);
+        }
+      }
+
       io.emit("updateActiveBomberos", Array.from(activeBomberos.values()).map(e => e.bomberoData));
     });
 
@@ -58,16 +57,16 @@ export function handleSocketConnection(io) {
       for (const [bomberoId, entry] of activeBomberos.entries()) {
         if (entry.sockets.has(socket.id)) {
           entry.sockets.delete(socket.id);
-          
-                 // Desuscribir de notificaciones
-                 try {
-                   const { unsubscribeUserFromNotifications } = await import('./notifications.socket.js');
-                   await unsubscribeUserFromNotifications(bomberoId, socket.id);
-                   console.log(`[SOCKET] Usuario ${bomberoId} desuscrito de notificaciones`);
-                 } catch (error) {
-                   console.error('[SOCKET] Error desuscribiendo de notificaciones:', error);
-                 }
-          
+
+          // Desuscribir de notificaciones
+          try {
+            const { unsubscribeUserFromNotifications } = await import('./notifications.socket.js');
+            await unsubscribeUserFromNotifications(bomberoId, socket.id);
+            console.log(`[SOCKET] Usuario ${bomberoId} desuscrito de notificaciones`);
+          } catch (error) {
+            console.error('[SOCKET] Error desuscribiendo de notificaciones:', error);
+          }
+
           if (entry.sockets.size === 0) {
             activeBomberos.delete(bomberoId);
             console.log(`[SOCKET] Desconexión: ${socket.id} (bombero: ${bomberoId}) - bombero eliminado de activos`);
@@ -87,16 +86,16 @@ export function handleSocketConnection(io) {
       if (entry) {
         // Eliminar solo los sockets asociados a este socket
         entry.sockets.delete(socket.id);
-        
-                 // TODO: Rehabilitar desuscripciones WebSocket cuando se resuelva el problema de Redis Pub/Sub
-                 // Desuscribir de notificaciones
-                 // try {
-                 //   const { unsubscribeUserFromNotifications } = await import('./notifications.socket.js');
-                 //   await unsubscribeUserFromNotifications(bomberoId, socket.id);
-                 // } catch (error) {
-                 //   console.error('[SOCKET] Error desuscribiendo de notificaciones:', error);
-                 // }
-        
+
+        // TODO: Rehabilitar desuscripciones WebSocket cuando se resuelva el problema de Redis Pub/Sub
+        // Desuscribir de notificaciones
+        // try {
+        //   const { unsubscribeUserFromNotifications } = await import('./notifications.socket.js');
+        //   await unsubscribeUserFromNotifications(bomberoId, socket.id);
+        // } catch (error) {
+        //   console.error('[SOCKET] Error desuscribiendo de notificaciones:', error);
+        // }
+
         if (entry.sockets.size === 0) {
           activeBomberos.delete(bomberoId);
           console.log(`[SOCKET] Logout explícito de bombero: ${bomberoId} - bombero eliminado de activos`);

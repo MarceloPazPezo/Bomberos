@@ -30,10 +30,10 @@ export const getIncidentesRevision = async (estados = []) => {
 };
 
 // Cambia estado del incidente (sólo si el último estado actual es ENVIADO)
-// body: { estado: 'APROBADO'|'CORREGIR', idBombero }
-export const cambiarEstadoIncidente = async (id, { estado, idBombero }) => {
+// body: { estado: 'APROBADO'|'CORREGIR', idBombero, comentario? }
+export const cambiarEstadoIncidente = async (id, { estado, idBombero, comentario }) => {
   try {
-    const resp = await axios.post(`/incidentes/${id}/cambiar-estado`, { estado, idBombero });
+    const resp = await axios.post(`/incidentes/${id}/cambiar-estado`, { estado, idBombero, comentario });
     return resp.data?.data ?? resp.data;
   } catch (error) {
     throw error.response?.data || error;

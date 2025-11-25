@@ -61,8 +61,24 @@ export async function downloadFile(bucket, fileName) {
 export async function getSignedUrl(bucket, fileName, expiry = config.SIGNED_URL_EXPIRY) {
   try {
     const url = await client.presignedGetObject(bucket, fileName, expiry);
+
+    // Reemplazar host interno con externo si está configurado
+    const urlObj = new URL(url);
+    if (config.MINIO_EXTERNAL_ENDPOINT) {
+      urlObj.hostname = config.MINIO_EXTERNAL_ENDPOINT;
+    }
+    if (config.MINIO_EXTERNAL_PORT) {
+      urlObj.port = config.MINIO_EXTERNAL_PORT;
+    }
+    if (config.MINIO_EXTERNAL_USE_SSL === 'true') {
+      urlObj.protocol = 'https:';
+    } else {
+      urlObj.protocol = 'http:';
+    }
+
+    const finalUrl = urlObj.toString();
     logger.info(`[MINIO] URL firmada generada para: ${bucket}/${fileName}`);
-    return url;
+    return finalUrl;
   } catch (error) {
     logger.error(`[MINIO] Error generando URL firmada para ${fileName}:`, error);
     throw error;
@@ -72,8 +88,24 @@ export async function getSignedUrl(bucket, fileName, expiry = config.SIGNED_URL_
 export async function getSignedUploadUrl(bucket, fileName, expiry = config.SIGNED_URL_EXPIRY) {
   try {
     const url = await client.presignedPutObject(bucket, fileName, expiry);
+
+    // Reemplazar host interno con externo si está configurado
+    const urlObj = new URL(url);
+    if (config.MINIO_EXTERNAL_ENDPOINT) {
+      urlObj.hostname = config.MINIO_EXTERNAL_ENDPOINT;
+    }
+    if (config.MINIO_EXTERNAL_PORT) {
+      urlObj.port = config.MINIO_EXTERNAL_PORT;
+    }
+    if (config.MINIO_EXTERNAL_USE_SSL === 'true') {
+      urlObj.protocol = 'https:';
+    } else {
+      urlObj.protocol = 'http:';
+    }
+
+    const finalUrl = urlObj.toString();
     logger.info(`[MINIO] URL firmada de subida generada para: ${bucket}/${fileName}`);
-    return url;
+    return finalUrl;
   } catch (error) {
     logger.error(`[MINIO] Error generando URL firmada de subida para ${fileName}:`, error);
     throw error;
