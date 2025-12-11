@@ -161,6 +161,10 @@ const PrimeTableBasic = ({
         paginator={pagination}
         rows={rows}
         first={first}
+        onPage={(e) => {
+          setFirst(e.first);
+          setRows(e.rows);
+        }}
         loading={loading}
         header={header()}
         emptyMessage={emptyMessage}

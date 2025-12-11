@@ -345,6 +345,10 @@ const DisponibilidadMarcarTab = () => {
       }
       
       const diff = fin.diff(inicio, ['hours', 'minutes']);
+
+      if (diff.hours < 0 || diff.minutes < 0) {
+        return '0m';
+      }
       
       if (diff.hours >= 1) {
         return `${Math.floor(diff.hours)}h ${Math.floor(diff.minutes)}m`;

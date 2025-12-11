@@ -18,8 +18,8 @@ export async function crearTiposPunto() {
         const tiposPuntoData = [
             {
                 nombre: "Hidrante",
-                icono: "MdFireExtinguisher",
-                color: "#2196F3",
+                icono: "FaWater",
+                color: "#ffc402",
                 descripcion: "Hidrante de agua para el combate de incendios",
                 activo: true,
             },

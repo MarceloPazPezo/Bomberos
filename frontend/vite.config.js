@@ -8,10 +8,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
-  // Cargar variables de entorno del archivo .env
-  const env = loadEnv(mode, process.cwd(), '');
-  
+  // Cargar variables de entorno del archivo .env desde la raíz
+  const env = loadEnv(mode, path.resolve(process.cwd(), '..'), '');
+
   return {
+    envDir: '..',
     plugins: [
       react(),
       tailwindcss(),
@@ -47,11 +48,11 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_BACKEND_URL || 'http://localhost:3000',
           changeOrigin: true,
         },
-      '/socket.io': {
-        target: env.VITE_BACKEND_URL || 'http://localhost:3000',
-        ws: true,
-        changeOrigin: true,
-      },
+        '/socket.io': {
+          target: env.VITE_BACKEND_URL || 'http://localhost:3000',
+          ws: true,
+          changeOrigin: true,
+        },
       }
     }
   };

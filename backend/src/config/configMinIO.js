@@ -1,16 +1,20 @@
 import { Client } from 'minio';
-import { 
-  MINIO_ACCESS_KEY, 
+import {
+  MINIO_ACCESS_KEY,
   MINIO_BUCKET_NAME,
-  MINIO_ENDPOINT, 
-  MINIO_PORT, 
-  MINIO_SECRET_KEY, 
-  MINIO_USE_SSL, 
-  SIGNED_URL_EXPIRY 
+  MINIO_ENDPOINT,
+  MINIO_PORT,
+  MINIO_SECRET_KEY,
+  MINIO_USE_SSL,
+  SIGNED_URL_EXPIRY,
+  MINIO_PUBLIC_URL,
+  MINIO_EXTERNAL_ENDPOINT,
+  MINIO_EXTERNAL_PORT,
+  MINIO_EXTERNAL_USE_SSL
 } from './configEnv.js';
 import logger from './configLogger.js';
 
-// Configuración de MinIO
+// Configuración de MinIO para operaciones internas (upload, download, etc.)
 const minioConfig = {
   endPoint: MINIO_ENDPOINT,
   port: parseInt(MINIO_PORT),
@@ -19,8 +23,31 @@ const minioConfig = {
   secretKey: MINIO_SECRET_KEY,
 };
 
-// Crear cliente MinIO
+// Crear cliente MinIO para operaciones internas
 export const minioClient = new Client(minioConfig);
+
+// Crear cliente MinIO para URLs firmadas con endpoint externo (si está configurado)
+// IMPORTANTE: Este cliente debe poder conectarse a MinIO a través de la IP externa
+// Si el servidor no puede acceder a sí mismo por la IP externa, esto fallará
+let minioExternalClient = null;
+if (MINIO_EXTERNAL_ENDPOINT && MINIO_EXTERNAL_PORT) {
+  try {
+    const externalConfig = {
+      endPoint: MINIO_EXTERNAL_ENDPOINT,
+      port: parseInt(MINIO_EXTERNAL_PORT),
+      useSSL: MINIO_EXTERNAL_USE_SSL === 'true',
+      accessKey: MINIO_ACCESS_KEY,
+      secretKey: MINIO_SECRET_KEY,
+      // Configurar para que use el hostname externo en las firmas
+      region: 'us-east-1',
+    };
+    minioExternalClient = new Client(externalConfig);
+    logger.info(`[MINIO] Cliente externo configurado para URLs firmadas: ${MINIO_EXTERNAL_ENDPOINT}:${MINIO_EXTERNAL_PORT}`);
+    logger.info(`[MINIO] NOTA: Asegúrate de que el servidor pueda acceder a MinIO en ${MINIO_EXTERNAL_ENDPOINT}:${MINIO_EXTERNAL_PORT}`);
+  } catch (error) {
+    logger.warn(`[MINIO] Error creando cliente externo, se usará el cliente interno: ${error.message}`);
+  }
+}
 
 // Configuración de buckets
 export const BUCKETS = {
@@ -52,6 +79,10 @@ export const FILE_CONFIG = {
   ALLOWED_DOCUMENT_TYPES: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
   ALLOWED_TILE_TYPES: ['image/png', 'image/jpeg', 'application/octet-stream'],
   SIGNED_URL_EXPIRY: parseInt(SIGNED_URL_EXPIRY) || 3600, // 1 hora por defecto
+  MINIO_PUBLIC_URL,
+  MINIO_EXTERNAL_ENDPOINT,
+  MINIO_EXTERNAL_PORT,
+  MINIO_EXTERNAL_USE_SSL
 };
 
 // Función para inicializar MinIO y crear buckets
@@ -79,7 +110,7 @@ export async function initializeMinIO() {
         if (!exists) {
           await minioClient.makeBucket(bucketName, 'us-east-1');
           logger.info(`[MINIO] Bucket creado: ${bucketName}`);
-          
+
           // Configurar política de acceso público para tiles públicos
           if (bucketName === BUCKETS.TESSELAS_PUBLICAS) {
             const publicPolicy = {
@@ -93,7 +124,7 @@ export async function initializeMinIO() {
                 }
               ]
             };
-            
+
             await minioClient.setBucketPolicy(bucketName, JSON.stringify(publicPolicy));
             logger.info(`[MINIO] Política pública configurada para: ${bucketName}`);
           }
@@ -131,6 +162,14 @@ export async function checkMinIOHealth() {
     logger.error('[MINIO] Error de salud de MinIO:', error);
     return { status: 'unhealthy', message: error.message };
   }
+}
+
+/**
+ * Obtiene el cliente MinIO apropiado para generar URLs firmadas
+ * Si hay un cliente externo configurado, lo usa; si no, usa el cliente interno
+ */
+export function getMinioClientForPresigned() {
+  return minioExternalClient || minioClient;
 }
 
 export default minioClient;

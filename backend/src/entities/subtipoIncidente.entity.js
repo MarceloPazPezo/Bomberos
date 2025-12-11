@@ -6,14 +6,21 @@ const SubtipoIncidenteSchema = new EntitySchema({
     tableName: "subTipoIncidente",
     columns: {
         id: { type: "int", primary: true, generated: "increment" },
-        claveRadial: { type: "varchar", length: 10, nullable: false },
+
         clasificacion: { type: "int", nullable: false },
         descripcion: { type: "varchar", length: 200, nullable: false },
         contieneFuego: { type: "boolean", default: false },
         contieneInmuebles: { type: "boolean", default: false },
-        contieneVehiculos: { type: "boolean", default: false },  
+        contieneVehiculos: { type: "boolean", default: false },
     },
     relations: {
+        claveRadial: {
+            type: "many-to-one",
+            target: "ClaveRadial",
+            joinColumn: { name: "claveRadialId", referencedColumnName: "id" },
+            onDelete: "RESTRICT",
+            nullable: false,
+        },
         incidentes: {
             type: "one-to-many",
             target: "Incidente",

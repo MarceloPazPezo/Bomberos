@@ -20,7 +20,7 @@ import logger from "../config/configLogger.js";
 export async function getEpp(req, res) {
   try {
     const { page, limit, search, idTipoEpp, idEstadoEpp, idBombero } = req.query;
-    
+
     logger.info("[EPP_CONTROLLER] Obteniendo EPP con filtros:", {
       page, limit, search, idTipoEpp, idEstadoEpp, idBombero
     });
@@ -47,7 +47,7 @@ export async function getEpp(req, res) {
 export async function getEppById(req, res) {
   try {
     const { id } = req.params;
-    
+
     logger.info(`[EPP_CONTROLLER] Obteniendo EPP ${id}`);
 
     const epp = await getEppByIdService(id);
@@ -55,11 +55,11 @@ export async function getEppById(req, res) {
     return handleSuccess(res, 200, "EPP obtenido exitosamente", epp);
   } catch (error) {
     logger.error(`[EPP_CONTROLLER] Error obteniendo EPP ${req.params.id}:`, error);
-    
+
     if (error.message.includes("no encontrado")) {
       return handleErrorClient(res, 404, error.message);
     }
-    
+
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
@@ -92,11 +92,11 @@ export async function createEpp(req, res) {
     return handleSuccess(res, 201, "EPP creado exitosamente", epp);
   } catch (error) {
     logger.error("[EPP_CONTROLLER] Error creando EPP:", error);
-    
+
     if (error.message.includes("no encontrado")) {
       return handleErrorClient(res, 400, error.message);
     }
-    
+
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
@@ -117,11 +117,11 @@ export async function updateEpp(req, res) {
     return handleSuccess(res, 200, "EPP actualizado exitosamente", epp);
   } catch (error) {
     logger.error(`[EPP_CONTROLLER] Error actualizando EPP ${req.params.id}:`, error);
-    
+
     if (error.message.includes("no encontrado")) {
       return handleErrorClient(res, 404, error.message);
     }
-    
+
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
@@ -140,15 +140,15 @@ export async function deleteEpp(req, res) {
     return handleSuccess(res, 200, "EPP eliminado exitosamente");
   } catch (error) {
     logger.error(`[EPP_CONTROLLER] Error eliminando EPP ${req.params.id}:`, error);
-    
+
     if (error.message.includes("no encontrado")) {
       return handleErrorClient(res, 404, error.message);
     }
-    
+
     if (error.message.includes("asignado")) {
       return handleErrorClient(res, 400, error.message);
     }
-    
+
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
@@ -173,11 +173,11 @@ export async function assignEppToBombero(req, res) {
     return handleSuccess(res, 200, "EPP asignado exitosamente", asignacion);
   } catch (error) {
     logger.error(`[EPP_CONTROLLER] Error asignando EPP:`, error);
-    
+
     if (error.message.includes("no encontrado") || error.message.includes("asignado")) {
       return handleErrorClient(res, 400, error.message);
     }
-    
+
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
@@ -197,11 +197,11 @@ export async function unassignEppFromBombero(req, res) {
     return handleSuccess(res, 200, "EPP desasignado exitosamente");
   } catch (error) {
     logger.error(`[EPP_CONTROLLER] Error desasignando EPP:`, error);
-    
+
     if (error.message.includes("no encontrado")) {
       return handleErrorClient(res, 404, error.message);
     }
-    
+
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }
@@ -274,13 +274,18 @@ export async function getInventarioStats(req, res) {
 
     // Contar EPP asignados (que tienen aCargoEpps)
     const eppsAsignados = totalEpps.epps.filter(epp => epp.aCargoEpps && epp.aCargoEpps.length > 0);
-    
+
+    // Calcular tipos de EPP disponibles (que tienen al menos un ítem disponible)
+    const tiposDisponiblesSet = new Set(eppsDisponibles.map(epp => epp.tipoEpp?.id).filter(id => id != null));
+    const tiposDisponibles = tiposDisponiblesSet.size;
+
     const stats = {
       totalEpps: totalEpps.pagination.total,
       eppsDisponibles: eppsDisponibles.length,
       eppsAsignados: eppsAsignados.length,
-      totalTipos: tiposCount.length,
-      porcentajeDisponibilidad: totalEpps.pagination.total > 0 
+      totalTipos: new Set(totalEpps.epps.map(epp => epp.tipoEpp?.id).filter(id => id != null)).size,
+      tiposDisponibles: tiposDisponibles, // Nueva estadística
+      porcentajeDisponibilidad: totalEpps.pagination.total > 0
         ? Math.round((eppsDisponibles.length / totalEpps.pagination.total) * 100)
         : 0
     };

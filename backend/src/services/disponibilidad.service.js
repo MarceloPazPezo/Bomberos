@@ -36,7 +36,7 @@ export async function createDisponibilidadService(body) {
       // 3. Crear nueva disponibilidad
       const newDisponibilidad = disponibilidadRepository.create({
         idBombero: bombero.id,
-       // fechaInicio: fechaInicio || new Date(),
+        // fechaInicio se genera automáticamente por la base de datos (UTC)
         fechaTermino: fechaTermino || null,
       });
 
@@ -75,7 +75,7 @@ export async function getDisponibilidadesService(query = {}) {
     // Obtener las fichas de los bomberos para agregar licenciaClaseF
     const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
     const bomberosIds = [...new Set(disponibilidades.map(d => d.idBombero))];
-    
+
     let fichasMap = {};
     if (bomberosIds.length > 0) {
       const fichas = await fichaBomberoRepository
@@ -83,7 +83,7 @@ export async function getDisponibilidadesService(query = {}) {
         .where("ficha.idBombero IN (:...ids)", { ids: bomberosIds })
         .select(["ficha.idBombero", "ficha.licenciaClaseF"])
         .getMany();
-      
+
       fichas.forEach(ficha => {
         fichasMap[ficha.idBombero] = ficha.licenciaClaseF || false;
       });
@@ -191,7 +191,7 @@ export async function getDisponibilidadActivaService(idBombero) {
         where: { idBombero: idBombero },
         select: ["licenciaClaseF"]
       });
-      
+
       const licenciaClaseF = ficha?.licenciaClaseF || false;
       disponibilidadActiva.bombero = {
         ...disponibilidadActiva.bombero,
@@ -240,10 +240,10 @@ export async function cerrarDisponibilidadService(query, body) {
       // 3. Cerrar la disponibilidad (OPERACIÓN CRÍTICA)
       disponibilidadActiva.fechaTermino = new Date();
       const savedDisponibilidad = await disponibilidadRepository.save(disponibilidadActiva);
-      
+
       // 4. Si todo va bien, ambas operaciones se confirman juntas
       // Si algo falla aquí, la operación 3 también se revierte automáticamente
-      
+
       return [savedDisponibilidad, null];
     });
   } catch (error) {

@@ -964,11 +964,7 @@ async function agregarPermisosParteEmergencia() {
       if (permisosAAgregar.length > 0) {
         rolBombero.permisos = [...rolBombero.permisos, ...permisosAAgregar];
         await roleRepository.save(rolBombero);
-        logger.info(
-          `[SERVER] Permisos básicos de partes de emergencia agregados al rol Bombero: ${permisosAAgregar
-            .map((p) => p.nombre)
-            .join(", ")}`
-        );
+
       }
       // Si el rol ya tiene los permisos, no se registra nada
     }

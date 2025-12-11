@@ -9,48 +9,48 @@ import logger from "../config/configLogger.js";
 
 
 export async function getClasificacionEmergencia() {
-   try {
+  try {
     const clasificaciones = await AppDataSource.getRepository(ClasificacionEmergencia).find();
 
     return clasificaciones;
-    
-   } catch (error) {
-        throw error;
-   }
+
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function getSubtipoIncidentes(clasificacionId) {
-    try {
-        const subtipoIncidentes = await AppDataSource.getRepository(SubtipoIncidente).find({
-            where: { clasificacion: clasificacionId },
-        });
-      
-        return subtipoIncidentes;
-    } catch (error) {
-        throw error;
-    }
+  try {
+    const subtipoIncidentes = await AppDataSource.getRepository(SubtipoIncidente).find({
+      where: { clasificacion: clasificacionId },
+    });
+
+    return subtipoIncidentes;
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function getTipoDano() {
-    try {
-        const tipoDano = await AppDataSource.getRepository(TipoDano).find();
-     
-        return tipoDano;
-    }
-    catch (error) {
-        throw error;
-    }
+  try {
+    const tipoDano = await AppDataSource.getRepository(TipoDano).find();
+
+    return tipoDano;
+  }
+  catch (error) {
+    throw error;
+  }
 }
 
 export async function getFaseIncidente() {
-    try {
-        const faseIncidente = await AppDataSource.getRepository(FaseIncidente).find();
-      
-        return faseIncidente;
-    }
-    catch (error) {
-        throw error;
-    }
+  try {
+    const faseIncidente = await AppDataSource.getRepository(FaseIncidente).find();
+
+    return faseIncidente;
+  }
+  catch (error) {
+    throw error;
+  }
 }
 
 // ===== CRUD COMPLETO PARA SUBTIPO INCIDENTE =====
@@ -63,14 +63,14 @@ export async function getSubtipoIncidenteService(query) {
 
     const subtipoFound = await subtipoRepository.findOne({
       where: { id },
-      relations: ['clasificacionEmergencia']
+      relations: ['clasificacionEmergencia', 'claveRadial']
     });
 
     if (!subtipoFound) return [null, "Subtipo de incidente no encontrado"];
 
     const subtipoData = {
       id: subtipoFound.id,
-      claveRadial: subtipoFound.claveRadial,
+      claveRadial: subtipoFound.claveRadial ? subtipoFound.claveRadial.nombre : null,
       clasificacion: subtipoFound.clasificacion,
       descripcion: subtipoFound.descripcion,
       contieneFuego: subtipoFound.contieneFuego,
@@ -95,18 +95,20 @@ export async function getSubtiposIncidentesService(queryParams = {}) {
     const queryBuilder = subtipoRepository
       .createQueryBuilder("subtipo")
       .leftJoinAndSelect("subtipo.clasificacionEmergencia", "clasificacion")
+      .leftJoinAndSelect("subtipo.claveRadial", "claveRadial")
       .select([
         "subtipo.id",
-        "subtipo.claveRadial",
         "subtipo.clasificacion",
         "subtipo.descripcion",
         "subtipo.contieneFuego",
         "subtipo.contieneInmuebles",
         "subtipo.contieneVehiculos",
         "clasificacion.id",
-        "clasificacion.nombre"
+        "clasificacion.nombre",
+        "claveRadial.id",
+        "claveRadial.nombre"
       ])
-      .orderBy("subtipo.claveRadial", "ASC");
+      .orderBy("claveRadial.nombre", "ASC");
 
     // Filtro por clasificación si se proporciona
     if (queryParams.clasificacion) {
@@ -128,7 +130,7 @@ export async function getSubtiposIncidentesService(queryParams = {}) {
 
     const subtiposSummarized = subtipos.map((subtipo) => ({
       id: subtipo.id,
-      claveRadial: subtipo.claveRadial,
+      claveRadial: subtipo.claveRadial ? subtipo.claveRadial.nombre : null,
       clasificacion: subtipo.clasificacion,
       descripcion: subtipo.descripcion,
       contieneFuego: subtipo.contieneFuego,
@@ -164,7 +166,7 @@ export async function updateSubtipoIncidenteService(query, body) {
     // Validar y actualizar campos
     if (body.claveRadial !== undefined) {
       const claveRadialTrimmed = body.claveRadial.trim();
-      
+
       if (claveRadialTrimmed.length === 0) {
         return [null, "La clave radial no puede estar vacía"];
       }
@@ -182,12 +184,12 @@ export async function updateSubtipoIncidenteService(query, body) {
         return [null, `La clave radial "${claveRadialTrimmed}" no existe. Debe crearla primero en la tabla de claves radiales.`];
       }
 
-      subtipoFound.claveRadial = claveRadialTrimmed;
+      subtipoFound.claveRadial = claveRadialExiste;
     }
 
     if (body.clasificacion !== undefined) {
       const clasificacionId = parseInt(body.clasificacion, 10);
-      
+
       if (isNaN(clasificacionId) || clasificacionId <= 0) {
         return [null, "La clasificación debe ser un ID válido"];
       }
@@ -206,7 +208,7 @@ export async function updateSubtipoIncidenteService(query, body) {
 
     if (body.descripcion !== undefined) {
       const descripcionTrimmed = body.descripcion.trim();
-      
+
       if (descripcionTrimmed.length === 0) {
         return [null, "La descripción no puede estar vacía"];
       }
@@ -235,12 +237,12 @@ export async function updateSubtipoIncidenteService(query, body) {
     // Cargar relaciones para la respuesta
     const subtipoWithRelations = await subtipoRepository.findOne({
       where: { id: savedSubtipo.id },
-      relations: ['clasificacionEmergencia']
+      relations: ['clasificacionEmergencia', 'claveRadial']
     });
 
     const subtipoData = {
       id: subtipoWithRelations.id,
-      claveRadial: subtipoWithRelations.claveRadial,
+      claveRadial: subtipoWithRelations.claveRadial ? subtipoWithRelations.claveRadial.nombre : null,
       clasificacion: subtipoWithRelations.clasificacion,
       descripcion: subtipoWithRelations.descripcion,
       contieneFuego: subtipoWithRelations.contieneFuego,
@@ -267,6 +269,7 @@ export async function deleteSubtipoIncidenteService(query) {
 
     const subtipoFound = await subtipoRepository.findOne({
       where: { id },
+      relations: ['claveRadial']
     });
 
     if (!subtipoFound) {
@@ -280,15 +283,15 @@ export async function deleteSubtipoIncidenteService(query) {
     );
 
     const count = parseInt(incidentesCount[0].count);
-    
+
     if (count > 0) {
-      return [null, `No se puede eliminar el subtipo de incidente "${subtipoFound.claveRadial}" porque está asociado a ${count} incidente(s)`];
+      return [null, `No se puede eliminar el subtipo de incidente "${subtipoFound.claveRadial ? subtipoFound.claveRadial.nombre : 'Desconocido'}" porque está asociado a ${count} incidente(s)`];
     }
 
     // Eliminar el subtipo
     await subtipoRepository.remove(subtipoFound);
 
-    return [{ id: subtipoFound.id, claveRadial: subtipoFound.claveRadial }, null];
+    return [{ id: subtipoFound.id, claveRadial: subtipoFound.claveRadial ? subtipoFound.claveRadial.nombre : null }, null];
   } catch (error) {
     logger.error("Error al eliminar un subtipo de incidente:", error);
     return [null, "Error interno del servidor"];
@@ -300,7 +303,7 @@ export async function createSubtipoIncidenteService(subtipoData) {
     if (!subtipoData) {
       return [null, "Datos del subtipo de incidente no proporcionados"];
     }
-    
+
     const subtipoRepository = AppDataSource.getRepository(SubtipoIncidente);
     const clasificacionRepository = AppDataSource.getRepository(ClasificacionEmergencia);
     const claveRadialRepository = AppDataSource.getRepository(ClaveRadial);
@@ -356,7 +359,7 @@ export async function createSubtipoIncidenteService(subtipoData) {
     }
 
     const newSubtipo = subtipoRepository.create({
-      claveRadial: claveRadialTrimmed,
+      claveRadial: claveRadialExiste,
       clasificacion: clasificacionId,
       descripcion: descripcionTrimmed,
       contieneFuego: Boolean(subtipoData.contieneFuego) || false,
@@ -369,12 +372,12 @@ export async function createSubtipoIncidenteService(subtipoData) {
     // Cargar relaciones para la respuesta
     const subtipoWithRelations = await subtipoRepository.findOne({
       where: { id: savedSubtipo.id },
-      relations: ['clasificacionEmergencia']
+      relations: ['clasificacionEmergencia', 'claveRadial']
     });
 
     const subtipoResponseData = {
       id: subtipoWithRelations.id,
-      claveRadial: subtipoWithRelations.claveRadial,
+      claveRadial: subtipoWithRelations.claveRadial ? subtipoWithRelations.claveRadial.nombre : null,
       clasificacion: subtipoWithRelations.clasificacion,
       descripcion: subtipoWithRelations.descripcion,
       contieneFuego: subtipoWithRelations.contieneFuego,

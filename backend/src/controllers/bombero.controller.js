@@ -11,13 +11,13 @@ import {
   changeBomberoStatusService,
   getBomberosConLicenciasService,
   getBomberosPorCompaniaService,
-  
+
   // Servicios de compañía
   getBomberosByCompaniaService,
   getCompaniaUsuarioService,
   getEstadisticasBomberosCompaniaService,
   getBomberosOtrasCompaniasService,
-  
+
   // Servicios unificados
   createBomberoWithOptionalFichaService,
   getBomberoCompleteService,
@@ -33,6 +33,7 @@ import {
   bomberoBodyValidation,
   bomberoCreateValidation,
   bomberoQueryValidation,
+  bomberoWithFichaValidation,
 } from "../validations/bombero.validation.js";
 import {
   handleErrorClient,
@@ -266,13 +267,13 @@ export async function changeBomberoStatus(req, res) {
 export async function getBomberosByCompania(req, res) {
   try {
     const { idCompania } = req.params;
-    
+
     if (!idCompania || isNaN(idCompania)) {
       return handleErrorClient(res, 400, "ID de compañía inválido", "El ID de la compañía debe ser un número válido");
     }
 
     const [bomberos, error] = await getBomberosByCompaniaService(parseInt(idCompania));
-    
+
     if (error) {
       return handleErrorClient(res, 500, "Error al obtener bomberos", error);
     }
@@ -291,15 +292,15 @@ export async function getBomberosByCompania(req, res) {
 export async function getBomberosMiCompania(req, res) {
   try {
     const idBombero = req.bombero.id;
-    
+
     const [compania, errorCompania] = await getCompaniaUsuarioService(idBombero);
-    
+
     if (errorCompania) {
       return handleErrorClient(res, 400, "Error al obtener compañía", errorCompania);
     }
 
     const [bomberos, error] = await getBomberosByCompaniaService(compania.id);
-    
+
     if (error) {
       return handleErrorClient(res, 500, "Error al obtener bomberos", error);
     }
@@ -322,9 +323,9 @@ export async function getBomberosMiCompania(req, res) {
 export async function getMiCompania(req, res) {
   try {
     const idBombero = req.bombero.id;
-    
+
     const [compania, error] = await getCompaniaUsuarioService(idBombero);
-    
+
     if (error) {
       return handleErrorClient(res, 400, "Error al obtener compañía", error);
     }
@@ -343,13 +344,13 @@ export async function getMiCompania(req, res) {
 export async function getEstadisticasBomberosCompania(req, res) {
   try {
     const { idCompania } = req.params;
-    
+
     if (!idCompania || isNaN(idCompania)) {
       return handleErrorClient(res, 400, "ID de compañía inválido", "El ID de la compañía debe ser un número válido");
     }
 
     const [estadisticas, error] = await getEstadisticasBomberosCompaniaService(parseInt(idCompania));
-    
+
     if (error) {
       return handleErrorClient(res, 500, "Error al obtener estadísticas", error);
     }
@@ -368,15 +369,15 @@ export async function getEstadisticasBomberosCompania(req, res) {
 export async function getEstadisticasMiCompania(req, res) {
   try {
     const idBombero = req.bombero.id;
-    
+
     const [compania, errorCompania] = await getCompaniaUsuarioService(idBombero);
-    
+
     if (errorCompania) {
       return handleErrorClient(res, 400, "Error al obtener compañía", errorCompania);
     }
 
     const [estadisticas, error] = await getEstadisticasBomberosCompaniaService(compania.id);
-    
+
     if (error) {
       return handleErrorClient(res, 500, "Error al obtener estadísticas", error);
     }
@@ -401,7 +402,7 @@ export async function getEstadisticasMiCompania(req, res) {
 export async function getBomberosOtrasCompanias(req, res) {
   try {
     const idBombero = req.bombero.id;
-    
+
     const [companiaUsuario, errorCompania] = await getCompaniaUsuarioService(idBombero);
     if (errorCompania) {
       return handleErrorServer(res, 500, errorCompania);
@@ -457,7 +458,7 @@ export async function getBomberosPorCompania(req, res) {
     const { idCompania } = req.params;
     if (!idCompania || isNaN(parseInt(idCompania))) {
       return handleErrorClient(res, 400, "ID de compañía inválido");
-    }   
+    }
     const [bomberos, errorBomberos] = await getBomberosPorCompaniaService(parseInt(idCompania));
     if (errorBomberos) return handleErrorClient(res, 404, errorBomberos);
     bomberos.length === 0
@@ -477,15 +478,15 @@ export async function getBomberosPorCompania(req, res) {
 export async function getBomberoDetalles(req, res) {
   try {
     const { id } = req.params;
-    
+
     if (!id || isNaN(parseInt(id))) {
       return handleErrorClient(res, 400, "ID de bombero inválido");
     }
 
     const idBombero = parseInt(id);
-    
+
     const [bombero, error] = await getBomberoDetallesCompletosService(idBombero);
-    
+
     if (error) {
       if (error === "Bombero no encontrado") {
         return handleErrorClient(res, 404, error);
@@ -508,12 +509,22 @@ export async function getBomberoDetalles(req, res) {
  */
 export async function createBomberoWithOptionalFicha(req, res) {
   try {
-    const { bomberoData, fichaData } = req.body;
+    const { body } = req;
     const createdBy = req.bombero?.id;
 
-    if (!bomberoData) {
-      return handleErrorClient(res, 400, "Datos del bombero son requeridos");
+    const { value, error } = bomberoWithFichaValidation.validate(body);
+
+    if (error) {
+      const errorMessages = error.details.map((detail) => ({
+        message: detail.message,
+        path: detail.path.join("."),
+        type: detail.type,
+        key: detail.context?.key,
+      }));
+      return handleErrorClient(res, 400, "Error de validación", errorMessages);
     }
+
+    const { bomberoData, fichaData } = value;
 
     const [bombero, bomberoError, fichaResult] = await createBomberoWithOptionalFichaService(
       bomberoData,
@@ -522,6 +533,10 @@ export async function createBomberoWithOptionalFicha(req, res) {
     );
 
     if (bomberoError) {
+      // Si el error es un objeto (validaciones), lo pasamos como detalles
+      if (typeof bomberoError === 'object') {
+        return handleErrorClient(res, 400, "Error de validación", bomberoError);
+      }
       return handleErrorClient(res, 400, bomberoError);
     }
 
@@ -554,6 +569,11 @@ export async function createBomberoWithImage(req, res) {
     const profileImage = req.file;
     const createdBy = req.bombero?.id;
 
+    // TODO: Implementar validación para multipart/form-data
+    // Dado que aquí los datos pueden venir como strings JSON, se requiere un paso extra de parseo
+    // antes de validar, o validar los objetos ya parseados si el middleware lo hizo.
+    // Por ahora validamos que existan.
+
     if (!bomberoData) {
       return handleErrorClient(res, 400, "Datos del bombero son requeridos");
     }
@@ -565,7 +585,12 @@ export async function createBomberoWithImage(req, res) {
       createdBy
     );
 
+
     if (bomberoError) {
+      // Si el error es un objeto (validaciones), lo pasamos como detalles
+      if (typeof bomberoError === 'object') {
+        return handleErrorClient(res, 400, "Error de validación", bomberoError);
+      }
       return handleErrorClient(res, 400, bomberoError);
     }
 
@@ -706,8 +731,8 @@ export async function getBomberoImagenPerfilUrl(req, res) {
 
     // Generar URL firmada
     const signedUrl = await minioService.getSignedUrl(BUCKETS.PERFILES, ficha.fotoPerfilKEY);
-    
-    return handleSuccess(res, 200, "URL de imagen generada exitosamente", { 
+
+    return handleSuccess(res, 200, "URL de imagen generada exitosamente", {
       url: signedUrl,
       bomberoId: idBombero,
       fileName: ficha.fotoPerfilKEY

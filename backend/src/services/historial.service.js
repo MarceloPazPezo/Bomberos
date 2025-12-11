@@ -2,13 +2,13 @@
 import { AppDataSource } from "../config/configDb.js";
 
 export async function obtenerHistorialCompaniaService(idCompania, fechaInicio = null, fechaFin = null) {
-    try {
-        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
-        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
-        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
-        
-        /*  ejecutaremos una consulta sql  */
-        const query = `
+  try {
+    // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+    const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+    const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+
+    /*  ejecutaremos una consulta sql  */
+    const query = `
             -- $1 => ID de la compañía
             -- $2 => Fecha inicio (opcional)
             -- $3 => Fecha fin (opcional)
@@ -72,7 +72,7 @@ incidentes_cia AS (
     COALESCE(i."FechaHoraDespacho", i."creadoEl")::timestamp AS fecha,
     'Incidente'::text                AS tipo,
     i."descripcionPreliminar"        AS titulo,
-    sti."claveRadial"                AS "subTipo",
+    sti."claveRadialId"::text       AS "subTipo",
     COALESCE(aic.cantidad, 0)        AS "cantidad de asistentes",
     i."id"                           AS id_origen
   FROM "incidente" i
@@ -113,14 +113,14 @@ FROM aniversarios_cia
 ORDER BY fecha ASC, tipo ASC, id_origen ASC;
 
         `;
-        const result = await AppDataSource.query(query, [idCompania, fechaInicioISO, fechaFinISO]);
-        return result;
+    const result = await AppDataSource.query(query, [idCompania, fechaInicioISO, fechaFinISO]);
+    return result;
 
 
-    } catch (error) {
-        console.error("Error al obtener el historial de la compañía:", error);
-        throw error;
-    }
+  } catch (error) {
+    console.error("Error al obtener el historial de la compañía:", error);
+    throw error;
+  }
 
 
 
@@ -128,12 +128,12 @@ ORDER BY fecha ASC, tipo ASC, id_origen ASC;
 }
 
 export async function obtenerKpiAsistenciaVoluntarioService(idBombero, fechaInicio = null, fechaFin = null) {
-    try {
-        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
-        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
-        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+  try {
+    // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+    const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+    const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
 
-        const query = `
+    const query = `
             -- $1 => ID del bombero
             -- $2 => Fecha inicio (opcional)
             -- $3 => Fecha fin (opcional)
@@ -168,21 +168,21 @@ export async function obtenerKpiAsistenciaVoluntarioService(idBombero, fechaInic
             FROM asistencia_eventos ae, asistencia_incidentes ai;
         `;
 
-        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
-        return result[0] || { asistenciaEventos: 0, asistenciaIncidentes: 0, totalAsistencias: 0 };
-    } catch (error) {
-        console.error("Error al obtener KPI de asistencia del voluntario:", error);
-        throw error;
-    }
+    const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+    return result[0] || { asistenciaEventos: 0, asistenciaIncidentes: 0, totalAsistencias: 0 };
+  } catch (error) {
+    console.error("Error al obtener KPI de asistencia del voluntario:", error);
+    throw error;
+  }
 }
 
 export async function obtenerKpiResponsabilidadesVoluntarioService(idBombero, fechaInicio = null, fechaFin = null) {
-    try {
-        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
-        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
-        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+  try {
+    // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+    const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+    const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
 
-        const query = `
+    const query = `
             -- Parámetros: $1 = bombero_id, $2 = fecha_inicio (timestamp), $3 = fecha_fin (timestamp)
             WITH IncAprobadosEnRango AS (
               SELECT i.id
@@ -205,21 +205,21 @@ export async function obtenerKpiResponsabilidadesVoluntarioService(idBombero, fe
             LEFT JOIN public."esDespachado" ed ON ed."idIncidente" = ar.id;
         `;
 
-        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
-        return result[0] || { incidentesACargo: 0, vecesChofer: 0 };
-    } catch (error) {
-        console.error("Error al obtener KPI de responsabilidades del voluntario:", error);
-        throw error;
-    }
+    const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+    return result[0] || { incidentesACargo: 0, vecesChofer: 0 };
+  } catch (error) {
+    console.error("Error al obtener KPI de responsabilidades del voluntario:", error);
+    throw error;
+  }
 }
 
 export async function obtenerResumenActividadVoluntarioService(idBombero, fechaInicio = null, fechaFin = null) {
-    try {
-        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
-        const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
-        const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
+  try {
+    // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+    const fechaInicioISO = fechaInicio ? new Date(fechaInicio * 1000).toISOString() : null;
+    const fechaFinISO = fechaFin ? new Date(fechaFin * 1000).toISOString() : null;
 
-        const query = `
+    const query = `
             -- $1 => ID del bombero
             -- $2 => Fecha inicio (opcional)
             -- $3 => Fecha fin (opcional)
@@ -269,46 +269,46 @@ export async function obtenerResumenActividadVoluntarioService(idBombero, fechaI
             FROM horas_disponibilidad hd, dias_disponibilidad dd, promedio_horas ph;
         `;
 
-        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
-        
-        if (result && result[0]) {
-            const data = result[0];
-            const horasDisponibles = parseFloat(data.horasDisponibles) || 0;
-            const horasEnteras = Math.floor(horasDisponibles);
-            const minutos = Math.round((horasDisponibles - horasEnteras) * 60);
-            
-            const promedioHoras = parseFloat(data.promedioHorasSesion) || 0;
-            const promedioHorasEnteras = Math.floor(promedioHoras);
-            const promedioMinutos = Math.round((promedioHoras - promedioHorasEnteras) * 60);
-            
-            return {
-                horasDisponibles: horasEnteras,
-                minutosDisponibles: minutos,
-                diasDisponibles: parseInt(data.diasDisponibles) || 0,
-                totalSesiones: parseInt(data.totalSesiones) || 0,
-                promedioHorasSesion: promedioHorasEnteras,
-                promedioMinutosSesion: promedioMinutos
-            };
-        }
-        
-        return {
-            horasDisponibles: 0,
-            minutosDisponibles: 0,
-            diasDisponibles: 0,
-            totalSesiones: 0,
-            promedioHorasSesion: 0,
-            promedioMinutosSesion: 0
-        };
-    } catch (error) {
-        console.error("Error al obtener resumen de disponibilidad del voluntario:", error);
-        throw error;
+    const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+
+    if (result && result[0]) {
+      const data = result[0];
+      const horasDisponibles = parseFloat(data.horasDisponibles) || 0;
+      const horasEnteras = Math.floor(horasDisponibles);
+      const minutos = Math.round((horasDisponibles - horasEnteras) * 60);
+
+      const promedioHoras = parseFloat(data.promedioHorasSesion) || 0;
+      const promedioHorasEnteras = Math.floor(promedioHoras);
+      const promedioMinutos = Math.round((promedioHoras - promedioHorasEnteras) * 60);
+
+      return {
+        horasDisponibles: horasEnteras,
+        minutosDisponibles: minutos,
+        diasDisponibles: parseInt(data.diasDisponibles) || 0,
+        totalSesiones: parseInt(data.totalSesiones) || 0,
+        promedioHorasSesion: promedioHorasEnteras,
+        promedioMinutosSesion: promedioMinutos
+      };
     }
+
+    return {
+      horasDisponibles: 0,
+      minutosDisponibles: 0,
+      diasDisponibles: 0,
+      totalSesiones: 0,
+      promedioHorasSesion: 0,
+      promedioMinutosSesion: 0
+    };
+  } catch (error) {
+    console.error("Error al obtener resumen de disponibilidad del voluntario:", error);
+    throw error;
+  }
 }
 
 export async function obtenerHistorialVoluntarioService(idBombero) {
-    try {
-        /*  ejecutaremos una consulta sql  */
-        const query = `
+  try {
+    /*  ejecutaremos una consulta sql  */
+    const query = `
             WITH params AS (SELECT $1::int AS id_bombero),
 fb AS (
   SELECT f."id" AS id_ficha, f."idBombero" AS id_bombero,
@@ -369,7 +369,7 @@ SELECT * FROM (
          'asistencia',
          'Asistencia a incidente',
          'asistencia a incidente',
-         sti."claveRadial",
+         sti."claveRadialId"::text,
          'incidente',i."id"
   FROM "asistenciaIncidente" ai
   JOIN params p ON p.id_bombero = ai."idBombero"
@@ -406,13 +406,13 @@ SELECT * FROM (
 
   UNION ALL
   -- Creó / actualizó INCIDENTE (detalle: clave radial)
-  SELECT i."creadoEl",'incidente','Creó incidente','crear incidente',sti."claveRadial",'incidente',i."id"
+  SELECT i."creadoEl",'incidente','Creó incidente','crear incidente',sti."claveRadialId"::text,'incidente',i."id"
   FROM "incidente" i
   JOIN params p ON p.id_bombero = i."creadoPor"
   LEFT JOIN "subTipoIncidente" sti ON sti."id" = i."idSubtipoIncidente"
   WHERE i."creadoEl" IS NOT NULL
   UNION ALL
-  SELECT i."actualizadoEl",'incidente','Actualizó incidente','modificar incidente',sti."claveRadial",'incidente',i."id"
+  SELECT i."actualizadoEl",'incidente','Actualizó incidente','modificar incidente',sti."claveRadialId"::text,'incidente',i."id"
   FROM "incidente" i
   JOIN params p ON p.id_bombero = i."actualizadoPor"
   LEFT JOIN "subTipoIncidente" sti ON sti."id" = i."idSubtipoIncidente"
@@ -446,12 +446,12 @@ WHERE t.fecha IS NOT NULL
 ORDER BY t.fecha DESC, t.ref_tabla, t.ref_id;
 
         `;
-        const result = await AppDataSource.query(query, [idBombero]);
-        return result;
-    } catch (error) {
-        console.error("Error al obtener el historial del voluntario:", error);
-        throw error;
-    }
+    const result = await AppDataSource.query(query, [idBombero]);
+    return result;
+  } catch (error) {
+    console.error("Error al obtener el historial del voluntario:", error);
+    throw error;
+  }
 }
 
 /**
@@ -462,12 +462,12 @@ ORDER BY t.fecha DESC, t.ref_tabla, t.ref_id;
  * @returns {Promise<Array>} Array con conteos por día de semana y hora
  */
 export async function obtenerHeatmapDisponibilidadVoluntarioService(idBombero, fechaInicio, fechaFin) {
-    try {
-        // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
-        const fechaInicioISO = new Date(fechaInicio * 1000).toISOString();
-        const fechaFinISO = new Date(fechaFin * 1000).toISOString();
+  try {
+    // Convertir timestamps Unix (segundos) a formato ISO para PostgreSQL
+    const fechaInicioISO = new Date(fechaInicio * 1000).toISOString();
+    const fechaFinISO = new Date(fechaFin * 1000).toISOString();
 
-        const query = `
+    const query = `
             WITH disponibilidades_filtradas AS (
                 SELECT 
                     d."id",
@@ -499,10 +499,10 @@ export async function obtenerHeatmapDisponibilidadVoluntarioService(idBombero, f
             ORDER BY dia_semana, hora;
         `;
 
-        const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
-        return result;
-    } catch (error) {
-        console.error("Error al obtener heatmap de disponibilidad del voluntario:", error);
-        throw error;
-    }
+    const result = await AppDataSource.query(query, [idBombero, fechaInicioISO, fechaFinISO]);
+    return result;
+  } catch (error) {
+    console.error("Error al obtener heatmap de disponibilidad del voluntario:", error);
+    throw error;
+  }
 }

@@ -128,9 +128,9 @@ const DisponibilidadToggle = () => {
       const now = dateHelper.toSantiago(currentTime);
       const diff = now.diff(inicio, ['hours', 'minutes']);
       
-      // Optimización: evitar cálculos innecesarios
-      const hours = Math.floor(diff.hours);
-      const minutes = Math.floor(diff.minutes);
+      // Optimización: evitar cálculos innecesarios y valores negativos
+      const hours = Math.max(0, Math.floor(diff.hours));
+      const minutes = Math.max(0, Math.floor(diff.minutes));
       
       if (hours >= 1) {
         return `${hours}h ${minutes}m`;

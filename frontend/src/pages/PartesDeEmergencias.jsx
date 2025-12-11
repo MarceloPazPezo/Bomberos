@@ -107,6 +107,7 @@ function KanbanCard({ parte, onClick }) {
   const shortDesc = desc && desc.length > 40 ? `${desc.slice(0, 40)} ...` : desc;
   const estadoKey = (parte?.estado || "").toUpperCase();
   const icon = null;
+  const comentario = parte?.comentario || ""; // ⭐ AGREGADO
 
   // Extraer "calle y número" desde direccion (string u objeto)
   const rawDir = parte?.detalle?.direccion;
@@ -145,6 +146,16 @@ function KanbanCard({ parte, onClick }) {
         {icon}
         <span>{lineText}</span>
       </div>
+      
+      {/* ⭐ AGREGADO: Mostrar comentario si el estado es CORREGIR */}
+      {estadoKey === 'CORREGIR' && comentario && (
+        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-[11px]">
+          <div className="flex items-start gap-1 text-red-700">
+            <span className="text-red-600 font-semibold shrink-0">📝 Correcciones:</span>
+            <span className="line-clamp-2">{comentario}</span>
+          </div>
+        </div>
+      )}
     </button>
   );
 }
@@ -523,6 +534,32 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
               <div className="mt-0.5">{parte.detalle?.claveRadial || ""}</div>
             </div>
           </div>
+
+          {/* ⭐ AGREGADO: Mostrar comentario de rechazo si existe */}
+          {estadoKey === 'CORREGIR' && parte.comentario && (
+            <div className="mt-4">
+              <div className="rounded-lg border-2 border-red-300 bg-red-50 p-4">
+                <div className="flex items-start gap-2 mb-2">
+                  <div className="flex-shrink-0 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-lg">📝</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-red-800 font-semibold text-sm mb-1">
+                      Correcciones solicitadas
+                    </div>
+                    <div className="text-red-700 text-sm leading-relaxed whitespace-pre-line">
+                      {parte.comentario}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 pt-3 border-t border-red-200">
+                  <p className="text-xs text-red-600 italic">
+                    💡 Por favor, realiza las correcciones indicadas y vuelve a enviar el parte para revisión.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
  
 

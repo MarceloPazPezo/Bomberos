@@ -5,7 +5,8 @@ import {
   getEstadisticasMiCompania,
   getBomberosByCompania,
   getEstadisticasBomberosCompania,
-  getBomberosOtrasCompanias
+  getBomberosOtrasCompanias,
+  getBomberos
 } from '@services/bombero.service.js';
 
 /**
@@ -18,6 +19,7 @@ export const useBomberoCompania = (idCompania = null) => {
   const [bomberos, setBomberos] = useState([]);
   const [estadisticas, setEstadisticas] = useState(null);
   const [bomberosOtrasCompanias, setBomberosOtrasCompanias] = useState([]);
+  const [allBomberos, setAllBomberos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingOtrasCompanias, setLoadingOtrasCompanias] = useState(false);
   const [error, setError] = useState(null);
@@ -225,12 +227,35 @@ export const useBomberoCompania = (idCompania = null) => {
     }
   };
 
+  /**
+   * Carga TODOS los bomberos del sistema (sin filtro de compañía)
+   */
+  const loadAllBomberos = async () => {
+    try {
+      setLoadingOtrasCompanias(true); // Reusamos este loading para la pestaña alternativa
+      const response = await getBomberos();
+      
+      // getBomberos ya devuelve los datos formateados array
+      if (Array.isArray(response)) {
+        setAllBomberos(response);
+      } else {
+        setError(response.message || 'Error al cargar todos los bomberos');
+      }
+    } catch (error) {
+      console.error('Error al cargar todos los bomberos:', error);
+      setError('Error al cargar todos los bomberos');
+    } finally {
+      setLoadingOtrasCompanias(false);
+    }
+  };
+
   return {
     // Estado
     compania,
     bomberos,
     estadisticas,
     bomberosOtrasCompanias,
+    allBomberos,
     loading,
     loadingOtrasCompanias,
     error,
@@ -241,12 +266,14 @@ export const useBomberoCompania = (idCompania = null) => {
     filterBomberos,
     getRolesUnicos,
     loadBomberosOtrasCompanias,
+    loadAllBomberos,
     
     // Helpers
     totalBomberos: bomberos.length,
     bomberosActivos: bomberos.filter(b => b.activo).length,
     bomberosConFicha: bomberos.filter(b => b.tieneFicha).length,
     bomberosConLicencia: bomberos.filter(b => b.ficha?.licenciaClaseF).length,
-    totalBomberosOtrasCompanias: bomberosOtrasCompanias.length
+    totalBomberosOtrasCompanias: bomberosOtrasCompanias.length,
+    totalAllBomberos: allBomberos.length
   };
 };

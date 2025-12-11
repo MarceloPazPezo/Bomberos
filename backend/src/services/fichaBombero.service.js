@@ -3,10 +3,15 @@ import FichaBombero from "../entities/fichaBombero.entity.js";
 import Bombero from "../entities/bombero.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 
-export async function createFichaBomberoService(body, createdBy = null) {
+export async function createFichaBomberoService(body, createdBy = null, transactionManager = null) {
   try {
-    const fichaBomberoRepository = AppDataSource.getRepository(FichaBombero);
-    const bomberoRepository = AppDataSource.getRepository(Bombero);
+    const fichaBomberoRepository = transactionManager
+      ? transactionManager.getRepository(FichaBombero)
+      : AppDataSource.getRepository(FichaBombero);
+
+    const bomberoRepository = transactionManager
+      ? transactionManager.getRepository(Bombero)
+      : AppDataSource.getRepository(Bombero);
 
     // Verificar que el bombero existe
     const bombero = await bomberoRepository.findOne({
@@ -96,7 +101,7 @@ export async function getFichaBomberoService(query) {
         "direccion.calle",
         "direccion.numero",
         "tipoSangre.id",
-        "tipoSangre.tipo"
+        "tipoSangre.nombre"
       ]);
 
     if (id) {
@@ -209,7 +214,7 @@ export async function getFichasBomberoService(queryParams = {}) {
         "direccion.calle",
         "direccion.numero",
         "tipoSangre.id",
-        "tipoSangre.tipo"
+        "tipoSangre.nombre"
       ])
       .orderBy("ficha.id", "ASC");
 

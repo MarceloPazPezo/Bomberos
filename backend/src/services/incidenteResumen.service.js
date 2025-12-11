@@ -84,13 +84,14 @@ export async function obtenerIncidentesResumenService(options = {}) {
     return {
       id: inc.id,
       titulo: inc.descripcionPreliminar || "(Sin título)",
-  tipo: inc.subtipo?.clasificacionEmergencia?.descripcion || inc.subtipo?.descripcion || "",
-  // La entidad Compania no tiene 'numero'; usamos nombre si está disponible
-  compania: inc.compania?.nombre || "",
+      tipo: inc.subtipo?.clasificacionEmergencia?.descripcion || inc.subtipo?.descripcion || "",
+      // La entidad Compania no tiene 'numero'; usamos nombre si está disponible
+      compania: inc.compania?.nombre || "",
       creador: creadorNombre,
       fecha: (fecha && hora) ? `${fecha} ${hora}` : (fecha || ""),
       estado: estadoNombre ? estadoNombre.toUpperCase() : "",
       estadoFechaHora: ee?.fechaHora || null,
+      comentario: ee?.comentario || null, // ⭐ AGREGADO: comentario del último estado
       // Detalle adicional para el drawer
       detalle: {
         direccion: inc.direccion ? `${inc.direccion.calle} ${inc.direccion.numero || "S/N"}` : "",
