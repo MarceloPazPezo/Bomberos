@@ -105,6 +105,9 @@ export async function getBomberosService(queryParams = {}) {
     const queryBuilder = bomberoRepository
       .createQueryBuilder("bombero")
       .leftJoinAndSelect("bombero.roles", "rol")
+      .leftJoinAndSelect("bombero.fichaBombero", "ficha")
+      .leftJoinAndSelect("ficha.compania", "compania")
+      .leftJoinAndSelect("ficha.tipoSangre", "tipoSangre")
       .select([
         "bombero.id",
         "bombero.nombres",
@@ -118,6 +121,15 @@ export async function getBomberosService(queryParams = {}) {
         "bombero.actualizadoPor",
         "rol.id",
         "rol.nombre",
+        "ficha.id",
+        "ficha.telefono",
+        "ficha.fechaNacimiento",
+        "ficha.fechaIngreso",
+        "ficha.licenciaClaseF",
+        "ficha.donante",
+        "compania.id",
+        "compania.nombre",
+        "tipoSangre.id",
       ])
       .orderBy("bombero.id", "ASC")
       .addOrderBy("rol.id", "ASC");
@@ -164,6 +176,21 @@ export async function getBomberosService(queryParams = {}) {
         id: r.id,
         nombre: r.nombre
       })) : [],
+      ficha: bombero.fichaBombero ? {
+        id: bombero.fichaBombero.id,
+        telefono: bombero.fichaBombero.telefono,
+        fechaNacimiento: bombero.fichaBombero.fechaNacimiento,
+        fechaIngreso: bombero.fichaBombero.fechaIngreso,
+        licenciaClaseF: bombero.fichaBombero.licenciaClaseF,
+        donante: bombero.fichaBombero.donante,
+        compania: bombero.fichaBombero.compania ? {
+          id: bombero.fichaBombero.compania.id,
+          nombre: bombero.fichaBombero.compania.nombre
+        } : null,
+        tipoSangre: bombero.fichaBombero.tipoSangre ? {
+          id: bombero.fichaBombero.tipoSangre.id
+        } : null
+      } : null,
     }));
 
     return [bomberosData, null, total];
@@ -235,20 +262,20 @@ export async function updateBomberoService(query, body, updatedBy = null) {
         } else if (typeof rolItem === 'string') {
           rol = await rolRepository.findOne({ where: { nombre: rolItem } });
         }
-        
+
         if (rol) {
           roles.push(rol);
         } else {
           return [null, `Rol no encontrado: ${rolItem}`];
         }
       }
-      
+
       // Actualizar roles del bombero
       const bomberoWithRoles = await bomberoRepository.findOne({
         where: { id: bomberoFound.id },
         relations: ["roles"],
       });
-      
+
       if (bomberoWithRoles) {
         bomberoWithRoles.roles = roles;
         await bomberoRepository.save(bomberoWithRoles);
@@ -302,20 +329,20 @@ export async function changeBomberoStatusService(idBombero, activo, updatedBy = 
 
     // Validar que el bombero no tenga roles protegidos (Administrador o Capitán)
     if (bomberoFound.roles && bomberoFound.roles.length > 0) {
-      const hasProtectedRole = bomberoFound.roles.some(role => 
+      const hasProtectedRole = bomberoFound.roles.some(role =>
         role.nombre === 'Administrador' || role.nombre === 'Capitán'
       );
-      
+
       if (hasProtectedRole) {
         return [null, "No se puede cambiar el estado de bomberos con roles Administrador o Capitán"];
       }
     }
-    
+
     // Actualizar el estado
     bomberoFound.activo = activo;
     bomberoFound.actualizadoEl = new Date();
     if (updatedBy) bomberoFound.actualizadoPor = updatedBy;
-    
+
     const bomberoUpdated = await bomberoRepository.save(bomberoFound);
 
     // Remover la contraseña del resultado
@@ -357,10 +384,15 @@ export async function deleteBomberoService(query) {
   }
 }
 
-export async function createBomberoService(body, createdBy = null) {
+export async function createBomberoService(body, createdBy = null, transactionManager = null) {
   try {
-    const bomberoRepository = AppDataSource.getRepository(Bombero);
-    const rolRepository = AppDataSource.getRepository(Rol);
+    const bomberoRepository = transactionManager
+      ? transactionManager.getRepository(Bombero)
+      : AppDataSource.getRepository(Bombero);
+
+    const rolRepository = transactionManager
+      ? transactionManager.getRepository(Rol)
+      : AppDataSource.getRepository(Rol);
 
     // Verificar duplicados específicos por campo
     const existingByRun = await bomberoRepository.findOne({
@@ -374,11 +406,11 @@ export async function createBomberoService(body, createdBy = null) {
     // Si hay duplicados, retornar errores específicos por campo
     if (existingByRun || existingByEmail) {
       const fieldErrors = {};
-      
+
       if (existingByRun) {
         fieldErrors.run = "Ya existe un bombero con este RUT";
       }
-      
+
       if (existingByEmail) {
         fieldErrors.email = "Ya existe un bombero con este email";
       }
@@ -444,8 +476,8 @@ export async function getBomberosConLicenciasService(idCompania) {
       .orderBy("bombero.apellidos", "ASC")
       .addOrderBy("bombero.nombres", "ASC");
 
-  // Usamos getRawMany porque seleccionamos con alias específicos
-  const bomberos = await queryBuilder.getRawMany();
+    // Usamos getRawMany porque seleccionamos con alias específicos
+    const bomberos = await queryBuilder.getRawMany();
 
     if (!bomberos || bomberos.length === 0) {
       return [null, "No se encontraron bomberos con licencias en la compañía especificada."];
@@ -503,7 +535,7 @@ export async function getBomberosPorCompaniaService(idCompania) {
 export async function addFichaToBomberoService(bomberoId, fichaData, createdBy = null) {
   try {
     const bomberoRepository = AppDataSource.getRepository(Bombero);
-    
+
     // Verificar que el bombero existe
     const bombero = await bomberoRepository.findOne({
       where: { id: bomberoId }
@@ -530,14 +562,14 @@ export async function addFichaToBomberoService(bomberoId, fichaData, createdBy =
     };
 
     const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy);
-    
+
     if (fichaError) {
       return [null, fichaError];
     }
 
     // Retornar el bombero con la ficha creada
     const [bomberoComplete, error] = await getBomberoCompleteService(bomberoId);
-    
+
     if (error) {
       return [bombero, null]; // Retornar al menos el bombero si no se puede obtener completo
     }
@@ -552,12 +584,20 @@ export async function addFichaToBomberoService(bomberoId, fichaData, createdBy =
 /**
  * Crear bombero con ficha opcional
  */
+/**
+ * Crear bombero con ficha opcional
+ */
 export async function createBomberoWithOptionalFichaService(bomberoData, fichaData = null, createdBy = null) {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
   try {
-    // Crear el bombero primero
-    const [bombero, bomberoError] = await createBomberoService(bomberoData, createdBy);
-    
+    // Crear el bombero primero dentro de la transacción
+    const [bombero, bomberoError] = await createBomberoService(bomberoData, createdBy, queryRunner.manager);
+
     if (bomberoError) {
+      await queryRunner.rollbackTransaction();
       return [null, bomberoError, null];
     }
 
@@ -570,30 +610,51 @@ export async function createBomberoWithOptionalFichaService(bomberoData, fichaDa
         idBombero: bombero.id
       };
 
-      const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy);
-      
+      // Importar dinámicamente o usar la función importada si ya está disponible
+      // Asumimos que createFichaBomberoService soporta transactions
+      const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy, queryRunner.manager);
+
+      if (fichaError) {
+        await queryRunner.rollbackTransaction();
+        return [null, fichaError, null]; // Retornar error de ficha como error principal o manejar diferente
+        // En este caso, si falla la ficha, fallamos todo para evitar inconsistencia "Ghost User"
+        // Si se prefiere guardar bombero sin ficha, comentar rollback y manejo de error
+      }
+
       fichaResult = {
         ficha,
-        error: fichaError
+        error: null
       };
     }
 
+    await queryRunner.commitTransaction();
     return [bombero, null, fichaResult];
   } catch (error) {
+    if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
     console.error("Error al crear bombero con ficha opcional:", error);
     return [null, "Error interno del servidor", null];
+  } finally {
+    await queryRunner.release();
   }
 }
 
 /**
  * Crear bombero con imagen de perfil
  */
+/**
+ * Crear bombero con imagen de perfil
+ */
 export async function createBomberoWithImageService(bomberoData, fichaData = null, profileImage = null, createdBy = null) {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
   try {
     // Crear el bombero primero
-    const [bombero, bomberoError] = await createBomberoService(bomberoData, createdBy);
-    
+    const [bombero, bomberoError] = await createBomberoService(bomberoData, createdBy, queryRunner.manager);
+
     if (bomberoError) {
+      await queryRunner.rollbackTransaction();
       return [null, bomberoError, null];
     }
 
@@ -612,18 +673,27 @@ export async function createBomberoWithImageService(bomberoData, fichaData = nul
         fichaDataWithBombero.fotoPerfilKEY = profileImage.key || profileImage.filename;
       }
 
-      const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy);
-      
+      const [ficha, fichaError] = await createFichaBomberoService(fichaDataWithBombero, createdBy, queryRunner.manager);
+
+      if (fichaError) {
+        await queryRunner.rollbackTransaction();
+        return [null, fichaError, null];
+      }
+
       fichaResult = {
         ficha,
-        error: fichaError
+        error: null
       };
     }
 
+    await queryRunner.commitTransaction();
     return [bombero, null, fichaResult];
   } catch (error) {
+    if (queryRunner.isTransactionActive) await queryRunner.rollbackTransaction();
     console.error("Error al crear bombero con imagen:", error);
     return [null, "Error interno del servidor", null];
+  } finally {
+    await queryRunner.release();
   }
 }
 
@@ -854,7 +924,7 @@ export async function getEstadisticasBomberosCompaniaService(idCompania) {
       .where("ficha.idCompania = :idCompania", { idCompania });
 
     const totalBomberos = await queryBuilder.getCount();
-    
+
     const bomberosActivos = await queryBuilder
       .clone()
       .andWhere("bombero.activo = :activo", { activo: true })
@@ -876,7 +946,11 @@ export async function getEstadisticasBomberosCompaniaService(idCompania) {
       .andWhere("ficha.donante = :donante", { donante: true })
       .getCount();
 
+    // Total global de bomberos en el sistema (incluyendo inactivos y otras compañías)
+    const totalSistema = await bomberoRepository.count();
+
     const estadisticas = {
+      totalSistema,
       totalBomberos,
       bomberosActivos,
       bomberosInactivos,

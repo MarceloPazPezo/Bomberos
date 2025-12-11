@@ -563,6 +563,7 @@ export async function generarParteEmergenciaPdfService(idIncidente, options = {}
 
     logger.info(`[PDF] PDF generado y subido exitosamente: ${fileName}`);
 
+    // Generar URL firmada de MinIO
     const url = await getSignedUrl(BUCKETS.DOCUMENTOS, fileName, validExpiry);
 
     return {

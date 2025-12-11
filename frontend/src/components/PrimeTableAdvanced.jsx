@@ -267,14 +267,19 @@ const PrimeTableAdvanced = ({
     );
   };
 
+  // Calcular datos paginados
+  const paginatedData = pagination 
+    ? data.slice(first, first + rows)
+    : data;
+
   return (
     <div className={`card ${className}`}>
       <DataTable
         ref={dt}
-        value={data}
+        value={paginatedData}
         paginator={false} // Usamos paginación personalizada
         rows={rows}
-        first={first}
+        first={0} // Siempre 0 porque ya sliceamos los datos
         loading={loading}
         header={header()}
         footer={footer()}

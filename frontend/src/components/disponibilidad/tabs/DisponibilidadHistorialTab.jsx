@@ -12,6 +12,7 @@ import DatePicker from '@components/DatePicker';
 import TimePicker from '@components/TimePicker';
 import PrimeTableBasic from '@components/PrimeTableBasic';
 import dateHelper from '@helpers/dateHelper';
+import Select from 'react-select';
 
 /**
  * Componente para ver el historial de disponibilidades
@@ -92,11 +93,15 @@ const DisponibilidadHistorialTab = () => {
       
       const diff = fin.diff(inicio, ['hours', 'minutes']);
       
+      // Prevenir valores negativos por desfases de red o procesamiento
+      const hours = Math.max(0, Math.floor(diff.hours));
+      const minutes = Math.max(0, Math.floor(diff.minutes));
+      
       let duracion;
-      if (diff.hours >= 1) {
-        duracion = `${Math.floor(diff.hours)}h ${Math.floor(diff.minutes)}m`;
+      if (hours >= 1) {
+        duracion = `${hours}h ${minutes}m`;
       } else {
-        duracion = `${Math.floor(diff.minutes)}m`;
+        duracion = `${minutes}m`;
       }
       
       // Agregar "estimada" si corresponde
@@ -284,20 +289,38 @@ const DisponibilidadHistorialTab = () => {
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
-          {/* Filtro por Estado - Ancho justo */}
-          <div className="w-32">
+          {/* Filtro por Estado */}
+          <div className="w-48">
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Estado
             </label>
-            <select
-              value={filtros.estado}
-              onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value }))}
-              className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            >
-              <option value="todos">Todos</option>
-              <option value="disponible">Disponible</option>
-              <option value="finalizado">Finalizado</option>
-            </select>
+            <Select
+              value={[
+                { label: 'Todos', value: 'todos' },
+                { label: 'Disponible', value: 'disponible' },
+                { label: 'Finalizado', value: 'finalizado' }
+              ].find(opt => opt.value === filtros.estado)}
+              onChange={(selected) => setFiltros(prev => ({ ...prev, estado: selected?.value || 'todos' }))}
+              options={[
+                { label: 'Todos', value: 'todos' },
+                { label: 'Disponible', value: 'disponible' },
+                { label: 'Finalizado', value: 'finalizado' }
+              ]}
+              placeholder="Seleccionar estado"
+              isClearable={false}
+              isSearchable={true}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: '44px',
+                  fontSize: '0.875rem',
+                }),
+                menu: (base) => ({
+                  ...base,
+                  fontSize: '0.875rem',
+                }),
+              }}
+            />
           </div>
 
           {/* Filtro Fecha Desde - Usando DatePicker */}

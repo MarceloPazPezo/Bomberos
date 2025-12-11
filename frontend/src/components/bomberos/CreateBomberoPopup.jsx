@@ -288,7 +288,31 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
             const result = await createBomberoIntelligent(bomberoTransformedData, fichaData, profileImage);
 
             if (!result.success) {
-                setErrors({ general: result.message });
+                // Manejar errores estructurados del backend (Array de errores Joi)
+                if (Array.isArray(result.details)) {
+                    const errorObject = result.details.reduce((acc, err) => {
+                        // Limpiar prefijos de rutas (bomberoData.run -> run, fichaData.telefono -> telefono)
+                        const fieldName = err.path.replace(/^(bomberoData\.|fichaData\.)/, '');
+                        acc[fieldName] = err.message;
+                        return acc;
+                    }, {});
+                    
+                    setErrors({ 
+                        ...errorObject,
+                        general: result.message || 'Error de validación'
+                    });
+                }
+                // Manejar objeto de errores (formato legacy o alternativo)
+                else if (result.details && typeof result.details === 'object') {
+                    setErrors({ 
+                        ...result.details,
+                        general: result.message || 'Error de validación'
+                    });
+                }
+                // Manejar error string simple
+                else {
+                    setErrors({ general: result.message || 'Error al crear el bombero' });
+                }
                 setLoading(false);
                 return;
             }
@@ -297,7 +321,9 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
             handleClose();
         } catch (error) {
             console.error('Error creating bombero:', error);
-            setErrors({ general: 'Error al crear el bombero' });
+            // Asegurarse de no renderizar objetos
+            const errorMessage = typeof error === 'string' ? error : 'Error al crear el bombero';
+            setErrors({ general: errorMessage });
         } finally {
             setLoading(false);
         }
@@ -317,7 +343,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-white">
-                                Crear Bombero con Ficha
+                                Registrar Nuevo Bombero
                             </h2>
                             <p className="text-blue-100 text-sm">
                                 Complete la información básica y opcionalmente la ficha del bombero
@@ -379,7 +405,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                             <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
                                 <div className="flex-shrink-0">
                                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-blue-600 text-sm font-bold">📋</span>
+                                        <MdPerson className="w-4 h-4 text-blue-600" />
                                     </div>
                                 </div>
                                 <div className="flex-1">
@@ -519,7 +545,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                             <div className="flex items-start space-x-3 p-3 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
                                 <div className="flex-shrink-0">
                                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                        <span className="text-green-600 text-sm font-bold">📄</span>
+                                        <MdInfo className="w-4 h-4 text-green-600" />
                                     </div>
                                 </div>
                                 <div className="flex-1">
@@ -533,11 +559,12 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                             </div>
 
                             {/* Imagen de perfil */}
-                            <div className="w-full">
-                                <label className="block text-sm font-semibold text-[#2C3E50] mb-1.5">
+                            <div className="bg-white p-4 sm:p-5 md:p-6 rounded-2xl w-full mx-auto">
+                                <label className="block text-sm font-semibold text-[#2C3E50] mb-3">
                                     <div className="flex items-center gap-1">
-                                        <span>🖼️ Imagen de Perfil</span>
-                                        <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                                        <MdPhotoCamera className="w-5 h-5 text-[#2C3E50]" />
+                                        <span>Imagen de Perfil</span>
+                                        <span className="text-xs text-gray-500 font-normal ml-1">(Opcional)</span>
                                     </div>
                                 </label>
                                 <ImageUploader
@@ -673,7 +700,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                             ) : (
                                 <>
                                     <MdSave className="w-4 h-4" />
-                                    <span>Crear Bombero</span>
+                                    <span>Registrar Bombero</span>
                                 </>
                             )}
                         </button>

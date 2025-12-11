@@ -1,4 +1,4 @@
-import { BUCKETS, FILE_CONFIG, minioClient } from '../config/configMinIO.js';
+import { BUCKETS, FILE_CONFIG, minioClient, getMinioClientForPresigned } from '../config/configMinIO.js';
 import logger from '../config/configLogger.js';
 import mime from 'mime-types';
 
@@ -60,25 +60,41 @@ export async function downloadFile(bucket, fileName) {
 
 export async function getSignedUrl(bucket, fileName, expiry = config.SIGNED_URL_EXPIRY) {
   try {
-    const url = await client.presignedGetObject(bucket, fileName, expiry);
+    const presignedClient = getMinioClientForPresigned();
+    const url = await presignedClient.presignedGetObject(bucket, fileName, expiry);
 
-    // Reemplazar host interno con externo si está configurado
-    const urlObj = new URL(url);
-    if (config.MINIO_EXTERNAL_ENDPOINT) {
-      urlObj.hostname = config.MINIO_EXTERNAL_ENDPOINT;
-    }
-    if (config.MINIO_EXTERNAL_PORT) {
-      urlObj.port = config.MINIO_EXTERNAL_PORT;
-    }
-    if (config.MINIO_EXTERNAL_USE_SSL === 'true') {
-      urlObj.protocol = 'https:';
-    } else {
-      urlObj.protocol = 'http:';
+    // Si MINIO_PUBLIC_URL está configurado, reescribir la URL para usar el proxy
+    if (config.MINIO_PUBLIC_URL) {
+      try {
+        const urlObj = new URL(url);
+        const publicUrl = new URL(config.MINIO_PUBLIC_URL);
+
+        // Reemplazar protocolo, host y puerto
+        urlObj.protocol = publicUrl.protocol;
+        urlObj.host = publicUrl.host; // Incluye hostname y port
+
+        // Ajustar path si hay prefijo (ej: /minio/)
+        if (publicUrl.pathname && publicUrl.pathname !== '/') {
+          // url original: /bucket/file...
+          // public path: /minio
+          // resultado: /minio/bucket/file...
+          const originalPath = urlObj.pathname;
+          // Evitar doble slash //
+          const prefix = publicUrl.pathname.replace(/\/$/, '');
+          urlObj.pathname = `${prefix}${originalPath}`;
+        }
+
+        const finalUrl = urlObj.toString();
+        logger.debug(`[MINIO] URL reescrita con MINIO_PUBLIC_URL: ${finalUrl}`);
+        return finalUrl;
+      } catch (err) {
+        logger.warn(`[MINIO] Error reescribiendo URL con MINIO_PUBLIC_URL: ${err.message}`);
+        // Fallback a la URL original si falla el parsing
+      }
     }
 
-    const finalUrl = urlObj.toString();
     logger.info(`[MINIO] URL firmada generada para: ${bucket}/${fileName}`);
-    return finalUrl;
+    return url;
   } catch (error) {
     logger.error(`[MINIO] Error generando URL firmada para ${fileName}:`, error);
     throw error;
@@ -88,9 +104,34 @@ export async function getSignedUrl(bucket, fileName, expiry = config.SIGNED_URL_
 export async function getSignedUploadUrl(bucket, fileName, expiry = config.SIGNED_URL_EXPIRY) {
   try {
     const url = await client.presignedPutObject(bucket, fileName, expiry);
-
-    // Reemplazar host interno con externo si está configurado
     const urlObj = new URL(url);
+
+    // Si MINIO_PUBLIC_URL está configurado, reemplazar la base de la URL
+    if (config.MINIO_PUBLIC_URL) {
+      try {
+        const publicUrl = new URL(config.MINIO_PUBLIC_URL);
+        // Reemplazar protocolo, hostname y puerto, manteniendo la ruta y parámetros de la URL original
+        urlObj.protocol = publicUrl.protocol;
+        urlObj.hostname = publicUrl.hostname;
+        urlObj.port = publicUrl.port;
+        // Si MINIO_PUBLIC_URL tiene un pathname, agregarlo antes de la ruta del bucket
+        if (publicUrl.pathname && publicUrl.pathname !== '/') {
+          // La URL original tiene formato: /bucket/fileName?params
+          // Necesitamos: /minio/bucket/fileName?params
+          const originalPath = urlObj.pathname;
+          urlObj.pathname = `${publicUrl.pathname.replace(/\/$/, '')}${originalPath}`;
+        }
+
+        const finalUrl = urlObj.toString();
+        logger.info(`[MINIO] URL firmada de subida generada usando MINIO_PUBLIC_URL para: ${bucket}/${fileName}`);
+        logger.debug(`[MINIO] URL original: ${url}, URL final: ${finalUrl}`);
+        return finalUrl;
+      } catch (error) {
+        logger.warn(`[MINIO] Error procesando MINIO_PUBLIC_URL, usando método alternativo: ${error.message}`);
+      }
+    }
+
+    // Método alternativo: Reemplazar host interno con externo si está configurado
     if (config.MINIO_EXTERNAL_ENDPOINT) {
       urlObj.hostname = config.MINIO_EXTERNAL_ENDPOINT;
     }
@@ -105,6 +146,7 @@ export async function getSignedUploadUrl(bucket, fileName, expiry = config.SIGNE
 
     const finalUrl = urlObj.toString();
     logger.info(`[MINIO] URL firmada de subida generada para: ${bucket}/${fileName}`);
+    logger.debug(`[MINIO] URL final: ${finalUrl}`);
     return finalUrl;
   } catch (error) {
     logger.error(`[MINIO] Error generando URL firmada de subida para ${fileName}:`, error);

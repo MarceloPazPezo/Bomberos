@@ -5,14 +5,14 @@ import { validateRUNDv } from "../helpers/run.helper.js";
 const domainEmailValidator = (value, helper) => {
   // Permitir dominios comunes y dominios .cl
   const allowedDomains = [
-    "@gmail.com", "@hotmail.com", "@outlook.com", "@yahoo.com", 
+    "@gmail.com", "@hotmail.com", "@outlook.com", "@yahoo.com",
     "@live.com", "@msn.com", "@icloud.com", "@me.com"
   ];
-  
+
   // Verificar si termina con un dominio permitido o con .cl
   const isAllowedDomain = allowedDomains.some(domain => value.endsWith(domain));
   const isClDomain = value.endsWith(".cl");
-  
+
   if (!isAllowedDomain && !isClDomain) {
     return helper.message(
       "El correo electrónico debe ser de un dominio permitido (ej. @gmail.com, @hotmail.com, @example.cl)",
@@ -93,8 +93,18 @@ export const bomberoQueryValidation = Joi.object({
     "date.format": "La fecha 'actualizadoHasta' debe estar en formato ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss.sssZ).",
     "date.min": "La fecha 'actualizadoHasta' debe ser posterior a 'actualizadoDesde'.",
   }),
+  limit: Joi.number().integer().positive().messages({
+    "number.base": "El límite debe ser un número.",
+    "number.integer": "El límite debe ser un número entero.",
+    "number.positive": "El límite debe ser un número positivo.",
+  }),
+  page: Joi.number().integer().positive().messages({
+    "number.base": "La página debe ser un número.",
+    "number.integer": "La página debe ser un número entero.",
+    "number.positive": "La página debe ser un número positivo.",
+  }),
 })
-  .or("id", "run", "email", "activo", "creadoDesde", "creadoHasta", "actualizadoDesde", "actualizadoHasta")
+  .or("id", "run", "email", "activo", "creadoDesde", "creadoHasta", "actualizadoDesde", "actualizadoHasta", "limit", "page")
   .unknown(false)
   .messages({
     "object.unknown": "No se permiten parámetros de consulta adicionales.",
@@ -353,3 +363,14 @@ export const changePasswordValidation = Joi.object({
     "object.unknown":
       "No se permiten propiedades adicionales para el cambio de contraseña.",
   });
+// 5. Esquema para crear Bombero con Ficha (Endpoint unificado)
+import { fichaBomberoCreateValidation } from "./fichaBombero.validation.js";
+
+export const bomberoWithFichaValidation = Joi.object({
+  bomberoData: bomberoCreateValidation.required().messages({
+    "any.required": "Los datos del bombero son requeridos."
+  }),
+  fichaData: fichaBomberoCreateValidation.optional().allow(null),
+}).messages({
+  "object.unknown": "No se permiten propiedades adicionales en la solicitud (solo bomberoData y fichaData)."
+});

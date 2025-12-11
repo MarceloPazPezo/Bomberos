@@ -33,11 +33,14 @@ const BomberosPage = () => {
     refreshData,
     getRolesUnicos,
     loadBomberosOtrasCompanias,
+    loadAllBomberos,
     totalBomberos,
     bomberosActivos,
     bomberosConFicha,
     bomberosConLicencia,
-    totalBomberosOtrasCompanias
+    totalBomberosOtrasCompanias,
+    totalAllBomberos,
+    allBomberos
   } = useBomberoCompania();
 
   // Manejar errores
@@ -64,7 +67,9 @@ const BomberosPage = () => {
   // Función para cambiar de pestaña
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === 'otras-companias' && bomberosOtrasCompanias.length === 0) {
+    if (tab === 'todas-las-companias' && allBomberos.length === 0) {
+      loadAllBomberos();
+    } else if (tab === 'otras-companias' && bomberosOtrasCompanias.length === 0) {
       loadBomberosOtrasCompanias();
     }
   };
@@ -128,17 +133,17 @@ const BomberosPage = () => {
                 )}
               </button>
               <button
-                onClick={() => handleTabChange('otras-companias')}
+                onClick={() => handleTabChange('todas-las-companias')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'otras-companias'
+                  activeTab === 'todas-las-companias'
                     ? 'border-[#4EB9FA] text-[#4EB9FA]'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Otras Compañías
-                {activeTab === 'otras-companias' && (
+                Todas las Compañías
+                {activeTab === 'todas-las-companias' && (
                   <span className="ml-2 text-xs text-gray-500">
-                    ({totalBomberosOtrasCompanias} total)
+                    ({totalAllBomberos} total)
                   </span>
                 )}
               </button>
@@ -159,6 +164,17 @@ const BomberosPage = () => {
             refreshing={refreshing}
             onViewDetails={handleViewDetails}
             rolesUnicos={getRolesUnicos()}
+          />
+        ) : activeTab === 'todas-las-companias' ? (
+          <BomberosGrid
+            bomberos={allBomberos}
+            compania={null}
+            estadisticas={null}
+            loading={loadingOtrasCompanias}
+            refreshing={false}
+            onViewDetails={handleViewDetails}
+            rolesUnicos={[]}
+            showCompanyInfo={true}
           />
         ) : (
           <BomberosGrid

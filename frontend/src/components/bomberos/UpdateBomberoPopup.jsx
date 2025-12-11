@@ -10,6 +10,7 @@ import { useCompania } from '@hooks/compania/useCompania';
 import { updateBombero, getBomberoComplete } from '@services/bombero.service.js';
 import fichaBomberoService from '@services/fichaBombero.service.js';
 import { showErrorAlert } from '@helpers/fireAlert.js';
+import { bomberoUpdatedToast } from '@helpers/toastHelper.jsx';
 
 export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdated }) {
     const bomberoData = data || {};
@@ -323,7 +324,30 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
             const bomberoResult = await onBomberoUpdated(bomberoTransformedData, bomberoData.run, bomberoData.id);
 
             if (!bomberoResult.success) {
-                setErrors({ general: bomberoResult.error || 'Error al actualizar el bombero' });
+                // Manejar errores estructurados del backend (Array de errores Joi)
+                if (Array.isArray(bomberoResult.details)) {
+                    const errorObject = bomberoResult.details.reduce((acc, err) => {
+                        const fieldName = err.path.replace(/^(bomberoData\.|fichaData\.)/, '');
+                        acc[fieldName] = err.message;
+                        return acc;
+                    }, {});
+                    
+                    setErrors({ 
+                        ...errorObject,
+                        general: bomberoResult.message || 'Error de validación' 
+                    });
+                }
+                // Manejar objeto de errores
+                else if (bomberoResult.details && typeof bomberoResult.details === 'object') {
+                    setErrors({ 
+                        ...bomberoResult.details,
+                        general: bomberoResult.message || 'Error de validación' 
+                    });
+                }
+                // Fallback
+                else {
+                    setErrors({ general: bomberoResult.message || bomberoResult.error || 'Error al actualizar el bombero' });
+                }
                 setLoading(false);
                 return;
             }
@@ -399,6 +423,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                 }
             }
 
+            bomberoUpdatedToast();
             handleClose();
         } catch (error) {
             console.error('Error updating bombero:', error);
@@ -484,7 +509,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                             <div className="flex items-start space-x-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
                                 <div className="flex-shrink-0">
                                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <span className="text-blue-600 text-sm font-bold">📋</span>
+                                        <MdPerson className="w-4 h-4 text-blue-600" />
                                     </div>
                                 </div>
                                 <div className="flex-1">
@@ -623,7 +648,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                             <div className="flex items-start space-x-3 p-3 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
                                 <div className="flex-shrink-0">
                                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                        <span className="text-green-600 text-sm font-bold">📄</span>
+                                        <MdInfo className="w-4 h-4 text-green-600" />
                                     </div>
                                 </div>
                                 <div className="flex-1">
@@ -637,11 +662,12 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
                             </div>
 
                             {/* Imagen de perfil */}
-                            <div className="w-full">
-                                <label className="block text-sm font-semibold text-[#2C3E50] mb-1.5">
+                            <div className="bg-white p-4 sm:p-5 md:p-6 rounded-2xl w-full mx-auto">
+                                <label className="block text-sm font-semibold text-[#2C3E50] mb-3">
                                     <div className="flex items-center gap-1">
-                                        <span>🖼️ Imagen de Perfil</span>
-                                        <span className="text-xs text-gray-500 font-normal">(Opcional)</span>
+                                        <MdPhotoCamera className="w-5 h-5 text-[#2C3E50]" />
+                                        <span>Imagen de Perfil</span>
+                                        <span className="text-xs text-gray-500 font-normal ml-1">(Opcional)</span>
                                     </div>
                                 </label>
                                 {existingProfileImageUrl && !profileImage && (

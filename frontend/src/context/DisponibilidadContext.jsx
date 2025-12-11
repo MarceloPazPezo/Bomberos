@@ -152,10 +152,13 @@ export const DisponibilidadProvider = ({ children }) => {
       
       if (hasPermiso('disponibilidad:obtener') || hasPermiso('disponibilidad:admin')) {
         if (hasPermiso('disponibilidad:admin')) {
-          // Administradores ven todas las disponibilidades
+          // Administradores ven todas las disponibilidades en "marcar"
           const disponibilidadesResponse = await getDisponibilidades();
           disponibilidadesData = Array.isArray(disponibilidadesResponse) ? disponibilidadesResponse : [];
-          miHistorialData = disponibilidadesData; // Los admins ven todo en el historial también
+          
+          // Pero en el historial solo ven las suyas propias
+          const miHistorialResponse = await getDisponibilidades(bombero?.id);
+          miHistorialData = Array.isArray(miHistorialResponse) ? miHistorialResponse : [];
         } else {
           // Usuarios normales: todas para personal disponible, solo las suyas para historial
           const todasDisponibilidadesResponse = await getDisponibilidades();

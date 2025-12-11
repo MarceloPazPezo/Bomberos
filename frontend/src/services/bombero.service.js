@@ -17,8 +17,9 @@ export async function getBomberos() {
     const { data } = await axios.get('/bombero/', {
       params: {
         // Usamos un rango de fechas muy amplio para obtener todos los registros
-        creadoDesde: '2020-01-01',
-        creadoHasta: '2030-12-31'
+        creadoDesde: '1900-01-01',
+        creadoHasta: '2100-12-31',
+        limit: 1000
       }
     });
     const formattedData = data.data.map(formatBomberoData);

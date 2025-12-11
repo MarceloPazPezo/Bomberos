@@ -309,7 +309,7 @@ const Home = () => {
                       {dashboardStats.disponibilidadStats?.disponibles ?? '--'}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      de {dashboardStats.disponibilidadStats?.total ?? '--'} bomberos
+                      de {dashboardStats.bomberosStats?.bomberosActivos ?? '--'} bomberos
                     </p>
                   </div>
                   <div className="p-3 bg-green-100 rounded-full">
@@ -327,10 +327,10 @@ const Home = () => {
                   <div>
                     <p className="text-sm font-medium text-slate-600 mb-1">Total Bomberos</p>
                     <p className="text-3xl font-bold text-blue-600">
-                      {dashboardStats.loading ? '--' : (dashboardStats.bomberosStats?.totalBomberos ?? 0)}
+                      {dashboardStats.loading ? '--' : (dashboardStats.bomberosStats?.totalSistema ?? 0)}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      {dashboardStats.bomberosStats?.porcentajeActivos ?? 0}% habilitados
+                      Registrados en el sistema
                     </p>
                   </div>
                   <div className="p-3 bg-blue-100 rounded-full">
@@ -433,12 +433,7 @@ const Home = () => {
                   {dashboardStats.loading ? '--' : (dashboardStats.eppStats?.eppsAsignados ?? 0)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-600">Tipos disponibles</span>
-                <span className="text-lg font-semibold text-slate-900">
-                  {dashboardStats.loading ? '--' : (dashboardStats.eppStats?.totalTipos ?? 0)}
-                  </span>
-                </div>
+
               </div>
             </div>
 

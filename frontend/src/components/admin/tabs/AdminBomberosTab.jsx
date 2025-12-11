@@ -343,37 +343,7 @@ const AdminBomberosTab = () => {
     return result;
   }, [getModalData, handleUpdateBombero, closeModal]);
 
-  // Handler para exportación
-  const handleExport = useCallback((selectedData) => {
-    const dataToExport = selectedData.length > 0 ? selectedData : bomberos;
-    const csvContent = [
-      ['Nombre', 'Apellidos', 'RUN', 'Email', 'Roles', 'Estado'].join(','),
-      ...dataToExport.map(bombero => {
-        const nombres = Array.isArray(bombero.nombres) ? bombero.nombres.join(' ') : bombero.nombres || '';
-        const apellidos = Array.isArray(bombero.apellidos) ? bombero.apellidos.join(' ') : bombero.apellidos || '';
-        const roles = (bombero.roles || []).map(r => r.nombre).join('; ');
-        const estado = bombero.activo ? 'Habilitado' : 'Deshabilitado';
-        return [
-          `"${nombres.replace(/"/g, '""')}"`,
-          `"${apellidos.replace(/"/g, '""')}"`,
-          `"${bombero.run || ''}"`,
-          `"${bombero.email || ''}"`,
-          `"${roles.replace(/"/g, '""')}"`,
-          `"${estado}"`
-        ].join(',');
-      })
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `bomberos_${new Date().toISOString().slice(0, 10)}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [bomberos]);
+
 
   // Handler para selección múltiple (PrimeReact pasa un evento con e.value)
   const handleSelectionChange = useCallback((e) => {
@@ -461,7 +431,7 @@ const AdminBomberosTab = () => {
               title="Mostrar todos los bomberos del sistema"
             >
               <MdPeople size={18} />
-              <span>Todas</span>
+              <span>Todas las Compañías</span>
             </button>
           </nav>
         </div>
@@ -475,12 +445,11 @@ const AdminBomberosTab = () => {
           onEdit={hasPermiso('bombero:actualizar') || hasPermiso('bombero:admin') ? handleEdit : undefined}
           onDelete={hasPermiso('bombero:eliminar') || hasPermiso('bombero:admin') ? handleDeleteSingle : undefined}
           onRefresh={handleRefresh}
-          onExport={handleExport}
           onSelectionChange={handleSelectionChange}
           searchPlaceholder="Buscar por nombre, email o RUN..."
           showSearch={true}
           showFilters={false}
-          showExport={true}
+          showExport={false}
           showRefresh={false}
           showAddButton={false}
           pagination={true}
