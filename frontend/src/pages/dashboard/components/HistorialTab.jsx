@@ -8,8 +8,11 @@ import { dateToTimestamp, aplicarFiltroTiempo } from '../utils/dateUtils';
 import QuickFilters from './QuickFilters';
 import CustomFilters from './CustomFilters';
 import dayjs from 'dayjs';
+import { useNavigate } from 'react-router-dom';
+import { MdLocalFireDepartment, MdEvent, MdCake, MdOpenInNew } from 'react-icons/md';
 
 const HistorialTab = ({ idCompania }) => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -120,6 +123,24 @@ const HistorialTab = ({ idCompania }) => {
     setFiltroRapido(null);
   };
 
+  const handleRedirection = (item) => {
+    if (item.tipo === 'Incidente') {
+        const id = item.id_origen || item.id;
+        navigate(`/vista-parte/${id}`);
+    } else if (item.tipo === 'Evento') {
+        const id = item.id_origen || item.id;
+        const d = item.fecha ? new Date(item.fecha) : new Date();
+        navigate('/calendario', { 
+            state: { 
+                eventId: id, 
+                date: d, 
+                isRecurrent: false 
+            } 
+        });
+    }
+    // Si es Aniversario u otro tipo, por ahora no redirigimos o podríamos agregar lógica
+  };
+
   // Template de filtro de tipos
   const tiposFilterTemplate = () => {
     return (
@@ -135,6 +156,29 @@ const HistorialTab = ({ idCompania }) => {
         style={{ minWidth: '14rem' }}
       />
     );
+  };
+
+  const tipoBodyTemplate = (rowData) => {
+      const isClickable = rowData.tipo === 'Incidente' || rowData.tipo === 'Evento';
+
+      return (
+          <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">{rowData.tipo}</span>
+              {isClickable && (
+                  <button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRedirection(rowData);
+                    }}
+                    className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                    title="Ver detalles"
+                  >
+                      <MdOpenInNew className="text-base" />
+                  </button>
+              )}
+          </div>
+      );
   };
 
   return (
@@ -189,7 +233,8 @@ const HistorialTab = ({ idCompania }) => {
             filter
             filterElement={tiposFilterTemplate}
             showFilterMenu={false}
-            style={{ minWidth: '120px' }} 
+            body={tipoBodyTemplate}
+            style={{ minWidth: '140px' }} 
           />
           <Column 
             field="fechaFormateada" 

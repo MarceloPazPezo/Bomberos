@@ -22,8 +22,12 @@ import {
   MdCake,
   MdWaterDrop,
   MdShield,
-  MdHelpOutline
+  MdHelpOutline,
+  MdOpenInNew,
+  MdLocalFireDepartment,
+  MdEvent
 } from 'react-icons/md';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useBomberoDetalles } from '@hooks/bomberos/useBomberoDetalles';
@@ -59,6 +63,9 @@ import {getHistorialVoluntario} from '../services/historial.service.js';
  * Componente de tabla de historial con filtros por columna
  */
 const HistorialTable = ({ data }) => {
+
+  const navigate = useNavigate();
+
   // Formatear fecha para mostrar
   const formatDate = (dateString) => {
     if (!dateString) return 'No especificada';
@@ -73,12 +80,15 @@ const HistorialTable = ({ data }) => {
   const tableData = useMemo(() => {
     return data.map((item, index) => ({
       ...item,
-      id: item.id || item.ref_id || `${item.fecha}_${item.tipo}_${item.descripcion}_${index}`,
+      id: `${item.ref_tabla || 'noref'}_${item.ref_id || 'noid'}_${index}`,
       fechaStr: item.fecha || item.createdAt || item.creadoEl || '',
       tipoStr: item.tipo || '',
       descripcionStr: item.descripcion || '',
       subtipoStr: item.subtipo || '',
-      detalleStr: item.detalle || ''
+      detalleStr: item.detalle || '',
+      // Ensure refs are available
+      refTabla: item.ref_tabla,
+      refId: item.ref_id
     }));
   }, [data]);
 
@@ -125,13 +135,55 @@ const HistorialTable = ({ data }) => {
     return [...new Set(filteredData.map(item => item.detalleStr).filter(Boolean))].sort();
   }, [filteredData]);
 
+  const handleRedirection = (item) => {
+    const isIncidente = item.tipoStr === 'incidente' || item.refTabla === 'incidente';
+    const isEvento = item.tipoStr === 'evento' || item.refTabla === 'evento';
+    
+    if (isIncidente && item.refId) {
+        navigate(`/vista-parte/${item.refId}`);
+    } else if (isEvento && item.refId) {
+        const d = item.fechaStr ? new Date(item.fechaStr) : new Date();
+        navigate('/calendario', { 
+            state: { 
+                eventId: item.refId, 
+                date: d, 
+                isRecurrent: false 
+            } 
+        });
+    }
+  };
+
   // Templates para el contenido de las columnas
   const fechaBodyTemplate = (rowData) => {
     return <span className="text-sm">{formatDate(rowData.fechaStr)}</span>;
   };
 
   const tipoBodyTemplate = (rowData) => {
-    return <span className="text-sm font-medium text-gray-700">{rowData.tipoStr || '-'}</span>;
+    let label = rowData.tipoStr || '-';
+    // Backend types: 'usuario', 'ingreso', 'asistencia', 'incidente', 'evento', 'Epp', 'Disponibilidad'
+    const typeLower = (rowData.tipoStr || '').toLowerCase();
+    const refTabla = (rowData.refTabla || '').toLowerCase();
+
+    const isClickable = (typeLower === 'incidente' || refTabla === 'incidente' || typeLower === 'evento' || refTabla === 'evento') && rowData.refId;
+
+    return (
+        <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
+            {isClickable && (
+                <button 
+                  onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRedirection(rowData);
+                  }}
+                  className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                  title="Ver detalle"
+                >
+                    <MdOpenInNew className="text-base" />
+                </button>
+            )}
+        </div>
+    );
   };
 
   const descripcionBodyTemplate = (rowData) => {

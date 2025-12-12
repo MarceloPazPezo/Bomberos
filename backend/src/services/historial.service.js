@@ -72,11 +72,12 @@ incidentes_cia AS (
     COALESCE(i."FechaHoraDespacho", i."creadoEl")::timestamp AS fecha,
     'Incidente'::text                AS tipo,
     i."descripcionPreliminar"        AS titulo,
-    sti."claveRadialId"::text       AS "subTipo",
+    cr."nombre"                      AS "subTipo",
     COALESCE(aic.cantidad, 0)        AS "cantidad de asistentes",
     i."id"                           AS id_origen
   FROM "incidente" i
   LEFT JOIN "subTipoIncidente" sti ON sti."id" = i."idSubtipoIncidente"
+  LEFT JOIN "claveRadial" cr ON cr."id" = sti."claveRadialId"
   LEFT JOIN asistencia_incidente_cia aic ON aic."idIncidente" = i."id"
   WHERE i."idCompania" = $1
     AND ($2::timestamp IS NULL OR COALESCE(i."FechaHoraDespacho", i."creadoEl")::timestamp >= $2::timestamp)
@@ -369,12 +370,13 @@ SELECT * FROM (
          'asistencia',
          'Asistencia a incidente',
          'asistencia a incidente',
-         sti."claveRadialId"::text,
+         cr."nombre"::text,
          'incidente',i."id"
   FROM "asistenciaIncidente" ai
   JOIN params p ON p.id_bombero = ai."idBombero"
   JOIN "incidente" i ON i."id" = ai."idIncidente"
   LEFT JOIN "subTipoIncidente" sti ON sti."id" = i."idSubtipoIncidente"
+  LEFT JOIN "claveRadial" cr ON cr."id" = sti."claveRadialId"
   WHERE EXISTS (
     SELECT 1
     FROM "estadoEstablecido" ee
@@ -385,7 +387,7 @@ SELECT * FROM (
 
   UNION ALL
   -- Cambios de estado en incidentes hechos por el voluntario (excluye "Borrador")
-  -- (detalle: estado nuevo)
+  -- (detalle: estado nuevo) -> ESTE SÍ SE MUESTRA
   SELECT ee."fechaHora",'incidente',
          'Modificó estado de incidente',
          'modificar estado',
@@ -405,14 +407,14 @@ SELECT * FROM (
   FROM "evento" e JOIN params p ON p.id_bombero = e."actualizadoPor" WHERE e."actualizadoEl" IS NOT NULL
 
   UNION ALL
-  -- Creó / actualizó INCIDENTE (detalle: clave radial)
-  SELECT i."creadoEl",'incidente','Creó incidente','crear incidente',sti."claveRadialId"::text,'incidente',i."id"
+  -- Creó / actualizó INCIDENTE (detalle: NULL por requerimiento)
+  SELECT i."creadoEl",'incidente','Creó incidente','crear incidente',NULL::text,'incidente',i."id"
   FROM "incidente" i
   JOIN params p ON p.id_bombero = i."creadoPor"
   LEFT JOIN "subTipoIncidente" sti ON sti."id" = i."idSubtipoIncidente"
   WHERE i."creadoEl" IS NOT NULL
   UNION ALL
-  SELECT i."actualizadoEl",'incidente','Actualizó incidente','modificar incidente',sti."claveRadialId"::text,'incidente',i."id"
+  SELECT i."actualizadoEl",'incidente','Actualizó incidente','modificar incidente',NULL::text,'incidente',i."id"
   FROM "incidente" i
   JOIN params p ON p.id_bombero = i."actualizadoPor"
   LEFT JOIN "subTipoIncidente" sti ON sti."id" = i."idSubtipoIncidente"

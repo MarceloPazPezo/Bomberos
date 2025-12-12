@@ -133,7 +133,7 @@ async function crearSubTipoIncidente() {
       { claveRadialName: "10-5-3", clasificacion: "6", descripcion: "EMERGENCIAS CON MATERIALES PELIGROSOS EN EDIFICACIONES DESTINADAS AL SECTOR INDUSTRIALY/O COMERCIAL, LUGARES CON ALTA AFLUENCIA DE PÚBLICO.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false },
       { claveRadialName: "10-6-3", clasificacion: "7", descripcion: "EMANACION DE GAS EN EDIFICACIONES DESTINADAS A VIVIENDA.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false },
       { claveRadialName: "10-6-2", clasificacion: "7", descripcion: "EMANACION DE GAS O PRESENCIA DE ESTE EN VÍA PÚBLICA." },
-      { claveRadialName: "10-6-3", clasificacion: "7", descripcion: "EMANACION DE GAS EN EDIFICACIONES DESTINADAS AL SECTOR INDUSTRIAL Y/O COMERCIAL, LUGARES CON ALTA AFLUENCIA DE PÚBLICO.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false },
+
       { claveRadialName: "10-6-4", clasificacion: "7", descripcion: "EMANACION DE GASES COMBUSTIBLES CON CONFIRMACION O PRESUNCION DE PERSONAS INTOXICADAS EN EDIFICACIONES O VÍA PÚBLICA.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false },
       { claveRadialName: "10-7-1", clasificacion: "8", descripcion: "EMERGENCIA ELECTRICA EN VIA PUBLICA Y/O EDIFICACIONES DESTINADAS A VIVIENDA.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false },
       { claveRadialName: "10-7-2", clasificacion: "8", descripcion: "EMERGENCIA ELECTRICA EN EDIFICACIONES DESTINADAS AL SECTOR INDUSTRIAL Y/O COMERCIAL, LUGARES CON ALTA AFLUENCIA DE PÚBLICO.", contieneFuego: false, contieneInmuebles: true, contieneVehiculos: false },
