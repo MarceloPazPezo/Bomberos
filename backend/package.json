@@ -1,7 +1,8 @@
 {
   "name": "backend",
-  "version": "0.0.1",
-  "author": "Marcelo Paz & Jerson Palma",
+  "version": "1.0.0",
+  "author": "Jerson Palma y Marcelo Paz",
+  "license": "GPL-3.0",
   "main": "index.js",
   "description": "Backend bomberos",
   "scripts": {
