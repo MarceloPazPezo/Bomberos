@@ -21,6 +21,7 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { PrimeReactProvider } from 'primereact/api';
 import Login from '@pages/Login';
 import Home from '@pages/Home';
 import Error404 from '@pages/Error404';
@@ -260,7 +261,7 @@ const router = createBrowserRouter([
 ])
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <>
+  <PrimeReactProvider value={{ ripple: true }}>
     <RouterProvider
       router={router}
       future={{
@@ -277,5 +278,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       theme="light"
       icon={false}
     />
-  </>
+  </PrimeReactProvider>
 )

@@ -19,10 +19,22 @@ import {
     MdSchedule,
     MdTrendingUp,
     MdInventory,
-    MdHelpOutline
+    MdHelpOutline,
+    MdOpenInNew
 } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import Tooltip from '@components/Tooltip.jsx';
+
+import { getEventos, getTiposEvento, getEventosRecurrentes } from '@services/calendario.service';
+import { mapRecurrentesToEvents, computeProximosEventos, computeProximosRecurrentes } from '@helpers/calendarRecurrentes';
+import { mapEventosConColores } from '@helpers/calendarFormat';
+import { buildTipoColorMap } from '@helpers/calendarColors';
+import dayjs from 'dayjs';
+import 'dayjs/locale/es';
+import localizedFormat from 'dayjs/plugin/localizedFormat';
+
+dayjs.extend(localizedFormat);
+dayjs.locale('es');
 
 const Home = () => {
   const { bombero } = useAuth();
@@ -40,6 +52,51 @@ const Home = () => {
   });
   const [stableCompaniaId, setStableCompaniaId] = useState(null);
   const [isUsingFallback, setIsUsingFallback] = useState(false);
+
+  // Estados para próximos eventos
+  const [upcomingEvents, setUpcomingEvents] = useState({ operativo: [], hitos: [] });
+  const [loadingEvents, setLoadingEvents] = useState(true);
+
+  // Cargar próximos eventos (7 días)
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setLoadingEvents(true);
+        const [evResponse, tipResponse, recResponse] = await Promise.all([
+          getEventos().catch(() => []),
+          getTiposEvento().catch(() => []), 
+          getEventosRecurrentes().catch(() => ({})),
+        ]);
+
+        const tiposOpt = (tipResponse?.data || tipResponse || []).map((t) => ({
+          label: t?.nombre || t?.name || t?.label || 'General',
+          value: t?.id || t?.value || t?.codigo || 'general',
+          color: t?.color || undefined,
+        }));
+
+        const colorMap = buildTipoColorMap(tiposOpt);
+        const getColorForTipo = (tipoId) => colorMap[String(tipoId)];
+
+        const rawEvents = evResponse?.data || evResponse || [];
+        const mappedEvents = mapEventosConColores(rawEvents, tiposOpt, getColorForTipo);
+        const nextEvents = computeProximosEventos(mappedEvents, 1); // 1 semana
+
+        const rawRec = recResponse?.data || recResponse || {};
+        const mappedRec = mapRecurrentesToEvents(rawRec);
+        const nextRec = computeProximosRecurrentes(mappedRec, 1); // 1 semana
+
+        setUpcomingEvents({
+            operativo: nextEvents,
+            hitos: nextRec
+        });
+      } catch (e) {
+        console.error("Error loading events", e);
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+    loadEvents();
+  }, []);
 
   // Cargar logo de la compañía
   useEffect(() => {
@@ -190,6 +247,154 @@ const Home = () => {
   const companyEmail = companiaInfo?.email || '';
   const companyAddress = companiaInfo?.direccion?.calle ? 
     `${companiaInfo.direccion.calle}${companiaInfo.direccion.numero ? ` ${companiaInfo.direccion.numero}` : ''}` : '';
+
+  // Helper render function
+  const renderEventCard = (evt, idx, isHito = false) => {
+        const now = dayjs();
+        const start = dayjs(evt.start);
+        const end = evt.end ? dayjs(evt.end) : null;
+        
+        // Status Logic
+        const isEnCurso = start.isBefore(now) && end && end.isAfter(now);
+        const isMultiDay = end && end.diff(start, 'day') >= 1;
+        const isSameDay = end && start.isSame(end, 'day');
+        
+        // Tag Logic
+        let tags = [];
+        
+        // Tag 1: Date Tag
+        let dateTagText = "";
+        if (isMultiDay && end) {
+            dateTagText = `${start.format('D')} - ${end.format('D [de] MMMM')}`.toUpperCase();
+        } else {
+            dateTagText = start.format('D [DE] MMMM').toUpperCase();
+        }
+        tags.push({ text: dateTagText, type: 'range', icon: 'pi pi-calendar' });
+
+        // Tag 2: En Curso
+        if (isEnCurso) {
+            let cursoText = "EN CURSO";
+            if (end) {
+                if (end.isSame(now, 'day')) {
+                    cursoText = `EN CURSO (Hasta las ${end.format('HH:mm')})`;
+                } else if (end.isSame(now.add(1, 'day'), 'day')) {
+                        cursoText = `EN CURSO (Hasta mañana)`;
+                } else {
+                    cursoText = `EN CURSO (Hasta el ${end.format('D [de] MMM')})`;
+                }
+            }
+            tags.push({ text: cursoText, type: 'curso', icon: 'pi pi-bolt' });
+        } 
+        
+        // Tag 3: Duration (multiday)
+        if (isMultiDay && end) {
+            const diffHours = end.diff(start, 'hours');
+            const diffDays = Math.max(1, Math.ceil(diffHours / 24));
+            tags.push({ text: `Dura ${diffDays} Días`, type: 'duration' });
+        }
+
+        // Bottom Detail Logic
+        let detailText = "";
+        const formatTime = (d) => d.format('HH:mm [h]');
+        
+        let startLabel = start.format('ddd D MMM');
+        if (start.isSame(now, 'day')) startLabel = "Hoy";
+        else if (start.isSame(now.add(1, 'day'), 'day')) startLabel = "Mañana";
+        else startLabel = start.format('dddd, D [de] MMMM');
+
+        startLabel = startLabel.charAt(0).toUpperCase() + startLabel.slice(1);
+
+        if (evt.allDay) {
+            detailText = `${startLabel} (Todo el día)`;
+            if (isMultiDay && end) {
+                    let endLabel = end.format('ddd D MMM');
+                    if (end.isSame(now, 'day')) endLabel = "Hoy";
+                    else if (end.isSame(now.add(1, 'day'), 'day')) endLabel = "Mañana";
+                    detailText = `${startLabel} - ${endLabel} Fin`;
+            }
+        } else {
+            const startTime = formatTime(start);
+            const endTime = end ? formatTime(end) : '';
+            
+            if (isSameDay) {
+                detailText = `${startLabel}, ${startTime} - ${endTime}`;
+            } else if (end) {
+                let endLabel = "";
+                if (end.isSame(now.add(1, 'day'), 'day')) {
+                    endLabel = `Mañana ${end.format('HH:mm [h]')}`;
+                } else {
+                    endLabel = `${end.format('ddd. D [de] MMMM HH:mm [h]')}`;
+                }
+                
+                detailText = `${startLabel} ${startTime} (Inicio) - ${endLabel} Fin`;
+            } else {
+                detailText = `${startLabel}, ${startTime}`;
+            }
+        }
+        
+        return (
+            <div 
+                key={`${evt.id}-${evt.start}-${idx}`}
+                className="bg-white rounded-lg shadow-sm border border-slate-200 p-3 hover:shadow-md transition-all group flex flex-col gap-1.5 relative overflow-hidden shrink-0"
+            >
+                {/* Left Border Color Stripe */}
+                <div 
+                className="absolute top-0 left-0 bottom-0 w-1"
+                style={{ backgroundColor: evt.backgroundColor || '#318CE7' }}
+                />
+                
+                {/* Navigation Button */}
+                <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/calendario', { 
+                                state: { 
+                                    eventId: evt.id, 
+                                    date: evt.start, 
+                                    isRecurrent: isHito 
+                                } 
+                            });
+                        }}
+                        className="p-1 text-[#318CE7] hover:bg-blue-50 rounded-full transition-colors bg-white/80 backdrop-blur-sm shadow-sm border border-blue-100"
+                        title="Ver en calendario"
+                    >
+                        <MdOpenInNew className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+
+                <div className="pl-2">
+                    {/* Title */}
+                    <h3 className="text-sm font-bold text-slate-800 leading-tight mb-1">
+                        {evt.title}
+                    </h3>
+
+                    {/* Tags Row */}
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                        {tags.map((tag, tIdx) => (
+                            <span 
+                            key={tIdx}
+                            className={`
+                                inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide
+                                ${tag.type === 'curso' ? 'bg-orange-100 text-orange-700' : ''}
+                                ${tag.type === 'range' ? 'bg-blue-100 text-blue-700' : ''}
+                                ${tag.type === 'duration' ? 'bg-amber-100 text-amber-700' : ''}
+                            `}
+                            >
+                            {tag.icon && <i className={`${tag.icon} mr-1 text-[10px]`}></i>}
+                            {tag.text}
+                            </span>
+                        ))}
+                    </div>
+                    
+                    {/* Detail Info */}
+                    <div className="text-xs text-slate-500 font-medium">
+                        {detailText}
+                    </div>
+                </div>
+            </div>
+        );
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50">
@@ -464,6 +669,65 @@ const Home = () => {
             </div>
           </div>
         </div>
+
+         {/* Próximos Eventos (7 días) */}
+         <section className="mb-8">
+            <div className="bg-white/80 backdrop-blur-lg border border-[#4EB9FA]/20 shadow-md rounded-2xl p-4">
+               <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                     <MdCalendarToday className="h-6 w-6 text-[#4EB9FA]" />
+                     Agenda Semanal
+                  </h2>
+                   <button 
+                     onClick={() => navigate('/calendario')}
+                     className="p-2 text-[#4EB9FA] hover:bg-blue-50 rounded-full transition-colors relative group"
+                     title="Ver calendario completo"
+                   >
+                     <MdCalendarToday className="h-6 w-6" />
+                   </button>
+               </div>
+
+               {loadingEvents ? (
+                  <div className="flex items-center justify-center p-8 text-slate-500">
+                     <i className="pi pi-spin pi-spinner mr-2"></i> Cargando eventos...
+                  </div>
+               ) : (
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Columna Izquierda: Calendario Operativo */}
+                    <div className="flex flex-col space-y-4">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2 border-b pb-2">
+                            Calendario Operativo
+                        </h3>
+                        {upcomingEvents.operativo.length === 0 ? (
+                            <div className="text-center p-6 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-sm">
+                                No hay eventos operativos próximos.
+                            </div>
+                        ) : (
+                            <div className="flex flex-col space-y-3 max-h-[400px] overflow-y-auto p-2 custom-scrollbar">
+                                {upcomingEvents.operativo.map((evt, idx) => renderEventCard(evt, idx))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Columna Derecha: Hitos Conmemorativos */}
+                    <div className="flex flex-col space-y-4">
+                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2 border-b pb-2">
+                            Hitos Conmemorativos
+                        </h3>
+                         {upcomingEvents.hitos.length === 0 ? (
+                            <div className="text-center p-6 text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-sm">
+                                No hay hitos próximos.
+                            </div>
+                        ) : (
+                            <div className="flex flex-col space-y-3 max-h-[400px] overflow-y-auto p-2 custom-scrollbar">
+                                {upcomingEvents.hitos.map((evt, idx) => renderEventCard(evt, idx, true))}
+                            </div>
+                        )}
+                    </div>
+                 </div>
+               )}
+            </div>
+         </section>
 
         {/* Información de Contacto */}
         {(companyAddress || companyPhone || companyEmail) && (

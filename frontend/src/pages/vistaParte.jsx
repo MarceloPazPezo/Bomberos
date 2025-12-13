@@ -203,7 +203,7 @@ export default function VistaParte({ showEnviarButton = true }) {
             region: regionObj ? { id: regionObj.id, nombre: regionObj.nombre } : (p.regionId ? { id: p.regionId, nombre: null } : null),
           },
           clasificacion: clasificacionObj ? { id: clasificacionObj.id, nombre: clasificacionObj.nombre } : (p.clasificacionId ? { id: p.clasificacionId, nombre: null } : null),
-          subtipo: subtipoObj ? { id: subtipoObj.id, claveRadial: subtipoObj.claveRadial, descripcion: subtipoObj.descripcion } : (p.subtipoId ? { id: p.subtipoId } : null),
+          subtipo: subtipoObj ? { id: subtipoObj.id, claveRadial: subtipoObj.claveRadial || p.claveRadial, descripcion: subtipoObj.descripcion } : (p.subtipoId ? { id: p.subtipoId, claveRadial: p.claveRadial } : null),
           incendio: {
             tipo: tipoDanoObj ? { id: tipoDanoObj.id, nombre: tipoDanoObj.nombre } : (p.tipoIncendioId ? { id: p.tipoIncendioId, nombre: null } : null),
             fase: faseObj ? { id: faseObj.id, nombre: faseObj.nombre } : (p.faseId ? { id: p.faseId, nombre: null } : null),
@@ -516,6 +516,7 @@ export default function VistaParte({ showEnviarButton = true }) {
             </div>
           )}
           {parte?.subtipo && (
+            console.log(parte),
             <div className="flex items-center gap-3">
               <i className="pi pi-bolt text-2xl text-gray-700" />
               <span className="font-semibold">Clave radial:</span>

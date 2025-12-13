@@ -42,9 +42,12 @@ const VISTAS = {
 	day: 'timeGridDay',
 };
 
+import { useLocation } from 'react-router-dom';
+
 const CalendarioOperativoBasic = () => {
+    const location = useLocation();
 	const calendarRef = useRef(null);
-  const recCalendarRef = useRef(null);
+    const recCalendarRef = useRef(null);
 
 	// CSS truncado importado desde helper
 
@@ -56,7 +59,7 @@ const CalendarioOperativoBasic = () => {
 	const [filtroTipos, setFiltroTipos] = useState([]);
 	const [detalleVisible, setDetalleVisible] = useState(false);
 	const [selectedEvent, setSelectedEvent] = useState(null);
-  const [selectedIsRecurrent, setSelectedIsRecurrent] = useState(false);
+    const [selectedIsRecurrent, setSelectedIsRecurrent] = useState(false);
 	const [direccionDetalle, setDireccionDetalle] = useState(null);
 	const [direccionLoading, setDireccionLoading] = useState(false);
 	const [direccionError, setDireccionError] = useState(null);
@@ -100,6 +103,33 @@ const CalendarioOperativoBasic = () => {
 						const getColorForTipo = (tipoId) => colorMap[String(tipoId)];
 						const mapped = mapEventosConColores((ev?.data || ev || []), tiposOpt, getColorForTipo);
 						setEventos(mapped);
+                        
+                        // DEEP LINKING LOGIC
+                        if (location.state && location.state.eventId) {
+                             const targetId = String(location.state.eventId);
+                             const isRecurrent = location.state.isRecurrent;
+                             const targetDate = location.state.date ? dayjs(location.state.date).toDate() : null;
+
+                             if (!isRecurrent) {
+                                 const found = mapped.find(e => String(e.id) === targetId);
+                                 if (found) {
+                                     setSelectedEvent(found);
+                                     setSelectedIsRecurrent(false);
+                                     setDetalleVisible(true);
+                                     // Navigate calendar to that date
+                                     if (found.start) {
+                                         setTimeout(() => {
+                                             const api = calendarRef.current?.getApi?.();
+                                             api?.gotoDate(found.start);
+                                         }, 500);
+                                     }
+                                 }
+                             } else {
+                                 // If recurrent, allow the other effect to handle it after switching tab and loading data
+                                 setActiveIndex(1);
+                             }
+                        }
+
 			} catch (err) {
 				console.error('Error cargando calendario', err);
 				toast.error('No se pudieron cargar los eventos');
@@ -108,7 +138,8 @@ const CalendarioOperativoBasic = () => {
 			}
 		};
 		cargar();
-	}, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [location.state]); // Add location.state dependency
 
 	const eventosFiltrados = useMemo(() => {
 		if (!filtroTipos || filtroTipos.length === 0) return eventos;
@@ -117,6 +148,64 @@ const CalendarioOperativoBasic = () => {
 	}, [eventos, filtroTipos]);
 
 		const proximosEventos = useMemo(() => computeProximosEventos(eventosFiltrados, 4), [eventosFiltrados]);
+
+    // Handle Deep Linking for Recurrent Events
+    useEffect(() => {
+        if (location.state && location.state.eventId && location.state.isRecurrent) {
+             // Only try to find if we have recurrent events loaded
+             if (recEventos.length > 0) {
+                 const targetId = String(location.state.eventId);
+                 const found = recEventos.find(e => String(e.id) === targetId);
+                 
+                 if (found) {
+                     // Need to construct the "display" event object same as onRecEventClick
+                     const props = found.extendedProps || {};
+                     const startDate = location.state.date ? dayjs(location.state.date).toDate() : (found.start ?? found._instance?.range?.start ?? null);
+                     // If end is missing for recurrent event (usually allDay), assume 1 day duration
+                     const endDate = (found.end ?? found._instance?.range?.end) || (startDate ? dayjs(startDate).add(1, 'day').toDate() : null);
+
+                     const data = {
+                        id: found.id,
+                        title: found.title,
+                        start: startDate,
+                        end: endDate,
+                        allDay: found.allDay,
+                        backgroundColor: found.backgroundColor,
+                        borderColor: found.borderColor,
+                        textColor: found.textColor,
+                        tipoId: null,
+                        tipoLabel:
+                            props?.tipoRec === 'cumple' ? 'Cumpleaños' :
+                            props?.tipoRec === 'ingreso' ? 'Ingreso' :
+                            props?.tipoRec === 'fundacion' ? 'Fundación' : undefined,
+                        descripcion: props?.descripcion || '',
+                        idDireccion: null,
+                        __recurrentExtras: {
+                            tipoRec: props.tipoRec,
+                            nombre: props.nombre,
+                            apellido: props.apellido,
+                            nombreCompania: props.nombreCompania,
+                            email: props.email,
+                            baseDate: props.baseDate,
+                        },
+                    };
+
+                     setSelectedEvent(data);
+                     setSelectedIsRecurrent(true);
+                     setDetalleVisible(true);
+
+                     // Navigate
+                     if (location.state.date) {
+                         const d = dayjs(location.state.date).toDate();
+                         setTimeout(() => {
+                            const api = recCalendarRef.current?.getApi?.();
+                            api?.gotoDate(d);
+                        }, 500);
+                     }
+                 }
+             }
+        }
+    }, [recEventos, location.state]);
 
 	// Carga perezosa de direcciones de próximos eventos (si tienen idDireccion)
 	useEffect(() => {

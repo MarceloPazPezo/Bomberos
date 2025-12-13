@@ -17,6 +17,7 @@ export const mapRecurrentesToEvents = (data) => {
     if (cumple) {
       const color = REC_COLORS.cumple;
       events.push({
+        id: `rec_cumple_${p.idBombero}`,
         title: `Cumple: ${p.nombre} ${p.apellido}`,
         allDay: true,
         backgroundColor: color.bg,
@@ -43,6 +44,7 @@ export const mapRecurrentesToEvents = (data) => {
     if (ingreso) {
       const color = REC_COLORS.ingreso;
       events.push({
+        id: `rec_ingreso_${p.idBombero}`,
         title: `Ingreso: ${p.nombre} ${p.apellido}`,
         allDay: true,
         backgroundColor: color.bg,
@@ -73,6 +75,7 @@ export const mapRecurrentesToEvents = (data) => {
     if (fund) {
       const color = REC_COLORS.fundacion;
       events.push({
+        id: `rec_fundacion_${c.id}`,
         title: `Fundación: ${c.nombre}`,
         allDay: true,
         backgroundColor: color.bg,
@@ -103,9 +106,26 @@ export const computeProximosEventos = (eventos, limiteSemanas = 4) => {
   return [...(eventos || [])]
     .filter((e) => {
       const s = dayjs(e.start);
-      const noPasado = s.isAfter(ahora) || s.isSame(ahora, 'day');
-      const enVentana = s.isBefore(limite) || s.isSame(limite, 'day');
-      return noPasado && enVentana;
+      // Logic adjusted: Include events that started in the past IF they end in the future (are "ongoing" or "en curso")
+      // OR events that start in the future within the window.
+
+      let isActiveOrFuture = false;
+      if (e.end) {
+        const end = dayjs(e.end);
+        // Active if end is after now
+        isActiveOrFuture = end.isAfter(ahora) || end.isSame(ahora, 'minute');
+      } else {
+        // If no end, assume point event. Must be future or today.
+        isActiveOrFuture = s.isAfter(ahora) || s.isSame(ahora, 'day');
+      }
+
+      // Check if it falls within the lookahead window (start is before limit)
+      // If started in past, satisfy window check trivially for start, 
+      // but practically we want them if they are relevant now.
+      const startsInWindow = s.isBefore(limite) || s.isSame(limite, 'day');
+      // If ongoing (starts before now), it's definitely interesting.
+
+      return isActiveOrFuture && startsInWindow;
     })
     .sort((a, b) => dayjs(a.start).valueOf() - dayjs(b.start).valueOf())
     .slice(0, 5);
@@ -164,11 +184,12 @@ export const computeProximosRecurrentes = (recEventosFiltrados, limiteSemanas = 
       backgroundColor: e.backgroundColor,
       borderColor: e.borderColor,
       textColor: e.textColor,
+      extendedProps: e.extendedProps,
       tipoRec: e.extendedProps?.tipoRec,
       tipoLabel:
         e.extendedProps?.tipoRec === 'cumple' ? 'Cumpleaños' :
-        e.extendedProps?.tipoRec === 'ingreso' ? 'Ingreso' :
-        e.extendedProps?.tipoRec === 'fundacion' ? 'Fundación' : undefined,
+          e.extendedProps?.tipoRec === 'ingreso' ? 'Ingreso' :
+            e.extendedProps?.tipoRec === 'fundacion' ? 'Fundación' : undefined,
       descripcion: e.extendedProps?.descripcion || '',
       idDireccion: null,
     });

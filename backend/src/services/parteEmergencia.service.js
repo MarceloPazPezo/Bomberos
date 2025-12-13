@@ -6,9 +6,9 @@ import logger from "../config/configLogger.js";
 export async function obtenerPartePorIdService(idIncidente, options = {}) {
   const startTime = Date.now();
   const startMemory = process.memoryUsage().heapUsed;
-  
+
   logger.info(`[PARTE_SERVICE] Iniciando obtenerPartePorIdService para incidente ${idIncidente}`);
-  
+
   const manager = AppDataSource.manager;
   const incidenteRepo = manager.getRepository('Incidente');
   const estadoRepo = manager.getRepository('EstadoEstablecido');
@@ -48,7 +48,7 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
   try {
     const ult = await estadoRepo.find({ where: { idIncidente }, relations: { estado: true }, order: { fechaHora: 'DESC' }, take: 1 });
     estadoNombre = (ult?.[0]?.estado?.nombre || '').toString().trim().toUpperCase();
-  } catch {}
+  } catch { }
   // Ensamblar payload similar al front (crearParte/editarParte)
   const dir = incidente.direccion; // viene eager en entidad Incidente
   // Obtener regionId puntual sin join profundo
@@ -57,7 +57,17 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
     try {
       const comuna = await comunaRepo.findOne({ where: { id: dir.idComuna } });
       regionId = comuna?.idRegion ?? null;
-    } catch {}
+    } catch { }
+  }
+
+  // Obtener Clave Radial desde SubtipoIncidente
+  let claveRadial = null;
+  if (incidente.idSubtipoIncidente) {
+    try {
+      const subRepo = manager.getRepository('SubtipoIncidente');
+      const sub = await subRepo.findOne({ where: { id: incidente.idSubtipoIncidente }, relations: { claveRadial: true } });
+      claveRadial = sub?.claveRadial?.nombre || null;
+    } catch { }
   }
   // Construir mapa de Afectados de habitantes (Habita sólo contiene ids)
   const todasHabitas = (inmueblesRaw || []).flatMap(inm => inm.habitaAfectados || []);
@@ -168,8 +178,8 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
     id: incidente.id,
     companiaId: incidente.idCompania,
     estado: estadoNombre,
-    fecha: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(0,10) : null,
-    horaDespacho: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(11,16) : null,
+    fecha: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(0, 10) : null,
+    horaDespacho: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(11, 16) : null,
     hora6_0: incidente.HoraOperativo6_0 || null,
     hora6_3: incidente.HoraOperativo6_3 || null,
     hora6_9: incidente.HoraOperativo6_9 || null,
@@ -184,6 +194,7 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
     // Por lo tanto, tomamos primero el valor de columna y, como respaldo, el id de la relación
     clasificacionId: (incidente.subtipo?.clasificacion ?? incidente.subtipo?.clasificacionEmergencia?.id) || null,
     subtipoId: incidente.idSubtipoIncidente,
+    claveRadial,
     // Fallback: si no están las columnas id* por cualquier motivo, usar los ids de las relaciones
     tipoIncendioId: (fy?.idTipoDano ?? fy?.tipoDano?.id) || null,
     faseId: (fy?.idFase ?? fy?.faseIncidente?.id) || null,
@@ -194,14 +205,14 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
     createdAt: incidente.creadoEl,
     updatedAt: incidente.actualizadoEl,
   };
-  
+
   const endTime = Date.now();
   const endMemory = process.memoryUsage().heapUsed;
   const duration = endTime - startTime;
   const memoryUsed = Math.round((endMemory - startMemory) / 1024 / 1024);
-  
+
   logger.info(`[PARTE_SERVICE] obtenerPartePorIdService completado en ${duration}ms, memoria usada: ${memoryUsed}MB`);
-  
+
   return resultado;
 }
 
@@ -260,7 +271,7 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
         comuna = { id: c.id, nombre: c.nombre };
         if (c.region) region = { id: c.region.id, nombre: c.region.nombre };
       }
-    } catch {}
+    } catch { }
   }
 
   // Helper para nombre completo de bombero (usa arrays de nombres/apellidos)
@@ -357,7 +368,7 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
       try {
         const fichas = await fichaRepo.find({ where: { idBombero: In(idsBombero) }, relations: { compania: true } });
         fichasByBombero = new Map(fichas.map(f => [f.idBombero, f]));
-      } catch {}
+      } catch { }
     }
   }
   const accidentados = (accidentadosRaw || []).map(a => ({
@@ -391,8 +402,8 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
   return {
     id: incidente.id,
     compania: incidente.compania ? { id: incidente.compania.id, nombre: incidente.compania.nombre } : (incidente.idCompania ? { id: incidente.idCompania, nombre: null } : null),
-    fecha: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(0,10) : null,
-    horaDespacho: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(11,16) : null,
+    fecha: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(0, 10) : null,
+    horaDespacho: incidente.FechaHoraDespacho ? incidente.FechaHoraDespacho.toISOString().slice(11, 16) : null,
     hora6_0: incidente.HoraOperativo6_0 || null,
     hora6_3: incidente.HoraOperativo6_3 || null,
     hora6_9: incidente.HoraOperativo6_9 || null,
@@ -453,7 +464,7 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
     const [yy, mm, dd] = fechaStr.split('-').map(Number);
     const [hh, mi] = horaStr.split(':').map(Number);
     if ([yy, mm, dd, hh, mi].every(n => Number.isInteger(n))) {
-      fechaHora = new Date(yy, mm-1, dd, hh, mi, 0, 0);
+      fechaHora = new Date(yy, mm - 1, dd, hh, mi, 0, 0);
     }
   }
   incidente.idCompania = payload.companiaId;
@@ -521,10 +532,12 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
   // 4) Inmuebles: calcular conjuntos por id; eliminar los que no vienen, upsert/crear los enviados
   const actualesInm = await inmRepo.find({ where: { idIncidente }, relations: { habitaAfectados: true } });
   const idsPayloadInm = new Set((payload.inmuebles || []).map(i => i.id).filter(Boolean));
-  for (const ex of actualesInm) { if (!idsPayloadInm.has(ex.id)) { // eliminar dependientes
+  for (const ex of actualesInm) {
+    if (!idsPayloadInm.has(ex.id)) { // eliminar dependientes
       if (ex.habitaAfectados?.length) { for (const h of ex.habitaAfectados) await habRepo.remove(h); }
       await inmRepo.remove(ex);
-    } }
+    }
+  }
   for (const i of (payload.inmuebles || [])) {
     // dirección de inmueble (opcional): simplificación -> no reusa, crea si viene
     let idDireccionInm = null;
@@ -584,14 +597,14 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
   const actualesDesp = await despRepo.find({ where: { idIncidente } });
   if (actualesDesp.length) { for (const d of actualesDesp) await despRepo.remove(d); }
   for (const m of (payload.materialMayor || [])) {
-    await despRepo.save(despRepo.create({ 
-      idBomberoMaquinista: Number(m.conductorId), 
-      idIncidente, 
-      idCarro: Number(m.unidadId), 
+    await despRepo.save(despRepo.create({
+      idBomberoMaquinista: Number(m.conductorId),
+      idIncidente,
+      idCarro: Number(m.unidadId),
       idBomberoACargo: m.bomberoId ? Number(m.bomberoId) : null,
-      kmSalida: m.kmSalida || null, 
-      kmLlegada: m.kmLlegada || null, 
-      nPersonal: m.voluntarios || null 
+      kmSalida: m.kmSalida || null,
+      kmLlegada: m.kmLlegada || null,
+      nPersonal: m.voluntarios || null
     }));
   }
 
@@ -617,14 +630,14 @@ export async function actualizarParteCompletoService(idIncidente, payload, manag
   if (actualesAsist.length) { for (const ai of actualesAsist) await asistRepo.remove(ai); }
   // Asistencia en el lugar (enLugar=true, enCuartel=false)
   if (payload.asistencia && Array.isArray(payload.asistencia.lugar)) {
-    for (const idBombero of payload.asistencia.lugar) { 
-      await asistRepo.save(asistRepo.create({ idBombero: Number(idBombero), idIncidente, enLugar: true, enCuartel: false })); 
+    for (const idBombero of payload.asistencia.lugar) {
+      await asistRepo.save(asistRepo.create({ idBombero: Number(idBombero), idIncidente, enLugar: true, enCuartel: false }));
     }
   }
   // Asistencia en el cuartel (enLugar=false, enCuartel=true)
   if (payload.asistencia && Array.isArray(payload.asistencia.cuartel)) {
-    for (const idBombero of payload.asistencia.cuartel) { 
-      await asistRepo.save(asistRepo.create({ idBombero: Number(idBombero), idIncidente, enLugar: false, enCuartel: true })); 
+    for (const idBombero of payload.asistencia.cuartel) {
+      await asistRepo.save(asistRepo.create({ idBombero: Number(idBombero), idIncidente, enLugar: false, enCuartel: true }));
     }
   }
 
