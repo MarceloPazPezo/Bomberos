@@ -43,7 +43,10 @@ function TablaRevision({ rows, onOpen, onChangeEstado }) {
       .map((r) => ({
         ...r,
         descripcion: r?.detalle?.descripcionPreliminar || r?.titulo || "",
-        claveRadial: r?.detalle?.claveRadial ? String(r.detalle.claveRadial) : "",
+        claveRadial:
+          r?.detalle?.claveRadial?.nombre ||
+          r?.detalle?.codigoRadial ||
+          (r?.detalle?.claveRadial ? String(r.detalle.claveRadial) : ""),
         fechaSort: parseDateToTs(r?.fecha),
       }));
   }, [rows, parseDateToTs]);

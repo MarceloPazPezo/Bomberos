@@ -243,11 +243,16 @@ export default function VistaParte({ showEnviarButton = true }) {
           subtipo: subtipoObj
             ? {
                 id: subtipoObj.id,
-                claveRadial: subtipoObj.claveRadial || p.claveRadial,
+                claveRadial:
+                  subtipoObj.claveRadial?.nombre || subtipoObj.codigoRadial || p.claveRadial,
                 descripcion: subtipoObj.descripcion,
               }
             : p.subtipoId
-            ? { id: p.subtipoId, claveRadial: p.claveRadial }
+            ? {
+                id: p.subtipoId,
+                claveRadial: { nombre: p.claveRadial },
+                codigoRadial: p.claveRadial,
+              }
             : null,
           incendio: {
             tipo: tipoDanoObj
@@ -391,8 +396,10 @@ export default function VistaParte({ showEnviarButton = true }) {
       {parte?.subtipo && (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-800">
           <Radio className="h-3 w-3" />{" "}
-          {parte.subtipo.claveRadial
-            ? `${parte.subtipo.claveRadial} — ${parte.subtipo.descripcion || ""}`.trim()
+          {parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial
+            ? `${parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial} — ${
+                parte.subtipo.descripcion || ""
+              }`.trim()
             : `Subtipo #${parte.subtipo.id}`}
         </span>
       )}
@@ -663,8 +670,8 @@ export default function VistaParte({ showEnviarButton = true }) {
                 <i className="pi pi-bolt text-2xl text-gray-700" />
                 <span className="font-semibold">Clave radial:</span>
                 <span>
-                  {parte.subtipo.claveRadial
-                    ? `${parte.subtipo.claveRadial} `.trim()
+                  {parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial
+                    ? `${parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial} `.trim()
                     : `Subtipo #${parte.subtipo.id}`}
                 </span>
               </div>
