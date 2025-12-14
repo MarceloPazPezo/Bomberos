@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import Modal from 'react-modal';
-import { MdClose, MdSend, MdWarning } from 'react-icons/md';
+import React, { useState, useEffect } from "react";
+import Modal from "react-modal";
+import { MdClose, MdSend, MdWarning, MdLocalFireDepartment } from "react-icons/md";
 
 // Configurar el elemento de la aplicación para react-modal
-if (typeof document !== 'undefined') {
-  Modal.setAppElement(document.getElementById('root') || document.body);
+if (typeof document !== "undefined") {
+  Modal.setAppElement(document.getElementById("root") || document.body);
 }
 
 const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => {
-  const [comentario, setComentario] = useState('');
-  const [error, setError] = useState('');
+  const [comentario, setComentario] = useState("");
+  const [error, setError] = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setIsAnimating(true);
-      setComentario('');
-      setError('');
+      setComentario("");
+      setError("");
     }
   }, [isOpen]);
 
@@ -28,8 +28,8 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
   };
 
   const handleSubmit = () => {
-    if (!comentario || comentario.trim() === '') {
-      setError('Debes indicar el motivo del rechazo');
+    if (!comentario || comentario.trim() === "") {
+      setError("Debes indicar el motivo del rechazo");
       return;
     }
 
@@ -39,29 +39,29 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
 
   const customStyles = {
     overlay: {
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      backdropFilter: 'blur(4px)',
+      backgroundColor: "rgba(0, 0, 0, 0.6)",
+      backdropFilter: "blur(4px)",
       zIndex: 1000,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
     },
     content: {
-      position: 'relative',
-      top: 'auto',
-      left: 'auto',
-      right: 'auto',
-      bottom: 'auto',
-      border: 'none',
-      background: 'transparent',
-      overflow: 'visible',
-      WebkitOverflowScrolling: 'touch',
-      borderRadius: '0',
-      outline: 'none',
-      padding: '0',
-      maxWidth: '600px',
-      width: '90%',
-    }
+      position: "relative",
+      top: "auto",
+      left: "auto",
+      right: "auto",
+      bottom: "auto",
+      border: "none",
+      background: "transparent",
+      overflow: "visible",
+      WebkitOverflowScrolling: "touch",
+      borderRadius: "0",
+      outline: "none",
+      padding: "0",
+      maxWidth: "600px",
+      width: "90%",
+    },
   };
 
   return (
@@ -73,12 +73,13 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
       shouldCloseOnOverlayClick={true}
       shouldCloseOnEsc={true}
     >
-      <div className={`
+      <div
+        className={`
         transform transition-all duration-200 ease-out
-        ${isAnimating ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}
-      `}>
+        ${isAnimating ? "scale-100 opacity-100" : "scale-95 opacity-0"}
+      `}
+      >
         <div className="relative bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200 rounded-2xl shadow-2xl overflow-hidden">
-          
           {/* Barra decorativa superior */}
           <div className="h-2 bg-red-500 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
@@ -97,9 +98,9 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
             {/* Icono y título */}
             <div className="flex flex-col items-center mb-4">
               <div className="text-4xl mb-2 animate-bounce">
-                🚨
+                <MdWarning className="text-red-500 w-10 h-10" />
               </div>
-              
+
               <div className="absolute top-6 left-6 text-red-500">
                 <MdWarning className="w-6 h-6" />
               </div>
@@ -107,7 +108,7 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
               <h2 className="text-xl font-bold text-gray-800 text-center mb-2">
                 Motivo del Rechazo
               </h2>
-              
+
               <div className="w-16 h-1 bg-red-500 rounded-full"></div>
             </div>
 
@@ -126,21 +127,22 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
                 value={comentario}
                 onChange={(e) => {
                   setComentario(e.target.value);
-                  if (error) setError('');
+                  if (error) setError("");
                 }}
                 placeholder="Ejemplo: Falta completar información de vehículos afectados. Revisar datos de bomberos asistentes..."
                 rows={5}
                 className={`
                   w-full px-4 py-3 border-2 rounded-lg resize-none
                   focus:outline-none focus:ring-2 transition-all
-                  ${error 
-                    ? 'border-red-300 focus:border-red-400 focus:ring-red-200' 
-                    : 'border-gray-300 focus:border-red-400 focus:ring-red-200'
+                  ${
+                    error
+                      ? "border-red-300 focus:border-red-400 focus:ring-red-200"
+                      : "border-gray-300 focus:border-red-400 focus:ring-red-200"
                   }
                 `}
                 autoFocus
               />
-              
+
               {error && (
                 <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
                   <MdWarning className="w-4 h-4" />
@@ -161,7 +163,7 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
               >
                 Cancelar
               </button>
-              
+
               <button
                 onClick={handleSubmit}
                 className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center justify-center gap-2"
@@ -173,8 +175,8 @@ const ComentarioRechazoModal = ({ isOpen, onClose, onConfirm, incidenteId }) => 
 
             {/* Footer */}
             <div className="text-center mt-4">
-              <p className="text-xs text-gray-500">
-                Sistema de Gestión de Bomberos 🚒
+              <p className="text-xs text-gray-500 flex items-center justify-center gap-1">
+                Sistema de Gestión de Bomberos <MdLocalFireDepartment className="w-4 h-4" />
               </p>
             </div>
           </div>

@@ -2,6 +2,7 @@
 import { AppDataSource } from "../config/configDb.js";
 import { validarCoordenadas } from "../helpers/geometry.helper.js";
 import Direccion from "../entities/direccion.entity.js";
+import { createPuntoGeograficoService, updatePuntoGeograficoService } from "./puntoGeografico.service.js";
 
 /**
  * Crea una nueva dirección
@@ -12,12 +13,49 @@ export async function createDireccionService(direccionData) {
   try {
     const direccionRepository = AppDataSource.getRepository("Direccion");
     const comunaRepository = AppDataSource.getRepository("Comuna");
+    const tipoPuntoRepository = AppDataSource.getRepository("TipoPunto");
+
     const comuna = await comunaRepository.findOne({
       where: { id: direccionData.idComuna }
     });
 
     if (!comuna) {
       return [null, "Comuna no encontrada"];
+    }
+
+    let idPuntoGeografico = direccionData.idPuntoGeografico || null;
+
+    // Si se proporcionan coordenadas y un idCompania, crear el punto geográfico
+    if (direccionData.latitud && direccionData.longitud && direccionData.idCompania) {
+      // Buscar el tipo "Cuartel" o el primer tipo activo
+      let tipoPunto = await tipoPuntoRepository.findOne({
+        where: { nombre: "Cuartel" }
+      });
+
+      if (!tipoPunto) {
+        tipoPunto = await tipoPuntoRepository.findOne({
+          where: { activo: true },
+          order: { id: 'ASC' }
+        });
+      }
+
+      if (tipoPunto) {
+        const [nuevoPunto, errorPunto] = await createPuntoGeograficoService({
+          nombre: direccionData.nombrePunto || `Dirección`,
+          descripcion: direccionData.descripcionPunto || `${direccionData.calle} ${direccionData.numero}`,
+          lat: direccionData.latitud,
+          lng: direccionData.longitud,
+          idTipoPunto: tipoPunto.id,
+          idCompania: direccionData.idCompania,
+          creadoPor: direccionData.creadoPor,
+          categoria: 'PUNTO_INTERES',
+          estado: 'BUENO'
+        });
+
+        if (!errorPunto && nuevoPunto) {
+          idPuntoGeografico = nuevoPunto.id;
+        }
+      }
     }
 
     // Crear la dirección básica
@@ -30,7 +68,7 @@ export async function createDireccionService(direccionData) {
       idComuna: direccionData.idComuna,
       creadoPor: direccionData.creadoPor || null,
       actualizadoPor: direccionData.actualizadoPor || null,
-      idPuntoGeografico: direccionData.idPuntoGeografico || null
+      idPuntoGeografico: idPuntoGeografico
     });
 
     const direccionGuardada = await direccionRepository.save(nuevaDireccion);
@@ -169,8 +207,56 @@ export async function updateDireccionService(id, direccionData) {
       updateData.idComuna = direccionData.idComuna;
     }
 
-    // Solo actualizar idPuntoGeografico si se proporciona
-    if (direccionData.idPuntoGeografico !== undefined) {
+    // Si se proporcionan coordenadas y la dirección tiene punto geográfico, actualizarlo
+    if (direccionData.latitud && direccionData.longitud && direccionExistente.idPuntoGeografico) {
+      const [puntoActualizado, errorPunto] = await updatePuntoGeograficoService(
+        direccionExistente.idPuntoGeografico,
+        {
+          lat: direccionData.latitud,
+          lng: direccionData.longitud,
+          actualizadoPor: direccionData.actualizadoPor
+        }
+      );
+
+      if (errorPunto) {
+        console.error("Error al actualizar punto geográfico:", errorPunto);
+      }
+    }
+    // Si se proporcionan coordenadas pero no hay punto geográfico, crearlo
+    else if (direccionData.latitud && direccionData.longitud && direccionData.idCompania && !direccionExistente.idPuntoGeografico) {
+      const tipoPuntoRepository = AppDataSource.getRepository("TipoPunto");
+      let tipoPunto = await tipoPuntoRepository.findOne({
+        where: { nombre: "Cuartel" }
+      });
+
+      if (!tipoPunto) {
+        tipoPunto = await tipoPuntoRepository.findOne({
+          where: { activo: true },
+          order: { id: 'ASC' }
+        });
+      }
+
+      if (tipoPunto) {
+        const [nuevoPunto, errorPunto] = await createPuntoGeograficoService({
+          nombre: direccionData.nombrePunto || `Dirección`,
+          descripcion: direccionData.descripcionPunto || `${updateData.calle || direccionExistente.calle} ${updateData.numero || direccionExistente.numero}`,
+          lat: direccionData.latitud,
+          lng: direccionData.longitud,
+          idTipoPunto: tipoPunto.id,
+          idCompania: direccionData.idCompania,
+          creadoPor: direccionData.actualizadoPor,
+          categoria: 'PUNTO_INTERES',
+          estado: 'BUENO'
+        });
+
+        if (!errorPunto && nuevoPunto) {
+          updateData.idPuntoGeografico = nuevoPunto.id;
+        }
+      }
+    }
+
+    // Solo actualizar idPuntoGeografico si se proporciona explícitamente
+    if (direccionData.idPuntoGeografico !== undefined && !updateData.idPuntoGeografico) {
       updateData.idPuntoGeografico = direccionData.idPuntoGeografico;
     }
 

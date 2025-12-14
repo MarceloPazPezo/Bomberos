@@ -4,7 +4,7 @@ import FichaBombero from "../entities/fichaBombero.entity.js";
 import Rol from "../entities/rol.entity.js";
 import { AppDataSource } from "../config/configDb.js";
 import { comparePassword, encryptPassword } from "../helpers/bcrypt.helper.js";
-import { Brackets } from "typeorm";
+import { Brackets, In } from "typeorm";
 import { createFichaBomberoService } from "./fichaBombero.service.js";
 
 export async function getBomberoService(query) {
@@ -359,10 +359,11 @@ export async function deleteBomberoService(query) {
     const { id, run, email } = query;
 
     const bomberoRepository = AppDataSource.getRepository(Bombero);
+    const fichaRepository = AppDataSource.getRepository("FichaBombero");
 
     const bomberoFound = await bomberoRepository.findOne({
       where: [{ id: id }, { run: run }, { email: email }],
-      relations: ["roles"],
+      relations: ["roles", "fichaBombero"],
     });
 
     if (!bomberoFound) return [null, "Bombero no encontrado"];
@@ -371,6 +372,16 @@ export async function deleteBomberoService(query) {
     const hasAdminRole = bomberoFound.roles?.some(rol => rol.nombre === "Administrador");
     if (hasAdminRole) {
       return [null, "No se puede eliminar un bombero con rol de administrador"];
+    }
+
+    // Eliminar la ficha del bombero primero si existe
+    if (bomberoFound.fichaBombero) {
+      try {
+        await fichaRepository.remove(bomberoFound.fichaBombero);
+      } catch (fichaError) {
+        console.error("Error al eliminar ficha del bombero:", fichaError);
+        // Continuar con la eliminación aunque falle la ficha
+      }
     }
 
     const bomberoDeleted = await bomberoRepository.remove(bomberoFound);
@@ -418,9 +429,27 @@ export async function createBomberoService(body, createdBy = null, transactionMa
       return [null, fieldErrors];
     }
 
-    const rolBombero = await rolRepository.findOneBy({ nombre: "Bombero" });
-    if (!rolBombero) {
-      return [null, "Rol de bombero no encontrado"];
+    // Procesar roles - usar los que vienen en body.roles o rol Bombero por defecto
+    let rolesAsignados = [];
+
+    if (body.roles && Array.isArray(body.roles) && body.roles.length > 0) {
+      // Convertir a números y buscar los roles por ID usando In()
+      const roleIds = body.roles.map(roleId => typeof roleId === 'number' ? roleId : parseInt(roleId));
+
+      rolesAsignados = await rolRepository.find({
+        where: { id: In(roleIds) }
+      });
+
+      if (rolesAsignados.length === 0) {
+        return [null, "Roles especificados no encontrados"];
+      }
+    } else {
+      // Si no se especifican roles, asignar rol "Bombero" por defecto
+      const rolBombero = await rolRepository.findOneBy({ nombre: "Bombero" });
+      if (!rolBombero) {
+        return [null, "Rol de bombero no encontrado"];
+      }
+      rolesAsignados = [rolBombero];
     }
 
     const bomberoData = {
@@ -431,7 +460,7 @@ export async function createBomberoService(body, createdBy = null, transactionMa
       password: await encryptPassword(body.password),
       activo: body.activo !== undefined ? body.activo : true,
       creadoPor: createdBy,
-      roles: [rolBombero],
+      roles: rolesAsignados,
     };
 
     const newBombero = bomberoRepository.create(bomberoData);
@@ -888,13 +917,30 @@ export async function getCompaniaUsuarioService(idBombero) {
     const ficha = await fichaBomberoRepository
       .createQueryBuilder("ficha")
       .leftJoinAndSelect("ficha.compania", "compania")
+      .leftJoinAndSelect("compania.direccion", "direccion")
+      .leftJoinAndSelect("direccion.comuna", "comuna")
+      .leftJoinAndSelect("comuna.region", "region")
       .select([
         "ficha.id",
         "ficha.idCompania",
         "compania.id",
         "compania.nombre",
-        "compania.direccion",
-        "compania.telefono"
+        "compania.fechaFundacion",
+        "compania.email",
+        "compania.telefono",
+        "compania.descripcion",
+        "compania.sitioWeb",
+        "compania.logoKEY",
+        "compania.bannerKEY",
+        "direccion.id",
+        "direccion.calle",
+        "direccion.numero",
+        "direccion.depto",
+        "direccion.referencia",
+        "comuna.id",
+        "comuna.nombre",
+        "region.id",
+        "region.nombre"
       ])
       .where("ficha.idBombero = :idBombero", { idBombero })
       .getOne();
@@ -1028,6 +1074,31 @@ export async function getBomberosOtrasCompaniasService(idCompaniaUsuario) {
   } catch (error) {
     console.error("Error al obtener bomberos de otras compañías:", error);
     return [null, "Error interno del servidor"];
+  }
+}
+
+/**
+ * Obtiene todos los bomberos que tienen un permiso específico
+ * @param {string} permisoNombre - Nombre del permiso a buscar
+ * @returns {Promise<Array>} Array de IDs de bomberos con ese permiso
+ */
+export async function getBomberosByPermisoService(permisoNombre) {
+  try {
+    const bomberoRepository = AppDataSource.getRepository(Bombero);
+
+    const bomberos = await bomberoRepository
+      .createQueryBuilder("bombero")
+      .innerJoin("bombero.roles", "rol")
+      .innerJoin("rol.permisos", "permiso")
+      .where("permiso.nombre = :permisoNombre", { permisoNombre })
+      .andWhere("bombero.activo = :activo", { activo: true })
+      .select(["bombero.id"])
+      .getMany();
+
+    return bomberos.map(b => b.id);
+  } catch (error) {
+    console.error("Error al obtener bomberos por permiso:", error);
+    return [];
   }
 }
 

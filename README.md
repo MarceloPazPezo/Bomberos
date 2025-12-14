@@ -36,8 +36,9 @@ Un sistema integral de gestión operativa diseñado específicamente para cuerpo
 - **FullCalendar** para calendarios
 
 ### Infraestructura
-- **Docker** y Docker Compose para orquestación
-- **Nginx** como servidor web para frontend
+- **Docker** y Docker Compose para servicios de infraestructura (database, redis, minio)
+- **PM2** para gestión de procesos del backend en producción
+- **Nginx** como servidor web y proxy inverso para frontend
 - **PostgreSQL + PostGIS** para base de datos
 - **Redis** para cache y pub/sub
 - **MinIO** para almacenamiento de objetos
@@ -46,141 +47,66 @@ Un sistema integral de gestión operativa diseñado específicamente para cuerpo
 
 Antes de comenzar, asegúrate de tener instalado:
 
-- **Docker** (versión 20.10 o superior)
-- **Docker Compose** (versión 2.0 o superior)
+- **Node.js** 22.19.0 (recomendado usar NVM)
+- **NPM** (incluido con Node.js)
+- **Docker** y Docker Compose (para servicios de infraestructura)
+- **PM2** (para gestión del backend en producción)
+- **Nginx** (para servir el frontend)
 - **Git** para clonar el repositorio
 
-### Verificar Instalación
+> **Nota**: Para una guía detallada de instalación en producción, consulta [PUESTA_EN_MARCHA.md](./PUESTA_EN_MARCHA.md)
 
-```bash
-# Verificar Docker
-docker --version
-docker-compose --version
+## 🚀 Guía de Instalación
 
-# Verificar que Docker esté corriendo
-docker ps
-```
+Este proyecto puede desplegarse de dos formas:
 
-## 🚀 Guía de Instalación Paso a Paso
+### Opción 1: Instalación en Producción (Recomendado)
 
-### Paso 1: Clonar el Repositorio
+Para instalación en producción con PM2 y Nginx, consulta la guía completa:
 
-```bash
-git clone <url-del-repositorio>
-cd Bomberos
-```
+**[📖 Guía de Puesta en Marcha](./PUESTA_EN_MARCHA.md)**
 
-### Paso 2: Configurar Variables de Entorno
+Esta guía incluye:
+- Instalación de Node.js con NVM
+- Configuración de servicios Docker (database, redis, minio)
+- Configuración del backend con PM2
+- Configuración del frontend con Nginx
+- Configuración completa de variables de entorno
 
-1. **Copiar el archivo de ejemplo**:
+### Opción 2: Desarrollo Local
+
+Para desarrollo local:
+
+1. **Clonar el repositorio**:
+   ```bash
+   git clone https://github.com/MarceloPazPezo/Bomberos
+   cd Bomberos
+   ```
+
+2. **Configurar variables de entorno**:
    ```bash
    cp .env.example .env
+   nano .env  # Editar con tus configuraciones
    ```
 
-2. **Editar el archivo `.env`** con tus configuraciones:
+3. **Levantar servicios de infraestructura con Docker**:
    ```bash
-   nano .env  # o usa tu editor preferido
+   docker compose up -d database redis minio
    ```
 
-3. **Configuraciones mínimas requeridas**:
-   - Cambiar los secretos de seguridad (`B_ACCESS_TOKEN_SECRET`, `B_COOKIE_KEY`)
-   - Verificar puertos si hay conflictos
-   - Configurar contraseñas de base de datos, Redis y MinIO
-
-   > 💡 **Importante**: En producción, **SIEMPRE** cambia todos los secretos y contraseñas por defecto.
-
-### Paso 3: Verificar Puertos Disponibles
-
-Antes de levantar los servicios, verifica que los puertos no estén en uso:
-
-```bash
-# Verificar puertos principales
-netstat -tuln | grep -E ':(80|443|3000|5432|6379|9000|9002)'
-
-# O usar ss (alternativa)
-ss -tuln | grep -E ':(80|443|3000|5432|6379|9000|9002)'
-```
-
-Si algún puerto está en uso, modifica las variables `EXTERNAL_*_PORT` en el archivo `.env`.
-
-### Paso 4: Construir y Levantar los Servicios
-
-#### Opción A: Levantar todo de una vez (Recomendado)
-
-```bash
-# Construir imágenes y levantar servicios
-docker-compose up -d --build
-
-# Ver logs en tiempo real
-docker-compose logs -f
-```
-
-#### Opción B: Levantar servicios paso a paso
-
-```bash
-# 1. Levantar servicios base (database, redis, minio)
-docker-compose up -d database redis minio
-
-# 2. Esperar a que estén saludables (30-60 segundos)
-docker-compose ps
-
-# 3. Levantar backend
-docker-compose up -d backend
-
-# 4. Esperar a que backend esté saludable
-docker-compose logs -f backend
-
-# 5. Levantar frontend
-docker-compose up -d frontend
-
-# 6. Verificar que todo esté corriendo
-docker-compose ps
-```
-
-### Paso 5: Verificar que Todo Funcione
-
-1. **Verificar estado de servicios**:
+4. **Instalar dependencias del backend**:
    ```bash
-   docker-compose ps
+   cd backend
+   npm install
+   npm run dev
    ```
-   
-   Todos los servicios deben mostrar `Up` y `healthy` (o `healthy` en healthcheck).
 
-2. **Verificar logs**:
+5. **Instalar dependencias del frontend** (en otra terminal):
    ```bash
-   # Logs de todos los servicios
-   docker-compose logs
-   
-   # Logs de un servicio específico
-   docker-compose logs backend
-   docker-compose logs frontend
-   docker-compose logs database
+   cd frontend
+   npm install
+   npm run dev
    ```
-
-3. **Verificar acceso a servicios**:
-   - **Frontend**: http://localhost (o el puerto configurado en `EXTERNAL_FRONTEND_PORT`)
-   - **Backend API**: http://localhost:3000/api (o el puerto configurado)
-   - **MinIO Console**: http://localhost:9002 (usuario: `minioadmin`, contraseña: la configurada en `MINIO_SECRET_KEY`)
-
-### Paso 6: Configurar MinIO (Opcional pero Recomendado)
-
-1. **Acceder a MinIO Console**:
-   - URL: http://localhost:9002
-   - Usuario: `minioadmin` (o el valor de `MINIO_ACCESS_KEY`)
-   - Contraseña: `minioadmin123` (o el valor de `MINIO_SECRET_KEY`)
-
-2. **Configurar CORS** (si necesitas acceso directo desde el navegador):
-   - Ve a Settings → CORS
-   - O ejecuta el script proporcionado: `./minio-setup-cors.sh`
-
-3. **Verificar buckets creados**:
-   Los siguientes buckets se crean automáticamente:
-   - `uploads` (principal)
-   - `uploads-perfiles`
-   - `uploads-companias`
-   - `uploads-documentos`
-   - `uploads-teselas-publicas`
-   - `uploads-teselas-privadas`
 
 ## 📁 Estructura del Proyecto
 
@@ -213,45 +139,42 @@ Bomberos/
 └── README.md
 ```
 
-## 🔧 Servicios Disponibles
+## 🔧 Arquitectura del Sistema
 
-| Servicio | Puerto Interno | Puerto Externo | Descripción |
-|----------|----------------|----------------|-------------|
-| Frontend | 80 | 80 (configurable) | Interfaz de usuario web (Nginx) |
-| Backend | 3000 | 3000 (configurable) | API REST (Node.js + Express) |
-| PostgreSQL | 5432 | 5432 (configurable) | Base de datos principal |
-| Redis | 6379 | 6379 (configurable) | Cache y notificaciones |
-| MinIO API | 9000 | 9000 (configurable) | API de almacenamiento |
-| MinIO Console | 9001 | 9002 (configurable) | Interfaz web de MinIO |
+### Servicios en Docker
+- **PostgreSQL + PostGIS**: Base de datos principal (puerto 5432)
+- **Redis**: Cache y sistema de notificaciones (puerto 6379)
+- **MinIO**: Almacenamiento de archivos (API: 9000, Console: 9002)
+
+### Servicios en el Host
+- **Backend**: Ejecutado con PM2 (puerto 11000 por defecto)
+- **Frontend**: Servido con Nginx (puerto 11001 por defecto)
+- **Nginx**: Actúa como proxy inverso para `/api/` y `/minio/`
 
 ## 🐳 Comandos Docker Útiles
 
-### Gestión de Servicios
+### Gestión de Servicios de Infraestructura
 
 ```bash
-# Levantar servicios
-docker-compose up -d
+# Levantar servicios (database, redis, minio)
+docker compose up -d database redis minio
 
 # Detener servicios
-docker-compose down
-
-# Detener y eliminar volúmenes (⚠️ CUIDADO: Elimina datos)
-docker-compose down -v
-
-# Reconstruir y levantar servicios
-docker-compose up -d --build
-
-# Reiniciar un servicio específico
-docker-compose restart backend
-
-# Ver logs en tiempo real
-docker-compose logs -f
-
-# Ver logs de un servicio específico
-docker-compose logs -f backend
+docker compose down
 
 # Ver estado de servicios
-docker-compose ps
+docker compose ps
+
+# Ver logs en tiempo real
+docker compose logs -f
+
+# Ver logs de un servicio específico
+docker compose logs -f database
+docker compose logs -f redis
+docker compose logs -f minio
+
+# Reiniciar un servicio específico
+docker compose restart database
 ```
 
 ### Acceso a Contenedores
@@ -259,12 +182,6 @@ docker-compose ps
 ```bash
 # Acceder a la base de datos
 docker exec -it bomberos-pern-database psql -U user_bomberos -d db_bomberos
-
-# Acceder al contenedor del backend
-docker exec -it bomberos-pern-backend sh
-
-# Acceder al contenedor del frontend
-docker exec -it bomberos-pern-frontend sh
 
 # Acceder a Redis CLI
 docker exec -it bomberos-pern-redis redis-cli
@@ -341,21 +258,31 @@ docker-compose up -d
 
 ## 📝 Logs
 
-### Ver Logs del Backend
+### Ver Logs del Backend (PM2)
 
 ```bash
-# Logs en tiempo real
-docker-compose logs -f backend
+# Ver logs en tiempo real
+pm2 logs backend
 
-# Últimas 100 líneas
-docker-compose logs --tail=100 backend
+# Ver últimas líneas
+pm2 logs backend --lines 100
 
-# Logs desde archivos (dentro del contenedor)
-docker exec bomberos-pern-backend ls -la /app/logs
-docker exec bomberos-pern-backend tail -f /app/logs/application-$(date +%Y-%m-%d).log
+# Ver logs desde archivos
+tail -f backend/logs/application-$(date +%Y-%m-%d).log
+tail -f backend/logs/error-$(date +%Y-%m-%d).log
 ```
 
-### Logs de Archivos
+### Ver Logs de Nginx
+
+```bash
+# Logs de acceso
+sudo tail -f /var/log/nginx/access.log
+
+# Logs de errores
+sudo tail -f /var/log/nginx/error.log
+```
+
+### Logs de Archivos del Backend
 
 Los logs se almacenan en:
 - `backend/logs/application-YYYY-MM-DD.log`
@@ -381,44 +308,43 @@ netstat -tuln | grep -E ':(80|3000|5432|6379|9000)'
 
 1. Verificar que la base de datos esté saludable:
    ```bash
-   docker-compose ps database
+   docker compose ps database
    ```
 
-2. Verificar variables de entorno:
+2. Verificar que PM2 esté corriendo:
    ```bash
-   docker-compose exec backend env | grep DB_
+   pm2 status
+   pm2 logs backend
    ```
 
-3. Verificar conectividad:
-   ```bash
-   docker-compose exec backend ping database
-   ```
+3. Verificar variables de entorno en el archivo `.env`
 
 ### Problema: Frontend no carga
 
 1. Verificar que el backend esté corriendo:
    ```bash
-   docker-compose ps backend
-   curl http://localhost:3000/api/health
+   pm2 status
+   curl http://localhost:11000/api/health
    ```
 
 2. Verificar logs de Nginx:
    ```bash
-   docker-compose logs frontend
+   sudo tail -f /var/log/nginx/error.log
+   sudo nginx -t
    ```
 
-3. Verificar configuración de proxy en `nginx.conf`
+3. Verificar que los archivos estén en `/var/www/bomberos/`
 
 ### Problema: MinIO no crea buckets
 
 1. Verificar que MinIO esté saludable:
    ```bash
-   docker-compose ps minio
+   docker compose ps minio
    ```
 
 2. Verificar logs:
    ```bash
-   docker-compose logs minio
+   docker compose logs minio
    ```
 
 3. Crear buckets manualmente desde la consola web
@@ -427,17 +353,12 @@ netstat -tuln | grep -E ':(80|3000|5432|6379|9000)'
 
 1. Verificar que Redis esté saludable:
    ```bash
-   docker-compose ps redis
+   docker compose ps redis
    ```
 
 2. Probar conexión:
    ```bash
-   docker-compose exec redis redis-cli ping
-   ```
-
-3. Verificar contraseña si está configurada:
-   ```bash
-   docker-compose exec redis redis-cli -a $REDIS_PASSWORD ping
+   docker exec -it bomberos-pern-redis redis-cli ping
    ```
 
 ## 🔄 Desarrollo
@@ -490,46 +411,51 @@ curl http://localhost:3000/api/health      # Backend
 # 1. Obtener últimos cambios
 git pull
 
-# 2. Reconstruir imágenes
-docker-compose build
+# 2. Actualizar dependencias del backend
+cd backend
+npm install
+pm2 restart backend
 
-# 3. Reiniciar servicios
-docker-compose up -d
+# 3. Actualizar dependencias del frontend
+cd ../frontend
+npm install
+npm run build
+sudo rm -rf /var/www/bomberos/*
+sudo cp -r dist/* /var/www/bomberos/
 ```
 
-### Actualizar Dependencias
+### Actualizar Servicios Docker
 
 ```bash
-# Backend
-cd backend
-npm update
-docker-compose build backend
-docker-compose up -d backend
-
-# Frontend
-cd frontend
-npm update
-docker-compose build frontend
-docker-compose up -d frontend
+# Reconstruir y reiniciar servicios de infraestructura
+docker compose up -d --build database redis minio
 ```
 
 ## 📚 Documentación Adicional
 
+- [Guía de Puesta en Marcha](./PUESTA_EN_MARCHA.md) - Guía completa para instalación en producción
 - [Análisis del Proyecto](./ANALISIS_PROYECTO.md) - Análisis técnico detallado
+- [Guía de Contribución](./CONTRIBUTING.md) - Cómo contribuir al proyecto
+- [Código de Conducta](./CODE_OF_CONDUCT.md) - Estándares de comportamiento de la comunidad
 - Documentación de API: Disponible en `/api/docs` (si está configurado)
 - Logs: Revisar `backend/logs/` para información detallada
 
 ## 🤝 Contribución
 
+¡Las contribuciones son bienvenidas! Por favor, lee nuestra [Guía de Contribución](./CONTRIBUTING.md) antes de comenzar.
+
+Resumen rápido:
 1. Fork el proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
 3. Commit tus cambios (`git commit -am 'Agrega nueva funcionalidad'`)
 4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
 5. Abre un Pull Request
 
+Por favor, asegúrate de seguir nuestro [Código de Conducta](./CODE_OF_CONDUCT.md).
+
 ## 📄 Licencia
 
-Este proyecto está bajo la licencia [MIT](LICENSE).
+Este proyecto está bajo la licencia [GPL-3.0](LICENSE).
 
 ## 📞 Soporte
 

@@ -2,20 +2,20 @@
 import { AppDataSource } from "../config/configDb.js";
 
 export async function getcantidadDeIncidentesDiasdelaSemana(fechaInicio, fechaFin, idcompania) {
-    try {
-        // Convertir timestamps a objetos Date si es necesario
-        const fechaInicioDate = typeof fechaInicio === 'number' 
-            ? new Date(fechaInicio).toISOString().split('T')[0]
-            : fechaInicio;
-        const fechaFinDate = typeof fechaFin === 'number' 
-            ? new Date(fechaFin).toISOString().split('T')[0]
-            : fechaFin;
+  try {
+    // Convertir timestamps a objetos Date si es necesario
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
 
-      //  console.log('Fechas recibidas meses:', { fechaInicio, fechaFin, fechaInicioDate, fechaFinDate, idcompania });
+    //  console.log('Fechas recibidas meses:', { fechaInicio, fechaFin, fechaInicioDate, fechaFinDate, idcompania });
 
-        //se hara una consulta sql
-        const response = await AppDataSource.query(
-            `-- Conteo de INCIDENTES APROBADOS por día de la semana (Lunes→Domingo)
+    //se hara una consulta sql
+    const response = await AppDataSource.query(
+      `-- Conteo de INCIDENTES APROBADOS por día de la semana (Lunes→Domingo)
             WITH dias AS (
             SELECT 1 AS dow, 'lunes'::text AS dia, 1 AS ord UNION ALL
             SELECT 2, 'martes',     2 UNION ALL
@@ -58,23 +58,23 @@ export async function getcantidadDeIncidentesDiasdelaSemana(fechaInicio, fechaFi
             ORDER BY d.ord;
 
             `,
-            [fechaInicioDate, fechaFinDate, idcompania]
-        );
-      
-        return response;
-    } catch (error) {
-       // console.log(error)
-        console.error("Error fetching dashboard stats:", error);
-        throw error;
-    }
+      [fechaInicioDate, fechaFinDate, idcompania]
+    );
+
+    return response;
+  } catch (error) {
+    // console.log(error)
+    console.error("Error fetching dashboard stats:", error);
+    throw error;
+  }
 }
 
 export async function getcantidadDeIncidentesMeses(añoDesde, añoHasta, idcompania) {
-    try {
-        // Consulta SQL para obtener la cantidad de incidentes por mes
-        // Parámetros posicionales: $1 = añoDesde, $2 = añoHasta, $3 = idcompania
-        const response = await AppDataSource.query(
-            `WITH meses AS (
+  try {
+    // Consulta SQL para obtener la cantidad de incidentes por mes
+    // Parámetros posicionales: $1 = añoDesde, $2 = añoHasta, $3 = idcompania
+    const response = await AppDataSource.query(
+      `WITH meses AS (
             SELECT 1 AS m,  'enero'::text      AS mes, 1 AS ord UNION ALL
             SELECT 2,       'febrero',                 2 UNION ALL
             SELECT 3,       'marzo',                   3 UNION ALL
@@ -122,41 +122,42 @@ export async function getcantidadDeIncidentesMeses(añoDesde, añoHasta, idcompa
             LEFT JOIN ct ON ct.mes = ms.m
             ORDER BY ms.ord;
             `,
-            [añoDesde, añoHasta, idcompania]
-        );
-      
-        return response;
-    } catch (error) {
-        console.log(error)
-        console.error("Error fetching dashboard stats:", error);
-        throw error;
-    }
+      [añoDesde, añoHasta, idcompania]
+    );
+
+    return response;
+  } catch (error) {
+    console.log(error)
+    console.error("Error fetching dashboard stats:", error);
+    throw error;
+  }
 }
 
 export async function getClavesRadialesMasRepetidas(fechaInicio, fechaFin, idcompania) {
-    try {
-        // Convertir timestamps a objetos Date si es necesario
-        const fechaInicioDate = typeof fechaInicio === 'number' 
-            ? new Date(fechaInicio).toISOString().split('T')[0]
-            : fechaInicio;
-        const fechaFinDate = typeof fechaFin === 'number' 
-            ? new Date(fechaFin).toISOString().split('T')[0]
-            : fechaFin;
+  try {
+    // Convertir timestamps a objetos Date si es necesario
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
 
-        // Consulta SQL para generar Diagrama de Pareto
-        // Top-10 claves radiales + "Otros" con porcentaje acumulado
-        const response = await AppDataSource.query(
-            `WITH inc_base AS (
+    // Consulta SQL para generar Diagrama de Pareto
+    // Top-10 claves radiales + "Otros" con porcentaje acumulado
+    const response = await AppDataSource.query(
+      `WITH inc_base AS (
                 SELECT i."id",
-                       st."claveRadial",
+                       cr."nombre" as "claveRadial",
                        COALESCE(i."FechaHoraDespacho", i."creadoEl") AS fh
                 FROM "incidente" i
                 LEFT JOIN "subTipoIncidente" st ON st."id" = i."idSubtipoIncidente"
+                LEFT JOIN "claveRadial" cr ON cr."id" = st."claveRadialId"
                 WHERE COALESCE(i."FechaHoraDespacho", i."creadoEl") >= $1::date
                   AND COALESCE(i."FechaHoraDespacho", i."creadoEl") <  $2::date
                   AND ($3::int IS NULL OR i."idCompania" = $3::int)
-                  AND st."claveRadial" IS NOT NULL
-                  AND st."claveRadial" != ''
+                  AND cr."nombre" IS NOT NULL
+                  AND cr."nombre" != ''
             ),
             estado_final AS (
                 SELECT DISTINCT ON (ee."idIncidente")
@@ -221,30 +222,30 @@ export async function getClavesRadialesMasRepetidas(fechaInicio, fechaFin, idcom
             FROM with_cumulative
             ORDER BY rank;
             `,
-            [fechaInicioDate, fechaFinDate, idcompania]
-        );
-      
-        return response;
-    } catch (error) {
-        console.error("Error fetching claves radiales (Pareto):", error);
-        throw error;
-    }
+      [fechaInicioDate, fechaFinDate, idcompania]
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching claves radiales (Pareto):", error);
+    throw error;
+  }
 }
 
 export async function getIncidentesPorFranjaHoraria(fechaInicio, fechaFin, idcompania) {
-    try {
-        // Convertir timestamps a objetos Date si es necesario
-        const fechaInicioDate = typeof fechaInicio === 'number' 
-            ? new Date(fechaInicio).toISOString().split('T')[0]
-            : fechaInicio;
-        const fechaFinDate = typeof fechaFin === 'number' 
-            ? new Date(fechaFin).toISOString().split('T')[0]
-            : fechaFin;
+  try {
+    // Convertir timestamps a objetos Date si es necesario
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
 
-        // Consulta SQL para obtener incidentes por franja horaria (0-23)
-        // Parámetros posicionales: $1 = fechaInicio, $2 = fechaFin, $3 = idcompania
-        const response = await AppDataSource.query(
-            `WITH franjas AS (
+    // Consulta SQL para obtener incidentes por franja horaria (0-23)
+    // Parámetros posicionales: $1 = fechaInicio, $2 = fechaFin, $3 = idcompania
+    const response = await AppDataSource.query(
+      `WITH franjas AS (
             SELECT generate_series(0, 22, 2) AS hora_inicio
             ),
             inc_base AS (
@@ -284,14 +285,14 @@ export async function getIncidentesPorFranjaHoraria(fechaInicio, fechaFin, idcom
             LEFT JOIN ct ON ct.hora_inicio = f.hora_inicio
             ORDER BY f.hora_inicio;
             `,
-            [fechaInicioDate, fechaFinDate, idcompania]
-        );
-      
-        return response;
-    } catch (error) {
-        console.error("Error fetching incidentes por franja horaria:", error);
-        throw error;
-    }
+      [fechaInicioDate, fechaFinDate, idcompania]
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching incidentes por franja horaria:", error);
+    throw error;
+  }
 }
 
 /**
@@ -302,16 +303,16 @@ export async function getIncidentesPorFranjaHoraria(fechaInicio, fechaFin, idcom
  * @returns {Array} Array con datos en formato: {dia, hora, cantidad}
  */
 export async function getHeatmapDiaHora(fechaInicio, fechaFin, idcompania) {
-    try {
-        const fechaInicioDate = typeof fechaInicio === 'number' 
-            ? new Date(fechaInicio).toISOString().split('T')[0]
-            : fechaInicio;
-        const fechaFinDate = typeof fechaFin === 'number' 
-            ? new Date(fechaFin).toISOString().split('T')[0]
-            : fechaFin;
+  try {
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
 
-        const response = await AppDataSource.query(
-            `-- Mapa de calor: Día de la semana × Hora del día (APROBADOS)
+    const response = await AppDataSource.query(
+      `-- Mapa de calor: Día de la semana × Hora del día (APROBADOS)
             WITH dias AS (
                 SELECT 1 AS dow, 'Lunes'::text AS dia, 1 AS ord UNION ALL
                 SELECT 2, 'Martes',     2 UNION ALL
@@ -367,14 +368,14 @@ export async function getHeatmapDiaHora(fechaInicio, fechaFin, idcompania) {
             LEFT JOIN ct ON ct.dow = c.dow AND ct.hora = c.hora
             ORDER BY c.ord, c.hora;
             `,
-            [fechaInicioDate, fechaFinDate, idcompania]
-        );
-      
-        return response;
-    } catch (error) {
-        console.error("Error fetching heatmap día-hora:", error);
-        throw error;
-    }
+      [fechaInicioDate, fechaFinDate, idcompania]
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Error fetching heatmap día-hora:", error);
+    throw error;
+  }
 }
 
 /**
@@ -385,16 +386,16 @@ export async function getHeatmapDiaHora(fechaInicio, fechaFin, idcompania) {
  * @returns {Object} Objeto con promedio de asistencia
  */
 export async function getAsistenciaPromedio(fechaInicio, fechaFin, idcompania) {
-    try {
-        const fechaInicioDate = typeof fechaInicio === 'number' 
-            ? new Date(fechaInicio).toISOString().split('T')[0]
-            : fechaInicio;
-        const fechaFinDate = typeof fechaFin === 'number' 
-            ? new Date(fechaFin).toISOString().split('T')[0]
-            : fechaFin;
+  try {
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
 
-        const response = await AppDataSource.query(
-            `-- KPI: Asistencia promedio de voluntarios por incidente (APROBADOS)
+    const response = await AppDataSource.query(
+      `-- KPI: Asistencia promedio de voluntarios por incidente (APROBADOS)
             WITH inc_base AS (
                 SELECT i."id",
                        COALESCE(i."FechaHoraDespacho", i."creadoEl") AS fh
@@ -430,27 +431,27 @@ export async function getAsistenciaPromedio(fechaInicio, fechaFin, idcompania) {
                 COALESCE(SUM(num_voluntarios), 0)::int AS total_voluntarios
             FROM asistencia_por_incidente;
             `,
-            [fechaInicioDate, fechaFinDate, idcompania]
-        );
-      
-        return response[0] || { promedio_asistencia: 0, total_incidentes: 0, total_voluntarios: 0 };
-    } catch (error) {
-        console.error("Error fetching asistencia promedio:", error);
-        throw error;
-    }
+      [fechaInicioDate, fechaFinDate, idcompania]
+    );
+
+    return response[0] || { promedio_asistencia: 0, total_incidentes: 0, total_voluntarios: 0 };
+  } catch (error) {
+    console.error("Error fetching asistencia promedio:", error);
+    throw error;
+  }
 }
 
 export async function getPorcentajeParticipacionIncidentes(fechaInicio, fechaFin, idcompania) {
-    try {
-        const fechaInicioDate = typeof fechaInicio === 'number' 
-            ? new Date(fechaInicio).toISOString().split('T')[0]
-            : fechaInicio;
-        const fechaFinDate = typeof fechaFin === 'number' 
-            ? new Date(fechaFin).toISOString().split('T')[0]
-            : fechaFin;
+  try {
+    const fechaInicioDate = typeof fechaInicio === 'number'
+      ? new Date(fechaInicio).toISOString().split('T')[0]
+      : fechaInicio;
+    const fechaFinDate = typeof fechaFin === 'number'
+      ? new Date(fechaFin).toISOString().split('T')[0]
+      : fechaFin;
 
-        const response = await AppDataSource.query(
-            `-- KPI: Porcentaje de participación promedio (asistencia promedio / total voluntarios activos)
+    const response = await AppDataSource.query(
+      `-- KPI: Porcentaje de participación promedio (asistencia promedio / total voluntarios activos)
             WITH inc_base AS (
                 SELECT i."id"
                 FROM "incidente" i
@@ -499,14 +500,14 @@ export async function getPorcentajeParticipacionIncidentes(fechaInicio, fechaFin
                 tv.cnt AS total_voluntarios
             FROM asistencia_promedio ap, total_voluntarios tv;
             `,
-            [fechaInicioDate, fechaFinDate, idcompania]
-        );
-      
-        return response[0] || { porcentaje_participacion: 0, asistencia_promedio: 0, total_voluntarios: 0 };
-    } catch (error) {
-        console.error("Error fetching porcentaje participación incidentes:", error);
-        throw error;
-    }
+      [fechaInicioDate, fechaFinDate, idcompania]
+    );
+
+    return response[0] || { porcentaje_participacion: 0, asistencia_promedio: 0, total_voluntarios: 0 };
+  } catch (error) {
+    console.error("Error fetching porcentaje participación incidentes:", error);
+    throw error;
+  }
 }
 
 export async function getHeatmapDisponibilidad(fechaInicio, fechaFin, idcompania) {
@@ -614,11 +615,11 @@ export async function getHeatmapDisponibilidad(fechaInicio, fechaFin, idcompania
     `;
 
     const rows = await AppDataSource.query(sql, [desde, hasta, idComp]);
-    
+
     console.log('Heatmap disponibilidad - Total filas:', rows.length);
-    console.log('Heatmap disponibilidad - Filas con cantidad > 0:', 
+    console.log('Heatmap disponibilidad - Filas con cantidad > 0:',
       rows.filter(r => r.cantidad > 0).length);
-    
+
     return rows; // [{ dia, dow, hora, cantidad, num_slots }]
   } catch (err) {
     console.error('Error getHeatmapDisponibles:', err);
@@ -635,10 +636,10 @@ export async function getHeatmapDisponibilidad(fechaInicio, fechaFin, idcompania
  */
 export async function getcantidadDeEventosDiasdelaSemana(fechaInicio, fechaFin) {
   try {
-    const fechaInicioDate = typeof fechaInicio === 'number' 
+    const fechaInicioDate = typeof fechaInicio === 'number'
       ? new Date(fechaInicio).toISOString().split('T')[0]
       : fechaInicio;
-    const fechaFinDate = typeof fechaFin === 'number' 
+    const fechaFinDate = typeof fechaFin === 'number'
       ? new Date(fechaFin).toISOString().split('T')[0]
       : fechaFin;
 
@@ -726,10 +727,10 @@ export async function getcantidadDeEventosMeses(añoDesde, añoHasta) {
  */
 export async function getcantidadDeEventosPorGranularidad(fechaInicio, fechaFin, granularidad) {
   try {
-    const fechaInicioDate = typeof fechaInicio === 'number' 
+    const fechaInicioDate = typeof fechaInicio === 'number'
       ? new Date(fechaInicio).toISOString().split('T')[0]
       : fechaInicio;
-    const fechaFinDate = typeof fechaFin === 'number' 
+    const fechaFinDate = typeof fechaFin === 'number'
       ? new Date(fechaFin).toISOString().split('T')[0]
       : fechaFin;
 
@@ -1006,7 +1007,7 @@ export async function getEvolucionEventosYAsistentes(fechaInicio, fechaFin, idTi
     `;
 
     const params = [
-      fechaInicioDate, 
+      fechaInicioDate,
       fechaFinDate,
       idTipoEvento
     ];
@@ -1028,10 +1029,10 @@ export async function getEvolucionEventosYAsistentes(fechaInicio, fechaFin, idTi
  */
 export async function getPorcentajeParticipacion(fechaInicio, fechaFin, idsEventos = null) {
   try {
-    const fechaInicioDate = typeof fechaInicio === 'number' 
+    const fechaInicioDate = typeof fechaInicio === 'number'
       ? new Date(fechaInicio).toISOString().split('T')[0]
       : fechaInicio;
-    const fechaFinDate = typeof fechaFin === 'number' 
+    const fechaFinDate = typeof fechaFin === 'number'
       ? new Date(fechaFin).toISOString().split('T')[0]
       : fechaFin;
 
@@ -1088,10 +1089,10 @@ export async function getPorcentajeParticipacion(fechaInicio, fechaFin, idsEvent
  */
 export async function getRankingClasificaciones(fechaInicio, fechaFin, idcompania, agrupacion = 'dias') {
   try {
-    const fechaInicioDate = typeof fechaInicio === 'number' 
+    const fechaInicioDate = typeof fechaInicio === 'number'
       ? new Date(fechaInicio).toISOString().split('T')[0]
       : fechaInicio;
-    const fechaFinDate = typeof fechaFin === 'number' 
+    const fechaFinDate = typeof fechaFin === 'number'
       ? new Date(fechaFin).toISOString().split('T')[0]
       : fechaFin;
 

@@ -1,3 +1,21 @@
+/*
+ * Sistema de Gestión de Bomberos
+ * Copyright (C) 2025 Jerson Palma y Marcelo Paz
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 "use strict";
 // Desarrollo con hot reload activado
 import cors from "cors";
@@ -198,6 +216,11 @@ async function setupAPI() {
     // Inicializar sistema completo de notificaciones (base + WebSocket)
     await initializeNotificationSystem();
 
+    // Inicializar scheduler de notificaciones automáticas
+    const { startNotificationScheduler } = await import("./config/configScheduler.js");
+    startNotificationScheduler();
+    logger.info("[SCHEDULER] Sistema de tareas programadas iniciado");
+
     // Configurar datos iniciales
     await crearCompañia();
     await crearRegiones();
@@ -245,4 +268,19 @@ setupAPI()
     logger.errorWithContext(error, { function: "setupAPI" });
     process.exit(1);
   });
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('[SERVER] Señal SIGTERM recibida, cerrando servidor...');
+  const { stopNotificationScheduler } = await import("./config/configScheduler.js");
+  stopNotificationScheduler();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('[SERVER] Señal SIGINT recibida, cerrando servidor...');
+  const { stopNotificationScheduler } = await import("./config/configScheduler.js");
+  stopNotificationScheduler();
+  process.exit(0);
+});
 

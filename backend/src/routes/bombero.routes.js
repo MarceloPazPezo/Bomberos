@@ -25,6 +25,7 @@ import {
   
   // Detalles completos
   getBomberoDetalles,
+  generarFichaBomberoPdf,
   
   // Funcionalidades unificadas
   createBomberoWithOptionalFicha,
@@ -92,6 +93,9 @@ router.get("/otras-companias", authorizeRoles(['Administrador', 'Supervisor']), 
 
 // Obtener detalles completos de un bombero
 router.get("/:id/detalles", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getBomberoDetalles);
+
+// Generar PDF de ficha de bombero
+router.post("/:id/ficha/pdf", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), generarFichaBomberoPdf);
 
 // ==================== FUNCIONALIDADES UNIFICADAS ====================
 

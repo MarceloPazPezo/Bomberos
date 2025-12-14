@@ -1,6 +1,7 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Bar } from 'react-chartjs-2';
+import React from "react";
+import PropTypes from "prop-types";
+import { Bar } from "react-chartjs-2";
+import { MdWarning, MdBarChart } from "react-icons/md";
 
 // Uso de parámetros por defecto en lugar de defaultProps (evita warning futuro)
 const EventosPorGranularidadChart = ({
@@ -24,7 +25,7 @@ const EventosPorGranularidadChart = ({
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="text-red-500 text-4xl mb-3">⚠️</div>
+          <MdWarning className="text-red-500 w-10 h-10 mb-3 mx-auto" />
           <p className="text-red-600 font-semibold mb-2 text-sm">Error al cargar los datos</p>
           <p className="text-gray-500 text-xs">{error}</p>
         </div>
@@ -36,7 +37,7 @@ const EventosPorGranularidadChart = ({
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="text-gray-400 text-4xl mb-3">📊</div>
+          <MdBarChart className="text-gray-400 w-10 h-10 mb-3 mx-auto" />
           <p className="text-gray-500 text-sm">No hay datos disponibles</p>
         </div>
       </div>

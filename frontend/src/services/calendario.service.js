@@ -74,3 +74,31 @@ export const obtenerAsistenciaEvento = async (idEvento) => {
     throw error;
   }
 };
+
+// Acta de evento: obtener/guardar y generar PDF
+export const obtenerActaEvento = async (idEvento) => {
+  try {
+    const response = await axios.get(`/calendario/eventos/${idEvento}/acta`);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const guardarActaEvento = async (idEvento, data) => {
+  try {
+    const response = await axios.put(`/calendario/eventos/${idEvento}/acta`, data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const generarActaEventoPdf = async (idEvento, data) => {
+  try {
+    const response = await axios.post(`/calendario/eventos/${idEvento}/acta/pdf`, data);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

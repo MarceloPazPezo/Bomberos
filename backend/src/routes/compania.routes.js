@@ -11,6 +11,7 @@ import {
   getCompaniaBombero,
   getCompaniaLogoUrl,
   getCompanias,
+  getCompaniasConCoordenadas,
   updateCompania,
 } from "../controllers/compania.controller.js";
 
@@ -18,10 +19,13 @@ const router = Router();
 
 router.use(authenticateJwt);
 
-router.get("/", 
+router.get("/",
   //authorizePermisos(["compania:obtener"]), 
   getCompanias);
 
+router.get("/coordenadas",
+  //authorizePermisos(["compania:obtener"]), 
+  getCompaniasConCoordenadas);
 
 router.get(
   "/detalle/:id",

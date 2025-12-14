@@ -13,4 +13,9 @@ router.use(authenticateJwt);
 // Permite aprobar y rechazar partes (incluido en parte_emergencia:revisar)
 router.post("/:id/cambiar-estado", authorizePermisos(["parte_emergencia:revisar", "parte_emergencia:admin"]), cambiarEstadoIncidente);
 
+// GET /incidentes/:id/historial-estados
+// Obtiene el historial completo de estados de un incidente
+import { obtenerHistorialEstados } from "../controllers/incidenteEstado.controller.js";
+router.get("/:id/historial-estados", obtenerHistorialEstados);
+
 export default router;

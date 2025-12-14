@@ -15,6 +15,7 @@ body {
   overflow-x: hidden;
   font-family: 'Poppins', sans-serif;
 }
+
 #root {
   min-width: 100%;
   min-height: 100vh;
@@ -25,75 +26,191 @@ body {
   scrollbar-width: auto;
   scrollbar-color: #5ebffa transparent;
 }
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 16px;
   background: transparent;
 }
+
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background: #5ebffa;
   border-radius: 16px;
   border: 2px solid #e0e7ef;
 }
+
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
 
 /* Compactar tipografías de FullCalendar en páginas que usen el wrapper fc-compact */
 .fc-compact .fc {
-  font-size: 0.85rem; /* base */
+  font-size: 0.85rem;
+  /* base */
 }
+
 .fc-compact .fc .fc-toolbar-title {
   font-size: 2rem;
 }
+
 .fc-compact .fc .fc-daygrid-day-number,
 .fc-compact .fc .fc-col-header-cell-cushion,
 .fc-compact .fc .fc-timegrid-slot-label {
   font-size: 0.9rem;
 }
+
 .fc-compact .fc .fc-event,
 .fc-compact .fc .fc-event-title,
 .fc-compact .fc .fc-event-time {
   font-size: 0.7rem;
 }
+
 .fc-compact .fc .fc-multimonth-title {
   font-size: 1rem;
 }
 
 /* Tamaño reducido para chips del MultiSelect de participación en EventosTab */
 .participacion-multiselect .p-multiselect {
-  font-size: 0.65rem; /* Base más pequeña */
+  font-size: 0.65rem;
+  /* Base más pequeña */
 }
+
 .participacion-multiselect .p-multiselect-label,
 .participacion-multiselect .p-multiselect-token {
   font-size: 0.65rem;
   line-height: 0.9rem;
 }
+
 .participacion-multiselect .p-multiselect-token {
   padding: 0.15rem 0.5rem;
   border-radius: 14px;
-  background-color: #E5E7EB; /* gris claro consistente */
+  background-color: #E5E7EB;
+  /* gris claro consistente */
   color: #374151;
 }
+
 .participacion-multiselect .p-multiselect-token .p-multiselect-token-icon {
   font-size: 0.6rem;
   margin-left: 0.25rem;
 }
+
 .participacion-multiselect .p-multiselect-trigger {
-  width: 1.25rem; /* disparador más angosto */
+  width: 1.25rem;
+  /* disparador más angosto */
 }
+
 .participacion-multiselect .p-multiselect-trigger-icon {
   font-size: 0.65rem;
 }
+
 .participacion-multiselect .p-multiselect-panel .p-multiselect-items {
   font-size: 0.7rem;
 }
+
 .participacion-multiselect .p-checkbox .p-checkbox-box {
   width: 12px;
   height: 12px;
 }
+
 .participacion-multiselect .p-multiselect-header {
   padding: 0.4rem 0.5rem;
 }
+
 .participacion-multiselect .p-multiselect-item {
   padding: 0.3rem 0.5rem;
+}
+
+/* Estilos para PrimeReact MultiSelect y Dropdown en formularios */
+.p-multiselect,
+.p-dropdown {
+  min-height: 48px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  border-color: rgba(44, 62, 80, 0.2);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+
+/* Asegurar que los paneles se muestren correctamente */
+.p-multiselect-panel,
+.p-dropdown-panel {
+  z-index: 9999 !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.p-component-overlay {
+  z-index: 9998 !important;
+}
+
+.p-multiselect:not(.p-disabled):hover,
+.p-dropdown:not(.p-disabled):hover {
+  border-color: rgba(44, 62, 80, 0.3);
+}
+
+.p-multiselect:not(.p-disabled).p-focus,
+.p-dropdown:not(.p-disabled).p-focus {
+  border-color: #4EB9FA;
+  border-width: 2px;
+  box-shadow: 0 0 0 2px rgba(78, 185, 250, 0.4);
+}
+
+.p-multiselect.p-invalid,
+.p-dropdown.p-invalid {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+.p-multiselect .p-multiselect-label,
+.p-dropdown .p-dropdown-label {
+  padding: 12px;
+  font-size: 0.875rem;
+  color: #2C3E50;
+}
+
+.p-multiselect .p-multiselect-label.p-placeholder,
+.p-dropdown .p-dropdown-label.p-placeholder {
+  color: rgba(44, 62, 80, 0.6);
+}
+
+.p-multiselect-panel .p-multiselect-items .p-multiselect-item {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+}
+
+.p-multiselect-panel .p-multiselect-items .p-multiselect-item:not(.p-highlight):hover {
+  background: rgba(78, 185, 250, 0.1);
+}
+
+.p-multiselect-panel .p-multiselect-items .p-multiselect-item.p-highlight {
+  background: #4EB9FA;
+  color: #FFFFFF;
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item:not(.p-highlight):hover {
+  background: rgba(78, 185, 250, 0.1);
+}
+
+.p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background: #4EB9FA;
+  color: #FFFFFF;
+}
+
+/* Chips en MultiSelect */
+.p-multiselect-token {
+  background: rgba(78, 185, 250, 0.1);
+  color: #2C3E50;
+  padding: 4px 8px;
+  margin: 2px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.p-multiselect-token .p-multiselect-token-icon:hover {
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
 }

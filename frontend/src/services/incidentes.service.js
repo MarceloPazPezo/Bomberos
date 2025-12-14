@@ -39,3 +39,14 @@ export const cambiarEstadoIncidente = async (id, { estado, idBombero, comentario
     throw error.response?.data || error;
   }
 };
+
+// Obtiene el historial completo de estados de un incidente
+export const obtenerHistorialEstados = async (id) => {
+  try {
+    const resp = await axios.get(`/incidentes/${id}/historial-estados`);
+    return resp.data?.data ?? resp.data;
+  } catch (error) {
+    console.error('Error al obtener historial de estados:', error);
+    throw error.response?.data || error;
+  }
+};

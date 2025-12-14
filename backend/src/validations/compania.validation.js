@@ -131,6 +131,24 @@ export const companiaCreateValidation = Joi.object({
       "string.base": "La clave del banner debe ser de tipo string.",
       "string.max": "La clave del banner debe tener como máximo {#limit} caracteres.",
     }),
+  descripcion: Joi.string()
+    .max(2000)
+    .optional()
+    .allow(null, "")
+    .messages({
+      "string.base": "La descripción debe ser de tipo string.",
+      "string.max": "La descripción debe tener como máximo {#limit} caracteres.",
+    }),
+  sitioWeb: Joi.string()
+    .uri()
+    .max(255)
+    .optional()
+    .allow(null, "")
+    .messages({
+      "string.base": "El sitio web debe ser de tipo string.",
+      "string.uri": "El sitio web debe ser una URL válida.",
+      "string.max": "El sitio web debe tener como máximo {#limit} caracteres.",
+    }),
 })
   .unknown(false)
   .messages({
@@ -204,6 +222,24 @@ export const companiaUpdateValidation = Joi.object({
     .messages({
       "string.base": "La clave del banner debe ser de tipo string.",
       "string.max": "La clave del banner debe tener como máximo {#limit} caracteres.",
+    }),
+  descripcion: Joi.string()
+    .max(2000)
+    .optional()
+    .allow(null, "")
+    .messages({
+      "string.base": "La descripción debe ser de tipo string.",
+      "string.max": "La descripción debe tener como máximo {#limit} caracteres.",
+    }),
+  sitioWeb: Joi.string()
+    .uri()
+    .max(255)
+    .optional()
+    .allow(null, "")
+    .messages({
+      "string.base": "El sitio web debe ser de tipo string.",
+      "string.uri": "El sitio web debe ser una URL válida.",
+      "string.max": "El sitio web debe tener como máximo {#limit} caracteres.",
     }),
 })
   .min(1)

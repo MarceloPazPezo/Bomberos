@@ -1,16 +1,17 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Line } from 'react-chartjs-2';
+import React from "react";
+import PropTypes from "prop-types";
+import { Line } from "react-chartjs-2";
+import { MdWarning, MdBarChart } from "react-icons/md";
 
 /**
  * Componente de gráfico de líneas para evolución de eventos y asistentes
  * Muestra dos líneas: cantidad de eventos y total de asistentes por fecha
  */
-const EvolucionEventosChart = ({ 
-  chartData = null, 
-  chartOptions = {}, 
-  loading = false, 
-  error = null 
+const EvolucionEventosChart = ({
+  chartData = null,
+  chartOptions = {},
+  loading = false,
+  error = null,
 }) => {
   // Estado de carga
   if (loading) {
@@ -29,7 +30,7 @@ const EvolucionEventosChart = ({
     return (
       <div className="flex justify-center items-center h-full">
         <div className="flex flex-col items-center gap-2 px-4">
-          <div className="text-red-500 text-3xl">⚠️</div>
+          <MdWarning className="text-red-500 w-8 h-8" />
           <p className="text-red-700 font-semibold text-center text-sm">Error al cargar datos</p>
           <p className="text-red-600 text-xs text-center">{error}</p>
         </div>
@@ -42,7 +43,7 @@ const EvolucionEventosChart = ({
     return (
       <div className="flex justify-center items-center h-full">
         <div className="flex flex-col items-center gap-2">
-          <div className="text-gray-400 text-3xl">📊</div>
+          <MdBarChart className="text-gray-400 w-8 h-8" />
           <p className="text-gray-600 text-sm">No hay datos para mostrar</p>
           <p className="text-gray-500 text-xs">Ajusta el rango de fechas o el filtro de tipo</p>
         </div>

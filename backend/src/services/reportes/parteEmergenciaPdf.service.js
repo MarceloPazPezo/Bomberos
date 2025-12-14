@@ -135,7 +135,7 @@ function drawHeader(doc, logos, parte) {
       align: 'center',
     });
 
-  doc.text(`${parte.subtipo?.claveRadial || parte.id}`, MARGINS.left, textY + 52, {
+  doc.text(`${parte.subtipo?.claveRadial?.nombre || parte.subtipo?.codigoRadial || parte.id}`, MARGINS.left, textY + 52, {
     width: pageWidth - MARGINS.left - MARGINS.right,
     align: 'center',
   });

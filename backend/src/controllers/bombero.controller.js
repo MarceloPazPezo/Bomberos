@@ -29,6 +29,9 @@ import {
 // Servicios de detalles
 import { getBomberoDetallesCompletosService } from "../services/bomberoDetalles.service.js";
 
+// Servicios de reportes PDF
+import { generarFichaBomberoPdfService } from "../services/reportes/fichaBomberoPdf.service.js";
+
 import {
   bomberoBodyValidation,
   bomberoCreateValidation,
@@ -498,6 +501,31 @@ export async function getBomberoDetalles(req, res) {
   } catch (error) {
     console.error("Error en getBomberoDetalles:", error);
     return handleErrorServer(res, 500, "Error interno del servidor");
+  }
+}
+
+/**
+ * Generar PDF de ficha de bombero
+ * POST /api/bombero/:id/ficha/pdf
+ */
+export async function generarFichaBomberoPdf(req, res) {
+  const { id } = req.params;
+  const idBombero = Number(id);
+  if (!Number.isInteger(idBombero) || idBombero <= 0) {
+    return handleErrorClient(res, 400, "Id inválido");
+  }
+  const { expiresIn } = req.body || {};
+  try {
+    const resultado = await generarFichaBomberoPdfService(idBombero, {
+      expiresIn,
+    });
+    return handleSuccess(res, 200, "PDF de ficha generado exitosamente", resultado);
+  } catch (error) {
+    if (error.message && error.message.includes("no encontrado")) {
+      return handleErrorClient(res, 404, error.message || "Bombero no encontrado");
+    }
+    console.error('Error generando PDF de ficha:', error);
+    return handleErrorServer(res, 500, "Error generando el PDF de ficha");
   }
 }
 

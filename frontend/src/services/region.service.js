@@ -135,7 +135,7 @@ export const regionService = {
 // Exportar funciones individuales para compatibilidad
 export const getRegiones = async () => {
   try {
-    const response = await axios.get(`${API_URL}/regiones`);
+    const response = await API.get('/region/regiones');
     return response.data;
   } catch (error) {
     console.error('Error al obtener regiones:', error);
@@ -146,8 +146,8 @@ export const getRegiones = async () => {
 export const getComunas = async (idRegion) => {
   try {
     // Si se proporciona idRegion, obtener comunas de esa región
-    const endpoint = idRegion ? `${API_URL}/comunas/region/${idRegion}` : `${API_URL}/comunas`;
-    const response = await axios.get(endpoint);
+    const endpoint = idRegion ? `/region/comunas/region/${idRegion}` : '/region/comunas';
+    const response = await API.get(endpoint);
     return response.data;
   } catch (error) {
     console.error('Error al obtener comunas:', error);

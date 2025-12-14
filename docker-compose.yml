@@ -74,94 +74,6 @@ services:
       start_period: 30s
     networks:
       - network
-
-  # ===========================================
-  # BACKEND API (Node.js + Express)
-  # ===========================================
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: bomberos-pern-backend
-    environment:
-      # Configuración del servidor
-      NODE_ENV: ${NODE_ENV:-production}
-      HOST: ${B_HOST:-0.0.0.0}
-      PORT: ${B_PORT:-3000}
-      # Zona horaria de Chile (maneja automáticamente el cambio de horario)
-      TZ: America/Santiago
-      # Aumentar límite de memoria de Node.js para evitar heap out of memory
-      NODE_OPTIONS: "--max-old-space-size=4096"
-      
-      # Seguridad
-      ACCESS_TOKEN_SECRET: ${B_ACCESS_TOKEN_SECRET}
-      COOKIE_KEY: ${B_COOKIE_KEY}
-      
-      # Base de datos principal (variables que espera configEnv.js)
-      DB_HOST: database
-      DATABASE: ${DB_NAME:-db_bomberos}
-      DB_USERNAME: ${DB_USERNAME:-user_bomberos}
-      PASSWORD: ${DB_PASSWORD:-password_bomberos}
-      
-      # MinIO
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-minio}
-      MINIO_PORT: ${MINIO_PORT:-9000}
-      MINIO_USE_SSL: ${MINIO_USE_SSL:-false}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin123}
-      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-uploads}
-      
-      # Redis
-      REDIS_HOST: redis
-      REDIS_PORT: ${REDIS_PORT:-6379}
-      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
-      REDIS_DB: ${REDIS_DB:-0}
-    ports:
-      - "${EXTERNAL_BACKEND_PORT:-3000}:3000"
-    volumes:
-      - backend_logs:/app/logs
-    restart: unless-stopped
-    depends_on:
-      database:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - network
-
-  # ===========================================
-  # FRONTEND (React + Nginx)
-  # ===========================================
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_BASE_URL: ${VITE_BASE_URL:-/api}
-    container_name: bomberos-pern-frontend
-    ports:
-      - "${EXTERNAL_FRONTEND_PORT:-80}:80"
-      - "${EXTERNAL_FRONTEND_SSL_PORT:-443}:443"
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    networks:
-      - network
 # ===========================================
 # VOLÚMENES PERSISTENTES
 # ===========================================
@@ -173,8 +85,6 @@ volumes:
   redis_data:
     driver: local
   minio_data:
-    driver: local
-  backend_logs:
     driver: local
 
 # ===========================================

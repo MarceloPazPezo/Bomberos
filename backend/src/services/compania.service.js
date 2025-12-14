@@ -3,6 +3,85 @@ import { AppDataSource } from "../config/configDb.js";
 import Compania from "../entities/compania.entity.js";
 import FichaBombero from "../entities/fichaBombero.entity.js";
 import Incidente from "../entities/incidente.entity.js";
+import { createPuntoGeograficoService, updatePuntoGeograficoService } from "./puntoGeografico.service.js";
+
+/**
+ * Crea o actualiza punto geográfico para una compañía
+ * @param {Object} transactionalEntityManager - Entity manager transaccional
+ * @param {Object} compania - Objeto de compañía
+ * @param {Number} lat - Latitud
+ * @param {Number} lng - Longitud
+ * @param {Number} userId - ID del usuario que crea/actualiza
+ * @returns {Promise<Number>} ID del punto geográfico
+ */
+async function handlePuntoGeograficoCompania(transactionalEntityManager, compania, lat, lng, userId) {
+  try {
+    const tipoPuntoRepository = transactionalEntityManager.getRepository("TipoPunto");
+    const direccionRepository = transactionalEntityManager.getRepository("Direccion");
+
+    // Buscar el tipo "Cuartel" o el primer tipo activo
+    let tipoPunto = await tipoPuntoRepository.findOne({
+      where: { nombre: "Cuartel" }
+    });
+
+    if (!tipoPunto) {
+      tipoPunto = await tipoPuntoRepository.findOne({
+        where: { activo: true },
+        order: { id: 'ASC' }
+      });
+    }
+
+    if (!tipoPunto) {
+      throw new Error("No hay tipos de punto disponibles");
+    }
+
+    // Si la compañía ya tiene dirección, verificar si tiene punto geográfico
+    if (compania.idDireccion) {
+      const direccion = await direccionRepository.findOne({
+        where: { id: compania.idDireccion },
+        relations: ["puntoGeografico"]
+      });
+
+      if (direccion && direccion.idPuntoGeografico) {
+        // Actualizar punto existente
+        const [puntoActualizado, error] = await updatePuntoGeograficoService(
+          direccion.idPuntoGeografico,
+          {
+            nombre: `Cuartel ${compania.nombre}`,
+            descripcion: `Ubicación de ${compania.nombre}`,
+            lat,
+            lng,
+            idTipoPunto: tipoPunto.id,
+            idCompania: compania.id,
+            actualizadoPor: userId
+          }
+        );
+
+        if (error) throw new Error(error);
+        return direccion.idPuntoGeografico;
+      }
+    }
+
+    // Crear nuevo punto geográfico
+    const [nuevoPunto, error] = await createPuntoGeograficoService({
+      nombre: `Cuartel ${compania.nombre}`,
+      descripcion: `Ubicación de ${compania.nombre}`,
+      lat,
+      lng,
+      idTipoPunto: tipoPunto.id,
+      idCompania: compania.id,
+      creadoPor: userId,
+      categoria: 'PUNTO_INTERES',
+      estado: 'BUENO'
+    });
+
+    if (error) throw new Error(error);
+    return nuevoPunto.id;
+  } catch (error) {
+    console.error("Error al crear/actualizar punto geográfico de compañía:", error);
+    throw error;
+  }
+}
 
 /**
  * Obtiene una compañía específica por criterios de búsqueda
@@ -25,12 +104,17 @@ export async function getCompaniaService(query) {
     const queryBuilder = companiaRepository
       .createQueryBuilder("compania")
       .leftJoinAndSelect("compania.direccion", "direccion")
+      .leftJoinAndSelect("direccion.puntoGeografico", "puntoGeografico")
+      .leftJoinAndSelect("direccion.comuna", "comuna")
+      .leftJoinAndSelect("comuna.region", "region")
       .select([
         "compania.id",
         "compania.nombre",
         "compania.fechaFundacion",
         "compania.email",
         "compania.telefono",
+        "compania.descripcion",
+        "compania.sitioWeb",
         "compania.idDireccion",
         "compania.logoKEY",
         "compania.bannerKEY",
@@ -40,6 +124,11 @@ export async function getCompaniaService(query) {
         "direccion.depto",
         "direccion.referencia",
         "direccion.idComuna",
+        "direccion.idPuntoGeografico",
+        "comuna.id",
+        "comuna.nombre",
+        "region.id",
+        "region.nombre",
       ]);
 
     // Construir condiciones WHERE dinámicamente
@@ -52,12 +141,12 @@ export async function getCompaniaService(query) {
 
     if (nombre !== undefined) {
       if (hasAppliedFirstCondition) {
-        queryBuilder.orWhere("compania.nombre ILIKE :nombre", { 
-          nombre: `%${nombre}%` 
+        queryBuilder.orWhere("compania.nombre ILIKE :nombre", {
+          nombre: `%${nombre}%`
         });
       } else {
-        queryBuilder.where("compania.nombre ILIKE :nombre", { 
-          nombre: `%${nombre}%` 
+        queryBuilder.where("compania.nombre ILIKE :nombre", {
+          nombre: `%${nombre}%`
         });
         hasAppliedFirstCondition = true;
       }
@@ -74,6 +163,36 @@ export async function getCompaniaService(query) {
     const companiaFound = await queryBuilder.getOne();
 
     if (!companiaFound) return [null, "Compañía no encontrada"];
+
+    console.log('[getCompaniaService] companiaFound:', {
+      id: companiaFound.id,
+      hasDireccion: !!companiaFound.direccion,
+      idPuntoGeografico: companiaFound.direccion?.idPuntoGeografico,
+      hasPuntoGeografico: !!companiaFound.direccion?.puntoGeografico
+    });
+
+    // Si tiene idPuntoGeografico, extraer las coordenadas directamente
+    if (companiaFound.direccion && companiaFound.direccion.idPuntoGeografico) {
+      const idPunto = companiaFound.direccion.idPuntoGeografico;
+
+      console.log('[getCompaniaService] Buscando coordenadas para punto ID:', idPunto);
+
+      const coordsResult = await AppDataSource.query(
+        'SELECT ST_X(punto) as longitud, ST_Y(punto) as latitud FROM puntos_geograficos WHERE id = $1',
+        [idPunto]
+      );
+
+      console.log('[getCompaniaService] coordsResult:', coordsResult);
+
+      if (coordsResult && coordsResult.length > 0) {
+        companiaFound.direccion.latitud = coordsResult[0].latitud;
+        companiaFound.direccion.longitud = coordsResult[0].longitud;
+        console.log('[getCompaniaService] Coordenadas agregadas:', {
+          latitud: coordsResult[0].latitud,
+          longitud: coordsResult[0].longitud
+        });
+      }
+    }
 
     return [companiaFound, null];
   } catch (error) {
@@ -94,12 +213,17 @@ export async function getCompaniasService(queryParams = {}) {
     const queryBuilder = companiaRepository
       .createQueryBuilder("compania")
       .leftJoinAndSelect("compania.direccion", "direccion")
+      .leftJoinAndSelect("direccion.comuna", "comuna")
+      .leftJoinAndSelect("comuna.region", "region")
+      .leftJoinAndSelect("direccion.puntoGeografico", "puntoGeografico")
       .select([
         "compania.id",
         "compania.nombre",
         "compania.fechaFundacion",
         "compania.email",
         "compania.telefono",
+        "compania.descripcion",
+        "compania.sitioWeb",
         "compania.idDireccion",
         "compania.logoKEY",
         "compania.bannerKEY",
@@ -109,6 +233,11 @@ export async function getCompaniasService(queryParams = {}) {
         "direccion.depto",
         "direccion.referencia",
         "direccion.idComuna",
+        "direccion.idPuntoGeografico",
+        "comuna.id",
+        "comuna.nombre",
+        "region.id",
+        "region.nombre",
       ])
       .orderBy("compania.id", "ASC");
 
@@ -116,8 +245,8 @@ export async function getCompaniasService(queryParams = {}) {
     const { nombre, email, telefono, page = 1, limit = 10 } = queryParams;
 
     if (nombre) {
-      queryBuilder.andWhere("compania.nombre ILIKE :nombre", { 
-        nombre: `%${nombre}%` 
+      queryBuilder.andWhere("compania.nombre ILIKE :nombre", {
+        nombre: `%${nombre}%`
       });
     }
 
@@ -126,8 +255,8 @@ export async function getCompaniasService(queryParams = {}) {
     }
 
     if (telefono) {
-      queryBuilder.andWhere("compania.telefono ILIKE :telefono", { 
-        telefono: `%${telefono}%` 
+      queryBuilder.andWhere("compania.telefono ILIKE :telefono", {
+        telefono: `%${telefono}%`
       });
     }
 
@@ -139,6 +268,33 @@ export async function getCompaniasService(queryParams = {}) {
 
     if (!companias || companias.length === 0) {
       return [[], "No se encontraron compañías.", 0];
+    }
+
+    console.log('[getCompaniasService] Procesando', companias.length, 'compañías');
+
+    // Agregar coordenadas a cada compañía desde su idPuntoGeografico
+    for (const compania of companias) {
+      if (compania.direccion && compania.direccion.idPuntoGeografico) {
+        const idPunto = compania.direccion.idPuntoGeografico;
+
+        console.log(`[getCompaniasService] Compañía ${compania.id}: buscando coordenadas para punto ${idPunto}`);
+
+        const coordsResult = await AppDataSource.query(
+          'SELECT ST_X(punto) as longitud, ST_Y(punto) as latitud FROM puntos_geograficos WHERE id = $1',
+          [idPunto]
+        );
+
+        console.log(`[getCompaniasService] Compañía ${compania.id}: coordsResult:`, coordsResult);
+
+        if (coordsResult && coordsResult.length > 0) {
+          compania.direccion.latitud = coordsResult[0].latitud;
+          compania.direccion.longitud = coordsResult[0].longitud;
+          console.log(`[getCompaniasService] Compañía ${compania.id}: coordenadas agregadas:`, {
+            latitud: coordsResult[0].latitud,
+            longitud: coordsResult[0].longitud
+          });
+        }
+      }
     }
 
     return [companias, null, total];
@@ -400,11 +556,37 @@ export async function getCompaniaBomberoService(idBombero) {
 
     // Por ahora, como no hay relación directa, retornamos la primera compañía
     // En el futuro, aquí buscarías la compañía específica del bombero
-    const compania = await companiaRepository.findOne({
-      where: {},
-      relations: ["direccion"],
-      order: { id: "ASC" }
-    });
+    const compania = await companiaRepository
+      .createQueryBuilder("compania")
+      .leftJoinAndSelect("compania.direccion", "direccion")
+      .leftJoinAndSelect("direccion.puntoGeografico", "puntoGeografico")
+      .leftJoinAndSelect("direccion.comuna", "comuna")
+      .leftJoinAndSelect("comuna.region", "region")
+      .select([
+        "compania.id",
+        "compania.nombre",
+        "compania.fechaFundacion",
+        "compania.email",
+        "compania.telefono",
+        "compania.descripcion",
+        "compania.sitioWeb",
+        "compania.idDireccion",
+        "compania.logoKEY",
+        "compania.bannerKEY",
+        "direccion.id",
+        "direccion.calle",
+        "direccion.numero",
+        "direccion.depto",
+        "direccion.referencia",
+        "direccion.idComuna",
+        "direccion.idPuntoGeografico",
+        "comuna.id",
+        "comuna.nombre",
+        "region.id",
+        "region.nombre",
+      ])
+      .orderBy("compania.id", "ASC")
+      .getOne();
 
     if (!compania) {
       return [null, "No se encontró información de la compañía"];
@@ -425,6 +607,43 @@ export async function getCompaniaBomberoService(idBombero) {
     return [compania, null];
   } catch (error) {
     console.error("Error al obtener la compañía del bombero:", error);
+    return [null, "Error interno del servidor"];
+  }
+}
+
+/**
+ * Obtiene todas las compañías con sus coordenadas para visualización en mapa
+ * @returns {Promise<Array>} [companias, error]
+ */
+export async function getCompaniasConCoordenadasService() {
+  try {
+    const result = await AppDataSource.query(`
+      SELECT 
+        c.id,
+        c.nombre,
+        c.email,
+        c.telefono,
+        c."logoKEY",
+        d.calle,
+        d.numero,
+        d.depto,
+        ST_X(pg.punto) as longitud,
+        ST_Y(pg.punto) as latitud,
+        pg.id as "idPuntoGeografico",
+        co.nombre as comuna,
+        r.nombre as region
+      FROM companias c
+      INNER JOIN direcciones d ON c."idDireccion" = d.id
+      INNER JOIN puntos_geograficos pg ON d."idPuntoGeografico" = pg.id
+      LEFT JOIN comunas co ON d."idComuna" = co.id
+      LEFT JOIN regiones r ON co."idRegion" = r.id
+      WHERE pg.punto IS NOT NULL
+      ORDER BY c.nombre
+    `);
+
+    return [result, null];
+  } catch (error) {
+    console.error("Error al obtener compañías con coordenadas:", error);
     return [null, "Error interno del servidor"];
   }
 }
