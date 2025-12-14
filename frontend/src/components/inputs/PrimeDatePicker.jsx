@@ -1,29 +1,49 @@
-import { useMemo } from 'react';
-import PropTypes from 'prop-types';
-import { Calendar } from 'primereact/calendar';
-import { addLocale, locale as setLocale } from 'primereact/api';
+import { useMemo } from "react";
+import PropTypes from "prop-types";
+import { Calendar } from "primereact/calendar";
+import { addLocale, locale as setLocale } from "primereact/api";
 
-const PRIME_LOCALE_KEY = 'es';
+const PRIME_LOCALE_KEY = "es";
 
 addLocale(PRIME_LOCALE_KEY, {
   firstDayOfWeek: 1,
-  dayNames: ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'],
-  dayNamesShort: ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'],
-  dayNamesMin: ['D', 'L', 'M', 'X', 'J', 'V', 'S'],
+  dayNames: ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"],
+  dayNamesShort: ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"],
+  dayNamesMin: ["D", "L", "M", "X", "J", "V", "S"],
   monthNames: [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
   ],
   monthNamesShort: [
-    'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-    'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
   ],
-  today: 'Hoy',
-  clear: 'Limpiar',
-  am: 'AM',
-  pm: 'PM',
-  hourText: 'Hora',
-  minuteText: 'Minuto',
+  today: "Hoy",
+  clear: "Limpiar",
+  am: "AM",
+  pm: "PM",
+  hourText: "Hora",
+  minuteText: "Minuto",
 });
 
 setLocale(PRIME_LOCALE_KEY);
@@ -32,16 +52,16 @@ const toDate = (value) => {
   if (!value) return null;
   const match = /^\d{4}-\d{2}-\d{2}$/.test(value);
   if (!match) return null;
-  const [year, month, day] = value.split('-').map(Number);
+  const [year, month, day] = value.split("-").map(Number);
   if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
   return new Date(year, month - 1, day, 0, 0, 0, 0);
 };
 
 const toString = (value) => {
-  if (!(value instanceof Date) || Number.isNaN(value.getTime())) return '';
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) return "";
   const year = value.getFullYear();
-  const month = String(value.getMonth() + 1).padStart(2, '0');
-  const day = String(value.getDate()).padStart(2, '0');
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -50,9 +70,9 @@ const PrimeDatePicker = ({
   value,
   onChange,
   onBlur,
-  placeholder = 'Seleccionar fecha',
-  className = '',
-  inputClassName = '',
+  placeholder = "Seleccionar fecha",
+  className = "",
+  inputClassName = "",
   error = false,
   showIcon = true,
   showButtonBar = true,
@@ -66,13 +86,8 @@ const PrimeDatePicker = ({
 
   const handleChange = (event) => {
     if (!onChange) return;
-    const next = event?.value instanceof Date ? toString(event.value) : '';
+    const next = event?.value instanceof Date ? toString(event.value) : "";
     onChange(next, event);
-  };
-
-  const handleClear = () => {
-    if (!onChange) return;
-    onChange('');
   };
 
   return (
@@ -81,7 +96,6 @@ const PrimeDatePicker = ({
       value={parsedValue}
       onChange={handleChange}
       onBlur={onBlur}
-      onClear={handleClear}
       placeholder={placeholder}
       showIcon={showIcon}
       showButtonBar={showButtonBar}
@@ -90,7 +104,7 @@ const PrimeDatePicker = ({
       disabled={disabled}
       minDate={parsedMinDate}
       maxDate={parsedMaxDate}
-      className={`w-full ${error ? 'p-invalid' : ''} ${className}`}
+      className={`w-full ${error ? "p-invalid" : ""} ${className}`}
       inputClassName={`w-full text-sm ${inputClassName}`}
     />
   );
@@ -113,4 +127,3 @@ PrimeDatePicker.propTypes = {
 };
 
 export default PrimeDatePicker;
-

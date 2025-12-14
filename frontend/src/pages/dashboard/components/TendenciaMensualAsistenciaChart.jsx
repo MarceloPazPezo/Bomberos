@@ -1,6 +1,7 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Line } from 'react-chartjs-2';
+import React from "react";
+import PropTypes from "prop-types";
+import { Line } from "react-chartjs-2";
+import { MdWarning, MdTrendingUp } from "react-icons/md";
 
 const TendenciaMensualAsistenciaChart = ({
   chartData = null,
@@ -26,7 +27,7 @@ const TendenciaMensualAsistenciaChart = ({
       <div className="bg-white p-8 rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center justify-center h-[400px]">
           <div className="text-center">
-            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <MdWarning className="text-red-500 w-12 h-12 mb-4 mx-auto" />
             <p className="text-red-600 font-semibold mb-2">Error al cargar los datos</p>
             <p className="text-gray-500 text-sm">{error}</p>
           </div>
@@ -39,7 +40,7 @@ const TendenciaMensualAsistenciaChart = ({
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="text-gray-400 text-4xl mb-3">📈</div>
+          <MdTrendingUp className="text-gray-400 w-10 h-10 mb-3 mx-auto" />
           <p className="text-gray-500 text-sm">No hay datos disponibles</p>
         </div>
       </div>

@@ -16,38 +16,40 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import ReactDOM from 'react-dom/client';
-import { lazy, Suspense } from 'react';
+import ReactDOM from "react-dom/client";
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { PrimeReactProvider } from 'primereact/api';
-import Login from '@pages/Login';
-import Home from '@pages/Home';
-import Error404 from '@pages/Error404';
-import Root from '@pages/Root';
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { PrimeReactProvider } from "primereact/api";
+import Login from "@pages/Login";
+import Home from "@pages/Home";
+import Error404 from "@pages/Error404";
+import Root from "@pages/Root";
 
 // Lazy loading para páginas menos críticas (se cargan bajo demanda)
 // Páginas lazy: Admin, Disponibilidad, Profile, CrearParte, EditarParte,
 //               PartesDeEmergencias, VistaParte, RevisionPartes, VistaParteRevision,
 //               CalendarioOperativo, CalendarioOperativoBasic, BomberosPage, InventarioEpp
 // Páginas inmediatas: Login, Home, Error404, Root (críticas para el funcionamiento básico)
-const Admin = lazy(() => import('@pages/Admin'));
-const Disponibilidad = lazy(() => import('@pages/Disponibilidad'));
-const Profile = lazy(() => import('@pages/Profile'));
-const CrearParte = lazy(() => import('@pages/crearParte'));
-const EdiarParte = lazy(() => import('@pages/editarParte'));
-const PartesDeEmergencias = lazy(() => import('@pages/PartesDeEmergencias'));
-const VistaParte = lazy(() => import('@pages/vistaParte.jsx'));
-const RevisionPartes = lazy(() => import('./pages/revisionPartes'));
-const VistaParteRevision = lazy(() => import('@pages/vistaParteRevision.jsx'));
-const VistaPartePdf = lazy(() => import('@pages/vistaPartePdf.jsx'));
-const CalendarioOperativo = lazy(() => import('@pages/CalendarioOperativoAdmin.jsx'));
-const CalendarioOperativoBasic = lazy(() => import('@pages/CalendarioOperativoBasic.jsx'));
-const BomberosPage = lazy(() => import('@pages/BomberosPage'));
-const InventarioEpp = lazy(() => import('@pages/InventarioEpp'));
-const Mapa = lazy(() => import('@pages/Mapa'));
-const Dashboard = lazy(() => import('@pages/Dashboard'));
+const Admin = lazy(() => import("@pages/Admin"));
+const Disponibilidad = lazy(() => import("@pages/Disponibilidad"));
+const Profile = lazy(() => import("@pages/Profile"));
+const CrearParte = lazy(() => import("@pages/crearParte"));
+const EdiarParte = lazy(() => import("@pages/editarParte"));
+const PartesDeEmergencias = lazy(() => import("@pages/PartesDeEmergencias"));
+const VistaParte = lazy(() => import("@pages/vistaParte.jsx"));
+const RevisionPartes = lazy(() => import("./pages/revisionPartes"));
+const VistaParteRevision = lazy(() => import("@pages/vistaParteRevision.jsx"));
+const VistaPartePdf = lazy(() => import("@pages/vistaPartePdf.jsx"));
+const VistaFichaBomberoPdf = lazy(() => import("@pages/VistaFichaBomberoPdf.jsx"));
+const VistaActaEventoPdf = lazy(() => import("@pages/VistaActaEventoPdf.jsx"));
+const CalendarioOperativo = lazy(() => import("@pages/CalendarioOperativoAdmin.jsx"));
+const CalendarioOperativoBasic = lazy(() => import("@pages/CalendarioOperativoBasic.jsx"));
+const BomberosPage = lazy(() => import("@pages/BomberosPage"));
+const InventarioEpp = lazy(() => import("@pages/InventarioEpp"));
+const Mapa = lazy(() => import("@pages/Mapa"));
+const Dashboard = lazy(() => import("@pages/Dashboard"));
 
 // Componente de carga para lazy loading
 const LoadingSpinner = () => (
@@ -56,38 +58,64 @@ const LoadingSpinner = () => (
   </div>
 );
 
-import ProtectedRoute from '@components/ProtectedRoute';
-import '@styles/styles.css';
-import 'primereact/resources/themes/lara-light-blue/theme.css';
-import 'primereact/resources/primereact.min.css';
-import 'primeicons/primeicons.css';
+import ProtectedRoute from "@components/ProtectedRoute";
+import "@styles/styles.css";
+import "primereact/resources/themes/lara-light-blue/theme.css";
+import "primereact/resources/primereact.min.css";
+import "primeicons/primeicons.css";
 
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <Root />,
     errorElement: <Error404 />,
     children: [
       {
-        path: '/',
+        path: "/",
         element: (
           <ProtectedRoute>
             <Home />
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/home',
+        path: "/home",
         element: (
           <ProtectedRoute>
             <Home />
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/admin',
+        path: "/admin",
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:obtener', 'bombero:crear', 'bombero:obtener_especifico', 'bombero:actualizar', 'bombero:eliminar', 'bombero:cambiar_estado', 'bombero:asignar_rol', 'bombero:admin', 'rol:obtener', 'rol:admin', 'permiso:obtener', 'permiso:admin', 'compania:obtener', 'compania:obtener_especifico', 'compania:admin', 'region:obtener', 'region:admin', 'comuna:obtener', 'comuna:admin', 'disponibilidad:obtener', 'disponibilidad:crear', 'disponibilidad:actualizar', 'disponibilidad:admin']}>
+          <ProtectedRoute
+            requiredPermisos={[
+              "bombero:obtener",
+              "bombero:crear",
+              "bombero:obtener_especifico",
+              "bombero:actualizar",
+              "bombero:eliminar",
+              "bombero:cambiar_estado",
+              "bombero:asignar_rol",
+              "bombero:admin",
+              "rol:obtener",
+              "rol:admin",
+              "permiso:obtener",
+              "permiso:admin",
+              "compania:obtener",
+              "compania:obtener_especifico",
+              "compania:admin",
+              "region:obtener",
+              "region:admin",
+              "comuna:obtener",
+              "comuna:admin",
+              "disponibilidad:obtener",
+              "disponibilidad:crear",
+              "disponibilidad:actualizar",
+              "disponibilidad:admin",
+            ]}
+          >
             <Suspense fallback={<LoadingSpinner />}>
               <Admin />
             </Suspense>
@@ -95,9 +123,9 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/disponibilidad',
+        path: "/disponibilidad",
         element: (
-          <ProtectedRoute requiredPermisos={['disponibilidad:obtener']}>
+          <ProtectedRoute requiredPermisos={["disponibilidad:obtener"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <Disponibilidad />
             </Suspense>
@@ -107,7 +135,7 @@ const router = createBrowserRouter([
       {
         path: "/perfil",
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:obtener_perfil']}>
+          <ProtectedRoute requiredPermisos={["bombero:obtener_perfil"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <Profile />
             </Suspense>
@@ -115,9 +143,9 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/bomberos',
+        path: "/bomberos",
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+          <ProtectedRoute requiredPermisos={["bombero:obtener"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <BomberosPage />
             </Suspense>
@@ -125,99 +153,123 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/crear-parte',
+        path: "/crear-parte",
         element: (
-          <ProtectedRoute requiredPermisos={['parte_emergencia:crear', 'parte_emergencia:admin']}>
+          <ProtectedRoute requiredPermisos={["parte_emergencia:crear", "parte_emergencia:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <CrearParte />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/editar-parte/:id',
+        path: "/editar-parte/:id",
         element: (
-          <ProtectedRoute requiredPermisos={['parte_emergencia:actualizar', 'parte_emergencia:admin']}>
+          <ProtectedRoute
+            requiredPermisos={["parte_emergencia:actualizar", "parte_emergencia:admin"]}
+          >
             <Suspense fallback={<LoadingSpinner />}>
               <EdiarParte />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/partes-de-emergencias',
+        path: "/partes-de-emergencias",
         element: (
-          <ProtectedRoute requiredPermisos={['parte_emergencia:obtener', 'parte_emergencia:admin']}>
+          <ProtectedRoute requiredPermisos={["parte_emergencia:obtener", "parte_emergencia:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <PartesDeEmergencias />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/vista-parte/:id',
+        path: "/vista-parte/:id",
         element: (
-          <ProtectedRoute requiredPermisos={['parte_emergencia:obtener', 'parte_emergencia:admin']}>
+          <ProtectedRoute requiredPermisos={["parte_emergencia:obtener", "parte_emergencia:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaParte />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/vistaparterev/:id',
+        path: "/vistaparterev/:id",
         element: (
-          <ProtectedRoute requiredPermisos={['parte_emergencia:revisar', 'parte_emergencia:admin']}>
+          <ProtectedRoute requiredPermisos={["parte_emergencia:revisar", "parte_emergencia:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaParteRevision />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/vista-parte/:id/pdf',
+        path: "/vista-parte/:id/pdf",
         element: (
-          <ProtectedRoute requiredPermisos={['parte_emergencia:generar_pdf', 'parte_emergencia:admin']}>
+          <ProtectedRoute
+            requiredPermisos={["parte_emergencia:generar_pdf", "parte_emergencia:admin"]}
+          >
             <Suspense fallback={<LoadingSpinner />}>
               <VistaPartePdf />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/revisar-parte',
+        path: "/ficha-bombero/:id/pdf",
         element: (
-          <ProtectedRoute requiredPermisos={['parte_emergencia:revisar', 'parte_emergencia:admin']}>
+          <ProtectedRoute requiredPermisos={["bombero:obtener", "bombero:admin"]}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <VistaFichaBomberoPdf />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/calendario/evento/:id/acta/pdf",
+        element: (
+          <ProtectedRoute requiredPermisos={["evento:obtener", "evento:admin"]}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <VistaActaEventoPdf />
+            </Suspense>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "/revisar-parte",
+        element: (
+          <ProtectedRoute requiredPermisos={["parte_emergencia:revisar", "parte_emergencia:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <RevisionPartes />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/calendario-admin',
+        path: "/calendario-admin",
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
               <CalendarioOperativo />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/calendario',
+        path: "/calendario",
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
               <CalendarioOperativoBasic />
             </Suspense>
           </ProtectedRoute>
-        )
+        ),
       },
       {
-        path: '/inventario-epp',
+        path: "/inventario-epp",
         element: (
-          <ProtectedRoute requiredPermisos={['bombero:obtener']}>
+          <ProtectedRoute requiredPermisos={["bombero:obtener"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <InventarioEpp />
             </Suspense>
@@ -225,9 +277,9 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/mapa',
+        path: "/mapa",
         element: (
-          <ProtectedRoute requiredPermisos={['puntoGeografico:obtener', 'puntoGeografico:admin']}>
+          <ProtectedRoute requiredPermisos={["puntoGeografico:obtener", "puntoGeografico:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <Mapa />
             </Suspense>
@@ -235,7 +287,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: '/dashboard',
+        path: "/dashboard",
         element: (
           <ProtectedRoute>
             <Suspense fallback={<LoadingSpinner />}>
@@ -243,24 +295,24 @@ const router = createBrowserRouter([
             </Suspense>
           </ProtectedRoute>
         ),
-      }
-    ]
+      },
+    ],
   },
   {
-    path: '/auth',
-    element: <Login />
+    path: "/auth",
+    element: <Login />,
   },
   {
-    path: '/login',
-    element: <Login />
+    path: "/login",
+    element: <Login />,
   },
   {
-    path: '/404',
-    element: <Error404 />
-  }
-])
+    path: "/404",
+    element: <Error404 />,
+  },
+]);
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+ReactDOM.createRoot(document.getElementById("root")).render(
   <PrimeReactProvider value={{ ripple: true }}>
     <RouterProvider
       router={router}
@@ -279,4 +331,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       icon={false}
     />
   </PrimeReactProvider>
-)
+);

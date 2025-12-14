@@ -1,40 +1,29 @@
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import LoadingPage from "@components/LoadingPage";
 import PdfViewer from "@components/PdfViewer";
-import { generarReporteParteEmergenciaPdf } from "@services/parteEmergencia.service.js";
+import { generarFichaBomberoPdf } from "@services/bombero.service.js";
 
-const DEFAULT_PAGE_SIZE = "A4";
-
-export default function VistaPartePdf() {
+export default function VistaFichaBomberoPdf() {
   const { id } = useParams();
-  const location = useLocation();
-  const initialPdf = location.state?.pdf ?? null;
-
-  const [pdfData, setPdfData] = useState(initialPdf);
-  const [loading, setLoading] = useState(!initialPdf);
+  const [pdfData, setPdfData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [regenerating, setRegenerating] = useState(false);
 
-  const fetchPdf = async (options = {}) => {
+  const fetchPdf = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await generarReporteParteEmergenciaPdf(id, {
-        pageSize: options.pageSize || pdfData?.pageSize || DEFAULT_PAGE_SIZE,
-        expiresIn: options.expiresIn,
-      });
+      const response = await generarFichaBomberoPdf(id);
       const data = response?.data ?? response;
       if (!data?.url) {
         throw new Error("Respuesta incompleta del backend");
       }
-      setPdfData({
-        ...data,
-        pageSize: options.pageSize || pdfData?.pageSize || DEFAULT_PAGE_SIZE,
-      });
+      setPdfData(data);
     } catch (err) {
-      const message = err?.message || err?.status || "No se pudo generar el reporte PDF";
+      const message = err?.message || err?.status || "No se pudo generar la ficha del bombero";
       setError(message);
       toast.error(message);
     } finally {
@@ -43,20 +32,18 @@ export default function VistaPartePdf() {
     }
   };
 
-  const handleRegenerate = () => {
-    setRegenerating(true);
-    fetchPdf({ pageSize: pdfData?.pageSize || DEFAULT_PAGE_SIZE });
-  };
-
   useEffect(() => {
-    if (!pdfData) {
-      fetchPdf({ pageSize: DEFAULT_PAGE_SIZE });
-    }
+    fetchPdf();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const handleRegenerate = () => {
+    setRegenerating(true);
+    fetchPdf();
+  };
+
   if (loading) {
-    return <LoadingPage message="Generando reporte PDF..." />;
+    return <LoadingPage message="Generando ficha del bombero..." />;
   }
 
   if (error && !pdfData?.url) {
@@ -79,14 +66,14 @@ export default function VistaPartePdf() {
 
   return (
     <PdfViewer
-      title="Parte de Emergencia"
+      title="Ficha del Bombero"
       pdfUrl={pdfData?.url}
       expiresAt={pdfData?.expiresAt}
       onRegenerate={handleRegenerate}
       regenerating={regenerating}
-      backLabel="Volver al parte"
-      metadata={`Parte #${id} · Tamaño ${pdfData?.pageSize || DEFAULT_PAGE_SIZE}`}
-      downloadFileName={`${id}-${new Date().getFullYear()}-parte.pdf`}
+      backLabel="Volver"
+      metadata={`Bombero #${id}`}
+      downloadFileName={`${pdfData?.rut || id}-ficha-bombero.pdf`}
       error={error}
     />
   );

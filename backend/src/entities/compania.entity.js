@@ -43,6 +43,15 @@ const CompaniaSchema = new EntitySchema({
       length: 255,
       nullable: true,
     },
+    descripcion: {
+      type: "text",
+      nullable: true,
+    },
+    sitioWeb: {
+      type: "varchar",
+      length: 255,
+      nullable: true,
+    },
   },
   indices: [
     { name: "IDX_COMPANIA_NOMBRE", columns: ["nombre"] },
@@ -80,7 +89,7 @@ const CompaniaSchema = new EntitySchema({
       inverseSide: "compania",
       cascade: true,
     },
-    
+
 
   },
 });

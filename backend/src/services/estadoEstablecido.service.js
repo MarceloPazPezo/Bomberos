@@ -51,7 +51,7 @@ export async function obtenerHistorialEstadosPorIncidenteService(idIncidente) {
       b.apellidos AS "bomberoApellidos"
     FROM "estadoEstablecido" ee
     JOIN "estadoReporte" e ON e.id = ee."idEstado"
-    LEFT JOIN "bombero" b ON b.id = ee."idBombero"
+    LEFT JOIN "bomberos" b ON b.id = ee."idBombero"
     WHERE ee."idIncidente" = $1
     ORDER BY ee."fechaHora" DESC
   `;

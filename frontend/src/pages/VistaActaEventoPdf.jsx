@@ -1,40 +1,33 @@
 import { useEffect, useState } from "react";
-import { useLocation, useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import LoadingPage from "@components/LoadingPage";
 import PdfViewer from "@components/PdfViewer";
-import { generarReporteParteEmergenciaPdf } from "@services/parteEmergencia.service.js";
+import { generarActaEventoPdf } from "@services/calendario.service.js";
 
-const DEFAULT_PAGE_SIZE = "A4";
-
-export default function VistaPartePdf() {
+export default function VistaActaEventoPdf() {
   const { id } = useParams();
   const location = useLocation();
-  const initialPdf = location.state?.pdf ?? null;
+  const actaData = location.state?.actaData; // descripcion y temas desde el calendario
 
-  const [pdfData, setPdfData] = useState(initialPdf);
-  const [loading, setLoading] = useState(!initialPdf);
+  const [pdfData, setPdfData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [regenerating, setRegenerating] = useState(false);
 
-  const fetchPdf = async (options = {}) => {
+  const fetchPdf = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await generarReporteParteEmergenciaPdf(id, {
-        pageSize: options.pageSize || pdfData?.pageSize || DEFAULT_PAGE_SIZE,
-        expiresIn: options.expiresIn,
-      });
+      const payload = actaData || {};
+      const response = await generarActaEventoPdf(id, payload);
       const data = response?.data ?? response;
       if (!data?.url) {
         throw new Error("Respuesta incompleta del backend");
       }
-      setPdfData({
-        ...data,
-        pageSize: options.pageSize || pdfData?.pageSize || DEFAULT_PAGE_SIZE,
-      });
+      setPdfData(data);
     } catch (err) {
-      const message = err?.message || err?.status || "No se pudo generar el reporte PDF";
+      const message = err?.message || err?.status || "No se pudo generar el acta de reunión";
       setError(message);
       toast.error(message);
     } finally {
@@ -43,20 +36,18 @@ export default function VistaPartePdf() {
     }
   };
 
-  const handleRegenerate = () => {
-    setRegenerating(true);
-    fetchPdf({ pageSize: pdfData?.pageSize || DEFAULT_PAGE_SIZE });
-  };
-
   useEffect(() => {
-    if (!pdfData) {
-      fetchPdf({ pageSize: DEFAULT_PAGE_SIZE });
-    }
+    fetchPdf();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const handleRegenerate = () => {
+    setRegenerating(true);
+    fetchPdf();
+  };
+
   if (loading) {
-    return <LoadingPage message="Generando reporte PDF..." />;
+    return <LoadingPage message="Generando acta de reunión..." />;
   }
 
   if (error && !pdfData?.url) {
@@ -79,14 +70,16 @@ export default function VistaPartePdf() {
 
   return (
     <PdfViewer
-      title="Parte de Emergencia"
+      title="Acta de Reunión"
       pdfUrl={pdfData?.url}
       expiresAt={pdfData?.expiresAt}
       onRegenerate={handleRegenerate}
       regenerating={regenerating}
-      backLabel="Volver al parte"
-      metadata={`Parte #${id} · Tamaño ${pdfData?.pageSize || DEFAULT_PAGE_SIZE}`}
-      downloadFileName={`${id}-${new Date().getFullYear()}-parte.pdf`}
+      backLabel="Volver al calendario"
+      metadata={`Evento #${id}`}
+      downloadFileName={`${pdfData?.numero || "0"}-${
+        pdfData?.anio || new Date().getFullYear()
+      }-acta.pdf`}
       error={error}
     />
   );

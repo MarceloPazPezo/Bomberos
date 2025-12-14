@@ -2,8 +2,11 @@
 import { Router } from "express";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
 import { authorizePermisos } from "../middlewares/authorization.middleware.js";
-import { actualizarEvento, crearEvento, eliminarEvento, obtenerAsistenciaEvento, 
-    obtenerEventos,obtenerEventosRecurrentes,obtenerTiposEvento, registrarAsistenciaEvento } from "../controllers/caledarioOperativo.controller.js";
+import {
+    actualizarEvento, crearEvento, eliminarEvento, obtenerAsistenciaEvento,
+    obtenerEventos, obtenerEventosRecurrentes, obtenerTiposEvento, registrarAsistenciaEvento
+} from "../controllers/caledarioOperativo.controller.js";
+import { getActaEvento, generarActaReunionPdf, upsertActaEvento } from "../controllers/actaEvento.controller.js";
 
 const router = Router();
 
@@ -17,6 +20,10 @@ router.get("/eventos-recurrentes", authorizePermisos(["evento:obtener", "evento:
 router.get("/tipos-evento", obtenerTiposEvento);
 router.post("/eventos/registrar-asistencia/:idEvento", authorizePermisos(["evento:obtener", "evento:admin"]), registrarAsistenciaEvento);
 router.get("/eventos/asistencia/:idEvento", authorizePermisos(["evento:obtener", "evento:admin"]), obtenerAsistenciaEvento);
+// Acta de evento
+router.get("/eventos/:id/acta", authorizePermisos(["evento:obtener", "evento:admin"]), getActaEvento);
+router.put("/eventos/:id/acta", authorizePermisos(["evento:actualizar", "evento:admin"]), upsertActaEvento);
+router.post("/eventos/:id/acta/pdf", authorizePermisos(["evento:obtener", "evento:admin"]), generarActaReunionPdf);
 
 export default router;
 

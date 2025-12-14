@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  MdEdit, 
-  MdSave, 
-  MdCancel, 
-  MdPerson, 
-  MdEmail, 
-  MdPhone, 
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  MdEdit,
+  MdSave,
+  MdCancel,
+  MdPerson,
+  MdEmail,
+  MdPhone,
   MdLocationOn,
   MdDateRange,
   MdWork,
@@ -25,54 +25,60 @@ import {
   MdHelpOutline,
   MdOpenInNew,
   MdLocalFireDepartment,
-  MdEvent
-} from 'react-icons/md';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { useBomberoDetalles } from '@hooks/bomberos/useBomberoDetalles';
-import { useAuth } from '@hooks/auth/useAuth';
-import BomberosLoader from '@components/BomberosLoader';
-import BomberoAvatar from '@components/bomberos/BomberoAvatar';
-import EditPersonalInfoModal from '@components/bomberos/EditPersonalInfoModal';
-import EditContactoEmergenciaModal from '@components/bomberos/EditContactoEmergenciaModal';
-import EditCapacitacionModal from '@components/bomberos/EditCapacitacionModal';
-import EditBomberoModal from '@components/bomberos/EditBomberoModal';
-import EditEppModal from '@components/bomberos/EditEppModal';
-import { perfilCompletoService } from '@services/perfilCompleto.service';
-import { showErrorAlert, showSuccessAlert, showInfoAlert, showConfirmAlert } from '@helpers/fireAlert';
-import { 
-  contactoEmergenciaCreatedToast, 
-  contactoEmergenciaUpdatedToast, 
+  MdEvent,
+  MdPictureAsPdf,
+} from "react-icons/md";
+import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { useBomberoDetalles } from "@hooks/bomberos/useBomberoDetalles";
+import { useAuth } from "@hooks/auth/useAuth";
+import BomberosLoader from "@components/BomberosLoader";
+import BomberoAvatar from "@components/bomberos/BomberoAvatar";
+import EditPersonalInfoModal from "@components/bomberos/EditPersonalInfoModal";
+import EditContactoEmergenciaModal from "@components/bomberos/EditContactoEmergenciaModal";
+import EditCapacitacionModal from "@components/bomberos/EditCapacitacionModal";
+import EditBomberoModal from "@components/bomberos/EditBomberoModal";
+import EditEppModal from "@components/bomberos/EditEppModal";
+import { perfilCompletoService } from "@services/perfilCompleto.service";
+import { generarFichaBomberoPdf } from "@services/bombero.service";
+import {
+  showErrorAlert,
+  showSuccessAlert,
+  showInfoAlert,
+  showConfirmAlert,
+} from "@helpers/fireAlert";
+import {
+  contactoEmergenciaCreatedToast,
+  contactoEmergenciaUpdatedToast,
   contactoEmergenciaDeletedToast,
   capacitacionCreatedToast,
   capacitacionUpdatedToast,
-  capacitacionDeletedToast
-} from '@helpers/toastHelper';
-import Tooltip from '@components/Tooltip.jsx';
+  capacitacionDeletedToast,
+} from "@helpers/toastHelper";
+import Tooltip from "@components/Tooltip.jsx";
 
 // PrimeReact
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import { MultiSelect } from 'primereact/multiselect';
-import { FilterMatchMode } from 'primereact/api';
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
+import { MultiSelect } from "primereact/multiselect";
+import { FilterMatchMode } from "primereact/api";
 
-import {getHistorialVoluntario} from '../services/historial.service.js';
+import { getHistorialVoluntario } from "../services/historial.service.js";
 
 /**
  * Componente de tabla de historial con filtros por columna
  */
 const HistorialTable = ({ data }) => {
-
   const navigate = useNavigate();
 
   // Formatear fecha para mostrar
   const formatDate = (dateString) => {
-    if (!dateString) return 'No especificada';
+    if (!dateString) return "No especificada";
     try {
-      return format(new Date(dateString), 'dd/MM/yyyy HH:mm', { locale: es });
+      return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: es });
     } catch {
-      return 'Fecha inválida';
+      return "Fecha inválida";
     }
   };
 
@@ -80,15 +86,15 @@ const HistorialTable = ({ data }) => {
   const tableData = useMemo(() => {
     return data.map((item, index) => ({
       ...item,
-      id: `${item.ref_tabla || 'noref'}_${item.ref_id || 'noid'}_${index}`,
-      fechaStr: item.fecha || item.createdAt || item.creadoEl || '',
-      tipoStr: item.tipo || '',
-      descripcionStr: item.descripcion || '',
-      subtipoStr: item.subtipo || '',
-      detalleStr: item.detalle || '',
+      id: `${item.ref_tabla || "noref"}_${item.ref_id || "noid"}_${index}`,
+      fechaStr: item.fecha || item.createdAt || item.creadoEl || "",
+      tipoStr: item.tipo || "",
+      descripcionStr: item.descripcion || "",
+      subtipoStr: item.subtipo || "",
+      detalleStr: item.detalle || "",
       // Ensure refs are available
       refTabla: item.ref_tabla,
-      refId: item.ref_id
+      refId: item.ref_id,
     }));
   }, [data]);
 
@@ -97,7 +103,7 @@ const HistorialTable = ({ data }) => {
     tipoStr: { value: null, matchMode: FilterMatchMode.IN },
     subtipoStr: { value: null, matchMode: FilterMatchMode.IN },
     descripcionStr: { value: null, matchMode: FilterMatchMode.CONTAINS },
-    detalleStr: { value: null, matchMode: FilterMatchMode.IN }
+    detalleStr: { value: null, matchMode: FilterMatchMode.IN },
   });
 
   // Estado para datos filtrados
@@ -113,43 +119,39 @@ const HistorialTable = ({ data }) => {
     // Si hay filtro de subtipo activo, filtrar por subtipo
     let dataToUse = filteredData;
     if (filters.subtipoStr.value && filters.subtipoStr.value.length > 0) {
-      dataToUse = tableData.filter(item => 
-        filters.subtipoStr.value.includes(item.subtipoStr)
-      );
+      dataToUse = tableData.filter((item) => filters.subtipoStr.value.includes(item.subtipoStr));
     }
-    return [...new Set(dataToUse.map(item => item.tipoStr).filter(Boolean))].sort();
+    return [...new Set(dataToUse.map((item) => item.tipoStr).filter(Boolean))].sort();
   }, [filteredData, tableData, filters.subtipoStr.value]);
 
   const subtipoOptions = useMemo(() => {
     // Si hay filtro de tipo activo, filtrar por tipo
     let dataToUse = filteredData;
     if (filters.tipoStr.value && filters.tipoStr.value.length > 0) {
-      dataToUse = tableData.filter(item => 
-        filters.tipoStr.value.includes(item.tipoStr)
-      );
+      dataToUse = tableData.filter((item) => filters.tipoStr.value.includes(item.tipoStr));
     }
-    return [...new Set(dataToUse.map(item => item.subtipoStr).filter(Boolean))].sort();
+    return [...new Set(dataToUse.map((item) => item.subtipoStr).filter(Boolean))].sort();
   }, [filteredData, tableData, filters.tipoStr.value]);
 
   const detalleOptions = useMemo(() => {
-    return [...new Set(filteredData.map(item => item.detalleStr).filter(Boolean))].sort();
+    return [...new Set(filteredData.map((item) => item.detalleStr).filter(Boolean))].sort();
   }, [filteredData]);
 
   const handleRedirection = (item) => {
-    const isIncidente = item.tipoStr === 'incidente' || item.refTabla === 'incidente';
-    const isEvento = item.tipoStr === 'evento' || item.refTabla === 'evento';
-    
+    const isIncidente = item.tipoStr === "incidente" || item.refTabla === "incidente";
+    const isEvento = item.tipoStr === "evento" || item.refTabla === "evento";
+
     if (isIncidente && item.refId) {
-        navigate(`/vista-parte/${item.refId}`);
+      navigate(`/vista-parte/${item.refId}`);
     } else if (isEvento && item.refId) {
-        const d = item.fechaStr ? new Date(item.fechaStr) : new Date();
-        navigate('/calendario', { 
-            state: { 
-                eventId: item.refId, 
-                date: d, 
-                isRecurrent: false 
-            } 
-        });
+      const d = item.fechaStr ? new Date(item.fechaStr) : new Date();
+      navigate("/calendario", {
+        state: {
+          eventId: item.refId,
+          date: d,
+          isRecurrent: false,
+        },
+      });
     }
   };
 
@@ -159,47 +161,60 @@ const HistorialTable = ({ data }) => {
   };
 
   const tipoBodyTemplate = (rowData) => {
-    let label = rowData.tipoStr || '-';
+    let label = rowData.tipoStr || "-";
     // Backend types: 'usuario', 'ingreso', 'asistencia', 'incidente', 'evento', 'Epp', 'Disponibilidad'
-    const typeLower = (rowData.tipoStr || '').toLowerCase();
-    const refTabla = (rowData.refTabla || '').toLowerCase();
+    const typeLower = (rowData.tipoStr || "").toLowerCase();
+    const refTabla = (rowData.refTabla || "").toLowerCase();
 
-    const isClickable = (typeLower === 'incidente' || refTabla === 'incidente' || typeLower === 'evento' || refTabla === 'evento') && rowData.refId;
+    const isClickable =
+      (typeLower === "incidente" ||
+        refTabla === "incidente" ||
+        typeLower === "evento" ||
+        refTabla === "evento") &&
+      rowData.refId;
 
     return (
-        <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
-            {isClickable && (
-                <button 
-                  onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleRedirection(rowData);
-                  }}
-                  className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-                  title="Ver detalle"
-                >
-                    <MdOpenInNew className="text-base" />
-                </button>
-            )}
-        </div>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-700 capitalize">{label}</span>
+        {isClickable && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleRedirection(rowData);
+            }}
+            className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+            title="Ver detalle"
+          >
+            <MdOpenInNew className="text-base" />
+          </button>
+        )}
+      </div>
     );
   };
 
   const descripcionBodyTemplate = (rowData) => {
-    const desc = rowData.descripcionStr || '-';
-    const shortDesc = desc.length > 80 ? desc.substring(0, 80) + '...' : desc;
-    return <span className="text-sm text-gray-600" title={desc}>{shortDesc}</span>;
+    const desc = rowData.descripcionStr || "-";
+    const shortDesc = desc.length > 80 ? desc.substring(0, 80) + "..." : desc;
+    return (
+      <span className="text-sm text-gray-600" title={desc}>
+        {shortDesc}
+      </span>
+    );
   };
 
   const subtipoBodyTemplate = (rowData) => {
-    return <span className="text-sm text-gray-600">{rowData.subtipoStr || '-'}</span>;
+    return <span className="text-sm text-gray-600">{rowData.subtipoStr || "-"}</span>;
   };
 
   const detalleBodyTemplate = (rowData) => {
-    const detalle = rowData.detalleStr || '-';
-    const shortDetalle = detalle.length > 60 ? detalle.substring(0, 60) + '...' : detalle;
-    return <span className="text-sm text-gray-500" title={detalle}>{shortDetalle}</span>;
+    const detalle = rowData.detalleStr || "-";
+    const shortDetalle = detalle.length > 60 ? detalle.substring(0, 60) + "..." : detalle;
+    return (
+      <span className="text-sm text-gray-500" title={detalle}>
+        {shortDetalle}
+      </span>
+    );
   };
 
   // Templates de filtros
@@ -210,7 +225,7 @@ const HistorialTable = ({ data }) => {
         options={tipoOptions}
         onChange={(e) => options.filterApplyCallback(e.value)}
         placeholder="Seleccionar"
-  className="w-full min-w-40"
+        className="w-full min-w-40"
         maxSelectedLabels={1}
         filter
         filterPlaceholder="Buscar tipo..."
@@ -228,7 +243,7 @@ const HistorialTable = ({ data }) => {
         options={subtipoOptions}
         onChange={(e) => options.filterApplyCallback(e.value)}
         placeholder="Seleccionar"
-  className="w-full min-w-40"
+        className="w-full min-w-40"
         maxSelectedLabels={1}
         filter
         filterPlaceholder="Buscar subtipo..."
@@ -246,7 +261,7 @@ const HistorialTable = ({ data }) => {
         options={detalleOptions}
         onChange={(e) => options.filterApplyCallback(e.value)}
         placeholder="Seleccionar"
-  className="w-full min-w-40"
+        className="w-full min-w-40"
         maxSelectedLabels={1}
         filter
         filterPlaceholder="Buscar detalle..."
@@ -265,9 +280,7 @@ const HistorialTable = ({ data }) => {
             <MdHistory className="w-8 h-8 text-blue-600" />
           </div>
           <div className="max-w-md">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">
-              Sin historial registrado
-            </h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">Sin historial registrado</h3>
             <p className="text-gray-600 text-sm leading-relaxed">
               Aún no hay actividades registradas en tu historial.
             </p>
@@ -336,21 +349,21 @@ const HistorialTable = ({ data }) => {
             setFilteredData(e.filteredValue || tableData);
           }}
           filterDisplay="row"
-          globalFilterFields={['descripcionStr', 'detalleStr']}
+          globalFilterFields={["descripcionStr", "detalleStr"]}
         >
-          <Column 
-            field="fechaStr" 
-            header="Fecha" 
-            sortable 
+          <Column
+            field="fechaStr"
+            header="Fecha"
+            sortable
             body={fechaBodyTemplate}
             headerClassName="min-w-44"
             bodyClassName="min-w-44"
             frozen
           />
-          <Column 
-            field="tipoStr" 
-            header="Tipo" 
-            sortable 
+          <Column
+            field="tipoStr"
+            header="Tipo"
+            sortable
             body={tipoBodyTemplate}
             filter
             filterElement={tipoFilterTemplate}
@@ -358,10 +371,10 @@ const HistorialTable = ({ data }) => {
             headerClassName="min-w-40"
             bodyClassName="min-w-40"
           />
-          <Column 
-            field="descripcionStr" 
-            header="Descripción" 
-            sortable 
+          <Column
+            field="descripcionStr"
+            header="Descripción"
+            sortable
             body={descripcionBodyTemplate}
             filter
             filterPlaceholder="Buscar en descripción"
@@ -369,10 +382,10 @@ const HistorialTable = ({ data }) => {
             headerClassName="min-w-60"
             bodyClassName="min-w-60"
           />
-          <Column 
-            field="subtipoStr" 
-            header="Subtipo" 
-            sortable 
+          <Column
+            field="subtipoStr"
+            header="Subtipo"
+            sortable
             body={subtipoBodyTemplate}
             filter
             filterElement={subtipoFilterTemplate}
@@ -380,10 +393,10 @@ const HistorialTable = ({ data }) => {
             headerClassName="min-w-40"
             bodyClassName="min-w-40"
           />
-          <Column 
-            field="detalleStr" 
-            header="Detalle" 
-            sortable 
+          <Column
+            field="detalleStr"
+            header="Detalle"
+            sortable
             body={detalleBodyTemplate}
             filter
             filterElement={detalleFilterTemplate}
@@ -402,8 +415,9 @@ const HistorialTable = ({ data }) => {
  * Similar al popup de ficha pero con capacidades de modificación
  */
 const Profile = () => {
+  const navigate = useNavigate();
   const { bombero: currentBombero } = useAuth();
-  const [activeTab, setActiveTab] = useState('personal');
+  const [activeTab, setActiveTab] = useState("personal");
   const [editingSection, setEditingSection] = useState(null);
   const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
   const [isContactoModalOpen, setIsContactoModalOpen] = useState(false);
@@ -413,14 +427,17 @@ const Profile = () => {
   const [selectedContacto, setSelectedContacto] = useState(null);
   const [selectedCapacitacion, setSelectedCapacitacion] = useState(null);
   const [selectedEpp, setSelectedEpp] = useState(null);
-  
+
   // Estado para historial
   const [historialData, setHistorialData] = useState([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
   const [errorHistorial, setErrorHistorial] = useState(null);
 
+  // Estado para generación de PDF
+  const [generandoPdf, setGenerandoPdf] = useState(false);
+
   // Hook para obtener detalles del bombero actual
-  const { 
+  const {
     bomberoData,
     informacionPersonal,
     contactosEmergencia,
@@ -428,31 +445,31 @@ const Profile = () => {
     historialActividades,
     eppAcargo,
     estadisticas,
-    loading, 
-    error, 
-    reloadData
+    loading,
+    error,
+    reloadData,
   } = useBomberoDetalles(currentBombero?.id || null);
 
   // Cargar historial cuando se cambia a la pestaña de historial
   useEffect(() => {
-    if (activeTab === 'history' && currentBombero?.id && historialData.length === 0) {
+    if (activeTab === "history" && currentBombero?.id && historialData.length === 0) {
       loadHistorial();
     }
   }, [activeTab, currentBombero?.id]);
 
   const loadHistorial = async () => {
     if (!currentBombero?.id) return;
-    
+
     setLoadingHistorial(true);
     setErrorHistorial(null);
-    
+
     try {
       const response = await getHistorialVoluntario(currentBombero.id);
-      console.log('Historial obtenido:', response);
+      console.log("Historial obtenido:", response);
       setHistorialData(response.data || response || []);
     } catch (error) {
-      console.error('Error al cargar historial:', error);
-      setErrorHistorial(error.message || 'Error al cargar el historial');
+      console.error("Error al cargar historial:", error);
+      setErrorHistorial(error.message || "Error al cargar el historial");
     } finally {
       setLoadingHistorial(false);
     }
@@ -460,11 +477,11 @@ const Profile = () => {
 
   // Función para formatear fechas
   const formatDate = (dateString) => {
-    if (!dateString) return 'No especificada';
+    if (!dateString) return "No especificada";
     try {
-      return format(new Date(dateString), 'dd/MM/yyyy', { locale: es });
+      return format(new Date(dateString), "dd/MM/yyyy", { locale: es });
     } catch {
-      return 'Fecha inválida';
+      return "Fecha inválida";
     }
   };
 
@@ -493,17 +510,21 @@ const Profile = () => {
       const start = new Date(startDate);
       const diffTime = Math.abs(today - start);
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
+
       const years = Math.floor(diffDays / 365);
       const months = Math.floor((diffDays % 365) / 30);
       const days = diffDays % 30;
-      
+
       if (years > 0) {
-        return `${years} año${years > 1 ? 's' : ''}${months > 0 ? ` y ${months} mes${months > 1 ? 'es' : ''}` : ''}`;
+        return `${years} año${years > 1 ? "s" : ""}${
+          months > 0 ? ` y ${months} mes${months > 1 ? "es" : ""}` : ""
+        }`;
       } else if (months > 0) {
-        return `${months} mes${months > 1 ? 'es' : ''}${days > 0 ? ` y ${days} día${days > 1 ? 's' : ''}` : ''}`;
+        return `${months} mes${months > 1 ? "es" : ""}${
+          days > 0 ? ` y ${days} día${days > 1 ? "s" : ""}` : ""
+        }`;
       } else {
-        return `${days} día${days > 1 ? 's' : ''}`;
+        return `${days} día${days > 1 ? "s" : ""}`;
       }
     } catch {
       return null;
@@ -513,26 +534,26 @@ const Profile = () => {
   // Obtener nombre completo
   const getNombreCompleto = () => {
     const data = bomberoData || currentBombero;
-    
+
     if (data?.nombreCompleto) return data.nombreCompleto;
     if (data?.nombres && data?.apellidos) {
-      const nombres = Array.isArray(data.nombres) ? data.nombres.join(' ') : data.nombres;
-      const apellidos = Array.isArray(data.apellidos) ? data.apellidos.join(' ') : data.apellidos;
+      const nombres = Array.isArray(data.nombres) ? data.nombres.join(" ") : data.nombres;
+      const apellidos = Array.isArray(data.apellidos) ? data.apellidos.join(" ") : data.apellidos;
       return `${nombres} ${apellidos}`.trim();
     }
-    return data?.ficha?.nombre || data?.email?.split('@')[0] || `Bombero ${data?.id}`;
+    return data?.ficha?.nombre || data?.email?.split("@")[0] || `Bombero ${data?.id}`;
   };
 
   // Obtener estado de servicio
   const getEstadoServicio = () => {
     const data = bomberoData || currentBombero;
-    return data?.activo ? 'En Servicio' : 'Fuera de Servicio';
+    return data?.activo ? "En Servicio" : "Fuera de Servicio";
   };
 
   // Obtener color del estado
   const getEstadoColor = () => {
     const data = bomberoData || currentBombero;
-    return data?.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+    return data?.activo ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800";
   };
 
   // Obtener último rol
@@ -541,17 +562,17 @@ const Profile = () => {
     if (data?.roles && data.roles.length > 0) {
       return data.roles[0].nombre;
     }
-    return 'Sin rol asignado';
+    return "Sin rol asignado";
   };
 
   // Funciones de edición
   const handleEditSection = (section) => {
-    if (section === 'personal') {
+    if (section === "personal") {
       setIsBomberoModalOpen(true);
-    } else if (section === 'emergency') {
+    } else if (section === "emergency") {
       setSelectedContacto(null);
       setIsContactoModalOpen(true);
-    } else if (section === 'training') {
+    } else if (section === "training") {
       setSelectedCapacitacion(null);
       setIsCapacitacionModalOpen(true);
     } else {
@@ -574,17 +595,20 @@ const Profile = () => {
   const handleSavePersonalInfo = async (data) => {
     try {
       await perfilCompletoService.updateInformacionPersonal(data);
-      showSuccessAlert('Éxito', 'Información personal actualizada correctamente');
+      showSuccessAlert("Éxito", "Información personal actualizada correctamente");
       // Mostrar mensaje informativo si no tenía ficha antes
       if (!bomberoData?.informacionPersonal) {
-        showInfoAlert('Información', 'Se ha creado automáticamente tu ficha personal para poder gestionar tus contactos de emergencia y capacitaciones.');
+        showInfoAlert(
+          "Información",
+          "Se ha creado automáticamente tu ficha personal para poder gestionar tus contactos de emergencia y capacitaciones."
+        );
       }
       setIsPersonalModalOpen(false);
       // Recargar datos
       await reloadData();
     } catch (error) {
-      console.error('Error al guardar información personal:', error);
-      showErrorAlert('Error', 'No se pudo actualizar la información personal');
+      console.error("Error al guardar información personal:", error);
+      showErrorAlert("Error", "No se pudo actualizar la información personal");
       throw error; // Re-throw para que el modal maneje el error
     }
   };
@@ -594,7 +618,7 @@ const Profile = () => {
       // Recargar datos después de cualquier actualización
       await reloadData();
     } catch (error) {
-      console.error('Error al recargar datos del bombero:', error);
+      console.error("Error al recargar datos del bombero:", error);
     }
   };
 
@@ -602,13 +626,13 @@ const Profile = () => {
     try {
       // Aquí implementaremos la lógica de guardado para cada sección
       console.log(`Guardando ${section}:`, data);
-      showSuccessAlert('Éxito', 'Información actualizada correctamente');
+      showSuccessAlert("Éxito", "Información actualizada correctamente");
       setEditingSection(null);
       // Recargar datos
       await reloadData();
     } catch (error) {
-      console.error('Error al guardar:', error);
-      showErrorAlert('Error', 'No se pudo actualizar la información');
+      console.error("Error al guardar:", error);
+      showErrorAlert("Error", "No se pudo actualizar la información");
     }
   };
 
@@ -619,13 +643,16 @@ const Profile = () => {
         // Actualizar contacto existente
         await perfilCompletoService.updateContactoEmergencia(selectedContacto.id, data);
         contactoEmergenciaUpdatedToast(data.nombreCompleto);
-    } else {
+      } else {
         // Agregar nuevo contacto
         await perfilCompletoService.addContactoEmergencia(data);
         contactoEmergenciaCreatedToast(data.nombreCompleto);
         // Mostrar mensaje informativo si es el primer contacto
         if (contactosEmergencia.length === 0) {
-          showInfoAlert('Información', 'Se ha creado automáticamente tu ficha personal para poder gestionar tus contactos de emergencia y capacitaciones.');
+          showInfoAlert(
+            "Información",
+            "Se ha creado automáticamente tu ficha personal para poder gestionar tus contactos de emergencia y capacitaciones."
+          );
         }
       }
       setIsContactoModalOpen(false);
@@ -633,8 +660,8 @@ const Profile = () => {
       // Recargar datos del perfil
       await reloadData();
     } catch (error) {
-      console.error('Error al guardar contacto de emergencia:', error);
-      showErrorAlert('Error', 'No se pudo guardar el contacto de emergencia');
+      console.error("Error al guardar contacto de emergencia:", error);
+      showErrorAlert("Error", "No se pudo guardar el contacto de emergencia");
       throw error;
     }
   };
@@ -648,10 +675,10 @@ const Profile = () => {
     try {
       // Mostrar confirmación antes de eliminar
       const confirmResult = await showConfirmAlert(
-        '¿Eliminar Contacto de Emergencia?',
+        "¿Eliminar Contacto de Emergencia?",
         `¿Estás seguro de que quieres eliminar el contacto "${contacto.nombreCompleto}"? Esta acción no se puede deshacer.`,
-        'Sí, Eliminar',
-        'Cancelar'
+        "Sí, Eliminar",
+        "Cancelar"
       );
 
       if (!confirmResult.isConfirmed) {
@@ -663,8 +690,8 @@ const Profile = () => {
       // Recargar datos del perfil
       await reloadData();
     } catch (error) {
-      console.error('Error al eliminar contacto de emergencia:', error);
-      showErrorAlert('Error', 'No se pudo eliminar el contacto de emergencia');
+      console.error("Error al eliminar contacto de emergencia:", error);
+      showErrorAlert("Error", "No se pudo eliminar el contacto de emergencia");
     }
   };
 
@@ -681,7 +708,10 @@ const Profile = () => {
         capacitacionCreatedToast(data.tipoCapacitacion);
         // Mostrar mensaje informativo si es la primera capacitación
         if (capacitaciones.length === 0) {
-          showInfoAlert('Información', 'Se ha creado automáticamente tu ficha personal para poder gestionar tus contactos de emergencia y capacitaciones.');
+          showInfoAlert(
+            "Información",
+            "Se ha creado automáticamente tu ficha personal para poder gestionar tus contactos de emergencia y capacitaciones."
+          );
         }
       }
       setIsCapacitacionModalOpen(false);
@@ -689,8 +719,8 @@ const Profile = () => {
       // Recargar datos del perfil
       await reloadData();
     } catch (error) {
-      console.error('Error al guardar capacitación:', error);
-      showErrorAlert('Error', 'No se pudo guardar la capacitación');
+      console.error("Error al guardar capacitación:", error);
+      showErrorAlert("Error", "No se pudo guardar la capacitación");
       throw error;
     }
   };
@@ -704,10 +734,12 @@ const Profile = () => {
     try {
       // Mostrar confirmación antes de eliminar
       const confirmResult = await showConfirmAlert(
-        '¿Eliminar Capacitación?',
-        `¿Estás seguro de que quieres eliminar la capacitación "${capacitacion.tipoCapacitacion?.nombre || 'Capacitación'}"? Esta acción no se puede deshacer.`,
-        'Sí, Eliminar',
-        'Cancelar'
+        "¿Eliminar Capacitación?",
+        `¿Estás seguro de que quieres eliminar la capacitación "${
+          capacitacion.tipoCapacitacion?.nombre || "Capacitación"
+        }"? Esta acción no se puede deshacer.`,
+        "Sí, Eliminar",
+        "Cancelar"
       );
 
       if (!confirmResult.isConfirmed) {
@@ -715,12 +747,12 @@ const Profile = () => {
       }
 
       await perfilCompletoService.deleteCapacitacion(capacitacion.id);
-      capacitacionDeletedToast(capacitacion.tipoCapacitacion?.nombre || 'Capacitación');
+      capacitacionDeletedToast(capacitacion.tipoCapacitacion?.nombre || "Capacitación");
       // Recargar datos del perfil
       await reloadData();
     } catch (error) {
-      console.error('Error al eliminar capacitación:', error);
-      showErrorAlert('Error', 'No se pudo eliminar la capacitación');
+      console.error("Error al eliminar capacitación:", error);
+      showErrorAlert("Error", "No se pudo eliminar la capacitación");
     }
   };
 
@@ -733,15 +765,31 @@ const Profile = () => {
   const handleSaveEpp = async (data) => {
     try {
       await perfilCompletoService.updateEppAsignado(selectedEpp.id, data);
-      showSuccessAlert('Éxito', 'EPP actualizado correctamente');
+      showSuccessAlert("Éxito", "EPP actualizado correctamente");
       setIsEppModalOpen(false);
       setSelectedEpp(null);
       // Recargar datos del perfil
       await reloadData();
     } catch (error) {
-      console.error('Error al actualizar EPP:', error);
-      showErrorAlert('Error', 'No se pudo actualizar el EPP');
+      console.error("Error al actualizar EPP:", error);
+      showErrorAlert("Error", "No se pudo actualizar el EPP");
       throw error;
+    }
+  };
+
+  // Función para generar PDF de la ficha
+  const handleGenerarPdf = async () => {
+    if (!currentBombero?.id) return;
+
+    try {
+      setGenerandoPdf(true);
+      navigate(`/ficha-bombero/${currentBombero.id}/pdf`);
+    } catch (err) {
+      const message = err?.message || err?.status || "No se pudo generar el PDF";
+      showErrorAlert("Error", message);
+      console.error("Error generando PDF:", err);
+    } finally {
+      setGenerandoPdf(false);
     }
   };
 
@@ -764,9 +812,7 @@ const Profile = () => {
           <div className="flex items-center gap-3">
             <MdPerson className="h-8 w-8 text-[#4EB9FA]" />
             <div>
-              <h1 className="text-2xl font-bold text-[#2C3E50]">
-                Mi Perfil
-              </h1>
+              <h1 className="text-2xl font-bold text-[#2C3E50]">Mi Perfil</h1>
             </div>
             <Tooltip
               id="perfil-help"
@@ -777,6 +823,25 @@ const Profile = () => {
               <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
             </Tooltip>
           </div>
+
+          {/* Botón para generar PDF */}
+          <button
+            onClick={handleGenerarPdf}
+            disabled={generandoPdf}
+            className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            {generandoPdf ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                <span>Generando...</span>
+              </>
+            ) : (
+              <>
+                <MdPictureAsPdf className="w-5 h-5" />
+                <span>Generar PDF</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -791,7 +856,7 @@ const Profile = () => {
               <div className="absolute bottom-20 right-10 w-16 h-16 border-2 border-white rounded-full"></div>
               <div className="absolute top-1/2 left-5 w-12 h-12 border-2 border-white rounded-full"></div>
             </div>
-            
+
             {/* Imagen de perfil - 75% del espacio */}
             <div className="relative z-10 flex-1 flex items-center justify-center p-6">
               <BomberoAvatar
@@ -806,18 +871,16 @@ const Profile = () => {
                 bombero={bomberoData || currentBombero}
               />
             </div>
-            
+
             {/* Información personal tipo carnet - 25% del espacio */}
             <div className="relative z-10 bg-black/20 backdrop-blur-sm p-4">
               <div className="text-center text-white space-y-2">
                 <div>
-                  <h2 className="text-xl font-bold leading-tight">
-                    {getNombreCompleto()}
-                  </h2>
+                  <h2 className="text-xl font-bold leading-tight">{getNombreCompleto()}</h2>
                 </div>
 
                 {(bomberoData?.run || currentBombero?.run) && (
-                <div>
+                  <div>
                     <p className="text-sm font-mono bg-white/20 px-3 py-1 rounded-lg backdrop-blur-sm">
                       RUN: {bomberoData?.run || currentBombero?.run}
                     </p>
@@ -825,7 +888,7 @@ const Profile = () => {
                 )}
 
                 {(informacionPersonal?.compania || currentBombero?.ficha?.compania) && (
-                <div>
+                  <div>
                     <p className="text-xs font-medium bg-white/20 px-2 py-1 rounded-lg backdrop-blur-sm">
                       {(informacionPersonal?.compania || currentBombero?.ficha?.compania)?.nombre}
                     </p>
@@ -841,11 +904,11 @@ const Profile = () => {
             <div className="border-b border-gray-200 bg-white">
               <nav className="flex space-x-8 px-6 overflow-x-auto">
                 {[
-                  { id: 'personal', label: 'Información Personal', icon: MdPerson },
-                  { id: 'emergency', label: 'Contactos de Emergencia', icon: MdEmergency },
-                  { id: 'training', label: 'Capacitación', icon: MdSchool },
-                  { id: 'epp', label: 'EPP Asignados', icon: MdShield },
-                  { id: 'history', label: 'Historial', icon: MdHistory }
+                  { id: "personal", label: "Información Personal", icon: MdPerson },
+                  { id: "emergency", label: "Contactos de Emergencia", icon: MdEmergency },
+                  { id: "training", label: "Capacitación", icon: MdSchool },
+                  { id: "epp", label: "EPP Asignados", icon: MdShield },
+                  { id: "history", label: "Historial", icon: MdHistory },
                 ].map((tab) => {
                   const Icon = tab.icon;
                   return (
@@ -854,8 +917,8 @@ const Profile = () => {
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center space-x-2 py-4 px-2 border-b-2 font-medium text-sm transition-colors ${
                         activeTab === tab.id
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                          ? "border-blue-600 text-blue-600"
+                          : "border-transparent text-gray-500 hover:text-gray-700"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -868,490 +931,621 @@ const Profile = () => {
 
             {/* Contenido de las pestañas */}
             <div className="flex-1 p-4 bg-gray-50 overflow-y-auto">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[350px] w-full">
-            {activeTab === 'personal' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-semibold text-gray-900">Datos Personales</h4>
-                  <button
-                    onClick={() => handleEditSection('personal')}
-                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-                  >
-                    <MdEdit className="w-4 h-4" />
-                    <span>Editar</span>
-                  </button>
-                </div>
-
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <BomberosLoader size="md" message="Cargando información personal..." />
-                  </div>
-                ) : error ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-red-800 font-medium">Error</span>
-                </div>
-                    <p className="text-red-700 mt-1">{error}</p>
-              </div>
-                ) : (
-                  <div className="space-y-4">
-                    
-
-                    {/* Información de Contacto y Servicio */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Información de Contacto */}
-                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                        <h5 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
-                          <MdEmail className="w-4 h-4 text-green-600 mr-2" />
-                          Contacto
-                        </h5>
-                        <div className="space-y-3">
-                <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Email</label>
-                            <div className="flex items-center space-x-2">
-                              <MdEmail className="w-3 h-3 text-gray-400" />
-                              <p className="text-gray-900 text-sm">{bomberoData?.email || currentBombero?.email}</p>
-                            </div>
-                          </div>
-                          {(informacionPersonal?.telefono || currentBombero?.ficha?.telefono) && (
-                    <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Teléfono</label>
-                              <div className="flex items-center space-x-2">
-                                <MdPhone className="w-3 h-3 text-gray-400" />
-                                <p className="text-gray-900 text-sm">{informacionPersonal?.telefono || currentBombero?.ficha?.telefono}</p>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 min-h-[710px] w-full flex flex-col">
+                {activeTab === "personal" && (
+                  <div className="space-y-3 flex flex-col h-full">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900">Datos Personales</h4>
+                      <button
+                        onClick={() => handleEditSection("personal")}
+                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        <MdEdit className="w-4 h-4" />
+                        <span>Editar</span>
+                      </button>
                     </div>
-                    </div>
-                  )}
-                </div>
-              </div>
 
-                      {/* Información de Servicio */}
-                      <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                        <h5 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
-                          <MdWork className="w-4 h-4 text-purple-600 mr-2" />
-                          Servicio
-                        </h5>
-                        <div className="space-y-3">
-                          {(informacionPersonal?.fechaIngreso || currentBombero?.ficha?.fechaIngreso) && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Fecha de Ingreso</label>
-                              <div className="flex items-center space-x-2">
-                                <MdDateRange className="w-3 h-3 text-gray-400" />
-                                <p className="text-gray-900 text-sm">{formatDate(informacionPersonal?.fechaIngreso || currentBombero?.ficha?.fechaIngreso)}</p>
-                              </div>
-                            </div>
-                          )}
-                          {(informacionPersonal?.fechaIngreso || currentBombero?.ficha?.fechaIngreso) && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Tiempo de Servicio</label>
-                              <div className="flex items-center space-x-2">
-                                <MdTrendingUp className="w-3 h-3 text-gray-400" />
-                                <p className="text-gray-900 text-sm">
-                                  {calculateServiceTime(informacionPersonal?.fechaIngreso || currentBombero?.ficha?.fechaIngreso)}
-                                </p>
-                              </div>
-                </div>
-                          )}
-                          {(informacionPersonal?.compania || currentBombero?.ficha?.compania) && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Compañía</label>
-                              <div className="flex items-center space-x-2">
-                                <MdWork className="w-3 h-3 text-gray-400" />
-                                <p className="text-gray-900 text-sm">{(informacionPersonal?.compania || currentBombero?.ficha?.compania)?.nombre}</p>
-              </div>
-                </div>
-              )}
-            </div>
+                    {loading ? (
+                      <div className="flex items-center justify-center py-8 flex-1">
+                        <BomberosLoader size="md" message="Cargando información personal..." />
                       </div>
-                    </div>
-
-                    {/* Información Extra - Nuevo diseño tipo carnet */}
-                    <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200 shadow-md">
-                      <h5 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <MdInfo className="w-5 h-5 text-amber-600 mr-2" />
-                        Información Adicional
-                      </h5>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Fecha de Nacimiento */}
-                        {(informacionPersonal?.fechaNacimiento || currentBombero?.ficha?.fechaNacimiento) && (
-                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
-                            <div className="flex items-center space-x-3">
-                              <div className="bg-amber-100 p-2 rounded-lg">
-                                <MdCake className="w-5 h-5 text-amber-600" />
-                              </div>
-            <div>
-                                <label className="block text-xs font-semibold text-amber-700 mb-1">Fecha de Nacimiento</label>
-                                <p className="text-gray-900 font-medium">
-                                  {formatDate(informacionPersonal?.fechaNacimiento || currentBombero?.ficha?.fechaNacimiento)}
-                                  {calculateAge(informacionPersonal?.fechaNacimiento || currentBombero?.ficha?.fechaNacimiento) && (
-                                    <span className="ml-2 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-semibold">
-                                      {calculateAge(informacionPersonal?.fechaNacimiento || currentBombero?.ficha?.fechaNacimiento)} años
-                                    </span>
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Tipo de Sangre */}
-                        {(informacionPersonal?.tipoSangre || currentBombero?.ficha?.tipoSangre) && (
-                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
-                            <div className="flex items-center space-x-3">
-                              <div className="bg-red-100 p-2 rounded-lg">
-                                <MdWaterDrop className="w-5 h-5 text-red-600" />
-                              </div>
-                        <div>
-                                <label className="block text-xs font-semibold text-amber-700 mb-1">Tipo de Sangre</label>
-                                <p className="text-gray-900 font-medium">
-                                  {(informacionPersonal?.tipoSangre?.nombre) || (currentBombero?.ficha?.tipoSangre?.nombre)}
-                          </p>
+                    ) : error ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-red-800 font-medium">Error</span>
                         </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Donante de Órganos */}
-                        {(informacionPersonal?.donante || currentBombero?.ficha?.donante) && (
-                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
-                            <div className="flex items-center space-x-3">
-                              <div className="bg-red-100 p-2 rounded-lg">
-                                <MdFavorite className="w-5 h-5 text-red-600" />
-                              </div>
+                        <p className="text-red-700 mt-1">{error}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 flex-1">
+                        {/* Información de Contacto y Servicio */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Información de Contacto */}
+                          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                            <h5 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
+                              <MdEmail className="w-4 h-4 text-green-600 mr-2" />
+                              Contacto
+                            </h5>
+                            <div className="space-y-3">
                               <div>
-                                <label className="block text-xs font-semibold text-amber-700 mb-1">Estado</label>
-                                <p className="text-gray-900 font-medium">Donante de órganos</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Licencia Clase F */}
-                        {(informacionPersonal?.licenciaClaseF || currentBombero?.ficha?.licenciaClaseF) && (
-                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
-                            <div className="flex items-center space-x-3">
-                              <div className="bg-green-100 p-2 rounded-lg">
-                                <MdWork className="w-5 h-5 text-green-600" />
-                              </div>
-                        <div>
-                                <label className="block text-xs font-semibold text-amber-700 mb-1">Licencia</label>
-                                <p className="text-gray-900 font-medium">Clase F</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Dirección */}
-                        {(informacionPersonal?.direccion || currentBombero?.ficha?.direccion) && (
-                          <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200 md:col-span-2">
-                            <div className="flex items-center space-x-3">
-                              <div className="bg-blue-100 p-2 rounded-lg">
-                                <MdLocationOn className="w-5 h-5 text-blue-600" />
-                              </div>
-                              <div className="flex-1">
-                                <label className="block text-xs font-semibold text-amber-700 mb-1">Dirección</label>
-                                <p className="text-gray-900 font-medium">
-                                  {(informacionPersonal?.direccion || currentBombero?.ficha?.direccion)?.calle} {(informacionPersonal?.direccion || currentBombero?.ficha?.direccion)?.numero}
-                                  {(informacionPersonal?.direccion?.depto || currentBombero?.ficha?.direccion?.depto) && `, ${(informacionPersonal?.direccion?.depto || currentBombero?.ficha?.direccion?.depto)}`}
-                                  {(informacionPersonal?.direccion?.comuna || currentBombero?.ficha?.direccion?.comuna) && `, ${(informacionPersonal?.direccion?.comuna || currentBombero?.ficha?.direccion?.comuna)?.nombre}`}
-                                </p>
-                                {(informacionPersonal?.direccion?.referencia || currentBombero?.ficha?.direccion?.referencia) && (
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    📍 {(informacionPersonal?.direccion?.referencia || currentBombero?.ficha?.direccion?.referencia)}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Mensaje si no hay información adicional */}
-                      {!(informacionPersonal?.fechaNacimiento || currentBombero?.ficha?.fechaNacimiento) && 
-                       !(informacionPersonal?.donante || currentBombero?.ficha?.donante) && 
-                       !(informacionPersonal?.tipoSangre || currentBombero?.ficha?.tipoSangre) && 
-                       !(informacionPersonal?.licenciaClaseF || currentBombero?.ficha?.licenciaClaseF) && 
-                       !(informacionPersonal?.direccion || currentBombero?.ficha?.direccion) && (
-                        <div className="text-center py-6">
-                          <MdInfo className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-                          <p className="text-amber-600 font-medium">No hay información adicional registrada</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'emergency' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-semibold text-gray-900">Contactos de Emergencia</h4>
-                  <button
-                    onClick={() => handleEditSection('emergency')}
-                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-                  >
-                    <MdAdd className="w-4 h-4" />
-                    <span>Agregar Contacto</span>
-                  </button>
-                </div>
-                
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <BomberosLoader size="md" message="Cargando contactos de emergencia..." />
-                      </div>
-                ) : error ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-red-800 font-medium">Error</span>
-                    </div>
-                    <p className="text-red-700 mt-1">{error}</p>
-                  </div>
-                ) : contactosEmergencia.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-                    {contactosEmergencia.map((contacto) => (
-                      <div key={contacto.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200 w-full">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3 flex-1">
-                            <MdEmergency className="w-8 h-8 text-blue-600 mt-1" />
-                            <div className="flex-1">
-                              <h5 className="font-semibold text-gray-900">{contacto.nombreCompleto}</h5>
-                              <p className="text-sm text-gray-600">{contacto.vinculo?.nombre || 'Sin vínculo especificado'}</p>
-                              <div className="flex items-center space-x-2 mt-2">
-                                <MdPhone className="w-4 h-4 text-gray-400" />
-                                <span className="text-sm text-gray-700">{contacto.telefono}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => handleEditContacto(contacto)}
-                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
-                              title="Editar contacto"
-                            >
-                              <MdEdit className="w-4 h-4" />
-                            </button>
-                        <button
-                              onClick={() => handleDeleteContacto(contacto)}
-                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                              title="Eliminar contacto"
-                            >
-                              <MdDelete className="w-4 h-4" />
-                        </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                        </div>
-                      ) : (
-                  <div className="text-center py-8">
-                    <MdEmergency className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No hay contactos de emergencia registrados</p>
-                    <button
-                      onClick={() => handleEditSection('emergency')}
-                      className="mt-4 flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 mx-auto"
-                    >
-                      <MdAdd className="w-4 h-4" />
-                      <span>Agregar primer contacto</span>
-                    </button>
-                  </div>
-                      )}
-                    </div>
-            )}
-
-            {activeTab === 'training' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-semibold text-gray-900">Capacitaciones</h4>
-                        <button
-                    onClick={() => handleEditSection('training')}
-                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-                        >
-                    <MdAdd className="w-4 h-4" />
-                    <span>Agregar Capacitación</span>
-                        </button>
-                      </div>
-                
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <BomberosLoader size="md" message="Cargando capacitaciones..." />
-                  </div>
-                ) : error ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-red-800 font-medium">Error</span>
-                    </div>
-                    <p className="text-red-700 mt-1">{error}</p>
-                  </div>
-                ) : capacitaciones.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 w-full">
-                    {capacitaciones.map((capacitacion) => (
-                      <div key={capacitacion.id} className="bg-green-50 p-4 rounded-lg border border-green-200 w-full">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3 flex-1">
-                            <MdSchool className="w-6 h-6 text-green-600 mt-1" />
-                            <div className="flex-1">
-                              <h5 className="font-semibold text-gray-900">
-                                {capacitacion.tipoCapacitacion?.nombre || 'Capacitación'}
-                              </h5>
-                              {capacitacion.descripcion && (
-                                <p className="text-sm text-gray-600 mt-1">{capacitacion.descripcion}</p>
-                              )}
-                              <div className="flex items-center space-x-2 mt-2">
-                                <MdDateRange className="w-4 h-4 text-gray-400" />
-                                <span className="text-xs text-gray-500">
-                                  Registrada: {formatDate(capacitacion.creadoEl)}
-                                  </span>
-                                </div>
-                            </div>
-                          </div>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => handleEditCapacitacion(capacitacion)}
-                              className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
-                              title="Editar capacitación"
-                            >
-                              <MdEdit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCapacitacion(capacitacion)}
-                              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
-                              title="Eliminar capacitación"
-                            >
-                              <MdDelete className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                            </div>
-                          ) : (
-                  <div className="text-center py-8">
-                    <MdSchool className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No hay capacitaciones registradas</p>
-                    <button
-                      onClick={() => handleEditSection('training')}
-                      className="mt-4 flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 mx-auto"
-                    >
-                      <MdAdd className="w-4 h-4" />
-                      <span>Agregar primera capacitación</span>
-                    </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-            {activeTab === 'epp' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-semibold text-gray-900">EPP Asignados</h4>
-                </div>
-                
-                {loading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <BomberosLoader size="md" message="Cargando EPP asignados..." />
-                  </div>
-                ) : error ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-red-800 font-medium">Error</span>
-                    </div>
-                    <p className="text-red-700 mt-1">{error}</p>
-                  </div>
-                ) : eppAcargo && eppAcargo.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-4 w-full">
-                    {eppAcargo.map((epp) => (
-                      <div key={epp.id} className="bg-blue-50 p-4 rounded-lg border border-blue-200 w-full">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start space-x-3 flex-1">
-                            <MdShield className="w-6 h-6 text-blue-600 mt-1" />
-                            <div className="flex-1">
-                              <h5 className="font-semibold text-gray-900">
-                                {epp.tipoEpp?.nombre || 'EPP'}
-                              </h5>
-                              <div className="mt-2 space-y-1">
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  Email
+                                </label>
                                 <div className="flex items-center space-x-2">
-                                  <span className="text-xs font-medium text-gray-600">Estado:</span>
-                                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                    epp.estadosEpp?.nombre === 'Bueno' ? 'bg-green-100 text-green-800' :
-                                    epp.estadosEpp?.nombre === 'Regular' ? 'bg-yellow-100 text-yellow-800' :
-                                    epp.estadosEpp?.nombre === 'Malo' ? 'bg-red-100 text-red-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {epp.estadosEpp?.nombre || 'Sin estado'}
-                                  </span>
+                                  <MdEmail className="w-3 h-3 text-gray-400" />
+                                  <p className="text-gray-900 text-sm">
+                                    {bomberoData?.email || currentBombero?.email}
+                                  </p>
                                 </div>
-                                {epp.descripcionDeEstado && (
-                                  <div className="flex items-start space-x-2">
-                                    <span className="text-xs font-medium text-gray-600">Descripción:</span>
-                                    <p className="text-xs text-gray-700 flex-1">{epp.descripcionDeEstado}</p>
+                              </div>
+                              {(informacionPersonal?.telefono ||
+                                currentBombero?.ficha?.telefono) && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Teléfono
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <MdPhone className="w-3 h-3 text-gray-400" />
+                                    <p className="text-gray-900 text-sm">
+                                      {informacionPersonal?.telefono ||
+                                        currentBombero?.ficha?.telefono}
+                                    </p>
                                   </div>
-                                )}
-                                {epp.fechaAsignacion && (
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Información de Servicio */}
+                          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                            <h5 className="text-md font-semibold text-gray-900 mb-3 flex items-center">
+                              <MdWork className="w-4 h-4 text-purple-600 mr-2" />
+                              Servicio
+                            </h5>
+                            <div className="space-y-3">
+                              {(informacionPersonal?.fechaIngreso ||
+                                currentBombero?.ficha?.fechaIngreso) && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Fecha de Ingreso
+                                  </label>
                                   <div className="flex items-center space-x-2">
                                     <MdDateRange className="w-3 h-3 text-gray-400" />
-                                    <span className="text-xs text-gray-500">
-                                      Asignado: {formatDate(epp.fechaAsignacion)}
+                                    <p className="text-gray-900 text-sm">
+                                      {formatDate(
+                                        informacionPersonal?.fechaIngreso ||
+                                          currentBombero?.ficha?.fechaIngreso
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                              {(informacionPersonal?.fechaIngreso ||
+                                currentBombero?.ficha?.fechaIngreso) && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Tiempo de Servicio
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <MdTrendingUp className="w-3 h-3 text-gray-400" />
+                                    <p className="text-gray-900 text-sm">
+                                      {calculateServiceTime(
+                                        informacionPersonal?.fechaIngreso ||
+                                          currentBombero?.ficha?.fechaIngreso
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                              {(informacionPersonal?.compania ||
+                                currentBombero?.ficha?.compania) && (
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    Compañía
+                                  </label>
+                                  <div className="flex items-center space-x-2">
+                                    <MdWork className="w-3 h-3 text-gray-400" />
+                                    <p className="text-gray-900 text-sm">
+                                      {
+                                        (
+                                          informacionPersonal?.compania ||
+                                          currentBombero?.ficha?.compania
+                                        )?.nombre
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Información Extra - Nuevo diseño tipo carnet */}
+                        <div className="bg-linear-to-r from-amber-50 to-orange-50 rounded-xl p-6 border-2 border-amber-200 shadow-md">
+                          <h5 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                            <MdInfo className="w-5 h-5 text-amber-600 mr-2" />
+                            Información Adicional
+                          </h5>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Fecha de Nacimiento */}
+                            {(informacionPersonal?.fechaNacimiento ||
+                              currentBombero?.ficha?.fechaNacimiento) && (
+                              <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
+                                <div className="flex items-center space-x-3">
+                                  <div className="bg-amber-100 p-2 rounded-lg">
+                                    <MdCake className="w-5 h-5 text-amber-600" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-semibold text-amber-700 mb-1">
+                                      Fecha de Nacimiento
+                                    </label>
+                                    <p className="text-gray-900 font-medium">
+                                      {formatDate(
+                                        informacionPersonal?.fechaNacimiento ||
+                                          currentBombero?.ficha?.fechaNacimiento
+                                      )}
+                                      {calculateAge(
+                                        informacionPersonal?.fechaNacimiento ||
+                                          currentBombero?.ficha?.fechaNacimiento
+                                      ) && (
+                                        <span className="ml-2 px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full font-semibold">
+                                          {calculateAge(
+                                            informacionPersonal?.fechaNacimiento ||
+                                              currentBombero?.ficha?.fechaNacimiento
+                                          )}{" "}
+                                          años
+                                        </span>
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Tipo de Sangre */}
+                            {(informacionPersonal?.tipoSangre ||
+                              currentBombero?.ficha?.tipoSangre) && (
+                              <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
+                                <div className="flex items-center space-x-3">
+                                  <div className="bg-red-100 p-2 rounded-lg">
+                                    <MdWaterDrop className="w-5 h-5 text-red-600" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-semibold text-amber-700 mb-1">
+                                      Tipo de Sangre
+                                    </label>
+                                    <p className="text-gray-900 font-medium">
+                                      {informacionPersonal?.tipoSangre?.nombre ||
+                                        currentBombero?.ficha?.tipoSangre?.nombre}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Donante de Órganos */}
+                            {(informacionPersonal?.donante || currentBombero?.ficha?.donante) && (
+                              <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
+                                <div className="flex items-center space-x-3">
+                                  <div className="bg-red-100 p-2 rounded-lg">
+                                    <MdFavorite className="w-5 h-5 text-red-600" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-semibold text-amber-700 mb-1">
+                                      Estado
+                                    </label>
+                                    <p className="text-gray-900 font-medium">Donante de órganos</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Licencia Clase F */}
+                            {(informacionPersonal?.licenciaClaseF ||
+                              currentBombero?.ficha?.licenciaClaseF) && (
+                              <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200">
+                                <div className="flex items-center space-x-3">
+                                  <div className="bg-green-100 p-2 rounded-lg">
+                                    <MdWork className="w-5 h-5 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-semibold text-amber-700 mb-1">
+                                      Licencia
+                                    </label>
+                                    <p className="text-gray-900 font-medium">Clase F</p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Dirección */}
+                            {(informacionPersonal?.direccion ||
+                              currentBombero?.ficha?.direccion) && (
+                              <div className="bg-white/70 backdrop-blur-sm rounded-lg p-4 border border-amber-200 md:col-span-2">
+                                <div className="flex items-center space-x-3">
+                                  <div className="bg-blue-100 p-2 rounded-lg">
+                                    <MdLocationOn className="w-5 h-5 text-blue-600" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <label className="block text-xs font-semibold text-amber-700 mb-1">
+                                      Dirección
+                                    </label>
+                                    <p className="text-gray-900 font-medium">
+                                      {
+                                        (
+                                          informacionPersonal?.direccion ||
+                                          currentBombero?.ficha?.direccion
+                                        )?.calle
+                                      }{" "}
+                                      {
+                                        (
+                                          informacionPersonal?.direccion ||
+                                          currentBombero?.ficha?.direccion
+                                        )?.numero
+                                      }
+                                      {(informacionPersonal?.direccion?.depto ||
+                                        currentBombero?.ficha?.direccion?.depto) &&
+                                        `, ${
+                                          informacionPersonal?.direccion?.depto ||
+                                          currentBombero?.ficha?.direccion?.depto
+                                        }`}
+                                      {(informacionPersonal?.direccion?.comuna ||
+                                        currentBombero?.ficha?.direccion?.comuna) &&
+                                        `, ${
+                                          (
+                                            informacionPersonal?.direccion?.comuna ||
+                                            currentBombero?.ficha?.direccion?.comuna
+                                          )?.nombre
+                                        }`}
+                                    </p>
+                                    {(informacionPersonal?.direccion?.referencia ||
+                                      currentBombero?.ficha?.direccion?.referencia) && (
+                                      <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                                        <MdLocationOn className="w-4 h-4 flex-shrink-0" />
+                                        {informacionPersonal?.direccion?.referencia ||
+                                          currentBombero?.ficha?.direccion?.referencia}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Mensaje si no hay información adicional */}
+                          {!(
+                            informacionPersonal?.fechaNacimiento ||
+                            currentBombero?.ficha?.fechaNacimiento
+                          ) &&
+                            !(informacionPersonal?.donante || currentBombero?.ficha?.donante) &&
+                            !(
+                              informacionPersonal?.tipoSangre || currentBombero?.ficha?.tipoSangre
+                            ) &&
+                            !(
+                              informacionPersonal?.licenciaClaseF ||
+                              currentBombero?.ficha?.licenciaClaseF
+                            ) &&
+                            !(
+                              informacionPersonal?.direccion || currentBombero?.ficha?.direccion
+                            ) && (
+                              <div className="text-center py-6">
+                                <MdInfo className="w-12 h-12 text-amber-400 mx-auto mb-3" />
+                                <p className="text-amber-600 font-medium">
+                                  No hay información adicional registrada
+                                </p>
+                              </div>
+                            )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "emergency" && (
+                  <div className="space-y-3 flex flex-col h-full">
+                    <div className="flex items-center justify-between flex-shrink-0">
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        Contactos de Emergencia
+                      </h4>
+                      <button
+                        onClick={() => handleEditSection("emergency")}
+                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        <MdAdd className="w-4 h-4" />
+                        <span>Agregar Contacto</span>
+                      </button>
+                    </div>
+
+                    {loading ? (
+                      <div className="flex items-center justify-center py-8 flex-1">
+                        <BomberosLoader size="md" message="Cargando contactos de emergencia..." />
+                      </div>
+                    ) : error ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-red-800 font-medium">Error</span>
+                        </div>
+                        <p className="text-red-700 mt-1">{error}</p>
+                      </div>
+                    ) : contactosEmergencia.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full flex-1 items-start">
+                        {contactosEmergencia.map((contacto) => (
+                          <div
+                            key={contacto.id}
+                            className="bg-blue-50 p-4 rounded-lg border border-blue-200 w-full"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-3 flex-1">
+                                <MdEmergency className="w-8 h-8 text-blue-600 mt-1" />
+                                <div className="flex-1">
+                                  <h5 className="font-semibold text-gray-900">
+                                    {contacto.nombreCompleto}
+                                  </h5>
+                                  <p className="text-sm text-gray-600">
+                                    {contacto.vinculo?.nombre || "Sin vínculo especificado"}
+                                  </p>
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    <MdPhone className="w-4 h-4 text-gray-400" />
+                                    <span className="text-sm text-gray-700">
+                                      {contacto.telefono}
                                     </span>
                                   </div>
-                                )}
+                                </div>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={() => handleEditContacto(contacto)}
+                                  className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                                  title="Editar contacto"
+                                >
+                                  <MdEdit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteContacto(contacto)}
+                                  className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                                  title="Eliminar contacto"
+                                >
+                                  <MdDelete className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
                           </div>
-                          <div className="flex space-x-1">
-                            <button
-                              onClick={() => handleEditEpp(epp)}
-                              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
-                              title="Editar estado y descripción"
-                            >
-                              <MdEdit className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <MdShield className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600">No tienes EPP asignados actualmente</p>
+                    ) : (
+                      <div className="text-center flex-1 flex flex-col items-center justify-center">
+                        <MdEmergency className="w-20 h-20 text-gray-400 mx-auto mb-6" />
+                        <p className="text-gray-600 text-lg">
+                          No hay contactos de emergencia registrados
+                        </p>
+                        <button
+                          onClick={() => handleEditSection("emergency")}
+                          className="mt-4 flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 mx-auto"
+                        >
+                          <MdAdd className="w-4 h-4" />
+                          <span>Agregar primer contacto</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
 
-            {activeTab === 'history' && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-lg font-semibold text-gray-900">Historial de Actividades</h4>
-                </div>
-                
-                {loadingHistorial ? (
-                  <div className="flex items-center justify-center py-12">
-                    <BomberosLoader size="md" message="Cargando historial..." />
-                  </div>
-                ) : errorHistorial ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-red-800 font-medium">Error</span>
+                {activeTab === "training" && (
+                  <div className="space-y-3 flex flex-col h-full">
+                    <div className="flex items-center justify-between flex-shrink-0">
+                      <h4 className="text-lg font-semibold text-gray-900">Capacitaciones</h4>
+                      <button
+                        onClick={() => handleEditSection("training")}
+                        className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        <MdAdd className="w-4 h-4" />
+                        <span>Agregar Capacitación</span>
+                      </button>
                     </div>
-                    <p className="text-red-700 mt-1">{errorHistorial}</p>
-                    <button
-                      onClick={loadHistorial}
-                      className="mt-3 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
-                    >
-                      Reintentar
-                    </button>
+
+                    {loading ? (
+                      <div className="flex items-center justify-center py-8 flex-1">
+                        <BomberosLoader size="md" message="Cargando capacitaciones..." />
+                      </div>
+                    ) : error ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-red-800 font-medium">Error</span>
+                        </div>
+                        <p className="text-red-700 mt-1">{error}</p>
+                      </div>
+                    ) : capacitaciones.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-4 w-full flex-1 items-start">
+                        {capacitaciones.map((capacitacion) => (
+                          <div
+                            key={capacitacion.id}
+                            className="bg-green-50 p-4 rounded-lg border border-green-200 w-full"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-3 flex-1">
+                                <MdSchool className="w-6 h-6 text-green-600 mt-1" />
+                                <div className="flex-1">
+                                  <h5 className="font-semibold text-gray-900">
+                                    {capacitacion.tipoCapacitacion?.nombre || "Capacitación"}
+                                  </h5>
+                                  {capacitacion.descripcion && (
+                                    <p className="text-sm text-gray-600 mt-1">
+                                      {capacitacion.descripcion}
+                                    </p>
+                                  )}
+                                  <div className="flex items-center space-x-2 mt-2">
+                                    <MdDateRange className="w-4 h-4 text-gray-400" />
+                                    <span className="text-xs text-gray-500">
+                                      Registrada: {formatDate(capacitacion.creadoEl)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={() => handleEditCapacitacion(capacitacion)}
+                                  className="p-1 text-green-600 hover:text-green-800 hover:bg-green-100 rounded"
+                                  title="Editar capacitación"
+                                >
+                                  <MdEdit className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCapacitacion(capacitacion)}
+                                  className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                                  title="Eliminar capacitación"
+                                >
+                                  <MdDelete className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center flex-1 flex flex-col items-center justify-center">
+                        <MdSchool className="w-20 h-20 text-gray-400 mx-auto mb-6" />
+                        <p className="text-gray-600 text-lg">No hay capacitaciones registradas</p>
+                        <button
+                          onClick={() => handleEditSection("training")}
+                          className="mt-4 flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] hover:from-[#3A9BD9] hover:to-[#2E8BC7] text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 mx-auto"
+                        >
+                          <MdAdd className="w-4 h-4" />
+                          <span>Agregar primera capacitación</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <HistorialTable data={historialData} />
+                )}
+
+                {activeTab === "epp" && (
+                  <div className="space-y-3 flex flex-col h-full">
+                    <div className="flex items-center justify-between flex-shrink-0">
+                      <h4 className="text-lg font-semibold text-gray-900">EPP Asignados</h4>
+                    </div>
+
+                    {loading ? (
+                      <div className="flex items-center justify-center py-8 flex-1">
+                        <BomberosLoader size="md" message="Cargando EPP asignados..." />
+                      </div>
+                    ) : error ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-red-800 font-medium">Error</span>
+                        </div>
+                        <p className="text-red-700 mt-1">{error}</p>
+                      </div>
+                    ) : eppAcargo && eppAcargo.length > 0 ? (
+                      <div className="grid grid-cols-1 gap-4 w-full flex-1 items-start">
+                        {eppAcargo.map((epp) => (
+                          <div
+                            key={epp.id}
+                            className="bg-blue-50 p-4 rounded-lg border border-blue-200 w-full"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-3 flex-1">
+                                <MdShield className="w-6 h-6 text-blue-600 mt-1" />
+                                <div className="flex-1">
+                                  <h5 className="font-semibold text-gray-900">
+                                    {epp.tipoEpp?.nombre || "EPP"}
+                                  </h5>
+                                  <div className="mt-2 space-y-1">
+                                    <div className="flex items-center space-x-2">
+                                      <span className="text-xs font-medium text-gray-600">
+                                        Estado:
+                                      </span>
+                                      <span
+                                        className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                          epp.estadosEpp?.nombre === "Bueno"
+                                            ? "bg-green-100 text-green-800"
+                                            : epp.estadosEpp?.nombre === "Regular"
+                                            ? "bg-yellow-100 text-yellow-800"
+                                            : epp.estadosEpp?.nombre === "Malo"
+                                            ? "bg-red-100 text-red-800"
+                                            : "bg-gray-100 text-gray-800"
+                                        }`}
+                                      >
+                                        {epp.estadosEpp?.nombre || "Sin estado"}
+                                      </span>
+                                    </div>
+                                    {epp.descripcionDeEstado && (
+                                      <div className="flex items-start space-x-2">
+                                        <span className="text-xs font-medium text-gray-600">
+                                          Descripción:
+                                        </span>
+                                        <p className="text-xs text-gray-700 flex-1">
+                                          {epp.descripcionDeEstado}
+                                        </p>
+                                      </div>
+                                    )}
+                                    {epp.fechaAsignacion && (
+                                      <div className="flex items-center space-x-2">
+                                        <MdDateRange className="w-3 h-3 text-gray-400" />
+                                        <span className="text-xs text-gray-500">
+                                          Asignado: {formatDate(epp.fechaAsignacion)}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={() => handleEditEpp(epp)}
+                                  className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                                  title="Editar estado y descripción"
+                                >
+                                  <MdEdit className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center flex-1 flex flex-col items-center justify-center">
+                        <MdShield className="w-20 h-20 text-gray-400 mx-auto mb-6" />
+                        <p className="text-gray-600 text-lg">No tienes EPP asignados actualmente</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "history" && (
+                  <div className="space-y-3 flex flex-col h-full">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-semibold text-gray-900">
+                        Historial de Actividades
+                      </h4>
+                    </div>
+
+                    {loadingHistorial ? (
+                      <div className="flex items-center justify-center py-12 flex-1">
+                        <BomberosLoader size="md" message="Cargando historial..." />
+                      </div>
+                    ) : errorHistorial ? (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex-1">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-red-800 font-medium">Error</span>
+                        </div>
+                        <p className="text-red-700 mt-1">{errorHistorial}</p>
+                        <button
+                          onClick={loadHistorial}
+                          className="mt-3 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                        >
+                          Reintentar
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex">
+                        <HistorialTable data={historialData} />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-      </div>
         </div>
       </div>
 

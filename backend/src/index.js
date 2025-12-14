@@ -216,6 +216,11 @@ async function setupAPI() {
     // Inicializar sistema completo de notificaciones (base + WebSocket)
     await initializeNotificationSystem();
 
+    // Inicializar scheduler de notificaciones automáticas
+    const { startNotificationScheduler } = await import("./config/configScheduler.js");
+    startNotificationScheduler();
+    logger.info("[SCHEDULER] Sistema de tareas programadas iniciado");
+
     // Configurar datos iniciales
     await crearCompañia();
     await crearRegiones();
@@ -263,4 +268,19 @@ setupAPI()
     logger.errorWithContext(error, { function: "setupAPI" });
     process.exit(1);
   });
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  logger.info('[SERVER] Señal SIGTERM recibida, cerrando servidor...');
+  const { stopNotificationScheduler } = await import("./config/configScheduler.js");
+  stopNotificationScheduler();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  logger.info('[SERVER] Señal SIGINT recibida, cerrando servidor...');
+  const { stopNotificationScheduler } = await import("./config/configScheduler.js");
+  stopNotificationScheduler();
+  process.exit(0);
+});
 

@@ -5,6 +5,7 @@ import {
   getCompaniaBomberoService,
   getCompaniaService,
   getCompaniasService,
+  getCompaniasConCoordenadasService,
   updateCompaniaService,
 } from "../services/compania.service.js";
 import {
@@ -303,8 +304,8 @@ export async function getCompaniaLogoUrl(req, res) {
 
     // Generar URL firmada
     const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIAS, compania.logoKEY);
-    
-    return handleSuccess(res, 200, "URL de logo generada exitosamente", { 
+
+    return handleSuccess(res, 200, "URL de logo generada exitosamente", {
       url: signedUrl,
       companiaId: idCompania,
       fileName: compania.logoKEY
@@ -345,14 +346,36 @@ export async function getCompaniaBannerUrl(req, res) {
 
     // Generar URL firmada
     const signedUrl = await minioService.getSignedUrl(BUCKETS.COMPANIAS, compania.bannerKEY);
-    
-    return handleSuccess(res, 200, "URL de banner generada exitosamente", { 
+
+    return handleSuccess(res, 200, "URL de banner generada exitosamente", {
       url: signedUrl,
       companiaId: idCompania,
       fileName: compania.bannerKEY
     });
   } catch (error) {
     console.error("Error en getCompaniaBannerUrl:", error);
+    return handleErrorServer(res, 500, "Error interno del servidor");
+  }
+}
+
+/**
+ * Obtiene todas las compañías con sus coordenadas para mostrar en el mapa
+ */
+export async function getCompaniasConCoordenadas(req, res) {
+  try {
+    const [companias, error] = await getCompaniasConCoordenadasService();
+
+    if (error) {
+      return handleErrorClient(res, 500, error);
+    }
+
+    if (companias.length === 0) {
+      return handleSuccess(res, 200, "No se encontraron compañías con ubicación", []);
+    }
+
+    return handleSuccess(res, 200, "Compañías con coordenadas obtenidas exitosamente", companias);
+  } catch (error) {
+    console.error("Error en getCompaniasConCoordenadas:", error);
     return handleErrorServer(res, 500, "Error interno del servidor");
   }
 }

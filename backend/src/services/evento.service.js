@@ -13,8 +13,33 @@ export async function obtenerEventosService() {
 
 export async function obtenerEventoPorIdService(id) {
     const repo = AppDataSource.getRepository(evento);
-    const eventoEncontrado = await repo.findOneBy({ id });
+    const eventoEncontrado = await repo.findOne({
+        where: { id },
+        relations: ['direccion', 'direccion.comuna', 'direccion.comuna.region']
+    });
     return eventoEncontrado;
+}
+
+export async function obtenerNumeroEventoEnAnioService(idEvento) {
+    try {
+        const repo = AppDataSource.getRepository(evento);
+        const eventoActual = await repo.findOneBy({ id: idEvento });
+        if (!eventoActual) return null;
+
+        const fechaEvento = eventoActual.fechaHoraInicio;
+        const anio = new Date(fechaEvento).getFullYear();
+
+        // Contar eventos del mismo año que son anteriores o iguales a este evento
+        const count = await repo.createQueryBuilder('e')
+            .where('EXTRACT(YEAR FROM e.fechaHoraInicio) = :anio', { anio })
+            .andWhere('e.fechaHoraInicio <= :fecha', { fecha: fechaEvento })
+            .getCount();
+
+        return { numero: count, anio };
+    } catch (error) {
+        console.error('Error al obtener número de evento en año:', error);
+        return null;
+    }
 }
 
 export async function crearEventoService(data, manager = null) {

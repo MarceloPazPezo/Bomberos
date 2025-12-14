@@ -41,37 +41,33 @@ const IncidenteSchema = new EntitySchema({
             type: "many-to-one",
             target: "Bombero",
             joinColumn: { name: "idBomberoACargo", referencedColumnName: "id" },
-            eager: true,
             onDelete: "RESTRICT",
         },
         direccion: {
             type: "many-to-one",
             target: "Direccion",
             joinColumn: { name: "idDireccion", referencedColumnName: "id" },
-            eager: true,
             onDelete: "RESTRICT",
         },
         redactor: {
             type: "many-to-one",
             target: "Bombero",
             joinColumn: { name: "idRedactor", referencedColumnName: "id" },
-            eager: true,
             onDelete: "RESTRICT",
         },
         subtipo: {
             type: "many-to-one",
             target: "SubtipoIncidente",
             joinColumn: { name: "idSubtipoIncidente", referencedColumnName: "id" },
-            eager: true,
             onDelete: "RESTRICT",
         },
-        
+
         asistenciaIncidentes: {
             type: "one-to-many",
             target: "AsistenciaIncidente",
             inverseSide: "incidente",
             cascade: true,
-    
+
         },
         bomberoAccidentados: {
             type: "one-to-many",
@@ -125,10 +121,9 @@ const IncidenteSchema = new EntitySchema({
             type: "many-to-one",
             target: "Compania",
             joinColumn: { name: "idCompania", referencedColumnName: "id" },
-            eager: true,
             onDelete: "RESTRICT",
         },
-        
+
 
 
     }

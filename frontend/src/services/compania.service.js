@@ -8,7 +8,7 @@ import root from './root.service.js';
 export const getCompanias = async (params = {}) => {
   try {
     const queryParams = new URLSearchParams();
-    
+
     // Agregar parámetros de búsqueda
     if (params.nombre) queryParams.append('nombre', params.nombre);
     if (params.email) queryParams.append('email', params.email);
@@ -124,11 +124,11 @@ export const createCompaniaWithImage = async (companiaData, logoImage = null, ba
   try {
     // Primero crear la compañía
     const companiaResult = await createCompania(companiaData);
-    
+
     if (companiaResult?.data?.id) {
       const fileService = (await import('./file.service.js')).default;
       const updateData = {};
-      
+
       // Subir logo si existe
       if (logoImage) {
         const logoUploadResult = await fileService.uploadCompanyImage(companiaResult.data.id, logoImage);
@@ -136,7 +136,7 @@ export const createCompaniaWithImage = async (companiaData, logoImage = null, ba
           updateData.logoKEY = logoUploadResult.data.fileName;
         }
       }
-      
+
       // Subir banner si existe
       if (bannerImage) {
         const bannerUploadResult = await fileService.uploadCompanyImage(companiaResult.data.id, bannerImage);
@@ -144,7 +144,7 @@ export const createCompaniaWithImage = async (companiaData, logoImage = null, ba
           updateData.bannerKEY = bannerUploadResult.data.fileName;
         }
       }
-      
+
       // Actualizar con las claves de las imágenes
       if (Object.keys(updateData).length > 0) {
         const updateResult = await updateCompania(companiaResult.data.id, updateData);
@@ -170,11 +170,11 @@ export const createCompaniaWithImage = async (companiaData, logoImage = null, ba
 export const updateCompaniaWithImage = async (id, companiaData, logoImage = null, bannerImage = null) => {
   try {
     const fileService = (await import('./file.service.js')).default;
-    
+
     // Subir logo si existe
     if (logoImage) {
       const logoUploadResult = await fileService.uploadCompanyImage(id, logoImage);
-      
+
       if (logoUploadResult.success) {
         // Solo actualizar logoKEY, no logoURL (el backend debería generar URLs dinámicamente)
         companiaData.logoKEY = logoUploadResult.data.fileName;
@@ -182,11 +182,11 @@ export const updateCompaniaWithImage = async (id, companiaData, logoImage = null
         throw new Error('Error al subir la imagen del logo: ' + logoUploadResult.message);
       }
     }
-    
+
     // Subir banner si existe
     if (bannerImage) {
       const bannerUploadResult = await fileService.uploadCompanyImage(id, bannerImage);
-      
+
       if (bannerUploadResult.success) {
         // Solo actualizar bannerKEY, no bannerURL (el backend debería generar URLs dinámicamente)
         companiaData.bannerKEY = bannerUploadResult.data.fileName;
@@ -215,7 +215,20 @@ export const createCompaniaIntelligent = async (companiaData, logoImage = null, 
   if (logoImage || bannerImage) {
     return await createCompaniaWithImage(companiaData, logoImage, bannerImage);
   }
-  
+
   // Si no hay imagen, usar el endpoint normal
   return await createCompania(companiaData);
+};
+
+/**
+ * Obtiene todas las compañías con sus coordenadas geográficas para mostrar en el mapa
+ * @returns {Promise<Array>} Array de compañías con coordenadas
+ */
+export const getCompaniasConCoordenadas = async () => {
+  try {
+    const response = await root.get('/compania/coordenadas');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };

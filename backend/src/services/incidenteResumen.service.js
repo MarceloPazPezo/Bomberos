@@ -18,7 +18,17 @@ export async function obtenerIncidentesResumenService(options = {}) {
   if (options && Number.isInteger(options.redactorId)) {
     where.idRedactor = options.redactorId;
   }
-  const incidentes = await incidenteRepo.find({ where });
+  const incidentes = await incidenteRepo.find({
+    where,
+    relations: {
+      subtipo: {
+        clasificacionEmergencia: true,
+        claveRadial: true
+      },
+      compania: true,
+      direccion: true
+    }
+  });
   if (!Array.isArray(incidentes) || incidentes.length === 0) return [];
 
   const ids = incidentes.map(i => Number(i.id)).filter(n => Number.isInteger(n));
@@ -57,10 +67,11 @@ export async function obtenerIncidentesResumenService(options = {}) {
     .where("ee2.idIncidente IN (:...ids)", { ids })
     .groupBy("ee2.idIncidente");
 
-  // 3) Cargar esos últimos estados con join al EstadoReporte (para el nombre)
+  // 3) Cargar esos últimos estados con join al EstadoReporte (para el nombre) y al Bombero (para el revisor)
   const ultimos = await estadoRepo.createQueryBuilder("ee")
     .innerJoin("(" + sub.getQuery() + ")", "m", 'm."idIncidente" = ee."idIncidente" AND m."maxFecha" = ee."fechaHora"')
     .leftJoinAndSelect("ee.estado", "estado")
+    .leftJoinAndSelect("ee.bombero", "bombero")
     .setParameters(sub.getParameters())
     .getMany();
 
@@ -81,6 +92,9 @@ export async function obtenerIncidentesResumenService(options = {}) {
       // fallback por si viene cargada la relación eager "redactor"
       || (inc.redactor ? fullName(inc.redactor) : "");
 
+    // Nombre del bombero que hizo el último cambio de estado (revisor)
+    const revisorNombre = ee?.bombero ? fullName(ee.bombero) : "";
+
     return {
       id: inc.id,
       titulo: inc.descripcionPreliminar || "(Sin título)",
@@ -91,13 +105,14 @@ export async function obtenerIncidentesResumenService(options = {}) {
       fecha: (fecha && hora) ? `${fecha} ${hora}` : (fecha || ""),
       estado: estadoNombre ? estadoNombre.toUpperCase() : "",
       estadoFechaHora: ee?.fechaHora || null,
-      comentario: ee?.comentario || null, // ⭐ AGREGADO: comentario del último estado
+      comentario: ee?.comentario || null,
+      revisor: revisorNombre, // ⭐ AGREGADO: quién hizo el comentario
       // Detalle adicional para el drawer
       detalle: {
         direccion: inc.direccion ? `${inc.direccion.calle} ${inc.direccion.numero || "S/N"}` : "",
         comunaId: inc.direccion?.idComuna || null,
         descripcionPreliminar: inc.descripcionPreliminar || "",
-        claveRadial: inc.subtipo?.claveRadial || "",
+        claveRadial: inc.subtipo?.claveRadial?.nombre || "",
         tipoIncendio: null, // se puede inferir desde FaseYDano si contieneFuego es true
         faseAlcanzada: null, // idem
         contieneFuego: !!inc.subtipo?.contieneFuego,

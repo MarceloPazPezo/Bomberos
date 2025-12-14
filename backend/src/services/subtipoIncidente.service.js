@@ -23,6 +23,7 @@ export async function getSubtipoIncidentes(clasificacionId) {
   try {
     const subtipoIncidentes = await AppDataSource.getRepository(SubtipoIncidente).find({
       where: { clasificacion: clasificacionId },
+      relations: ['claveRadial', 'clasificacionEmergencia'],
     });
 
     return subtipoIncidentes;
@@ -130,9 +131,14 @@ export async function getSubtiposIncidentesService(queryParams = {}) {
 
     const subtiposSummarized = subtipos.map((subtipo) => ({
       id: subtipo.id,
-      claveRadial: subtipo.claveRadial ? subtipo.claveRadial.nombre : null,
-      clasificacion: subtipo.clasificacion,
+      nombre: subtipo.descripcion,
       descripcion: subtipo.descripcion,
+      claveRadial: subtipo.claveRadial ? {
+        id: subtipo.claveRadial.id,
+        nombre: subtipo.claveRadial.nombre
+      } : null,
+      codigoRadial: subtipo.claveRadial ? subtipo.claveRadial.nombre : null,
+      clasificacion: subtipo.clasificacion,
       contieneFuego: subtipo.contieneFuego,
       contieneInmuebles: subtipo.contieneInmuebles,
       contieneVehiculos: subtipo.contieneVehiculos,

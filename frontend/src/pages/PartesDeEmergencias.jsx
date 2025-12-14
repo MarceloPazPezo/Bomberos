@@ -6,16 +6,16 @@ import { getIncidentesResumen } from "../services/incidentes.service.js";
 import { borrarIncidente } from "../services/borrarParte.service.js";
 import { useAuth } from "@hooks/auth/useAuth";
 // PrimeReact
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import { InputText } from 'primereact/inputtext';
-import { Calendar as PRCalendar } from 'primereact/calendar';
-import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
-import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
-import Card from '@components/Card';
-import Tooltip from '@components/Tooltip.jsx';
-import { MdHelpOutline } from 'react-icons/md';
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
+import { InputText } from "primereact/inputtext";
+import { Calendar as PRCalendar } from "primereact/calendar";
+import { Button } from "primereact/button";
+import { Dropdown } from "primereact/dropdown";
+import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
+import Card from "@components/Card";
+import Tooltip from "@components/Tooltip.jsx";
+import { MdHelpOutline, MdEdit, MdLightbulb } from "react-icons/md";
 
 // 🔰 Iconos
 import {
@@ -122,7 +122,11 @@ function KanbanCard({ parte, onClick }) {
     return first || "";
   };
   const streetNumber = getStreetNumber(rawDir);
-  const lineText = shortDesc ? (streetNumber ? `${shortDesc}, ${streetNumber}` : shortDesc) : (streetNumber || "");
+  const lineText = shortDesc
+    ? streetNumber
+      ? `${shortDesc}, ${streetNumber}`
+      : shortDesc
+    : streetNumber || "";
 
   return (
     <button
@@ -146,13 +150,23 @@ function KanbanCard({ parte, onClick }) {
         {icon}
         <span>{lineText}</span>
       </div>
-      
+
       {/* ⭐ AGREGADO: Mostrar comentario si el estado es CORREGIR */}
-      {estadoKey === 'CORREGIR' && comentario && (
+      {estadoKey === "CORREGIR" && comentario && (
         <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-[11px]">
-          <div className="flex items-start gap-1 text-red-700">
-            <span className="text-red-600 font-semibold shrink-0">📝 Correcciones:</span>
-            <span className="line-clamp-2">{comentario}</span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center justify-between">
+              <span className="text-red-600 font-semibold shrink-0 flex items-center gap-1">
+                <MdEdit className="w-3.5 h-3.5" /> Correcciones:
+              </span>
+              {parte.revisor && (
+                <span className="text-red-500 text-[10px] flex items-center gap-0.5">
+                  <User className="w-3 h-3" />
+                  {parte.revisor}
+                </span>
+              )}
+            </div>
+            <span className="line-clamp-2 text-red-700">{comentario}</span>
           </div>
         </div>
       )}
@@ -167,19 +181,23 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
   const navigate = useNavigate();
   const { hasPermiso } = useAuth();
   const [deleting, setDeleting] = useState(false);
-  
+
   // Aplanar datos para filtros y sort
-  const data = useMemo(() => rows.map(r => ({
-    ...r,
-    fechaStr: r.fecha || '',
-    claveRadial: r?.detalle?.claveRadial || '',
-    descripcionText: r?.detalle?.descripcionPreliminar || r?.titulo || '',
-  })), [rows]);
+  const data = useMemo(
+    () =>
+      rows.map((r) => ({
+        ...r,
+        fechaStr: r.fecha || "",
+        claveRadial: r?.detalle?.claveRadial || "",
+        descripcionText: r?.detalle?.descripcionPreliminar || r?.titulo || "",
+      })),
+    [rows]
+  );
 
   // Filtros locales
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [globalFilter, setGlobalFilter] = useState("");
   const [claveFilter, setClaveFilter] = useState(null);
-  const [descFilter, setDescFilter] = useState('');
+  const [descFilter, setDescFilter] = useState("");
   const [dateFilter, setDateFilter] = useState(null);
 
   // Opciones únicas para Dropdown de clave radial
@@ -188,7 +206,9 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
     for (const r of data) {
       if (r.claveRadial) set.add(r.claveRadial);
     }
-    return Array.from(set).sort().map(v => ({ label: v, value: v }));
+    return Array.from(set)
+      .sort()
+      .map((v) => ({ label: v, value: v }));
   }, [data]);
 
   const header = (
@@ -234,47 +254,50 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
     let arr = data;
     if (dateFilter) {
       const y = dateFilter.getFullYear();
-      const m = String(dateFilter.getMonth() + 1).padStart(2, '0');
-      const d = String(dateFilter.getDate()).padStart(2, '0');
+      const m = String(dateFilter.getMonth() + 1).padStart(2, "0");
+      const d = String(dateFilter.getDate()).padStart(2, "0");
       const s = `${y}-${m}-${d}`;
-      arr = arr.filter(r => (r.fechaStr || '').startsWith(s));
+      arr = arr.filter((r) => (r.fechaStr || "").startsWith(s));
     }
     if (claveFilter) {
-      arr = arr.filter(r => (r.claveRadial || '') === claveFilter);
+      arr = arr.filter((r) => (r.claveRadial || "") === claveFilter);
     }
     if (descFilter.trim()) {
       const q = descFilter.toLowerCase();
-      arr = arr.filter(r => (r.descripcionText || '').toLowerCase().includes(q));
+      arr = arr.filter((r) => (r.descripcionText || "").toLowerCase().includes(q));
     }
     if (globalFilter.trim()) {
       const q = globalFilter.toLowerCase();
-      arr = arr.filter(r =>
-        (r.fechaStr || '').toLowerCase().includes(q) ||
-        (r.claveRadial || '').toLowerCase().includes(q) ||
-        (r.descripcionText || '').toLowerCase().includes(q)
+      arr = arr.filter(
+        (r) =>
+          (r.fechaStr || "").toLowerCase().includes(q) ||
+          (r.claveRadial || "").toLowerCase().includes(q) ||
+          (r.descripcionText || "").toLowerCase().includes(q)
       );
     }
     return arr;
   }, [data, dateFilter, claveFilter, descFilter, globalFilter]);
 
   const accionesBody = (row, hasPermisoFn) => {
-    const estadoKey = (row.estado || '').toUpperCase();
-    const canEdit = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
-    const puedeBorrar = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
-    const tienePermisoActualizar = hasPermisoFn('parte_emergencia:actualizar') || hasPermisoFn('parte_emergencia:admin');
-    const tienePermisoEliminar = hasPermisoFn('parte_emergencia:eliminar') || hasPermisoFn('parte_emergencia:admin');
-    
+    const estadoKey = (row.estado || "").toUpperCase();
+    const canEdit = estadoKey === "BORRADOR" || estadoKey === "CORREGIR";
+    const puedeBorrar = estadoKey === "BORRADOR" || estadoKey === "CORREGIR";
+    const tienePermisoActualizar =
+      hasPermisoFn("parte_emergencia:actualizar") || hasPermisoFn("parte_emergencia:admin");
+    const tienePermisoEliminar =
+      hasPermisoFn("parte_emergencia:eliminar") || hasPermisoFn("parte_emergencia:admin");
+
     const onDelete = async (parte) => {
       if (!parte?.id || deleting) return;
       confirmDialog({
-        message: '¿Estás seguro de eliminar este parte? Esta acción no se puede deshacer.',
-        header: 'Confirmar eliminación',
-        icon: 'pi pi-exclamation-triangle',
-        acceptLabel: 'Sí, eliminar',
-        rejectLabel: 'Cancelar',
-        acceptClassName: 'p-button-danger',
-        rejectClassName: 'p-button-text',
-        defaultFocus: 'reject',
+        message: "¿Estás seguro de eliminar este parte? Esta acción no se puede deshacer.",
+        header: "Confirmar eliminación",
+        icon: "pi pi-exclamation-triangle",
+        acceptLabel: "Sí, eliminar",
+        rejectLabel: "Cancelar",
+        acceptClassName: "p-button-danger",
+        rejectClassName: "p-button-text",
+        defaultFocus: "reject",
         accept: async () => {
           try {
             setDeleting(true);
@@ -282,7 +305,7 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
             // Recargar la página para refrescar datos
             window.location.reload();
           } catch (e) {
-            alert(e?.message || 'No se pudo borrar el parte');
+            alert(e?.message || "No se pudo borrar el parte");
           } finally {
             setDeleting(false);
           }
@@ -292,29 +315,29 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
 
     return (
       <div className="flex items-center gap-1">
-        <Button 
-          icon="pi pi-eye" 
-          className="p-button-sm p-button-text" 
-          onClick={() => onOpen(row)} 
+        <Button
+          icon="pi pi-eye"
+          className="p-button-sm p-button-text"
+          onClick={() => onOpen(row)}
           tooltip="Ver"
-          tooltipOptions={{ position: 'top' }}
+          tooltipOptions={{ position: "top" }}
         />
         {canEdit && tienePermisoActualizar && (
-          <Button 
-            icon="pi pi-pencil" 
-            className="p-button-sm p-button-text p-button-warning" 
-            onClick={() => navigate(`/editar-parte/${row.id}`)} 
+          <Button
+            icon="pi pi-pencil"
+            className="p-button-sm p-button-text p-button-warning"
+            onClick={() => navigate(`/editar-parte/${row.id}`)}
             tooltip="Actualizar"
-            tooltipOptions={{ position: 'top' }}
+            tooltipOptions={{ position: "top" }}
           />
         )}
         {puedeBorrar && tienePermisoEliminar && (
-          <Button 
-            icon="pi pi-trash" 
-            className="p-button-sm p-button-text p-button-danger" 
-            onClick={() => onDelete(row)} 
+          <Button
+            icon="pi pi-trash"
+            className="p-button-sm p-button-text p-button-danger"
+            onClick={() => onDelete(row)}
             tooltip="Eliminar"
-            tooltipOptions={{ position: 'top' }}
+            tooltipOptions={{ position: "top" }}
             disabled={deleting}
           />
         )}
@@ -323,8 +346,8 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
   };
 
   const descripcionBody = (row) => {
-    const txt = row.descripcionText || '';
-    const short = txt.length > 150 ? txt.slice(0, 150) + '…' : txt;
+    const txt = row.descripcionText || "";
+    const short = txt.length > 150 ? txt.slice(0, 150) + "…" : txt;
     return <span title={txt}>{short}</span>;
   };
 
@@ -334,20 +357,36 @@ function EstadoTable({ rows, onOpen, containerClass = "" }) {
         <DataTable
           value={filtered}
           dataKey="id"
-          paginator rows={8}
+          paginator
+          rows={8}
           rowsPerPageOptions={[8, 15, 30]}
           size="small"
           sortMode="single"
-          sortField="fechaStr" sortOrder={-1}
+          sortField="fechaStr"
+          sortOrder={-1}
           header={header}
           emptyMessage="Sin registros"
         >
-          <Column field="fechaStr" header="Fecha" sortable style={{ minWidth: '8rem' }}></Column>
-          <Column field="claveRadial" header="Clave radial" sortable style={{ minWidth: '8rem' }}></Column>
-          <Column field="descripcionText" header="Descripción" body={descripcionBody} style={{ minWidth: '14rem' }}></Column>
-          <Column field="tipo" header="Tipo" style={{ minWidth: '7rem' }}></Column>
-          <Column field="compania" header="Compañía" style={{ minWidth: '9rem' }}></Column>
-          <Column header="Acciones" body={(row) => accionesBody(row, hasPermiso)} style={{ width: '7rem' }}></Column>
+          <Column field="fechaStr" header="Fecha" sortable style={{ minWidth: "8rem" }}></Column>
+          <Column
+            field="claveRadial"
+            header="Clave radial"
+            sortable
+            style={{ minWidth: "8rem" }}
+          ></Column>
+          <Column
+            field="descripcionText"
+            header="Descripción"
+            body={descripcionBody}
+            style={{ minWidth: "14rem" }}
+          ></Column>
+          <Column field="tipo" header="Tipo" style={{ minWidth: "7rem" }}></Column>
+          <Column field="compania" header="Compañía" style={{ minWidth: "9rem" }}></Column>
+          <Column
+            header="Acciones"
+            body={(row) => accionesBody(row, hasPermiso)}
+            style={{ width: "7rem" }}
+          ></Column>
         </DataTable>
       </div>
     </Card>
@@ -366,9 +405,12 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
     // dar tiempo a la animación antes de desmontar
     setTimeout(() => onClose(), 250);
   }, [onClose]);
-  const esc = useCallback((e) => {
-    if (e.key === "Escape") handleClose();
-  }, [handleClose]);
+  const esc = useCallback(
+    (e) => {
+      if (e.key === "Escape") handleClose();
+    },
+    [handleClose]
+  );
   useEffect(() => {
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
@@ -381,8 +423,9 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   const idx = siblings.findIndex((x) => x.id === parte.id);
   const estadoKey = (parte?.estado || "").toUpperCase();
   const headerStyle = HEADER_STYLE_BY_ESTADO[estadoKey] || "bg-slate-600 text-white";
-  const estadoChip = CHIP_STYLE_BY_ESTADO[estadoKey] || "bg-slate-100 text-slate-800 border border-slate-200";
-  const canEdit = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
+  const estadoChip =
+    CHIP_STYLE_BY_ESTADO[estadoKey] || "bg-slate-100 text-slate-800 border border-slate-200";
+  const canEdit = estadoKey === "BORRADOR" || estadoKey === "CORREGIR";
 
   // Dirección resumida
   const getStreetNumber = (d) => {
@@ -397,18 +440,18 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   };
   const streetNumber = getStreetNumber(parte?.detalle?.direccion);
   const prettyEstado = estadoKey ? estadoKey.charAt(0) + estadoKey.slice(1).toLowerCase() : "";
-  const puedeBorrar = estadoKey === 'BORRADOR' || estadoKey === 'CORREGIR';
+  const puedeBorrar = estadoKey === "BORRADOR" || estadoKey === "CORREGIR";
   const onDelete = async () => {
     if (!parte?.id || deleting) return;
     confirmDialog({
-      message: '¿Estás seguro de eliminar este parte? Esta acción no se puede deshacer.',
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Sí, eliminar',
-      rejectLabel: 'Cancelar',
-      acceptClassName: 'p-button-danger',
-      rejectClassName: 'p-button-text',
-      defaultFocus: 'reject',
+      message: "¿Estás seguro de eliminar este parte? Esta acción no se puede deshacer.",
+      header: "Confirmar eliminación",
+      icon: "pi pi-exclamation-triangle",
+      acceptLabel: "Sí, eliminar",
+      rejectLabel: "Cancelar",
+      acceptClassName: "p-button-danger",
+      rejectClassName: "p-button-text",
+      defaultFocus: "reject",
       accept: async () => {
         try {
           setDeleting(true);
@@ -416,7 +459,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
           // quitar del listado actual
           onClose();
         } catch (e) {
-          alert(e?.message || 'No se pudo borrar el parte');
+          alert(e?.message || "No se pudo borrar el parte");
         } finally {
           setDeleting(false);
         }
@@ -426,17 +469,29 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${
+          visible ? "opacity-100" : "opacity-0"
+        }`}
         onClick={handleClose}
       />
-      <aside className={`fixed right-0 top-0 h-full w-full sm:w-[560px] bg-white z-50 shadow-xl border-l border-gray-200 flex flex-col transform transition-transform duration-300 ease-out ${visible ? 'translate-x-0' : 'translate-x-full'}`}>
+      <aside
+        className={`fixed right-0 top-0 h-full w-full sm:w-[560px] bg-white z-50 shadow-xl border-l border-gray-200 flex flex-col transform transition-transform duration-300 ease-out ${
+          visible ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
         {/* Header con color por estado */}
-        <header className={`px-5 py-4 border-b flex items-center justify-between shadow-sm ${headerStyle}`}>
+        <header
+          className={`px-5 py-4 border-b flex items-center justify-between shadow-sm ${headerStyle}`}
+        >
           <div className="text-base font-semibold inline-flex items-center gap-2">
             {ICON_BY_ESTADO[estadoKey] || <ClipboardList className="h-5 w-5" />}
             <span>Resumen del Reporte</span>
             {prettyEstado && (
-              <span className={`ml-2 px-2.5 py-1 text-xs font-medium rounded-full ${estadoChip} bg-white/15 text-white border-white/30`}>{prettyEstado}</span>
+              <span
+                className={`ml-2 px-2.5 py-1 text-xs font-medium rounded-full ${estadoChip} bg-white/15 text-white border-white/30`}
+              >
+                {prettyEstado}
+              </span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -469,7 +524,11 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
           {/* Chips superiores */}
           <div className="flex flex-wrap items-center gap-2">
             {parte.tipo ? (
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded ${TYPE_CHIP[parte.tipo] || "bg-gray-100 text-gray-800"}`}>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded ${
+                  TYPE_CHIP[parte.tipo] || "bg-gray-100 text-gray-800"
+                }`}
+              >
                 <Tag className="h-3.5 w-3.5" /> {parte.tipo}
               </span>
             ) : null}
@@ -511,7 +570,9 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
               </div>
               <div className="mt-0.5">
                 {prettyEstado ? (
-                  <span className={`px-2 py-0.5 rounded text-xs ${estadoChip}`}>{prettyEstado}</span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${estadoChip}`}>
+                    {prettyEstado}
+                  </span>
                 ) : (
                   <span className="text-gray-700">—</span>
                 )}
@@ -536,16 +597,24 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
           </div>
 
           {/* ⭐ AGREGADO: Mostrar comentario de rechazo si existe */}
-          {estadoKey === 'CORREGIR' && parte.comentario && (
+          {estadoKey === "CORREGIR" && parte.comentario && (
             <div className="mt-4">
               <div className="rounded-lg border-2 border-red-300 bg-red-50 p-4">
                 <div className="flex items-start gap-2 mb-2">
                   <div className="flex-shrink-0 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-lg">📝</span>
+                    <MdEdit className="text-white w-5 h-5" />
                   </div>
                   <div className="flex-1">
-                    <div className="text-red-800 font-semibold text-sm mb-1">
-                      Correcciones solicitadas
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="text-red-800 font-semibold text-sm">
+                        Correcciones solicitadas
+                      </div>
+                      {parte.revisor && (
+                        <div className="text-xs text-red-600 flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          {parte.revisor}
+                        </div>
+                      )}
                     </div>
                     <div className="text-red-700 text-sm leading-relaxed whitespace-pre-line">
                       {parte.comentario}
@@ -553,15 +622,14 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
                   </div>
                 </div>
                 <div className="mt-3 pt-3 border-t border-red-200">
-                  <p className="text-xs text-red-600 italic">
-                    💡 Por favor, realiza las correcciones indicadas y vuelve a enviar el parte para revisión.
+                  <p className="text-xs text-red-600 italic flex items-center gap-1">
+                    <MdLightbulb className="w-4 h-4 flex-shrink-0" /> Por favor, realiza las
+                    correcciones indicadas y vuelve a enviar el parte para revisión.
                   </p>
                 </div>
               </div>
             </div>
           )}
-
- 
 
           {/* Descripción */}
           <div className="mt-4">
@@ -596,7 +664,7 @@ function DetailPanel({ parte, onClose, onNextPrev, siblings }) {
                 disabled={deleting}
                 title="Eliminar parte (sólo estados Borrador o Corregir)"
               >
-                <i className="pi pi-trash" /> {deleting ? 'Eliminando…' : 'Eliminar parte'}
+                <i className="pi pi-trash" /> {deleting ? "Eliminando…" : "Eliminar parte"}
               </button>
             )}
           </div>
@@ -662,8 +730,8 @@ export default function PartesDeEmergencias() {
           return { id, key, label, _idx: i };
         });
         const sorted = mapped.sort((a, b) => {
-          const ai = typeof a.id === 'number' ? a.id : Number(a.id);
-          const bi = typeof b.id === 'number' ? b.id : Number(b.id);
+          const ai = typeof a.id === "number" ? a.id : Number(a.id);
+          const bi = typeof b.id === "number" ? b.id : Number(b.id);
           const aValid = !Number.isNaN(ai);
           const bValid = !Number.isNaN(bi);
           if (aValid && bValid) return ai - bi;
@@ -684,7 +752,9 @@ export default function PartesDeEmergencias() {
         if (mounted) setLoadingCols(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Cargar incidentes (resumen) desde backend
@@ -705,22 +775,24 @@ export default function PartesDeEmergencias() {
         }
         const data = await getIncidentesResumen({ redactorId: userId });
         if (!mounted) return;
-        const norm = (Array.isArray(data) ? data : []).map(x => ({
+        const norm = (Array.isArray(data) ? data : []).map((x) => ({
           ...x,
-          estado: (x.estado || '').toUpperCase(),
-          tipo: x.tipo || '',
-          compania: x.compania || '',
-          creador: x.creador || '',
-          fecha: x.fecha || '',
+          estado: (x.estado || "").toUpperCase(),
+          tipo: x.tipo || "",
+          compania: x.compania || "",
+          creador: x.creador || "",
+          fecha: x.fecha || "",
         }));
         setItems(norm);
       } catch (err) {
-        if (mounted) setErrorItems(err?.message || 'Error al cargar incidentes');
+        if (mounted) setErrorItems(err?.message || "Error al cargar incidentes");
       } finally {
         if (mounted) setLoadingItems(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [bombero?.id]);
 
   // agrupar + filtrar
@@ -733,21 +805,22 @@ export default function PartesDeEmergencias() {
     if (!query.trim()) return map;
     const q = query.toLowerCase();
     for (const k of Object.keys(map)) {
-      map[k] = map[k].filter((p) =>
-        (p.titulo || "").toLowerCase().includes(q) ||
-        (p.tipo || "").toLowerCase().includes(q) ||
-        (p.compania || "").toLowerCase().includes(q)
+      map[k] = map[k].filter(
+        (p) =>
+          (p.titulo || "").toLowerCase().includes(q) ||
+          (p.tipo || "").toLowerCase().includes(q) ||
+          (p.compania || "").toLowerCase().includes(q)
       );
     }
     return map;
   }, [items, query, columns]);
 
   // lista de la pestaña activa (si no es BOARD)
-  const activeList = activeTab === "BOARD" ? [] : (grouped[activeTab] || []);
+  const activeList = activeTab === "BOARD" ? [] : grouped[activeTab] || [];
 
   const handleNextPrev = (dir) => {
     if (!selected) return;
-    const col = (grouped[selected.estado] || []);
+    const col = grouped[selected.estado] || [];
     const idx = col.findIndex((x) => x.id === selected.id);
     if (idx < 0 || col.length === 0) return;
     const nextIdx = dir === "next" ? (idx + 1) % col.length : (idx - 1 + col.length) % col.length;
@@ -767,21 +840,21 @@ export default function PartesDeEmergencias() {
               <div>
                 <h1 className="text-2xl font-bold text-[#2C3E50]">Partes de Emergencias</h1>
               </div>
-                <Tooltip
-                  id="partes-emergencias-help"
-                  content="Sistema de gestión de partes de emergencias. Aquí puedes crear, ver y gestionar todos los partes de emergencias reportados. El tablero Kanban te permite organizar los partes por estado para una mejor visualización y gestión."
-                  place="right"
-                  variant="dark"
-                >
+              <Tooltip
+                id="partes-emergencias-help"
+                content="Sistema de gestión de partes de emergencias. Aquí puedes crear, ver y gestionar todos los partes de emergencias reportados. El tablero Kanban te permite organizar los partes por estado para una mejor visualización y gestión."
+                place="right"
+                variant="dark"
+              >
                 <MdHelpOutline className="h-4 w-4 text-gray-400 hover:text-[#4EB9FA] transition-colors cursor-help" />
               </Tooltip>
             </div>
-            
+
             {/* Botón crear parte - Solo visible si tiene permiso */}
-            {(hasPermiso('parte_emergencia:crear') || hasPermiso('parte_emergencia:admin')) && (
+            {(hasPermiso("parte_emergencia:crear") || hasPermiso("parte_emergencia:admin")) && (
               <button
                 type="button"
-                onClick={() => navigate('/crear-parte')}
+                onClick={() => navigate("/crear-parte")}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-3 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus className="h-4 w-4" /> Crear parte de emergencia
@@ -798,7 +871,11 @@ export default function PartesDeEmergencias() {
           <div className="flex items-center gap-0 border-b border-gray-200 overflow-x-auto mb-4">
             <TabButton
               active={activeTab === "BOARD"}
-              label={<span className="inline-flex items-center gap-1.5"><Kanban className="h-3.5 w-3.5" /> Tablero</span>}
+              label={
+                <span className="inline-flex items-center gap-1.5">
+                  <Kanban className="h-3.5 w-3.5" /> Tablero
+                </span>
+              }
               onClick={() => setActiveTab("BOARD")}
             />
             {loadingCols && (
@@ -833,74 +910,84 @@ export default function PartesDeEmergencias() {
 
           {/* Contenido */}
           <div>
-        {activeTab === "BOARD" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {columns.map((col) => {
-              const list = grouped[col.key] || [];
-              const containerStyle = CONTAINER_STYLE_BY_ESTADO[col.key] || "border-gray-200 bg-gray-50";
-              const headerStyle = HEADER_STYLE_BY_ESTADO[col.key] || "bg-slate-500 text-white";
-              const total = list.length;
-              const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-              const currentPage = Math.min(Math.max(1, colPage[col.key] || 1), totalPages);
-              const startIdx = (currentPage - 1) * PAGE_SIZE;
-              const pageItems = list.slice(startIdx, startIdx + PAGE_SIZE);
-              const goPrev = () => setColPage((p) => ({ ...p, [col.key]: Math.max(1, currentPage - 1) }));
-              const goNext = () => setColPage((p) => ({ ...p, [col.key]: Math.min(totalPages, currentPage + 1) }));
-              return (
-                <section key={col.key} className={`rounded-lg border overflow-hidden ${containerStyle}`}>
-                  {/* Encabezado de columna */}
-                  <div className={`px-3 py-2 flex items-center justify-between ${headerStyle}`}>
-                    <h2 className="text-sm font-semibold">{col.label}</h2>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30">
-                      {list.length}
-                    </span>
-                  </div>
-
-                  {/* Contenido de tarjetas */}
-                  <div className="p-3 space-y-2 min-h-[60vh] overflow-auto pr-1 bg-white/60">
-                    {total === 0 ? (
-                      <div className="text-xs italic text-gray-500 px-1 py-2">Sin elementos</div>
-                    ) : (
-                      pageItems.map((p) => (
-                        <KanbanCard key={p.id} parte={p} onClick={setSelected} />
-                      ))
-                    )}
-                  </div>
-                  {/* Paginación */}
-                  {totalPages > 1 && (
-                    <div className="px-3 pb-3 pt-2 bg-white/60 border-t border-white/50 flex items-center justify-between text-[12px]">
-                      <span className="text-gray-600">Página {currentPage} de {totalPages}</span>
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
-                          onClick={goPrev}
-                          disabled={currentPage <= 1}
-                          title="Anterior"
-                        >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-                        <button
-                          className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
-                          onClick={goNext}
-                          disabled={currentPage >= totalPages}
-                          title="Siguiente"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </button>
+            {activeTab === "BOARD" ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {columns.map((col) => {
+                  const list = grouped[col.key] || [];
+                  const containerStyle =
+                    CONTAINER_STYLE_BY_ESTADO[col.key] || "border-gray-200 bg-gray-50";
+                  const headerStyle = HEADER_STYLE_BY_ESTADO[col.key] || "bg-slate-500 text-white";
+                  const total = list.length;
+                  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+                  const currentPage = Math.min(Math.max(1, colPage[col.key] || 1), totalPages);
+                  const startIdx = (currentPage - 1) * PAGE_SIZE;
+                  const pageItems = list.slice(startIdx, startIdx + PAGE_SIZE);
+                  const goPrev = () =>
+                    setColPage((p) => ({ ...p, [col.key]: Math.max(1, currentPage - 1) }));
+                  const goNext = () =>
+                    setColPage((p) => ({ ...p, [col.key]: Math.min(totalPages, currentPage + 1) }));
+                  return (
+                    <section
+                      key={col.key}
+                      className={`rounded-lg border overflow-hidden ${containerStyle}`}
+                    >
+                      {/* Encabezado de columna */}
+                      <div className={`px-3 py-2 flex items-center justify-between ${headerStyle}`}>
+                        <h2 className="text-sm font-semibold">{col.label}</h2>
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30">
+                          {list.length}
+                        </span>
                       </div>
-                    </div>
-                  )}
-                </section>
-              );
-            })}
-          </div>
-        ) : (
-          <EstadoTable
-            rows={activeList}
-            onOpen={setSelected}
-            containerClass={CONTAINER_STYLE_BY_ESTADO[activeTab] || "border-gray-200 bg-white"}
-          />
-        )}
+
+                      {/* Contenido de tarjetas */}
+                      <div className="p-3 space-y-2 min-h-[60vh] overflow-auto pr-1 bg-white/60">
+                        {total === 0 ? (
+                          <div className="text-xs italic text-gray-500 px-1 py-2">
+                            Sin elementos
+                          </div>
+                        ) : (
+                          pageItems.map((p) => (
+                            <KanbanCard key={p.id} parte={p} onClick={setSelected} />
+                          ))
+                        )}
+                      </div>
+                      {/* Paginación */}
+                      {totalPages > 1 && (
+                        <div className="px-3 pb-3 pt-2 bg-white/60 border-t border-white/50 flex items-center justify-between text-[12px]">
+                          <span className="text-gray-600">
+                            Página {currentPage} de {totalPages}
+                          </span>
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                              onClick={goPrev}
+                              disabled={currentPage <= 1}
+                              title="Anterior"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                              onClick={goNext}
+                              disabled={currentPage >= totalPages}
+                              title="Siguiente"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </section>
+                  );
+                })}
+              </div>
+            ) : (
+              <EstadoTable
+                rows={activeList}
+                onOpen={setSelected}
+                containerClass={CONTAINER_STYLE_BY_ESTADO[activeTab] || "border-gray-200 bg-white"}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -910,7 +997,7 @@ export default function PartesDeEmergencias() {
         parte={selected}
         onClose={() => setSelected(null)}
         onNextPrev={handleNextPrev}
-        siblings={selected ? (grouped[selected.estado] || []) : []}
+        siblings={selected ? grouped[selected.estado] || [] : []}
       />
     </div>
   );
@@ -920,8 +1007,8 @@ export default function PartesDeEmergencias() {
    Botón de Tab con colores + iconos (estilo compacto similar a dashboard)
 ========================= */
 function TabButton({ active, label, onClick, estadoKey }) {
-  const icon = estadoKey ? (ICON_BY_ESTADO[estadoKey] || null) : null;
-  
+  const icon = estadoKey ? ICON_BY_ESTADO[estadoKey] || null : null;
+
   // Colores por estado para el texto activo
   const activeTextColorByEstado = {
     BORRADOR: "text-gray-700",
@@ -929,7 +1016,7 @@ function TabButton({ active, label, onClick, estadoKey }) {
     APROBADO: "text-green-600",
     CORREGIR: "text-red-600",
   };
-  
+
   // Colores por estado para el indicador inferior
   const activeIndicatorColorByEstado = {
     BORRADOR: "bg-gray-400",
@@ -937,22 +1024,20 @@ function TabButton({ active, label, onClick, estadoKey }) {
     APROBADO: "bg-green-500",
     CORREGIR: "bg-red-500",
   };
-  
-  const activeTextColor = estadoKey 
-    ? (activeTextColorByEstado[estadoKey] || "text-blue-600")
+
+  const activeTextColor = estadoKey
+    ? activeTextColorByEstado[estadoKey] || "text-blue-600"
     : "text-blue-600";
-  
+
   const activeIndicatorColor = estadoKey
-    ? (activeIndicatorColorByEstado[estadoKey] || "bg-blue-500")
+    ? activeIndicatorColorByEstado[estadoKey] || "bg-blue-500"
     : "bg-blue-500";
-  
+
   return (
     <button
       onClick={onClick}
       className={`relative px-3 py-2 text-sm font-medium transition-all duration-200 inline-flex items-center gap-1.5 ${
-        active
-          ? `${activeTextColor}`
-          : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+        active ? `${activeTextColor}` : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
       }`}
     >
       {icon && <span className={active ? "" : "text-gray-400"}>{icon}</span>}

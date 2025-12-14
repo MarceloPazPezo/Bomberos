@@ -143,6 +143,22 @@ export const getBomberoDetalles = async (idBombero) => {
   }
 };
 
+/**
+ * Genera PDF de ficha de bombero
+ */
+export const generarFichaBomberoPdf = async (id, options = {}) => {
+  try {
+    const payload = {};
+    if (options.expiresIn) payload.expiresIn = options.expiresIn;
+    const response = await axios.post(`/bombero/${id}/ficha/pdf`, payload);
+    if (import.meta.env?.DEV) console.log("PDF de ficha generado:", response);
+    return response.data;
+  } catch (error) {
+    console.error('Error al generar PDF de ficha:', error);
+    throw error.response?.data || error;
+  }
+};
+
 // ==================== FUNCIONALIDADES UNIFICADAS ====================
 
 /**
@@ -154,10 +170,25 @@ export async function createBomberoWithOptionalFicha(bomberoData, fichaData = nu
       bomberoData,
       fichaData
     });
-    return response.data;
+    // Normalizar respuesta del backend a formato esperado por el frontend
+    const backendData = response.data;
+    return {
+      success: backendData.status === 'Success',
+      message: backendData.message,
+      data: backendData.data,
+      details: backendData.details
+    };
   } catch (error) {
     console.error('Error creating bombero with optional ficha:', error);
-    return error.response?.data || { success: false, message: 'Error de conexión con el servidor' };
+    const errorData = error.response?.data;
+    if (errorData) {
+      return {
+        success: false,
+        message: errorData.message || 'Error al crear el bombero',
+        details: errorData.details
+      };
+    }
+    return { success: false, message: 'Error de conexión con el servidor' };
   }
 }
 
@@ -186,10 +217,25 @@ export async function createBomberoWithImage(bomberoData, fichaData = null, prof
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response.data;
+    // Normalizar respuesta del backend a formato esperado por el frontend
+    const backendData = response.data;
+    return {
+      success: backendData.status === 'Success',
+      message: backendData.message,
+      data: backendData.data,
+      details: backendData.details
+    };
   } catch (error) {
     console.error('Error creating bombero with image:', error);
-    return error.response?.data || { success: false, message: 'Error de conexión con el servidor' };
+    const errorData = error.response?.data;
+    if (errorData) {
+      return {
+        success: false,
+        message: errorData.message || 'Error al crear el bombero',
+        details: errorData.details
+      };
+    }
+    return { success: false, message: 'Error de conexión con el servidor' };
   }
 }
 

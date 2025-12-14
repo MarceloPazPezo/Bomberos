@@ -1,49 +1,44 @@
-import React, { useEffect, useState, useContext, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useRoutes } from 'react-router-dom';
-
+import React, { useEffect, useState, useContext, useRef, useMemo } from "react";
+import { useParams, useNavigate, useRoutes } from "react-router-dom";
 
 // Flag simple de depuración (desactívalo en producción)
 const DEBUG_INIT = false;
 // Services
-import { getRegiones, getComunas } from '../services/region.service.js';
+import { getRegiones, getComunas } from "../services/region.service.js";
 import {
   getClasificacionesEmergencia,
   getSubtiposIncidente,
   getTiposDano,
   getFasesIncidente,
-} from '../services/subtipoIncidente.service.js';
-import { getCompanias } from '../services/compania.service.js';
-import { getCarrosByCompania } from '../services/carro.service.js';
-import { getBomberosPorCompania, getBomberosConLicencias } from '../services/bombero.service.js';
-import { getServicios } from '../services/servicios.service.js';
-import { obtenerParteEmergenciaPorId, actualizarParteEmergencia, obtenerUltimoEstadoIncidente } from '../services/parteEmergencia.service.js';
+} from "../services/subtipoIncidente.service.js";
+import { getCompanias } from "../services/compania.service.js";
+import { getCarrosByCompania } from "../services/carro.service.js";
+import { getBomberosPorCompania, getBomberosConLicencias } from "../services/bombero.service.js";
+import { getServicios } from "../services/servicios.service.js";
+import {
+  obtenerParteEmergenciaPorId,
+  actualizarParteEmergencia,
+  obtenerUltimoEstadoIncidente,
+} from "../services/parteEmergencia.service.js";
 
 // UI
-import { toast } from 'react-toastify';
-import {
-  ClipboardList,
-  Home,
-  Users,
-  AlertTriangle,
-  Plus,
-  Handshake,
-} from 'lucide-react';
-import Card from '../components/Card.jsx';
-import Switch from '../components/Switch.jsx';
-import SelectableCard from '../components/SelectableCard.jsx';
-import InmuebleCard from '../components/parteEmergencia/InmuebleCard.jsx';
-import VehicleCard from '../components/parteEmergencia/VehicleCard.jsx';
-import UnidadCard from '../components/parteEmergencia/UnidadCard.jsx';
-import AccidentadoCard from '../components/parteEmergencia/AccidentadoCard.jsx';
-import ServicioExternoCard from '../components/parteEmergencia/ServicioExternoCard.jsx';
-import { AuthContext } from '../context/AuthContext.jsx';
-import { useCompaniaConfig } from '@hooks/compania/useCompaniaConfig';
-import PrimeDatePicker from '@components/inputs/PrimeDatePicker.jsx';
-import PrimeTimePicker from '@components/inputs/PrimeTimePicker.jsx';
-import Select from 'react-select';
-import { Dropdown } from 'primereact/dropdown';
-import { formatRutForDisplay } from '@helpers/rutFormatter.js';
-
+import { toast } from "react-toastify";
+import { ClipboardList, Home, Users, AlertTriangle, Plus, Handshake } from "lucide-react";
+import Card from "../components/Card.jsx";
+import Switch from "../components/Switch.jsx";
+import SelectableCard from "../components/SelectableCard.jsx";
+import InmuebleCard from "../components/parteEmergencia/InmuebleCard.jsx";
+import VehicleCard from "../components/parteEmergencia/VehicleCard.jsx";
+import UnidadCard from "../components/parteEmergencia/UnidadCard.jsx";
+import AccidentadoCard from "../components/parteEmergencia/AccidentadoCard.jsx";
+import ServicioExternoCard from "../components/parteEmergencia/ServicioExternoCard.jsx";
+import { AuthContext } from "../context/AuthContext.jsx";
+import { useCompaniaConfig } from "@hooks/compania/useCompaniaConfig";
+import PrimeDatePicker from "@components/inputs/PrimeDatePicker.jsx";
+import PrimeTimePicker from "@components/inputs/PrimeTimePicker.jsx";
+import Select from "react-select";
+import { Dropdown } from "primereact/dropdown";
+import { formatRutForDisplay } from "@helpers/rutFormatter.js";
 
 /* ================================
    Helpers
@@ -59,37 +54,37 @@ function normalizeArray(res, nestedKey) {
 }
 
 const nombreBombero = (b) => {
-  const n = [b.nombres, b.apellidos].filter(Boolean).join(' ').trim();
+  const n = [b.nombres, b.apellidos].filter(Boolean).join(" ").trim();
   return n || `Bombero ${b.id}`;
 };
 
 // HH:mm -> minutos (ya no se usa para validación de orden de horas, pero lo dejamos por si se reutiliza)
 const timeToMin = (t) => {
-  if (!t || typeof t !== 'string' || !t.includes(':')) return null;
-  const [h, m] = t.split(':').map(Number);
+  if (!t || typeof t !== "string" || !t.includes(":")) return null;
+  const [h, m] = t.split(":").map(Number);
   if (Number.isNaN(h) || Number.isNaN(m)) return null;
   return h * 60 + m;
 };
 const isInt = (v) => Number.isInteger(Number(v));
 const isPosInt = (v) => isInt(v) && Number(v) > 0;
 // Normalizador a número para IDs en selects
-const toId = (v) => (v === '' || v === null || v === undefined ? '' : Number(v));
+const toId = (v) => (v === "" || v === null || v === undefined ? "" : Number(v));
 // Normaliza una hora a HH:mm (recorta segundos si vienen)
 const toHHmm = (t) => {
-  if (!t || typeof t !== 'string') return '';
+  if (!t || typeof t !== "string") return "";
   // t puede venir como 'HH:mm' o 'HH:mm:ss'
   const m = t.match(/^([0-1]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?$/);
-  if (!m) return '';
+  if (!m) return "";
   const hh = m[1];
   const mm = m[2];
   return `${hh}:${mm}`;
 };
 
 const formatDateLocal = (date) => {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
@@ -99,24 +94,25 @@ const keepDbIdOrDrop = (val) => {
   return Number.isFinite(n) && n > 0 && String(n) === String(val) ? n : null;
 };
 function sanitizeIdShallow(obj) {
-  if (!obj || typeof obj !== 'object') return obj;
+  if (!obj || typeof obj !== "object") return obj;
   const out = { ...obj };
-  if (Object.prototype.hasOwnProperty.call(out, 'id')) {
+  if (Object.prototype.hasOwnProperty.call(out, "id")) {
     const n = keepDbIdOrDrop(out.id);
-    if (n === null) delete out.id; else out.id = n;
+    if (n === null) delete out.id;
+    else out.id = n;
   }
   return out;
 }
 function sanitizeDeepKnown(item) {
-  if (!item || typeof item !== 'object') return item;
+  if (!item || typeof item !== "object") return item;
   let out = sanitizeIdShallow(item);
-  if (out.dueno && typeof out.dueno === 'object') {
+  if (out.dueno && typeof out.dueno === "object") {
     out = { ...out, dueno: sanitizeIdShallow(out.dueno) };
   }
   if (Array.isArray(out.habitantes)) {
     out = { ...out, habitantes: out.habitantes.map((h) => sanitizeIdShallow(h)) };
   }
-  if (out.chofer && typeof out.chofer === 'object') {
+  if (out.chofer && typeof out.chofer === "object") {
     out = { ...out, chofer: sanitizeIdShallow(out.chofer) };
   }
   if (Array.isArray(out.pasajeros)) {
@@ -130,22 +126,23 @@ function sanitizeDeepKnown(item) {
 ========================================= */
 function useBomberosPorCompania() {
   const [bomberosByCompania, setBomberosByCompania] = useState({}); // { [companiaId]: Bombero[] }
-  const [loadingByCompania, setLoadingByCompania] = useState({});   // { [companiaId]: boolean }
-  const [errorByCompania, setErrorByCompania] = useState({});       // { [companiaId]: string }
+  const [loadingByCompania, setLoadingByCompania] = useState({}); // { [companiaId]: boolean }
+  const [errorByCompania, setErrorByCompania] = useState({}); // { [companiaId]: string }
 
   const ensureLoaded = async (companiaId) => {
     if (!companiaId || bomberosByCompania[companiaId]) return;
     try {
       setLoadingByCompania((m) => ({ ...m, [companiaId]: true }));
-      setErrorByCompania((m) => ({ ...m, [companiaId]: '' }));
+      setErrorByCompania((m) => ({ ...m, [companiaId]: "" }));
       const res = await getBomberosPorCompania(companiaId);
-      const arr = normalizeArray(res, 'bomberos').length > 0
-        ? normalizeArray(res, 'bomberos')
-        : normalizeArray(res);
+      const arr =
+        normalizeArray(res, "bomberos").length > 0
+          ? normalizeArray(res, "bomberos")
+          : normalizeArray(res);
       setBomberosByCompania((m) => ({ ...m, [companiaId]: arr }));
     } catch {
       setBomberosByCompania((m) => ({ ...m, [companiaId]: [] }));
-      setErrorByCompania((m) => ({ ...m, [companiaId]: 'No se pudieron cargar los bomberos.' }));
+      setErrorByCompania((m) => ({ ...m, [companiaId]: "No se pudieron cargar los bomberos." }));
     } finally {
       setLoadingByCompania((m) => ({ ...m, [companiaId]: false }));
     }
@@ -166,18 +163,18 @@ const EditarParte = () => {
   // Dirección
   const [regiones, setRegiones] = useState([]);
   const [comunas, setComunas] = useState([]);
-  const [regionId, setRegionId] = useState('');
-  const [comunaId, setComunaId] = useState('');
+  const [regionId, setRegionId] = useState("");
+  const [comunaId, setComunaId] = useState("");
   const [loadingRegiones, setLoadingRegiones] = useState(false);
   const [loadingComunas, setLoadingComunas] = useState(false);
-  const [errorRegiones, setErrorRegiones] = useState('');
-  const [errorComunas, setErrorComunas] = useState('');
+  const [errorRegiones, setErrorRegiones] = useState("");
+  const [errorComunas, setErrorComunas] = useState("");
 
   // Compañías
   const [companias, setCompanias] = useState([]);
-  const [companiaId, setCompaniaId] = useState('');
+  const [companiaId, setCompaniaId] = useState("");
   const [loadingCompanias, setLoadingCompanias] = useState(false);
-  const [errorCompanias, setErrorCompanias] = useState('');
+  const [errorCompanias, setErrorCompanias] = useState("");
 
   // Autoseleccionar compañía desde autenticación o configuración si no viene en el parte cargado
   useEffect(() => {
@@ -187,11 +184,11 @@ const EditarParte = () => {
       bombero?.companiaId,
       bombero?.compania_id,
       bombero?.compania?.id,
-      getConfigValue?.('company_id'),
+      getConfigValue?.("company_id"),
     ];
-    let picked = idCandidates.find((v) => v !== undefined && v !== null && v !== '');
+    let picked = idCandidates.find((v) => v !== undefined && v !== null && v !== "");
     // 3) Convertir a número si es posible
-    if (picked !== undefined && picked !== null && picked !== '') {
+    if (picked !== undefined && picked !== null && picked !== "") {
       const n = Number(picked);
       if (!Number.isNaN(n) && Number.isFinite(n) && n > 0) {
         setCompaniaId(n);
@@ -199,12 +196,9 @@ const EditarParte = () => {
       }
     }
     // 4) Fallback por nombre (auth o config) con carga si es necesario
-    const nameCandidates = [
-      bombero?.compania?.nombre,
-      getConfigValue?.('company_name'),
-    ]
+    const nameCandidates = [bombero?.compania?.nombre, getConfigValue?.("company_name")]
       .filter(Boolean)
-      .map((s) => (typeof s === 'string' ? s.trim().toLowerCase() : ''))
+      .map((s) => (typeof s === "string" ? s.trim().toLowerCase() : ""))
       .filter(Boolean);
 
     if (!companiaId && nameCandidates.length > 0) {
@@ -228,13 +222,16 @@ const EditarParte = () => {
         (async () => {
           try {
             setLoadingCompanias(true);
-            setErrorCompanias('');
+            setErrorCompanias("");
             const res = await getCompanias();
-            const arr = normalizeArray(res, 'companias').length > 0 ? normalizeArray(res, 'companias') : normalizeArray(res);
+            const arr =
+              normalizeArray(res, "companias").length > 0
+                ? normalizeArray(res, "companias")
+                : normalizeArray(res);
             setCompanias(arr);
             tryResolveByName(arr);
           } catch {
-            setErrorCompanias('No se pudieron cargar las compañías.');
+            setErrorCompanias("No se pudieron cargar las compañías.");
           } finally {
             setLoadingCompanias(false);
           }
@@ -251,80 +248,99 @@ const EditarParte = () => {
 
   // Tipo de emergencia
   const [clasificaciones, setClasificaciones] = useState([]);
-  const [clasificacionId, setClasificacionId] = useState('');
+  const [clasificacionId, setClasificacionId] = useState("");
   const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
-  const [errorClasificaciones, setErrorClasificaciones] = useState('');
+  const [errorClasificaciones, setErrorClasificaciones] = useState("");
   const [subtipos, setSubtipos] = useState([]);
-  const [subtipoId, setSubtipoId] = useState('');
+  const [subtipoId, setSubtipoId] = useState("");
   const [loadingSubtipos, setLoadingSubtipos] = useState(false);
-  const [errorSubtipos, setErrorSubtipos] = useState('');
+  const [errorSubtipos, setErrorSubtipos] = useState("");
 
   // Características
   const [tipoIncendioEnabled, setTipoIncendioEnabled] = useState(false);
-  const [tipoIncendioId, setTipoIncendioId] = useState('');
+  const [tipoIncendioId, setTipoIncendioId] = useState("");
   const [tiposDano, setTiposDano] = useState([]);
   const [loadingTiposDano, setLoadingTiposDano] = useState(false);
-  const [errorTiposDano, setErrorTiposDano] = useState('');
+  const [errorTiposDano, setErrorTiposDano] = useState("");
   const [faseEnabled, setFaseEnabled] = useState(false);
-  const [faseId, setFaseId] = useState('');
+  const [faseId, setFaseId] = useState("");
   const [fasesIncidente, setFasesIncidente] = useState([]);
   const [loadingFases, setLoadingFases] = useState(false);
-  const [errorFases, setErrorFases] = useState('');
+  const [errorFases, setErrorFases] = useState("");
 
   // Carros por compañía
   const [carros, setCarros] = useState([]);
   const [loadingCarros, setLoadingCarros] = useState(false);
-  const [errorCarros, setErrorCarros] = useState('');
+  const [errorCarros, setErrorCarros] = useState("");
 
   // Servicios externos
   const [servicios, setServicios] = useState([]);
   const [loadingServicios, setLoadingServicios] = useState(false);
-  const [errorServicios, setErrorServicios] = useState('');
+  const [errorServicios, setErrorServicios] = useState("");
 
   /* ---------- Secciones de detalle ---------- */
   // Inmuebles (ahora con calle y numero)
   const [inmuebles, setInmuebles] = useState([]);
   const addInmueble = () =>
-    setInmuebles((prev) => [...prev, {
-      id: genId(),
-      tipo_construccion: '',
-      n_pisos: '',
-      m2_construccion: '',
-      m2_afectado: '',
-      danos_vivienda: '',
-      danos_anexos: '',
-      calle: '',
-      numero: '',
-      dueno: null,
-      habitantes: [],
-    }]);
-  const updateInmueble = (idx, next) => setInmuebles((prev) => prev.map((it, i) => (i === idx ? next : it)));
+    setInmuebles((prev) => [
+      ...prev,
+      {
+        id: genId(),
+        tipo_construccion: "",
+        n_pisos: "",
+        m2_construccion: "",
+        m2_afectado: "",
+        danos_vivienda: "",
+        danos_anexos: "",
+        calle: "",
+        numero: "",
+        dueno: null,
+        habitantes: [],
+      },
+    ]);
+  const updateInmueble = (idx, next) =>
+    setInmuebles((prev) => prev.map((it, i) => (i === idx ? next : it)));
   const removeInmueble = (idx) => setInmuebles((prev) => prev.filter((_, i) => i !== idx));
 
   // Vehículos
   const [vehiculos, setVehiculos] = useState([]);
   const addVehiculo = () =>
-    setVehiculos((prev) => [...prev, {
-      id: genId(),
-      patente: '',
-      marca: '',
-      modelo: '',
-      anio: '',
-      color: '',
-      danos_vehiculo: '',
-      dueno: null,
-      chofer: null,
-      pasajeros: [],
-    }]);
-  const updateVehiculo = (idx, next) => setVehiculos((prev) => prev.map((it, i) => (i === idx ? next : it)));
+    setVehiculos((prev) => [
+      ...prev,
+      {
+        id: genId(),
+        patente: "",
+        marca: "",
+        modelo: "",
+        anio: "",
+        color: "",
+        danos_vehiculo: "",
+        dueno: null,
+        chofer: null,
+        pasajeros: [],
+      },
+    ]);
+  const updateVehiculo = (idx, next) =>
+    setVehiculos((prev) => prev.map((it, i) => (i === idx ? next : it)));
   const removeVehiculo = (idx) => setVehiculos((prev) => prev.filter((_, i) => i !== idx));
 
   // Material mayor (sección 7)
   const [materialMayor, setMaterialMayor] = useState([]);
-  const addUnidad = () => setMaterialMayor((prev) => [...prev, {
-    id: genId(), unidadId: '', conductorId: '', bomberoId: '', voluntarios: '', kmSalida: '', kmLlegada: ''
-  }]);
-  const updateUnidad = (idx, next) => setMaterialMayor((prev) => prev.map((row, i) => (i === idx ? next : row)));
+  const addUnidad = () =>
+    setMaterialMayor((prev) => [
+      ...prev,
+      {
+        id: genId(),
+        unidadId: "",
+        conductorId: "",
+        bomberoId: "",
+        voluntarios: "",
+        kmSalida: "",
+        kmLlegada: "",
+      },
+    ]);
+  const updateUnidad = (idx, next) =>
+    setMaterialMayor((prev) => prev.map((row, i) => (i === idx ? next : row)));
   const removeUnidad = (idx) => setMaterialMayor((prev) => prev.filter((_, i) => i !== idx));
   const totalVoluntarios = materialMayor.reduce(
     (acc, r) => acc + (Number.isFinite(Number(r.voluntarios)) ? Number(r.voluntarios) : 0),
@@ -334,45 +350,77 @@ const EditarParte = () => {
   // Accidentados (sección 8)
   const [accidentados, setAccidentados] = useState([]);
   const addAccidentado = () =>
-    setAccidentados((prev) => [...prev, {
-      id: genId(), companiaId: '', bomberoId: '', rut: '', lesiones: '', constancia: '', comisaria: '', acciones: ''
-    }]);
-  const updateAccidentado = (idx, next) => setAccidentados((prev) => prev.map((a, i) => (i === idx ? next : a)));
+    setAccidentados((prev) => [
+      ...prev,
+      {
+        id: genId(),
+        companiaId: "",
+        bomberoId: "",
+        rut: "",
+        lesiones: "",
+        constancia: "",
+        comisaria: "",
+        acciones: "",
+      },
+    ]);
+  const updateAccidentado = (idx, next) =>
+    setAccidentados((prev) => prev.map((a, i) => (i === idx ? next : a)));
   const removeAccidentado = (idx) => setAccidentados((prev) => prev.filter((_, i) => i !== idx));
 
   // Otros servicios (sección 9)
   const [otrosServicios, setOtrosServicios] = useState([]);
   const addOtroServicio = () =>
-    setOtrosServicios((prev) => [...prev, {
-      id: genId(), servicioId: '', tipoUnidad: '', responsable: '', personal: '', observaciones: ''
-    }]);
-  const updateOtroServicio = (idx, next) => setOtrosServicios((prev) => prev.map((s, i) => (i === idx ? next : s)));
+    setOtrosServicios((prev) => [
+      ...prev,
+      {
+        id: genId(),
+        servicioId: "",
+        tipoUnidad: "",
+        responsable: "",
+        personal: "",
+        observaciones: "",
+      },
+    ]);
+  const updateOtroServicio = (idx, next) =>
+    setOtrosServicios((prev) => prev.map((s, i) => (i === idx ? next : s)));
   const removeOtroServicio = (idx) => setOtrosServicios((prev) => prev.filter((_, i) => i !== idx));
 
   // Asistencia (sección 10) — switches por voluntario con exclusión cruzada
-  const [asistenciaLugar, setAsistenciaLugar] = useState({});   // { [bomberoId]: true }
+  const [asistenciaLugar, setAsistenciaLugar] = useState({}); // { [bomberoId]: true }
   const [asistenciaCuartel, setAsistenciaCuartel] = useState({}); // { [bomberoId]: true }
-  const [searchLugar, setSearchLugar] = useState('');
-  const [searchCuartel, setSearchCuartel] = useState('');
+  const [searchLugar, setSearchLugar] = useState("");
+  const [searchCuartel, setSearchCuartel] = useState("");
   const toggleLugar = (id, checked) => {
     setAsistenciaLugar((prev) => ({ ...prev, [id]: checked }));
-    if (checked) setAsistenciaCuartel((prev) => { const m = { ...prev }; delete m[id]; return m; });
+    if (checked)
+      setAsistenciaCuartel((prev) => {
+        const m = { ...prev };
+        delete m[id];
+        return m;
+      });
   };
   const toggleCuartel = (id, checked) => {
     setAsistenciaCuartel((prev) => ({ ...prev, [id]: checked }));
-    if (checked) setAsistenciaLugar((prev) => { const m = { ...prev }; delete m[id]; return m; });
+    if (checked)
+      setAsistenciaLugar((prev) => {
+        const m = { ...prev };
+        delete m[id];
+        return m;
+      });
   };
 
   // Cache de bomberos por compañía para Accidentados
-  const { bomberosByCompania, loadingByCompania, errorByCompania, ensureLoaded } = useBomberosPorCompania();
+  const { bomberosByCompania, loadingByCompania, errorByCompania, ensureLoaded } =
+    useBomberosPorCompania();
 
   /* ---------- Validación ---------- */
   const [errors, setErrors] = useState({});
   const hasError = (k) => !!errors[k];
-  const baseInput = 'w-full border border-gray-300 rounded-md px-3 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 h-[44px]';
-  const baseTextarea = 'w-full border border-gray-300 rounded-md px-3 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
-  const inputCls = (k) =>
-    `${baseInput} ${hasError(k) ? 'ring-2 ring-red-400 border-red-300' : ''}`;
+  const baseInput =
+    "w-full border border-gray-300 rounded-md px-3 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400 h-[44px]";
+  const baseTextarea =
+    "w-full border border-gray-300 rounded-md px-3 py-3 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400";
+  const inputCls = (k) => `${baseInput} ${hasError(k) ? "ring-2 ring-red-400 border-red-300" : ""}`;
 
   const isPositiveInt = (x) => Number.isInteger(Number(x)) && Number(x) > 0;
 
@@ -385,23 +433,23 @@ const EditarParte = () => {
 
   /* ---------- Campos controlados (persisten entre pestañas) ---------- */
   // Datos generales
-  const [fecha, setFecha] = useState('');
-  const [horaDespacho, setHoraDespacho] = useState('');
-  const [hora60, setHora60] = useState('');
-  const [hora63, setHora63] = useState('');
-  const [hora69, setHora69] = useState('');
-  const [hora610, setHora610] = useState('');
+  const [fecha, setFecha] = useState("");
+  const [horaDespacho, setHoraDespacho] = useState("");
+  const [hora60, setHora60] = useState("");
+  const [hora63, setHora63] = useState("");
+  const [hora69, setHora69] = useState("");
+  const [hora610, setHora610] = useState("");
   // Nuevos campos
-  const [descripcionPreliminar, setDescripcionPreliminar] = useState('');
-  const [bomberoACargoId, setBomberoACargoId] = useState('');
+  const [descripcionPreliminar, setDescripcionPreliminar] = useState("");
+  const [bomberoACargoId, setBomberoACargoId] = useState("");
   // Dirección
-  const [calleTxt, setCalleTxt] = useState('');
-  const [numeroTxt, setNumeroTxt] = useState('');
-  const [deptoTxt, setDeptoTxt] = useState('');
-  const [referenciaTxt, setReferenciaTxt] = useState('');
+  const [calleTxt, setCalleTxt] = useState("");
+  const [numeroTxt, setNumeroTxt] = useState("");
+  const [deptoTxt, setDeptoTxt] = useState("");
+  const [referenciaTxt, setReferenciaTxt] = useState("");
   // Carga del parte existente
   const [loadingParte, setLoadingParte] = useState(false);
-  const [estadoParte, setEstadoParte] = useState('');
+  const [estadoParte, setEstadoParte] = useState("");
   // Track de cambio real de compañía para evitar reset en carga inicial
   const prevCompaniaIdRef = useRef(undefined);
   // Pendientes a aplicar después de cargar catálogos dependientes (región/comunas y compañía)
@@ -410,133 +458,158 @@ const EditarParte = () => {
   // Gatillo para re-ejecutar efectos cuando 'ready' cambia (los refs no disparan efectos)
   const [initGate, setInitGate] = useState(0);
 
-  const commonSelectStyles = useMemo(() => ({
-    control: (base, state) => ({
-      ...base,
-      borderColor: state.isFocused ? '#4EB9FA' : '#D1D5DB',
-      borderWidth: '2px',
-      boxShadow: state.isFocused ? '0 0 0 3px rgba(78, 185, 250, 0.1)' : 'none',
-      '&:hover': {
-        borderColor: '#4EB9FA',
-      },
-      minHeight: '44px',
-      borderRadius: '10px',
-      fontSize: '0.9rem',
+  const commonSelectStyles = useMemo(
+    () => ({
+      control: (base, state) => ({
+        ...base,
+        borderColor: state.isFocused ? "#4EB9FA" : "#D1D5DB",
+        borderWidth: "2px",
+        boxShadow: state.isFocused ? "0 0 0 3px rgba(78, 185, 250, 0.1)" : "none",
+        "&:hover": {
+          borderColor: "#4EB9FA",
+        },
+        minHeight: "44px",
+        borderRadius: "10px",
+        fontSize: "0.9rem",
+      }),
+      menu: (base) => ({
+        ...base,
+        zIndex: 25,
+        borderRadius: "10px",
+        overflow: "hidden",
+      }),
+      menuList: (base) => ({
+        ...base,
+        maxHeight: "260px",
+      }),
+      option: (base, state) => ({
+        ...base,
+        backgroundColor: state.isSelected ? "#4EB9FA" : state.isFocused ? "#E0F2FE" : "white",
+        color: state.isSelected ? "#FFFFFF" : "#1F2937",
+        fontSize: "0.9rem",
+      }),
+      placeholder: (base) => ({
+        ...base,
+        fontSize: "0.9rem",
+        color: "#9CA3AF",
+      }),
+      input: (base) => ({
+        ...base,
+        fontSize: "0.9rem",
+      }),
+      singleValue: (base) => ({
+        ...base,
+        fontSize: "0.9rem",
+        color: "#1F2937",
+      }),
+      menuPortal: (base) => ({
+        ...base,
+        zIndex: 9999,
+      }),
     }),
-    menu: (base) => ({
-      ...base,
-      zIndex: 25,
-      borderRadius: '10px',
-      overflow: 'hidden',
-    }),
-    menuList: (base) => ({
-      ...base,
-      maxHeight: '260px',
-    }),
-    option: (base, state) => ({
-      ...base,
-      backgroundColor: state.isSelected
-        ? '#4EB9FA'
-        : state.isFocused
-          ? '#E0F2FE'
-          : 'white',
-      color: state.isSelected ? '#FFFFFF' : '#1F2937',
-      fontSize: '0.9rem',
-    }),
-    placeholder: (base) => ({
-      ...base,
-      fontSize: '0.9rem',
-      color: '#9CA3AF',
-    }),
-    input: (base) => ({
-      ...base,
-      fontSize: '0.9rem',
-    }),
-    singleValue: (base) => ({
-      ...base,
-      fontSize: '0.9rem',
-      color: '#1F2937',
-    }),
-    menuPortal: (base) => ({
-      ...base,
-      zIndex: 9999,
-    }),
-  }), []);
+    []
+  );
 
-  const selectMenuPortalTarget = typeof window !== 'undefined' ? document.body : null;
+  const selectMenuPortalTarget = typeof window !== "undefined" ? document.body : null;
 
-  const bomberoSearchOptions = useMemo(() => bomberos.map((b) => {
-    const nombre = nombreBombero(b);
-    const run = formatRutForDisplay(b.run);
-    const value = b.id?.toString() ?? '';
-    if (!value) return null;
-    return {
-      value,
-      label: run ? `${run} • ${nombre}` : nombre,
-      data: {
-        run: (run || '').toLowerCase(),
-        nombre: nombre.toLowerCase(),
-      },
-    };
-  }).filter(Boolean), [bomberos]);
+  const bomberoSearchOptions = useMemo(
+    () =>
+      bomberos
+        .map((b) => {
+          const nombre = nombreBombero(b);
+          const run = formatRutForDisplay(b.run);
+          const value = b.id?.toString() ?? "";
+          if (!value) return null;
+          return {
+            value,
+            label: run ? `${run} • ${nombre}` : nombre,
+            data: {
+              run: (run || "").toLowerCase(),
+              nombre: nombre.toLowerCase(),
+            },
+          };
+        })
+        .filter(Boolean),
+    [bomberos]
+  );
 
   const selectedBomberoOption = useMemo(() => {
     if (!bomberoACargoId) return null;
     return bomberoSearchOptions.find((opt) => opt.value === bomberoACargoId.toString()) || null;
   }, [bomberoACargoId, bomberoSearchOptions]);
 
-  const regionOptions = useMemo(() => regiones.map((region) => {
-    const value = region.id?.toString() ?? '';
-    if (!value) return null;
-    return {
-      value,
-      label: region.nombre || `Región ${value}`,
-      data: {
-        nombre: (region.nombre || '').toLowerCase(),
-      },
-    };
-  }).filter(Boolean), [regiones]);
+  const regionOptions = useMemo(
+    () =>
+      regiones
+        .map((region) => {
+          const value = region.id?.toString() ?? "";
+          if (!value) return null;
+          return {
+            value,
+            label: region.nombre || `Región ${value}`,
+            data: {
+              nombre: (region.nombre || "").toLowerCase(),
+            },
+          };
+        })
+        .filter(Boolean),
+    [regiones]
+  );
 
   const selectedRegionOption = useMemo(() => {
-    if (regionId === '' || regionId === null || regionId === undefined) return null;
+    if (regionId === "" || regionId === null || regionId === undefined) return null;
     return regionOptions.find((opt) => opt.value === regionId.toString()) || null;
   }, [regionId, regionOptions]);
 
-  const comunaOptions = useMemo(() => comunas.map((comuna) => {
-    const value = comuna.id?.toString() ?? '';
-    if (!value) return null;
-    return {
-      value,
-      label: comuna.nombre || `Comuna ${value}`,
-      data: {
-        nombre: (comuna.nombre || '').toLowerCase(),
-      },
-    };
-  }).filter(Boolean), [comunas]);
+  const comunaOptions = useMemo(
+    () =>
+      comunas
+        .map((comuna) => {
+          const value = comuna.id?.toString() ?? "";
+          if (!value) return null;
+          return {
+            value,
+            label: comuna.nombre || `Comuna ${value}`,
+            data: {
+              nombre: (comuna.nombre || "").toLowerCase(),
+            },
+          };
+        })
+        .filter(Boolean),
+    [comunas]
+  );
 
   const selectedComunaOption = useMemo(() => {
-    if (comunaId === '' || comunaId === null || comunaId === undefined) return null;
+    if (comunaId === "" || comunaId === null || comunaId === undefined) return null;
     return comunaOptions.find((opt) => opt.value === comunaId.toString()) || null;
   }, [comunaId, comunaOptions]);
 
-  const claveRadialOptions = useMemo(() => subtipos.map((st) => {
-    const value = st.id?.toString() ?? '';
-    if (!value) return null;
-    const codigo = st.claveRadial ?? st.codigoRadial ?? `Clave ${value}`;
-    const nombre = st.nombre ?? st.descripcion ?? '';
-    const label = nombre ? `${codigo} • ${nombre}` : codigo;
-    return {
-      value,
-      label,
-      data: {
-        codigo: (codigo || '').toLowerCase(),
-        nombre: (nombre || '').toLowerCase(),
-      },
-    };
-  }).filter(Boolean), [subtipos]);
+  const claveRadialOptions = useMemo(
+    () =>
+      subtipos
+        .map((st) => {
+          const value = st.id?.toString() ?? "";
+          if (!value) return null;
+          const codigo = st.claveRadial || "";
+          const nombre = st.nombre ?? st.descripcion ?? "";
+          // Si el código está vacío, no mostrar esta opción
+          if (!codigo || codigo.trim() === "") return null;
+          const label = nombre ? `Clave ${codigo} • ${nombre}` : `Clave ${codigo}`;
+          return {
+            value,
+            label,
+            data: {
+              codigo: (codigo || "").toLowerCase(),
+              nombre: (nombre || "").toLowerCase(),
+            },
+          };
+        })
+        .filter(Boolean),
+    [subtipos]
+  );
 
   const selectedClaveRadialOption = useMemo(() => {
-    if (subtipoId === '' || subtipoId === null || subtipoId === undefined) return null;
+    if (subtipoId === "" || subtipoId === null || subtipoId === undefined) return null;
     return claveRadialOptions.find((opt) => opt.value === subtipoId.toString()) || null;
   }, [subtipoId, claveRadialOptions]);
 
@@ -550,11 +623,11 @@ const EditarParte = () => {
     try {
       const estResp = await obtenerUltimoEstadoIncidente(id);
       const estData = estResp?.data?.data ?? estResp?.data ?? estResp;
-      const estadoUpper = (estData?.estado || '').toString().trim().toUpperCase();
+      const estadoUpper = (estData?.estado || "").toString().trim().toUpperCase();
       setEstadoParte(estadoUpper);
-      if (estadoUpper === 'ENVIADO' || estadoUpper === 'APROBADO') {
-        toast.error('Este parte no se puede modificar porque está ENVIADO o APROBADO.');
-        navigate('/404');
+      if (estadoUpper === "ENVIADO" || estadoUpper === "APROBADO") {
+        toast.error("Este parte no se puede modificar porque está ENVIADO o APROBADO.");
+        navigate("/404");
         return;
       }
     } catch (_) {
@@ -563,106 +636,127 @@ const EditarParte = () => {
     const nextErrors = {};
 
     // Requeridos simples
-    if (!companiaId) nextErrors.companiaId = 'Obligatorio.';
-    if (!fecha) nextErrors.fecha = 'Obligatorio.';
-    if (!horaDespacho) nextErrors.horadespacho = 'Obligatorio.';
-    if (!hora60) nextErrors.hora6_0 = 'Obligatorio.';
-    if (!hora63) nextErrors.hora6_3 = 'Obligatorio.';
-    if (!hora69) nextErrors.hora6_9 = 'Obligatorio.';
-    if (!hora610) nextErrors.hora6_10 = 'Obligatorio.';
-    if (!regionId && regionId !== 0) nextErrors.regionId = 'Obligatorio.';
-    if (!comunaId && comunaId !== 0) nextErrors.comunaId = 'Obligatorio.';
-    if (!calleTxt.trim()) nextErrors.calle = 'Obligatorio.';
+    if (!companiaId) nextErrors.companiaId = "Obligatorio.";
+    if (!fecha) nextErrors.fecha = "Obligatorio.";
+    if (!horaDespacho) nextErrors.horadespacho = "Obligatorio.";
+    if (!hora60) nextErrors.hora6_0 = "Obligatorio.";
+    if (!hora63) nextErrors.hora6_3 = "Obligatorio.";
+    if (!hora69) nextErrors.hora6_9 = "Obligatorio.";
+    if (!hora610) nextErrors.hora6_10 = "Obligatorio.";
+    if (!regionId && regionId !== 0) nextErrors.regionId = "Obligatorio.";
+    if (!comunaId && comunaId !== 0) nextErrors.comunaId = "Obligatorio.";
+    if (!calleTxt.trim()) nextErrors.calle = "Obligatorio.";
 
     // (Eliminadas) Validaciones de orden entre horas 6_0, 6_3, 6_9, 6_10
 
     // Tipo de emergencia / Clave radial
-    if (!clasificacionId) nextErrors.clasificacionId = 'Seleccione una clasificación.';
-    if (!subtipoId) nextErrors.subtipoId = 'Seleccione una clave radial.';
+    if (!clasificacionId) nextErrors.clasificacionId = "Seleccione una clasificación.";
+    if (!subtipoId) nextErrors.subtipoId = "Seleccione una clave radial.";
     // Si la clave radial elegida contiene fuego, exigir tipo de incendio y fase
     const subtipoSeleccionado = subtipos.find((s) => s.id === subtipoId);
     if (subtipoSeleccionado?.contieneFuego) {
-      if (!tipoIncendioId) nextErrors.tipoIncendioId = 'Seleccione el tipo de incendio/daño.';
-      if (!faseId) nextErrors.faseId = 'Seleccione la fase alcanzada.';
+      if (!tipoIncendioId) nextErrors.tipoIncendioId = "Seleccione el tipo de incendio/daño.";
+      if (!faseId) nextErrors.faseId = "Seleccione la fase alcanzada.";
     }
 
     // Material mayor: al menos 1 y completo
     if (materialMayor.length === 0) {
-      nextErrors.materialMayor = 'Debe agregar al menos una unidad.';
+      nextErrors.materialMayor = "Debe agregar al menos una unidad.";
     } else {
       // Validar campos completos y válidos
       const invalidRow = materialMayor.find(
-        (r) => !r.unidadId || !r.conductorId || !r.bomberoId || !isPositiveInt(r.voluntarios) || !isPositiveInt(r.kmSalida) || !isPositiveInt(r.kmLlegada)
+        (r) =>
+          !r.unidadId ||
+          !r.conductorId ||
+          !r.bomberoId ||
+          !isPositiveInt(r.voluntarios) ||
+          !isPositiveInt(r.kmSalida) ||
+          !isPositiveInt(r.kmLlegada)
       );
       if (invalidRow) {
-        nextErrors.materialMayor = 'Complete todos los campos de la(s) unidad(es). Voluntarios y KM deben ser enteros > 0.';
+        nextErrors.materialMayor =
+          "Complete todos los campos de la(s) unidad(es). Voluntarios y KM deben ser enteros > 0.";
       } else {
         // Validar que kmLlegada >= kmSalida
         const kmInvalidRow = materialMayor.find(
-          (r) => isPositiveInt(r.kmSalida) && isPositiveInt(r.kmLlegada) && Number(r.kmLlegada) < Number(r.kmSalida)
+          (r) =>
+            isPositiveInt(r.kmSalida) &&
+            isPositiveInt(r.kmLlegada) &&
+            Number(r.kmLlegada) < Number(r.kmSalida)
         );
         if (kmInvalidRow) {
-          nextErrors.materialMayor = 'El kilometraje de llegada debe ser igual o mayor que el de salida.';
+          nextErrors.materialMayor =
+            "El kilometraje de llegada debe ser igual o mayor que el de salida.";
         }
       }
     }
 
     // Asistencia en el lugar: al menos 1
     const anyLugar = Object.values(asistenciaLugar).some(Boolean);
-    if (!anyLugar) nextErrors.asistenciaLugar = 'Registre al menos 1 voluntario presente en el lugar.';
+    if (!anyLugar)
+      nextErrors.asistenciaLugar = "Registre al menos 1 voluntario presente en el lugar.";
 
     // Inmuebles: validaciones extra
     const inmErrors = [];
     inmuebles.forEach((inm, i) => {
-      if (inm.n_pisos !== '' && !isPosInt(inm.n_pisos)) {
+      if (inm.n_pisos !== "" && !isPosInt(inm.n_pisos)) {
         inmErrors.push(`Inmueble #${i + 1}: "N° de pisos" debe ser entero > 0.`);
       }
-      if (inm.m2_construccion !== '' && !(Number(inm.m2_construccion) > 0)) {
+      if (inm.m2_construccion !== "" && !(Number(inm.m2_construccion) > 0)) {
         inmErrors.push(`Inmueble #${i + 1}: "m² construcción" debe ser > 0.`);
       }
-      if (inm.m2_afectado !== '' && !(Number(inm.m2_afectado) > 0)) {
+      if (inm.m2_afectado !== "" && !(Number(inm.m2_afectado) > 0)) {
         inmErrors.push(`Inmueble #${i + 1}: "m² afectado" debe ser > 0.`);
       }
       const edades = [];
-      if (inm.dueno?.edad !== undefined && inm.dueno?.edad !== '') edades.push(inm.dueno.edad);
-      (inm.habitantes || []).forEach(h => {
-        if (h?.edad !== undefined && h?.edad !== '') edades.push(h.edad);
+      if (inm.dueno?.edad !== undefined && inm.dueno?.edad !== "") edades.push(inm.dueno.edad);
+      (inm.habitantes || []).forEach((h) => {
+        if (h?.edad !== undefined && h?.edad !== "") edades.push(h.edad);
       });
-      const invalidEdad = edades.find(ed => !isPosInt(ed));
+      const invalidEdad = edades.find((ed) => !isPosInt(ed));
       if (invalidEdad !== undefined) {
-        inmErrors.push(`Inmueble #${i + 1}: "Edad" debe ser entero positivo en los campos informados.`);
+        inmErrors.push(
+          `Inmueble #${i + 1}: "Edad" debe ser entero positivo en los campos informados.`
+        );
       }
     });
     if (inmErrors.length > 0) {
-      nextErrors.inmuebles = inmErrors.join(' ');
+      nextErrors.inmuebles = inmErrors.join(" ");
     }
 
     // Vehículos: validaciones extra
     const currentYear = new Date().getFullYear();
     const vehErrors = [];
     vehiculos.forEach((v, i) => {
-      if (v.anio !== '' && (!isPosInt(v.anio) || Number(v.anio) <= 1900 || Number(v.anio) >= currentYear)) {
-        vehErrors.push(`Vehículo #${i + 1}: "Año" debe ser entero > 1900 y menor que ${currentYear}.`);
+      if (
+        v.anio !== "" &&
+        (!isPosInt(v.anio) || Number(v.anio) <= 1900 || Number(v.anio) >= currentYear)
+      ) {
+        vehErrors.push(
+          `Vehículo #${i + 1}: "Año" debe ser entero > 1900 y menor que ${currentYear}.`
+        );
       }
       const edades = [];
-      if (v.dueno?.edad !== undefined && v.dueno?.edad !== '') edades.push(v.dueno.edad);
-      if (v.chofer?.edad !== undefined && v.chofer?.edad !== '') edades.push(v.chofer.edad);
-      (v.pasajeros || []).forEach(p => {
-        if (p?.edad !== undefined && p?.edad !== '') edades.push(p.edad);
+      if (v.dueno?.edad !== undefined && v.dueno?.edad !== "") edades.push(v.dueno.edad);
+      if (v.chofer?.edad !== undefined && v.chofer?.edad !== "") edades.push(v.chofer.edad);
+      (v.pasajeros || []).forEach((p) => {
+        if (p?.edad !== undefined && p?.edad !== "") edades.push(p.edad);
       });
-      const invalidEdad = edades.find(ed => !isPosInt(ed));
+      const invalidEdad = edades.find((ed) => !isPosInt(ed));
       if (invalidEdad !== undefined) {
-        vehErrors.push(`Vehículo #${i + 1}: "Edad" debe ser entero positivo en los campos informados.`);
+        vehErrors.push(
+          `Vehículo #${i + 1}: "Edad" debe ser entero positivo en los campos informados.`
+        );
       }
     });
     if (vehErrors.length > 0) {
-      nextErrors.vehiculos = vehErrors.join(' ');
+      nextErrors.vehiculos = vehErrors.join(" ");
     }
 
     // Validar idRedactor (usuario autenticado)
     const idRedactor = bombero?.id ? Number(bombero.id) : null;
     if (!idRedactor) {
-      nextErrors.idRedactor = 'Sesión inválida: vuelva a iniciar sesión.';
+      nextErrors.idRedactor = "Sesión inválida: vuelva a iniciar sesión.";
     }
 
     setErrors(nextErrors);
@@ -673,47 +767,65 @@ const EditarParte = () => {
       const maxToasts = Math.min(keys.length, 4);
       for (let i = 0; i < maxToasts; i++) {
         const k = keys[i];
-        const msg = Array.isArray(nextErrors[k]) ? nextErrors[k].join(' ') : nextErrors[k];
-        toast.error(typeof msg === 'string' ? msg : 'Hay errores en el formulario', {
-          position: 'top-right', autoClose: 4000, hideProgressBar: false, closeOnClick: true,
+        const msg = Array.isArray(nextErrors[k]) ? nextErrors[k].join(" ") : nextErrors[k];
+        toast.error(typeof msg === "string" ? msg : "Hay errores en el formulario", {
+          position: "top-right",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
         });
       }
       const firstKey = Object.keys(nextErrors)[0];
       const firstEl = document.querySelector(`[data-error-key="${firstKey}"]`);
-      if (firstEl?.scrollIntoView) firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (firstEl?.scrollIntoView) firstEl.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setSubmitting(true);
     try {
-      const fechaTrim = (fecha || '').trim();
-      const horaTrim = (horaDespacho || '').trim();
+      const fechaTrim = (fecha || "").trim();
+      const horaTrim = (horaDespacho || "").trim();
       let fechaHoraDespacho = null;
-      if (fechaTrim && horaTrim && /^\d{4}-\d{2}-\d{2}$/.test(fechaTrim) && /^\d{2}:\d{2}$/.test(horaTrim)) {
+      if (
+        fechaTrim &&
+        horaTrim &&
+        /^\d{4}-\d{2}-\d{2}$/.test(fechaTrim) &&
+        /^\d{2}:\d{2}$/.test(horaTrim)
+      ) {
         // Construimos un ISO local sin Z para que el backend lo pueda parsear si quiere, y además un iso con Z
-        const [yy, mm, dd] = fechaTrim.split('-').map(Number);
-        const [hh, mi] = horaTrim.split(':').map(Number);
+        const [yy, mm, dd] = fechaTrim.split("-").map(Number);
+        const [hh, mi] = horaTrim.split(":").map(Number);
         const localDate = new Date(yy, mm - 1, dd, hh, mi, 0, 0);
         fechaHoraDespacho = localDate.toISOString(); // se envía en UTC
       }
       // Sanitizar arrays: eliminar ids generados en UI, conservar sólo IDs numéricos provenientes del GET
-      const cleanInmuebles = Array.isArray(inmuebles) ? inmuebles.map((x) => sanitizeDeepKnown(x)) : [];
-      const cleanVehiculos = Array.isArray(vehiculos) ? vehiculos.map((x) => sanitizeDeepKnown(x)) : [];
-      const cleanMaterialMayor = Array.isArray(materialMayor) ? materialMayor.map((x) => sanitizeIdShallow(x)) : [];
+      const cleanInmuebles = Array.isArray(inmuebles)
+        ? inmuebles.map((x) => sanitizeDeepKnown(x))
+        : [];
+      const cleanVehiculos = Array.isArray(vehiculos)
+        ? vehiculos.map((x) => sanitizeDeepKnown(x))
+        : [];
+      const cleanMaterialMayor = Array.isArray(materialMayor)
+        ? materialMayor.map((x) => sanitizeIdShallow(x))
+        : [];
       const normalizedMaterialMayor = cleanMaterialMayor.map((row) => ({
         ...row,
         unidadId: row.unidadId ? Number(row.unidadId) : null,
         conductorId: row.conductorId ? Number(row.conductorId) : null,
         bomberoId: row.bomberoId ? Number(row.bomberoId) : null,
-        voluntarios: row.voluntarios === '' ? null : Number(row.voluntarios),
-        kmSalida: row.kmSalida === '' ? null : Number(row.kmSalida),
-        kmLlegada: row.kmLlegada === '' ? null : Number(row.kmLlegada),
+        voluntarios: row.voluntarios === "" ? null : Number(row.voluntarios),
+        kmSalida: row.kmSalida === "" ? null : Number(row.kmSalida),
+        kmLlegada: row.kmLlegada === "" ? null : Number(row.kmLlegada),
       }));
-      const cleanAccidentados = Array.isArray(accidentados) ? accidentados.map((x) => sanitizeIdShallow(x)) : [];
-      const cleanOtrosServicios = Array.isArray(otrosServicios) ? otrosServicios.map((x) => sanitizeIdShallow(x)) : [];
+      const cleanAccidentados = Array.isArray(accidentados)
+        ? accidentados.map((x) => sanitizeIdShallow(x))
+        : [];
+      const cleanOtrosServicios = Array.isArray(otrosServicios)
+        ? otrosServicios.map((x) => sanitizeIdShallow(x))
+        : [];
       const normalizedOtrosServicios = cleanOtrosServicios.map((s) => ({
         ...s,
         servicioId: s.servicioId ? Number(s.servicioId) : null,
-        personal: s.personal === '' ? null : Number(s.personal),
+        personal: s.personal === "" ? null : Number(s.personal),
       }));
 
       const payload = {
@@ -725,17 +837,18 @@ const EditarParte = () => {
         hora6_3: toHHmm(hora63),
         hora6_9: toHHmm(hora69),
         hora6_10: toHHmm(hora610),
-        regionId, comunaId,
+        regionId,
+        comunaId,
         calle: calleTxt,
         numero: numeroTxt || null,
         depto: deptoTxt || null,
-        referencia: referenciaTxt || '',
+        referencia: referenciaTxt || "",
         clasificacionId,
         subtipoId,
         idSubtipoIncidente: subtipoId, // compatibilidad con backend
         tipoIncendioId: tipoIncendioId ? Number(tipoIncendioId) : null,
         faseId: faseId ? Number(faseId) : null,
-        descripcionPreliminar: descripcionPreliminar || '',
+        descripcionPreliminar: descripcionPreliminar || "",
         bomberoACargoId: bomberoACargoId ? Number(bomberoACargoId) : null,
         idRedactor: bombero?.id ? Number(bombero.id) : null,
         inmuebles: cleanInmuebles,
@@ -744,17 +857,24 @@ const EditarParte = () => {
         accidentados: cleanAccidentados,
         otrosServicios: normalizedOtrosServicios,
         asistencia: {
-          lugar: Object.keys(asistenciaLugar).filter((k) => !!asistenciaLugar[k]).map((k) => Number(k)),
-          cuartel: Object.keys(asistenciaCuartel).filter((k) => !!asistenciaCuartel[k]).map((k) => Number(k)),
+          lugar: Object.keys(asistenciaLugar)
+            .filter((k) => !!asistenciaLugar[k])
+            .map((k) => Number(k)),
+          cuartel: Object.keys(asistenciaCuartel)
+            .filter((k) => !!asistenciaCuartel[k])
+            .map((k) => Number(k)),
         },
       };
       // Envío update
       const resp = await actualizarParteEmergencia(id, payload);
-      toast.success('Parte actualizado con éxito.', { position: 'top-right', autoClose: 3500 });
+      toast.success("Parte actualizado con éxito.", { position: "top-right", autoClose: 3500 });
       navigate(`/vista-parte/${id}`);
     } catch (err) {
-      console.error('Error al actualizar parte:', err);
-      toast.error(err?.message || 'Ocurrió un error al actualizar el parte. Inténtalo nuevamente.', { position: 'top-right', autoClose: 5000 });
+      console.error("Error al actualizar parte:", err);
+      toast.error(
+        err?.message || "Ocurrió un error al actualizar el parte. Inténtalo nuevamente.",
+        { position: "top-right", autoClose: 5000 }
+      );
     } finally {
       setSubmitting(false);
     }
@@ -764,91 +884,120 @@ const EditarParte = () => {
   useEffect(() => {
     (async () => {
       try {
-        setLoadingCompanias(true); setErrorCompanias('');
+        setLoadingCompanias(true);
+        setErrorCompanias("");
         const res = await getCompanias();
-        const arr = normalizeArray(res, 'companias').length > 0
-          ? normalizeArray(res, 'companias')
-          : normalizeArray(res?.data?.companias ?? res, null);
+        const arr =
+          normalizeArray(res, "companias").length > 0
+            ? normalizeArray(res, "companias")
+            : normalizeArray(res?.data?.companias ?? res, null);
         setCompanias(arr);
       } catch {
-        setErrorCompanias('No se pudieron cargar las compañías.'); setCompanias([]);
-      } finally { setLoadingCompanias(false); }
+        setErrorCompanias("No se pudieron cargar las compañías.");
+        setCompanias([]);
+      } finally {
+        setLoadingCompanias(false);
+      }
     })();
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        setLoadingRegiones(true); setErrorRegiones('');
+        setLoadingRegiones(true);
+        setErrorRegiones("");
         const res = await getRegiones();
-        setRegiones(normalizeArray(res, 'regiones'));
+        setRegiones(normalizeArray(res, "regiones"));
       } catch {
-        setErrorRegiones('No se pudieron cargar las regiones.'); setRegiones([]);
-      } finally { setLoadingRegiones(false); }
+        setErrorRegiones("No se pudieron cargar las regiones.");
+        setRegiones([]);
+      } finally {
+        setLoadingRegiones(false);
+      }
     })();
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        setLoadingClasificaciones(true); setErrorClasificaciones('');
+        setLoadingClasificaciones(true);
+        setErrorClasificaciones("");
         const res = await getClasificacionesEmergencia();
-        const arr = normalizeArray(res, 'clasificaciones').length > 0
-          ? normalizeArray(res, 'clasificaciones')
-          : normalizeArray(res?.data?.clasificaciones ?? res, null);
+        const arr =
+          normalizeArray(res, "clasificaciones").length > 0
+            ? normalizeArray(res, "clasificaciones")
+            : normalizeArray(res?.data?.clasificaciones ?? res, null);
         setClasificaciones(arr);
       } catch {
-        setErrorClasificaciones('No se pudieron cargar las clasificaciones.'); setClasificaciones([]);
-      } finally { setLoadingClasificaciones(false); }
+        setErrorClasificaciones("No se pudieron cargar las clasificaciones.");
+        setClasificaciones([]);
+      } finally {
+        setLoadingClasificaciones(false);
+      }
     })();
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        setLoadingTiposDano(true); setErrorTiposDano('');
+        setLoadingTiposDano(true);
+        setErrorTiposDano("");
         const res = await getTiposDano();
-        const arr = normalizeArray(res, 'tipos').length > 0
-          ? normalizeArray(res, 'tipos')
-          : normalizeArray(res, 'tiposDano').length > 0
-            ? normalizeArray(res, 'tiposDano')
+        const arr =
+          normalizeArray(res, "tipos").length > 0
+            ? normalizeArray(res, "tipos")
+            : normalizeArray(res, "tiposDano").length > 0
+            ? normalizeArray(res, "tiposDano")
             : normalizeArray(res);
         setTiposDano(arr);
       } catch {
-        setErrorTiposDano('No se pudieron cargar los tipos de incendio/daño.'); setTiposDano([]);
-      } finally { setLoadingTiposDano(false); }
+        setErrorTiposDano("No se pudieron cargar los tipos de incendio/daño.");
+        setTiposDano([]);
+      } finally {
+        setLoadingTiposDano(false);
+      }
     })();
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        setLoadingFases(true); setErrorFases('');
+        setLoadingFases(true);
+        setErrorFases("");
         const res = await getFasesIncidente();
-        const arr = normalizeArray(res, 'fases').length > 0
-          ? normalizeArray(res, 'fases')
-          : normalizeArray(res, 'fasesIncidente').length > 0
-            ? normalizeArray(res, 'fasesIncidente')
+        const arr =
+          normalizeArray(res, "fases").length > 0
+            ? normalizeArray(res, "fases")
+            : normalizeArray(res, "fasesIncidente").length > 0
+            ? normalizeArray(res, "fasesIncidente")
             : normalizeArray(res);
         setFasesIncidente(arr);
       } catch {
-        setErrorFases('No se pudieron cargar las fases del incidente.'); setFasesIncidente([]);
-      } finally { setLoadingFases(false); }
+        setErrorFases("No se pudieron cargar las fases del incidente.");
+        setFasesIncidente([]);
+      } finally {
+        setLoadingFases(false);
+      }
     })();
   }, []);
 
   useEffect(() => {
     (async () => {
       try {
-        setLoadingServicios(true); setErrorServicios('');
+        setLoadingServicios(true);
+        setErrorServicios("");
         const res = await getServicios();
-        const arr = normalizeArray(res, 'servicios').length > 0
-          ? normalizeArray(res, 'servicios')
-          : normalizeArray(res);
+        const arr =
+          normalizeArray(res, "servicios").length > 0
+            ? normalizeArray(res, "servicios")
+            : normalizeArray(res);
         setServicios(arr);
       } catch {
-        setServicios([]); setErrorServicios('No se pudieron cargar los servicios.');
-      } finally { setLoadingServicios(false); }
+        setServicios([]);
+        setErrorServicios("No se pudieron cargar los servicios.");
+      } finally {
+        setLoadingServicios(false);
+      }
     })();
   }, []);
 
@@ -864,112 +1013,149 @@ const EditarParte = () => {
         try {
           const estResp = await obtenerUltimoEstadoIncidente(id);
           const estData = estResp?.data?.data ?? estResp?.data ?? estResp;
-          const estadoUpper = (estData?.estado || '').toString().trim().toUpperCase();
+          const estadoUpper = (estData?.estado || "").toString().trim().toUpperCase();
           setEstadoParte(estadoUpper);
-          if (estadoUpper === 'ENVIADO' || estadoUpper === 'APROBADO') {
-            navigate('/404');
+          if (estadoUpper === "ENVIADO" || estadoUpper === "APROBADO") {
+            navigate("/404");
             return;
           }
         } catch (_) {
           // si falla, continuamos y el backend controlará permisos y update
         }
-  const resp = await obtenerParteEmergenciaPorId(id, { idRedactor: userId });
+        const resp = await obtenerParteEmergenciaPorId(id, { idRedactor: userId });
         const data = resp?.data?.data ?? resp?.data ?? resp;
         if (!data) {
-          navigate('/404');
+          navigate("/404");
           return;
         }
 
-  // Precarga: marcar ready antes de setear companiaId para evitar reset y gatillar dependencias
-  pendingInitRef.current.appliedCompaniaDeps = false;
-  pendingInitRef.current.ready = true;
-  setInitGate((n) => n + 1);
-  if (DEBUG_INIT) console.debug('[EditarParte] precarga lista: ready=true (initGate++) antes de setear companiaId');
+        // Precarga: marcar ready antes de setear companiaId para evitar reset y gatillar dependencias
+        pendingInitRef.current.appliedCompaniaDeps = false;
+        pendingInitRef.current.ready = true;
+        setInitGate((n) => n + 1);
+        if (DEBUG_INIT)
+          console.debug(
+            "[EditarParte] precarga lista: ready=true (initGate++) antes de setear companiaId"
+          );
 
         setCompaniaId(toId(data.companiaId));
-        setFecha(data.fecha ?? '');
-  setHoraDespacho(toHHmm(data.horaDespacho ?? ''));
-  setHora60(toHHmm(data.hora6_0 ?? data.hora60 ?? ''));
-  setHora63(toHHmm(data.hora6_3 ?? data.hora63 ?? ''));
-  setHora69(toHHmm(data.hora6_9 ?? data.hora69 ?? ''));
-  setHora610(toHHmm(data.hora6_10 ?? data.hora610 ?? ''));
+        setFecha(data.fecha ?? "");
+        setHoraDespacho(toHHmm(data.horaDespacho ?? ""));
+        setHora60(toHHmm(data.hora6_0 ?? data.hora60 ?? ""));
+        setHora63(toHHmm(data.hora6_3 ?? data.hora63 ?? ""));
+        setHora69(toHHmm(data.hora6_9 ?? data.hora69 ?? ""));
+        setHora610(toHHmm(data.hora6_10 ?? data.hora610 ?? ""));
 
-  setRegionId(toId(data.regionId));
-  // Guardar comuna pendiente para aplicar cuando carguen las comunas de la región
-  pendingInitRef.current.comunaId = toId(data.comunaId);
-  pendingInitRef.current.appliedComuna = false;
-        setCalleTxt(data.calle ?? '');
-        setNumeroTxt(data.numero ?? '');
-        setDeptoTxt(data.depto ?? '');
-        setReferenciaTxt(data.referencia ?? '');
+        setRegionId(toId(data.regionId));
+        // Guardar comuna pendiente para aplicar cuando carguen las comunas de la región
+        pendingInitRef.current.comunaId = toId(data.comunaId);
+        pendingInitRef.current.appliedComuna = false;
+        setCalleTxt(data.calle ?? "");
+        setNumeroTxt(data.numero ?? "");
+        setDeptoTxt(data.depto ?? "");
+        setReferenciaTxt(data.referencia ?? "");
 
-  // Asegurar que usamos IDs numéricos para los selects
-  setClasificacionId(toId(data.clasificacionId));
-  // Guardamos el subtipo esperado para re-aplicarlo tras cargar los subtipos
-  pendingInitRef.current.subtipoId = toId(data.subtipoId);
-  setSubtipoId(toId(data.subtipoId));
-  if (data.tipoIncendioId) { setTipoIncendioEnabled(true); setTipoIncendioId(toId(data.tipoIncendioId)); } else { setTipoIncendioEnabled(false); setTipoIncendioId(''); }
-  if (data.faseId) { setFaseEnabled(true); setFaseId(toId(data.faseId)); } else { setFaseEnabled(false); setFaseId(''); }
+        // Asegurar que usamos IDs numéricos para los selects
+        setClasificacionId(toId(data.clasificacionId));
+        // Guardamos el subtipo esperado para re-aplicarlo tras cargar los subtipos
+        pendingInitRef.current.subtipoId = toId(data.subtipoId);
+        setSubtipoId(toId(data.subtipoId));
+        if (data.tipoIncendioId) {
+          setTipoIncendioEnabled(true);
+          setTipoIncendioId(toId(data.tipoIncendioId));
+        } else {
+          setTipoIncendioEnabled(false);
+          setTipoIncendioId("");
+        }
+        if (data.faseId) {
+          setFaseEnabled(true);
+          setFaseId(toId(data.faseId));
+        } else {
+          setFaseEnabled(false);
+          setFaseId("");
+        }
 
-        setDescripcionPreliminar(data.descripcionPreliminar ?? '');
-  // Guardar dependientes de compañía para aplicar cuando carguen las listas
-  // Sólo si hay un ID válido (>0)
-  {
-    const pac = toId(data.bomberoACargoId);
-    if (pac !== '' && Number.isFinite(Number(pac)) && Number(pac) > 0) {
-      pendingInitRef.current.bomberoACargoId = pac;
-    } else {
-      delete pendingInitRef.current.bomberoACargoId;
-    }
-  }
+        setDescripcionPreliminar(data.descripcionPreliminar ?? "");
+        // Guardar dependientes de compañía para aplicar cuando carguen las listas
+        // Sólo si hay un ID válido (>0)
+        {
+          const pac = toId(data.bomberoACargoId);
+          if (pac !== "" && Number.isFinite(Number(pac)) && Number(pac) > 0) {
+            pendingInitRef.current.bomberoACargoId = pac;
+          } else {
+            delete pendingInitRef.current.bomberoACargoId;
+          }
+        }
 
-        const safeWithId = (arr) => (Array.isArray(arr) ? arr.map((x) => ({ id: x?.id ?? genId(), ...x })) : []);
+        const safeWithId = (arr) =>
+          Array.isArray(arr) ? arr.map((x) => ({ id: x?.id ?? genId(), ...x })) : [];
         setInmuebles(safeWithId(data.inmuebles));
-        setVehiculos(safeWithId((data.vehiculos || []).map((v) => ({
-          ...v,
-          pasajeros: Array.isArray(v?.pasajeros) ? v.pasajeros : [],
-        }))));
+        setVehiculos(
+          safeWithId(
+            (data.vehiculos || []).map((v) => ({
+              ...v,
+              pasajeros: Array.isArray(v?.pasajeros) ? v.pasajeros : [],
+            }))
+          )
+        );
         // Normaliza material mayor extrayendo IDs aunque vengan como objetos anidados
         const getId = (v) => {
-          if (v === null || v === undefined) return '';
-          if (typeof v === 'object') {
-            const cand = v.id ?? v.value ?? v.bomberoId ?? v.unidadId ?? v.conductorId ?? v.carroId ?? v.idCarro;
+          if (v === null || v === undefined) return "";
+          if (typeof v === "object") {
+            const cand =
+              v.id ??
+              v.value ??
+              v.bomberoId ??
+              v.unidadId ??
+              v.conductorId ??
+              v.carroId ??
+              v.idCarro;
             return getId(cand);
           }
           const n = Number(v);
-          return Number.isFinite(n) && n > 0 ? String(n) : '';
+          return Number.isFinite(n) && n > 0 ? String(n) : "";
         };
-        pendingInitRef.current.materialMayor = safeWithId((data.materialMayor || []).map((m) => ({
-          ...m,
-          unidadId: getId(m?.unidadId ?? m?.carroId ?? m?.idCarro ?? m?.unidad ?? m?.carro),
-          conductorId: getId(m?.conductorId ?? m?.idConductor ?? m?.conductor),
-          bomberoId: getId(m?.bomberoId ?? m?.idBombero ?? m?.bombero),
-        })));
-  // Accidentados: guardar y aplicar cuando se cargue la compañía específica si difiere
-  pendingInitRef.current.accidentados = safeWithId(data.accidentados || []);
+        pendingInitRef.current.materialMayor = safeWithId(
+          (data.materialMayor || []).map((m) => ({
+            ...m,
+            unidadId: getId(m?.unidadId ?? m?.carroId ?? m?.idCarro ?? m?.unidad ?? m?.carro),
+            conductorId: getId(m?.conductorId ?? m?.idConductor ?? m?.conductor),
+            bomberoId: getId(m?.bomberoId ?? m?.idBombero ?? m?.bombero),
+          }))
+        );
+        // Accidentados: guardar y aplicar cuando se cargue la compañía específica si difiere
+        pendingInitRef.current.accidentados = safeWithId(data.accidentados || []);
         setOtrosServicios(safeWithId(data.otrosServicios));
 
         // Guardar asistencia pendiente para aplicar cuando carguen los bomberos de la compañía
         const toIdStr = (v) => {
-          if (v === null || v === undefined) return '';
-          if (typeof v === 'object') return toIdStr(v.id ?? v.value ?? v.bomberoId);
+          if (v === null || v === undefined) return "";
+          if (typeof v === "object") return toIdStr(v.id ?? v.value ?? v.bomberoId);
           const n = Number(v);
-          return Number.isFinite(n) && n > 0 ? String(n) : '';
+          return Number.isFinite(n) && n > 0 ? String(n) : "";
         };
-        const lugarMap = Object.fromEntries(((data.asistencia?.lugar) || []).map((bid) => {
-          const k = toIdStr(bid);
-          return k ? [k, true] : null;
-        }).filter(Boolean));
-        const cuartelMap = Object.fromEntries(((data.asistencia?.cuartel) || []).map((bid) => {
-          const k = toIdStr(bid);
-          return k ? [k, true] : null;
-        }).filter(Boolean));
+        const lugarMap = Object.fromEntries(
+          (data.asistencia?.lugar || [])
+            .map((bid) => {
+              const k = toIdStr(bid);
+              return k ? [k, true] : null;
+            })
+            .filter(Boolean)
+        );
+        const cuartelMap = Object.fromEntries(
+          (data.asistencia?.cuartel || [])
+            .map((bid) => {
+              const k = toIdStr(bid);
+              return k ? [k, true] : null;
+            })
+            .filter(Boolean)
+        );
         pendingInitRef.current.asistenciaLugar = lugarMap;
-  pendingInitRef.current.asistenciaCuartel = cuartelMap;
-  // (ready/applied ya se setearon arriba)
+        pendingInitRef.current.asistenciaCuartel = cuartelMap;
+        // (ready/applied ya se setearon arriba)
       } catch (e) {
-        console.error('Error cargando parte:', e);
-        navigate('/404');
+        console.error("Error cargando parte:", e);
+        navigate("/404");
       } finally {
         setLoadingParte(false);
       }
@@ -980,14 +1166,22 @@ const EditarParte = () => {
   // Comunas por región
   useEffect(() => {
     (async () => {
-      if (!regionId && regionId !== 0) { setComunas([]); setComunaId(''); return; }
+      if (!regionId && regionId !== 0) {
+        setComunas([]);
+        setComunaId("");
+        return;
+      }
       try {
-        setLoadingComunas(true); setErrorComunas('');
+        setLoadingComunas(true);
+        setErrorComunas("");
         const res = await getComunas(regionId);
         setComunas(normalizeArray(res));
       } catch {
-        setErrorComunas('No se pudieron cargar las comunas de la región seleccionada.'); setComunas([]);
-      } finally { setLoadingComunas(false); }
+        setErrorComunas("No se pudieron cargar las comunas de la región seleccionada.");
+        setComunas([]);
+      } finally {
+        setLoadingComunas(false);
+      }
     })();
   }, [regionId]);
 
@@ -1006,17 +1200,33 @@ const EditarParte = () => {
   // Subtipos por clasificación
   useEffect(() => {
     (async () => {
-      if (clasificacionId === '' || clasificacionId === null) { setSubtipos([]); setSubtipoId(''); return; }
+      if (clasificacionId === "" || clasificacionId === null) {
+        setSubtipos([]);
+        setSubtipoId("");
+        return;
+      }
       try {
-        setLoadingSubtipos(true); setErrorSubtipos('');
+        setLoadingSubtipos(true);
+        setErrorSubtipos("");
         const res = await getSubtiposIncidente(clasificacionId);
-        const arr = normalizeArray(res, 'subtipos').length > 0
-          ? normalizeArray(res, 'subtipos')
-          : normalizeArray(res?.data?.subtipos ?? res, null);
-        setSubtipos(arr);
+        const arr =
+          normalizeArray(res, "subtipos").length > 0
+            ? normalizeArray(res, "subtipos")
+            : normalizeArray(res?.data?.subtipos ?? res, null);
+
+        // Normalizar claveRadial si viene como objeto
+        const normalizedArr = arr.map((st) => ({
+          ...st,
+          claveRadial: typeof st.claveRadial === "object" ? st.claveRadial?.nombre : st.claveRadial,
+        }));
+
+        setSubtipos(normalizedArr);
       } catch {
-        setErrorSubtipos('No se pudieron cargar los subtipos de la clasificación seleccionada.'); setSubtipos([]);
-      } finally { setLoadingSubtipos(false); }
+        setErrorSubtipos("No se pudieron cargar los subtipos de la clasificación seleccionada.");
+        setSubtipos([]);
+      } finally {
+        setLoadingSubtipos(false);
+      }
     })();
   }, [clasificacionId]);
 
@@ -1025,7 +1235,7 @@ const EditarParte = () => {
     const pending = pendingInitRef.current.subtipoId;
     if (!pending || !Array.isArray(subtipos) || subtipos.length === 0) return;
     // Solo aplicar si el pendiente existe en la lista actual de subtipos
-    const exists = subtipos.some(s => s.id === pending);
+    const exists = subtipos.some((s) => s.id === pending);
     if (exists) {
       setSubtipoId(pending);
       delete pendingInitRef.current.subtipoId;
@@ -1045,14 +1255,19 @@ const EditarParte = () => {
       // Si aún estamos en la aplicación inicial (ready true y applied false), no reseteamos para no perder la precarga
       const isInitialApplicationPending = !pendingInitRef.current.appliedCompaniaDeps;
       if (!isInitialApplicationPending) {
-        setMaterialMayor((prev) => prev.map((row) => ({ ...row, unidadId: '', conductorId: '', bomberoId: '' })));
+        setMaterialMayor((prev) =>
+          prev.map((row) => ({ ...row, unidadId: "", conductorId: "", bomberoId: "" }))
+        );
         setAsistenciaLugar({});
         setAsistenciaCuartel({});
       }
     }
 
     if (!companiaId) {
-      setConductores([]); setBomberos([]); setCarros([]); setErrorCarros('');
+      setConductores([]);
+      setBomberos([]);
+      setCarros([]);
+      setErrorCarros("");
       return;
     }
 
@@ -1060,29 +1275,50 @@ const EditarParte = () => {
       try {
         setLoadingConductores(true);
         const res = await getBomberosConLicencias(companiaId);
-        const arr = normalizeArray(res, 'bomberos').length > 0 ? normalizeArray(res, 'bomberos') : normalizeArray(res);
+        const arr =
+          normalizeArray(res, "bomberos").length > 0
+            ? normalizeArray(res, "bomberos")
+            : normalizeArray(res);
         setConductores(arr);
-      } catch { setConductores([]); } finally { setLoadingConductores(false); }
+      } catch {
+        setConductores([]);
+      } finally {
+        setLoadingConductores(false);
+      }
     })();
 
     (async () => {
       try {
         setLoadingBomberos(true);
         const res = await getBomberosPorCompania(companiaId);
-        const arr = normalizeArray(res, 'bomberos').length > 0 ? normalizeArray(res, 'bomberos') : normalizeArray(res);
+        const arr =
+          normalizeArray(res, "bomberos").length > 0
+            ? normalizeArray(res, "bomberos")
+            : normalizeArray(res);
         setBomberos(arr);
-      } catch { setBomberos([]); } finally { setLoadingBomberos(false); }
+      } catch {
+        setBomberos([]);
+      } finally {
+        setLoadingBomberos(false);
+      }
     })();
 
     (async () => {
       try {
-        setLoadingCarros(true); setErrorCarros('');
+        setLoadingCarros(true);
+        setErrorCarros("");
         const res = await getCarrosByCompania(companiaId);
-        const arr = normalizeArray(res, 'carros').length > 0 ? normalizeArray(res, 'carros') : normalizeArray(res);
+        const arr =
+          normalizeArray(res, "carros").length > 0
+            ? normalizeArray(res, "carros")
+            : normalizeArray(res);
         setCarros(arr);
       } catch {
-        setCarros([]); setErrorCarros('No se pudieron cargar los carros de la compañía.');
-      } finally { setLoadingCarros(false); }
+        setCarros([]);
+        setErrorCarros("No se pudieron cargar los carros de la compañía.");
+      } finally {
+        setLoadingCarros(false);
+      }
     })();
   }, [companiaId]);
 
@@ -1093,11 +1329,11 @@ const EditarParte = () => {
     if (!pendingInitRef.current.ready) return;
     if (loadingConductores || loadingBomberos || loadingCarros) return;
     if (pendingInitRef.current.appliedCompaniaDeps) return;
-    if (DEBUG_INIT) console.debug('[EditarParte] aplicando dependientes de compañía…');
+    if (DEBUG_INIT) console.debug("[EditarParte] aplicando dependientes de compañía…");
     // Aplicar bombero a cargo si viene (ID válido)
     if (pendingInitRef.current.bomberoACargoId !== undefined) {
       const bac = pendingInitRef.current.bomberoACargoId;
-      if (bac !== '' && Number.isFinite(Number(bac)) && Number(bac) > 0) {
+      if (bac !== "" && Number.isFinite(Number(bac)) && Number(bac) > 0) {
         setBomberoACargoId(bac);
       }
     }
@@ -1111,8 +1347,18 @@ const EditarParte = () => {
     setAsistenciaCuartel(pendingInitRef.current.asistenciaCuartel || {});
     // Marcar como aplicado para no reintentar
     pendingInitRef.current.appliedCompaniaDeps = true;
-    if (DEBUG_INIT) console.debug('[EditarParte] dependientes aplicados y appliedCompaniaDeps=true');
-  }, [companiaId, loadingConductores, loadingBomberos, loadingCarros, conductores.length, bomberos.length, carros.length, initGate]);
+    if (DEBUG_INIT)
+      console.debug("[EditarParte] dependientes aplicados y appliedCompaniaDeps=true");
+  }, [
+    companiaId,
+    loadingConductores,
+    loadingBomberos,
+    loadingCarros,
+    conductores.length,
+    bomberos.length,
+    carros.length,
+    initGate,
+  ]);
 
   // Aplicar accidentados en cascada por compañía: primero setear companiaId de cada fila, luego setear bombero cuando existan opciones
   useEffect(() => {
@@ -1128,11 +1374,15 @@ const EditarParte = () => {
   // Guards anti-HMR
   useEffect(() => {
     if (Array.isArray(asistenciaLugar)) {
-      const map = Object.fromEntries(asistenciaLugar.filter(r => r?.bomberoId).map(r => [r.bomberoId, true]));
+      const map = Object.fromEntries(
+        asistenciaLugar.filter((r) => r?.bomberoId).map((r) => [r.bomberoId, true])
+      );
       setAsistenciaLugar(map);
     }
     if (Array.isArray(asistenciaCuartel)) {
-      const map = Object.fromEntries(asistenciaCuartel.filter(r => r?.bomberoId).map(r => [r.bomberoId, true]));
+      const map = Object.fromEntries(
+        asistenciaCuartel.filter((r) => r?.bomberoId).map((r) => [r.bomberoId, true])
+      );
       setAsistenciaCuartel(map);
     }
   }, [asistenciaLugar, asistenciaCuartel]);
@@ -1149,28 +1399,50 @@ const EditarParte = () => {
   const hasVehiculos = !!selectedSubtipo?.contieneVehiculos;
 
   // Evitar duplicados en Unidad/Conductor
-  const usedUnidadIds = materialMayor.map(r => r.unidadId).filter(Boolean).map(String);
-  const usedConductorIds = materialMayor.map(r => r.conductorId).filter(Boolean).map(String);
+  const usedUnidadIds = materialMayor
+    .map((r) => r.unidadId)
+    .filter(Boolean)
+    .map(String);
+  const usedConductorIds = materialMayor
+    .map((r) => r.conductorId)
+    .filter(Boolean)
+    .map(String);
 
   // Búsqueda asistencia
-  const bomberosLugarFiltrados = bomberos.filter(b => nombreBombero(b).toLowerCase().includes(searchLugar.toLowerCase()));
-  const bomberosCuartelFiltrados = bomberos.filter(b => nombreBombero(b).toLowerCase().includes(searchCuartel.toLowerCase()));
+  const bomberosLugarFiltrados = bomberos.filter((b) =>
+    nombreBombero(b).toLowerCase().includes(searchLugar.toLowerCase())
+  );
+  const bomberosCuartelFiltrados = bomberos.filter((b) =>
+    nombreBombero(b).toLowerCase().includes(searchCuartel.toLowerCase())
+  );
 
   /* ---------- Tabs ---------- */
   const tabs = [
-    { key: 'dg', label: 'Datos generales & Lugar' },             // 1 & 2
-    { key: 'te', label: 'Tipo de emergencia & Características' },// 4 & 5
-    { key: 'mm', label: 'Material mayor' },                      // 7
-    { key: 'ex', label: 'Accidentados & Otros servicios' },      // 8 & 9
-    { key: 'as', label: 'Asistencia' },                          // 10
+    { key: "dg", label: "Datos generales & Lugar" }, // 1 & 2
+    { key: "te", label: "Tipo de emergencia & Características" }, // 4 & 5
+    { key: "mm", label: "Material mayor" }, // 7
+    { key: "ex", label: "Accidentados & Otros servicios" }, // 8 & 9
+    { key: "as", label: "Asistencia" }, // 10
   ];
   // Mapear qué campos pertenecen a cada pestaña para mostrar indicador de error en el título
   const tabErrorKeys = {
-    dg: ['idRedactor', 'companiaId', 'fecha', 'horadespacho', 'hora6_0', 'hora6_3', 'hora6_9', 'hora6_10', 'regionId', 'comunaId', 'calle'],
-    te: ['clasificacionId', 'subtipoId', 'inmuebles', 'vehiculos'],
-    mm: ['materialMayor'],
+    dg: [
+      "idRedactor",
+      "companiaId",
+      "fecha",
+      "horadespacho",
+      "hora6_0",
+      "hora6_3",
+      "hora6_9",
+      "hora6_10",
+      "regionId",
+      "comunaId",
+      "calle",
+    ],
+    te: ["clasificacionId", "subtipoId", "inmuebles", "vehiculos"],
+    mm: ["materialMayor"],
     ex: [], // actualmente sin validaciones bloqueantes
-    as: ['asistenciaLugar'],
+    as: ["asistenciaLugar"],
   };
 
   const [activeTabIdx, setActiveTabIdx] = useState(0);
@@ -1185,7 +1457,10 @@ const EditarParte = () => {
       <div className="max-w-6xl mx-auto">
         {/* Mostrar error de idRedactor si aplica */}
         {errors.idRedactor && (
-          <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="idRedactor">
+          <div
+            className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2"
+            data-error-key="idRedactor"
+          >
             {errors.idRedactor}
           </div>
         )}
@@ -1208,12 +1483,15 @@ const EditarParte = () => {
                       key={t.key}
                       type="button"
                       onClick={() => setActiveTabIdx(i)}
-                      className={`relative py-2 text-sm whitespace-nowrap ${active ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-800'
-                        }`}
+                      className={`relative py-2 text-sm whitespace-nowrap ${
+                        active ? "text-blue-600 font-medium" : "text-gray-600 hover:text-gray-800"
+                      }`}
                       title={
                         <>
                           {t.label}
-                          {Object.keys(errors).some((k) => (tabErrorKeys[t.key] || []).includes(k)) && (
+                          {Object.keys(errors).some((k) =>
+                            (tabErrorKeys[t.key] || []).includes(k)
+                          ) && (
                             <span
                               aria-label="Errores"
                               className="ml-1 inline-block align-middle h-2 w-2 rounded-full bg-red-500"
@@ -1222,10 +1500,17 @@ const EditarParte = () => {
                         </>
                       }
                     >
-                      {t.label} {Object.keys(errors).some((k) => (tabErrorKeys[t.key] || []).includes(k)) && (<span aria-label="Errores" className="ml-1 inline-block align-middle h-2 w-2 rounded-full bg-red-500" />)}
+                      {t.label}{" "}
+                      {Object.keys(errors).some((k) => (tabErrorKeys[t.key] || []).includes(k)) && (
+                        <span
+                          aria-label="Errores"
+                          className="ml-1 inline-block align-middle h-2 w-2 rounded-full bg-red-500"
+                        />
+                      )}
                       <span
-                        className={`absolute left-0 right-0 -bottom-px h-0.5 transition-all ${active ? 'bg-blue-600' : 'bg-transparent'
-                          }`}
+                        className={`absolute left-0 right-0 -bottom-px h-0.5 transition-all ${
+                          active ? "bg-blue-600" : "bg-transparent"
+                        }`}
                       />
                     </button>
                   );
@@ -1241,20 +1526,30 @@ const EditarParte = () => {
               <Card title="1. Datos generales" titleIcon={<Users className="text-blue-600" />}>
                 <div className="grid md:grid-cols-4 gap-3">
                   <div className="md:col-span-2" data-error-key="companiaId">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Compañía:</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Compañía:
+                    </label>
                     <Dropdown
-                      value={companiaId === '' ? null : Number(companiaId)}
-                      options={companias.map(c => ({ label: c.nombre, value: c.id }))}
-                      placeholder={loadingCompanias ? 'Cargando…' : (getConfigValue('company_name') || bombero?.compania?.nombre || '—')}
+                      value={companiaId === "" ? null : Number(companiaId)}
+                      options={companias.map((c) => ({ label: c.nombre, value: c.id }))}
+                      placeholder={
+                        loadingCompanias
+                          ? "Cargando…"
+                          : getConfigValue("company_name") || bombero?.compania?.nombre || "—"
+                      }
                       disabled={true}
-                      className={hasError('companiaId') ? 'p-invalid' : ''}
-                      style={{ width: '100%' }}
+                      className={hasError("companiaId") ? "p-invalid" : ""}
+                      style={{ width: "100%" }}
                     />
-                    {hasError('companiaId') && <p className="mt-1 text-xs text-red-600">{errors.companiaId}</p>}
+                    {hasError("companiaId") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.companiaId}</p>
+                    )}
                   </div>
 
                   <div data-error-key="fecha">
-                    <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-1">Fecha:</label>
+                    <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha:
+                    </label>
                     <PrimeDatePicker
                       id="fecha"
                       value={fecha}
@@ -1263,29 +1558,44 @@ const EditarParte = () => {
                         if (errors.fecha) setErrors((p) => ({ ...p, fecha: undefined }));
                       }}
                       maxDate={todayIso}
-                      error={hasError('fecha')}
+                      error={hasError("fecha")}
                       placeholder="Selecciona la fecha"
                     />
-                    {hasError('fecha') && <p className="mt-1 text-xs text-red-600">{errors.fecha}</p>}
+                    {hasError("fecha") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.fecha}</p>
+                    )}
                   </div>
 
                   <div data-error-key="horadespacho">
-                    <label htmlFor="horadespacho" className="block text-sm font-medium text-gray-700 mb-1">Hora Despacho:</label>
+                    <label
+                      htmlFor="horadespacho"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Hora Despacho:
+                    </label>
                     <PrimeTimePicker
                       id="horadespacho"
                       value={horaDespacho}
                       onChange={(next) => {
                         setHoraDespacho(next);
-                        if (errors.horadespacho) setErrors((p) => ({ ...p, horadespacho: undefined }));
+                        if (errors.horadespacho)
+                          setErrors((p) => ({ ...p, horadespacho: undefined }));
                       }}
-                      error={hasError('horadespacho')}
+                      error={hasError("horadespacho")}
                       placeholder="Selecciona hora de despacho"
                     />
-                    {hasError('horadespacho') && <p className="mt-1 text-xs text-red-600">{errors.horadespacho}</p>}
+                    {hasError("horadespacho") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.horadespacho}</p>
+                    )}
                   </div>
 
                   <div data-error-key="hora6_0">
-                    <label htmlFor="hora6_0" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_0</label>
+                    <label
+                      htmlFor="hora6_0"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Hora 6-0
+                    </label>
                     <PrimeTimePicker
                       id="hora6_0"
                       value={hora60}
@@ -1293,14 +1603,21 @@ const EditarParte = () => {
                         setHora60(next);
                         if (errors.hora6_0) setErrors((p) => ({ ...p, hora6_0: undefined }));
                       }}
-                      error={hasError('hora6_0')}
-                      placeholder="Selecciona hora 6_0"
+                      error={hasError("hora6_0")}
+                      placeholder="Selecciona hora 6-0"
                     />
-                    {hasError('hora6_0') && <p className="mt-1 text-xs text-red-600">{errors.hora6_0}</p>}
+                    {hasError("hora6_0") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.hora6_0}</p>
+                    )}
                   </div>
 
                   <div data-error-key="hora6_3">
-                    <label htmlFor="hora6_3" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_3</label>
+                    <label
+                      htmlFor="hora6_3"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Hora 6-3
+                    </label>
                     <PrimeTimePicker
                       id="hora6_3"
                       value={hora63}
@@ -1308,14 +1625,21 @@ const EditarParte = () => {
                         setHora63(next);
                         if (errors.hora6_3) setErrors((p) => ({ ...p, hora6_3: undefined }));
                       }}
-                      error={hasError('hora6_3')}
-                      placeholder="Selecciona hora 6_3"
+                      error={hasError("hora6_3")}
+                      placeholder="Selecciona hora 6-3"
                     />
-                    {hasError('hora6_3') && <p className="mt-1 text-xs text-red-600">{errors.hora6_3}</p>}
+                    {hasError("hora6_3") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.hora6_3}</p>
+                    )}
                   </div>
 
                   <div data-error-key="hora6_9">
-                    <label htmlFor="hora6_9" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_9</label>
+                    <label
+                      htmlFor="hora6_9"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Hora 6-9
+                    </label>
                     <PrimeTimePicker
                       id="hora6_9"
                       value={hora69}
@@ -1323,14 +1647,21 @@ const EditarParte = () => {
                         setHora69(next);
                         if (errors.hora6_9) setErrors((p) => ({ ...p, hora6_9: undefined }));
                       }}
-                      error={hasError('hora6_9')}
-                      placeholder="Selecciona hora 6_9"
+                      error={hasError("hora6_9")}
+                      placeholder="Selecciona hora 6-9"
                     />
-                    {hasError('hora6_9') && <p className="mt-1 text-xs text-red-600">{errors.hora6_9}</p>}
+                    {hasError("hora6_9") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.hora6_9}</p>
+                    )}
                   </div>
 
                   <div data-error-key="hora6_10">
-                    <label htmlFor="hora6_10" className="block text-sm font-medium text-gray-700 mb-1">Hora 6_10</label>
+                    <label
+                      htmlFor="hora6_10"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Hora 6-10
+                    </label>
                     <PrimeTimePicker
                       id="hora6_10"
                       value={hora610}
@@ -1338,15 +1669,20 @@ const EditarParte = () => {
                         setHora610(next);
                         if (errors.hora6_10) setErrors((p) => ({ ...p, hora6_10: undefined }));
                       }}
-                      error={hasError('hora6_10')}
-                      placeholder="Selecciona hora 6_10"
+                      error={hasError("hora6_10")}
+                      placeholder="Selecciona hora 6-10"
                     />
-                    {hasError('hora6_10') && <p className="mt-1 text-xs text-red-600">{errors.hora6_10}</p>}
+                    {hasError("hora6_10") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.hora6_10}</p>
+                    )}
                   </div>
 
                   {/* NUEVOS CAMPOS EN DATOS GENERALES */}
                   <div className="md:col-span-2">
-                    <label htmlFor="bomberoACargo" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="bomberoACargo"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Bombero a cargo:
                     </label>
                     <Select
@@ -1357,9 +1693,17 @@ const EditarParte = () => {
                       isLoading={loadingBomberos}
                       value={selectedBomberoOption}
                       options={bomberoSearchOptions}
-                      onChange={(option) => setBomberoACargoId(option?.value ?? '')}
-                      placeholder={!companiaId ? 'Selecciona primero una compañía...' : loadingBomberos ? 'Cargando bomberos...' : 'Buscar por nombre o RUN...'}
-                      noOptionsMessage={() => (!companiaId ? 'Selecciona una compañía' : 'Sin coincidencias')}
+                      onChange={(option) => setBomberoACargoId(option?.value ?? "")}
+                      placeholder={
+                        !companiaId
+                          ? "Selecciona primero una compañía..."
+                          : loadingBomberos
+                          ? "Cargando bomberos..."
+                          : "Buscar por nombre o RUN..."
+                      }
+                      noOptionsMessage={() =>
+                        !companiaId ? "Selecciona una compañía" : "Sin coincidencias"
+                      }
                       filterOption={(candidate, rawInput) => {
                         if (!rawInput) return true;
                         const term = rawInput.toLowerCase();
@@ -1374,13 +1718,20 @@ const EditarParte = () => {
                   </div>
 
                   <div className="md:col-span-4">
-                    <label htmlFor="descripcionPreliminar" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="descripcionPreliminar"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Descripción preliminar:
                     </label>
                     <textarea
                       id="descripcionPreliminar"
                       rows={3}
-                      className={`${baseTextarea} min-h-[80px] ${hasError('descripcionPreliminar') ? 'ring-2 ring-red-400 border-red-300' : ''}`}
+                      className={`${baseTextarea} min-h-[80px] ${
+                        hasError("descripcionPreliminar")
+                          ? "ring-2 ring-red-400 border-red-300"
+                          : ""
+                      }`}
                       placeholder="Resumen breve de lo ocurrido…"
                       value={descripcionPreliminar}
                       onChange={(e) => setDescripcionPreliminar(e.target.value)}
@@ -1394,7 +1745,12 @@ const EditarParte = () => {
               <Card title="2. Datos del Lugar" titleIcon={<Home className="text-blue-600" />}>
                 <div className="grid md:grid-cols-3 gap-3">
                   <div data-error-key="regionId">
-                    <label htmlFor="region" className="block text-sm font-medium text-gray-700 mb-1">Región:</label>
+                    <label
+                      htmlFor="region"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Región:
+                    </label>
                     <Select
                       inputId="region"
                       isSearchable
@@ -1405,24 +1761,25 @@ const EditarParte = () => {
                       value={selectedRegionOption}
                       placeholder={
                         loadingRegiones
-                          ? 'Cargando regiones...'
+                          ? "Cargando regiones..."
                           : errorRegiones
-                            ? errorRegiones
-                            : 'Buscar región...'
+                          ? errorRegiones
+                          : "Buscar región..."
                       }
                       noOptionsMessage={() =>
-                        loadingRegiones ? 'Cargando...' : 'No se encontraron regiones'
+                        loadingRegiones ? "Cargando..." : "No se encontraron regiones"
                       }
                       onChange={(option) => {
                         if (!option) {
-                          setRegionId('');
-                          if (pendingInitRef.current.appliedComuna) setComunaId('');
+                          setRegionId("");
+                          if (pendingInitRef.current.appliedComuna) setComunaId("");
                         } else {
                           const numeric = Number(option.value);
-                          setRegionId(Number.isNaN(numeric) ? '' : numeric);
-                          if (pendingInitRef.current.appliedComuna) setComunaId('');
+                          setRegionId(Number.isNaN(numeric) ? "" : numeric);
+                          if (pendingInitRef.current.appliedComuna) setComunaId("");
                         }
-                        if (errors.regionId) setErrors((prev) => ({ ...prev, regionId: undefined }));
+                        if (errors.regionId)
+                          setErrors((prev) => ({ ...prev, regionId: undefined }));
                       }}
                       filterOption={(candidate, rawInput) => {
                         if (!rawInput) return true;
@@ -1435,41 +1792,49 @@ const EditarParte = () => {
                       classNamePrefix="region-select"
                       menuPortalTarget={selectMenuPortalTarget}
                     />
-                    {hasError('regionId') && <p className="mt-1 text-xs text-red-600">{errors.regionId}</p>}
+                    {hasError("regionId") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.regionId}</p>
+                    )}
                   </div>
 
                   <div data-error-key="comunaId">
-                    <label htmlFor="comuna" className="block text-sm font-medium text-gray-700 mb-1">Comuna:</label>
+                    <label
+                      htmlFor="comuna"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Comuna:
+                    </label>
                     <Select
                       inputId="comuna"
                       isSearchable
                       isClearable
-                      isDisabled={regionId === '' || loadingComunas || !!errorComunas}
+                      isDisabled={regionId === "" || loadingComunas || !!errorComunas}
                       isLoading={loadingComunas}
                       options={comunaOptions}
                       value={selectedComunaOption}
                       placeholder={
-                        regionId === ''
-                          ? 'Selecciona primero una región...'
+                        regionId === ""
+                          ? "Selecciona primero una región..."
                           : loadingComunas
-                            ? 'Cargando comunas...'
-                            : errorComunas || 'Buscar comuna...'
+                          ? "Cargando comunas..."
+                          : errorComunas || "Buscar comuna..."
                       }
                       noOptionsMessage={() =>
-                        regionId === ''
-                          ? 'Selecciona primero una región'
+                        regionId === ""
+                          ? "Selecciona primero una región"
                           : loadingComunas
-                            ? 'Cargando...'
-                            : 'No se encontraron comunas'
+                          ? "Cargando..."
+                          : "No se encontraron comunas"
                       }
                       onChange={(option) => {
                         if (!option) {
-                          setComunaId('');
+                          setComunaId("");
                         } else {
                           const numeric = Number(option.value);
-                          setComunaId(Number.isNaN(numeric) ? '' : numeric);
+                          setComunaId(Number.isNaN(numeric) ? "" : numeric);
                         }
-                        if (errors.comunaId) setErrors((prev) => ({ ...prev, comunaId: undefined }));
+                        if (errors.comunaId)
+                          setErrors((prev) => ({ ...prev, comunaId: undefined }));
                       }}
                       filterOption={(candidate, rawInput) => {
                         if (!rawInput) return true;
@@ -1482,24 +1847,38 @@ const EditarParte = () => {
                       classNamePrefix="comuna-select"
                       menuPortalTarget={selectMenuPortalTarget}
                     />
-                    {hasError('comunaId') && <p className="mt-1 text-xs text-red-600">{errors.comunaId}</p>}
+                    {hasError("comunaId") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.comunaId}</p>
+                    )}
                   </div>
 
                   <div className="md:col-span-1" data-error-key="calle">
-                    <label htmlFor="calle" className="block text-sm font-medium text-gray-700 mb-1">Calle:</label>
+                    <label htmlFor="calle" className="block text-sm font-medium text-gray-700 mb-1">
+                      Calle:
+                    </label>
                     <input
                       type="text"
                       id="calle"
                       name="calle"
-                      className={inputCls('calle')}
+                      className={inputCls("calle")}
                       value={calleTxt}
-                      onChange={(e) => { setCalleTxt(e.target.value); if (errors.calle) setErrors(p => ({ ...p, calle: undefined })); }}
+                      onChange={(e) => {
+                        setCalleTxt(e.target.value);
+                        if (errors.calle) setErrors((p) => ({ ...p, calle: undefined }));
+                      }}
                     />
-                    {hasError('calle') && <p className="mt-1 text-xs text-red-600">{errors.calle}</p>}
+                    {hasError("calle") && (
+                      <p className="mt-1 text-xs text-red-600">{errors.calle}</p>
+                    )}
                   </div>
 
                   <div>
-                    <label htmlFor="numero" className="block text-sm font-medium text-gray-700 mb-1">Número:</label>
+                    <label
+                      htmlFor="numero"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Número:
+                    </label>
                     <input
                       type="number"
                       id="numero"
@@ -1512,11 +1891,11 @@ const EditarParte = () => {
                       value={numeroTxt}
                       onChange={(e) => {
                         const raw = e.target.value;
-                        if (raw === '') {
-                          setNumeroTxt('');
+                        if (raw === "") {
+                          setNumeroTxt("");
                           return;
                         }
-                        const sanitized = raw.replace(/\D+/g, '');
+                        const sanitized = raw.replace(/\D+/g, "");
                         setNumeroTxt(sanitized);
                       }}
                       onWheel={(e) => e.currentTarget.blur()}
@@ -1524,7 +1903,9 @@ const EditarParte = () => {
                   </div>
 
                   <div>
-                    <label htmlFor="depto" className="block text-sm font-medium text-gray-700 mb-1">Número Departamento</label>
+                    <label htmlFor="depto" className="block text-sm font-medium text-gray-700 mb-1">
+                      Número Departamento
+                    </label>
                     <input
                       type="text"
                       id="depto"
@@ -1537,7 +1918,12 @@ const EditarParte = () => {
                   </div>
 
                   <div className="md:col-span-3">
-                    <label htmlFor="referencia" className="block text-sm font-medium text-gray-700 mb-1">Referencia:</label>
+                    <label
+                      htmlFor="referencia"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Referencia:
+                    </label>
                     <input
                       type="text"
                       id="referencia"
@@ -1556,10 +1942,17 @@ const EditarParte = () => {
           {activeTabIdx === 1 && (
             <>
               {/* 4. Tipo de Emergencia */}
-              <Card title="4. Tipo de Emergencia" titleIcon={<AlertTriangle className="text-blue-600" />}>
+              <Card
+                title="4. Tipo de Emergencia"
+                titleIcon={<AlertTriangle className="text-blue-600" />}
+              >
                 <div className="text-sm text-gray-700 mb-2">Clasificación</div>
-                {loadingClasificaciones && <div className="text-sm text-gray-500 mb-3">Cargando clasificaciones…</div>}
-                {errorClasificaciones && <div className="text-sm text-red-600 mb-3">{errorClasificaciones}</div>}
+                {loadingClasificaciones && (
+                  <div className="text-sm text-gray-500 mb-3">Cargando clasificaciones…</div>
+                )}
+                {errorClasificaciones && (
+                  <div className="text-sm text-red-600 mb-3">{errorClasificaciones}</div>
+                )}
 
                 <div className="grid sm:grid-cols-3 gap-3 mb-4" data-error-key="clasificacionId">
                   {clasificaciones.map((cls) => (
@@ -1568,96 +1961,119 @@ const EditarParte = () => {
                       selected={Number(clasificacionId) === Number(cls.id)}
                       onClick={() => {
                         setClasificacionId(Number(cls.id));
-                        setSubtipoId('');
-                        if (errors.clasificacionId) setErrors(p => ({ ...p, clasificacionId: undefined }));
+                        setSubtipoId("");
+                        if (errors.clasificacionId)
+                          setErrors((p) => ({ ...p, clasificacionId: undefined }));
                       }}
                       icon={Home}
                       label={cls.nombre ?? cls.label ?? `Clasificación ${cls.id}`}
                     />
                   ))}
                 </div>
-                {hasError('clasificacionId') && <p className="mt-1 text-xs text-red-600">{errors.clasificacionId}</p>}
+                {hasError("clasificacionId") && (
+                  <p className="mt-1 text-xs text-red-600">{errors.clasificacionId}</p>
+                )}
 
-                {clasificacionId !== '' && (
+                {clasificacionId !== "" && (
                   <div className="grid sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-2" data-error-key="subtipoId">
-                       {/* Renombrado a "Clave Radial" */}
-                       <label htmlFor="subtipo" className="block text-sm font-medium text-gray-700 mb-1">
-                         Clave Radial (según clasificación seleccionada):
-                       </label>
-                       <Select
-                         inputId="subtipo"
-                         isSearchable
-                         isClearable
-                         isDisabled={loadingSubtipos || !!errorSubtipos}
-                         isLoading={loadingSubtipos}
-                         options={claveRadialOptions}
-                         value={selectedClaveRadialOption}
-                         placeholder={
-                           loadingSubtipos
-                             ? 'Cargando claves…'
-                             : errorSubtipos
-                               ? errorSubtipos
-                               : 'Buscar clave radial...'
-                         }
-                         noOptionsMessage={() =>
-                           loadingSubtipos ? 'Cargando...' : 'No se encontraron claves'
-                         }
-                         onChange={(option) => {
-                           if (!option) {
-                             setSubtipoId('');
-                             setTipoIncendioEnabled(false); setTipoIncendioId('');
-                             setFaseEnabled(false); setFaseId('');
-                           } else {
-                             const numeric = Number(option.value);
-                             setSubtipoId(Number.isNaN(numeric) ? '' : numeric);
-                             setTipoIncendioEnabled(false); setTipoIncendioId('');
-                             setFaseEnabled(false); setFaseId('');
-                           }
-                           if (errors.subtipoId) setErrors((p) => ({ ...p, subtipoId: undefined }));
-                         }}
-                         filterOption={(candidate, rawInput) => {
-                           if (!rawInput) return true;
-                           const term = rawInput.toLowerCase();
-                           const labelMatch = candidate.label.toLowerCase().includes(term);
-                           const extraMatch = candidate.data?.codigo?.includes(term) || candidate.data?.nombre?.includes(term);
-                           return labelMatch || extraMatch;
-                         }}
-                         styles={commonSelectStyles}
-                         classNamePrefix="subtipo-select"
-                         menuPortalTarget={selectMenuPortalTarget}
-                       />
-                       {hasError('subtipoId') && <p className="mt-1 text-xs text-red-600">{errors.subtipoId}</p>}
-                     </div>
+                      {/* Renombrado a "Clave Radial" */}
+                      <label
+                        htmlFor="subtipo"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Clave Radial (según clasificación seleccionada):
+                      </label>
+                      <Select
+                        inputId="subtipo"
+                        isSearchable
+                        isClearable
+                        isDisabled={loadingSubtipos || !!errorSubtipos}
+                        isLoading={loadingSubtipos}
+                        options={claveRadialOptions}
+                        value={selectedClaveRadialOption}
+                        placeholder={
+                          loadingSubtipos
+                            ? "Cargando claves…"
+                            : errorSubtipos
+                            ? errorSubtipos
+                            : "Buscar clave radial..."
+                        }
+                        noOptionsMessage={() =>
+                          loadingSubtipos ? "Cargando..." : "No se encontraron claves"
+                        }
+                        onChange={(option) => {
+                          if (!option) {
+                            setSubtipoId("");
+                            setTipoIncendioEnabled(false);
+                            setTipoIncendioId("");
+                            setFaseEnabled(false);
+                            setFaseId("");
+                          } else {
+                            const numeric = Number(option.value);
+                            setSubtipoId(Number.isNaN(numeric) ? "" : numeric);
+                            setTipoIncendioEnabled(false);
+                            setTipoIncendioId("");
+                            setFaseEnabled(false);
+                            setFaseId("");
+                          }
+                          if (errors.subtipoId) setErrors((p) => ({ ...p, subtipoId: undefined }));
+                        }}
+                        filterOption={(candidate, rawInput) => {
+                          if (!rawInput) return true;
+                          const term = rawInput.toLowerCase();
+                          const labelMatch = candidate.label.toLowerCase().includes(term);
+                          const extraMatch =
+                            candidate.data?.codigo?.includes(term) ||
+                            candidate.data?.nombre?.includes(term);
+                          return labelMatch || extraMatch;
+                        }}
+                        styles={commonSelectStyles}
+                        classNamePrefix="subtipo-select"
+                        menuPortalTarget={selectMenuPortalTarget}
+                      />
+                      {hasError("subtipoId") && (
+                        <p className="mt-1 text-xs text-red-600">{errors.subtipoId}</p>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {subtipoId !== '' && (
+                {subtipoId !== "" && (
                   <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                    <div className="text-sm font-medium text-blue-900 mb-2">Resumen de tipo de emergencia</div>
+                    <div className="text-sm font-medium text-blue-900 mb-2">
+                      Resumen de tipo de emergencia
+                    </div>
                     <div className="grid sm:grid-cols-3 gap-3">
                       <div>
                         <div className="text-xs text-blue-800/80">Clasificación</div>
                         <div className="text-sm text-blue-950">
-                          {selectedClasificacion?.nombre ?? selectedClasificacion?.label ?? `Clasificación ${selectedClasificacion?.id ?? ''}`}
+                          {selectedClasificacion?.nombre ??
+                            selectedClasificacion?.label ??
+                            `Clasificación ${selectedClasificacion?.id ?? ""}`}
                         </div>
                       </div>
                       <div>
                         <div className="text-xs text-blue-800/80">Código radial tipo</div>
                         <div className="text-sm text-blue-950">
                           <code className="rounded bg-blue-100 px-1">
-                            {selectedSubtipo?.claveRadial ?? selectedSubtipo?.codigoRadial ?? '—'}
+                            {selectedSubtipo?.claveRadial ?? selectedSubtipo?.codigoRadial ?? "—"}
                           </code>
                         </div>
                       </div>
                     </div>
-                    {selectedSubtipo?.descripcion && <p className="mt-3 text-sm text-blue-950/90">{selectedSubtipo.descripcion}</p>}
+                    {selectedSubtipo?.descripcion && (
+                      <p className="mt-3 text-sm text-blue-950/90">{selectedSubtipo.descripcion}</p>
+                    )}
                   </div>
                 )}
               </Card>
 
               {/* 5. Características (condicionada por flags de la clave radial) */}
-              <Card title="5. Características" titleIcon={<AlertTriangle className="text-blue-600" />}>
+              <Card
+                title="5. Características"
+                titleIcon={<AlertTriangle className="text-blue-600" />}
+              >
                 {/* Tipo de incendio + Fase SOLO si la clave radial contiene fuego */}
                 {hasFuego && (
                   <>
@@ -1667,14 +2083,21 @@ const EditarParte = () => {
                       <Switch
                         id="switch-tipo-incendio"
                         checked={tipoIncendioEnabled}
-                        onChange={(v) => { setTipoIncendioEnabled(v); if (!v) setTipoIncendioId(''); }}
-                        label={tipoIncendioEnabled ? 'Activo' : 'Inactivo'}
+                        onChange={(v) => {
+                          setTipoIncendioEnabled(v);
+                          if (!v) setTipoIncendioId("");
+                        }}
+                        label={tipoIncendioEnabled ? "Activo" : "Inactivo"}
                       />
                     </div>
                     {tipoIncendioEnabled && (
                       <>
-                        {loadingTiposDano && <div className="text-sm text-gray-500 mb-2">Cargando tipos…</div>}
-                        {errorTiposDano && <div className="text-sm text-red-600 mb-2">{errorTiposDano}</div>}
+                        {loadingTiposDano && (
+                          <div className="text-sm text-gray-500 mb-2">Cargando tipos…</div>
+                        )}
+                        {errorTiposDano && (
+                          <div className="text-sm text-red-600 mb-2">{errorTiposDano}</div>
+                        )}
                         <div className="grid sm:grid-cols-3 gap-3 mb-6">
                           {tiposDano.map((t) => (
                             <SelectableCard
@@ -1695,14 +2118,21 @@ const EditarParte = () => {
                       <Switch
                         id="switch-fase"
                         checked={faseEnabled}
-                        onChange={(v) => { setFaseEnabled(v); if (!v) setFaseId(''); }}
-                        label={faseEnabled ? 'Activo' : 'Inactivo'}
+                        onChange={(v) => {
+                          setFaseEnabled(v);
+                          if (!v) setFaseId("");
+                        }}
+                        label={faseEnabled ? "Activo" : "Inactivo"}
                       />
                     </div>
                     {faseEnabled && (
                       <>
-                        {loadingFases && <div className="text-sm text-gray-500 mb-2">Cargando fases…</div>}
-                        {errorFases && <div className="text-sm text-red-600 mb-2">{errorFases}</div>}
+                        {loadingFases && (
+                          <div className="text-sm text-gray-500 mb-2">Cargando fases…</div>
+                        )}
+                        {errorFases && (
+                          <div className="text-sm text-red-600 mb-2">{errorFases}</div>
+                        )}
                         <div className="grid sm:grid-cols-3 gap-3">
                           {fasesIncidente.map((f) => (
                             <SelectableCard
@@ -1719,15 +2149,21 @@ const EditarParte = () => {
 
                     {(tipoIncendioId || faseId) && (
                       <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                        <div className="text-sm font-medium text-gray-900 mb-2">Resumen de características</div>
+                        <div className="text-sm font-medium text-gray-900 mb-2">
+                          Resumen de características
+                        </div>
                         <div className="grid sm:grid-cols-2 gap-3 text-sm">
                           <div>
                             <div className="text-xs text-gray-600">Tipo de incendio</div>
-                            <div className="text-gray-900">{(selectedTipoDano?.nombre ?? selectedTipoDano?.label) || '—'}</div>
+                            <div className="text-gray-900">
+                              {(selectedTipoDano?.nombre ?? selectedTipoDano?.label) || "—"}
+                            </div>
                           </div>
                           <div>
                             <div className="text-xs text-gray-600">Fase</div>
-                            <div className="text-gray-900">{(selectedFase?.nombre ?? selectedFase?.label) || '—'}</div>
+                            <div className="text-gray-900">
+                              {(selectedFase?.nombre ?? selectedFase?.label) || "—"}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1738,12 +2174,14 @@ const EditarParte = () => {
                 {/* Inmuebles: solo si la clave radial los contiene */}
                 {hasInmuebles && (
                   <div className="mt-8" data-error-key="inmuebles">
-                    {hasError('inmuebles') && (
+                    {hasError("inmuebles") && (
                       <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
                         {errors.inmuebles}
                       </div>
                     )}
-                    <div className="text-sm font-medium text-gray-900 mb-3">Inmuebles afectados</div>
+                    <div className="text-sm font-medium text-gray-900 mb-3">
+                      Inmuebles afectados
+                    </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       {inmuebles.map((inm, idx) => (
                         <InmuebleCard
@@ -1772,12 +2210,14 @@ const EditarParte = () => {
                 {/* Vehículos: solo si la clave radial los contiene */}
                 {hasVehiculos && (
                   <div className="mt-10" data-error-key="vehiculos">
-                    {hasError('vehiculos') && (
+                    {hasError("vehiculos") && (
                       <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">
                         {errors.vehiculos}
                       </div>
                     )}
-                    <div className="text-sm font-medium text-gray-900 mb-3">Vehículos involucrados</div>
+                    <div className="text-sm font-medium text-gray-900 mb-3">
+                      Vehículos involucrados
+                    </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       {vehiculos.map((veh, idx) => (
                         <VehicleCard
@@ -1808,18 +2248,38 @@ const EditarParte = () => {
 
           {/* ---------- TAB 2: Material mayor ---------- */}
           {activeTabIdx === 2 && (
-            <Card title="7. Material mayor y bomberos a cargo" titleIcon={<Users className="text-blue-600" />}>
-              {hasError('materialMayor') && (
-                <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="materialMayor">
+            <Card
+              title="7. Material mayor y bomberos a cargo"
+              titleIcon={<Users className="text-blue-600" />}
+            >
+              {hasError("materialMayor") && (
+                <div
+                  className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2"
+                  data-error-key="materialMayor"
+                >
                   {errors.materialMayor}
                 </div>
               )}
               <div className="grid sm:grid-cols-1 gap-4">
                 {materialMayor.map((row, idx) => {
-                  const usedUnidadIdsLocal = materialMayor.map(r => r.unidadId).filter(Boolean).map(String);
-                  const usedConductorIdsLocal = materialMayor.map(r => r.conductorId).filter(Boolean).map(String);
-                  const unidadesDisponibles = carros.filter(u => !usedUnidadIdsLocal.includes(String(u.id)) || String(row.unidadId) === String(u.id));
-                  const conductoresDisponibles = conductores.filter(c => !usedConductorIdsLocal.includes(String(c.id)) || String(row.conductorId) === String(c.id));
+                  const usedUnidadIdsLocal = materialMayor
+                    .map((r) => r.unidadId)
+                    .filter(Boolean)
+                    .map(String);
+                  const usedConductorIdsLocal = materialMayor
+                    .map((r) => r.conductorId)
+                    .filter(Boolean)
+                    .map(String);
+                  const unidadesDisponibles = carros.filter(
+                    (u) =>
+                      !usedUnidadIdsLocal.includes(String(u.id)) ||
+                      String(row.unidadId) === String(u.id)
+                  );
+                  const conductoresDisponibles = conductores.filter(
+                    (c) =>
+                      !usedConductorIdsLocal.includes(String(c.id)) ||
+                      String(row.conductorId) === String(c.id)
+                  );
                   return (
                     <UnidadCard
                       key={row.id}
@@ -1827,7 +2287,8 @@ const EditarParte = () => {
                       index={idx}
                       onChange={(next) => {
                         updateUnidad(idx, next);
-                        if (errors.materialMayor) setErrors(p => ({ ...p, materialMayor: undefined }));
+                        if (errors.materialMayor)
+                          setErrors((p) => ({ ...p, materialMayor: undefined }));
                       }}
                       onRemove={() => removeUnidad(idx)}
                       unidades={unidadesDisponibles}
@@ -1856,8 +2317,14 @@ const EditarParte = () => {
               </div>
 
               <div className="mt-4 flex items-center justify-between text-sm">
-                <div className="text-gray-600">Registros: <span className="font-medium text-gray-900">{materialMayor.length}</span></div>
-                <div className="text-gray-600">Total voluntarios: <span className="font-medium text-gray-900">{totalVoluntarios}</span></div>
+                <div className="text-gray-600">
+                  Registros:{" "}
+                  <span className="font-medium text-gray-900">{materialMayor.length}</span>
+                </div>
+                <div className="text-gray-600">
+                  Total voluntarios:{" "}
+                  <span className="font-medium text-gray-900">{totalVoluntarios}</span>
+                </div>
               </div>
             </Card>
           )}
@@ -1878,7 +2345,7 @@ const EditarParte = () => {
                       companias={companias}
                       bomberosDeCompania={bomberosByCompania[row.companiaId] || []}
                       loadingBomberos={!!loadingByCompania[row.companiaId]}
-                      errorBomberos={errorByCompania[row.companiaId] || ''}
+                      errorBomberos={errorByCompania[row.companiaId] || ""}
                       ensureLoaded={ensureLoaded}
                     />
                   ))}
@@ -1898,7 +2365,10 @@ const EditarParte = () => {
               </Card>
 
               {/* 9. Otros servicios */}
-              <Card title="9. Otros servicios de emergencia en el lugar" titleIcon={<Handshake className="text-blue-600" />}>
+              <Card
+                title="9. Otros servicios de emergencia en el lugar"
+                titleIcon={<Handshake className="text-blue-600" />}
+              >
                 <div className="space-y-4">
                   {otrosServicios.map((row, idx) => (
                     <ServicioExternoCard
@@ -1932,8 +2402,11 @@ const EditarParte = () => {
           {/* ---------- TAB 4: Asistencia ---------- */}
           {activeTabIdx === 4 && (
             <Card title="10. Asistencia" titleIcon={<Users className="text-blue-600" />}>
-              {hasError('asistenciaLugar') && (
-                <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2" data-error-key="asistenciaLugar">
+              {hasError("asistenciaLugar") && (
+                <div
+                  className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-2"
+                  data-error-key="asistenciaLugar"
+                >
                   {errors.asistenciaLugar}
                 </div>
               )}
@@ -1950,7 +2423,11 @@ const EditarParte = () => {
                       disabled={!companiaId || loadingBomberos}
                     />
                   </div>
-                  <div className={`relative overflow-visible rounded-xl ring-1 ring-gray-200 bg-white ${hasError('asistenciaLugar') ? 'ring-2 ring-red-400' : ''}`}>
+                  <div
+                    className={`relative overflow-visible rounded-xl ring-1 ring-gray-200 bg-white ${
+                      hasError("asistenciaLugar") ? "ring-2 ring-red-400" : ""
+                    }`}
+                  >
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-sm">
                         <thead className="bg-gray-50 text-gray-600">
@@ -1972,9 +2449,10 @@ const EditarParte = () => {
                                     checked={present}
                                     onChange={(val) => {
                                       toggleLugar(b.id, val);
-                                      if (errors.asistenciaLugar) setErrors(p => ({ ...p, asistenciaLugar: undefined }));
+                                      if (errors.asistenciaLugar)
+                                        setErrors((p) => ({ ...p, asistenciaLugar: undefined }));
                                     }}
-                                    label={present ? 'Presente' : 'Ausente'}
+                                    label={present ? "Presente" : "Ausente"}
                                     disabled={disabledRow}
                                   />
                                 </td>
@@ -1984,9 +2462,9 @@ const EditarParte = () => {
                           {bomberosLugarFiltrados.length === 0 && (
                             <tr>
                               <td className="px-3 py-3 text-gray-500" colSpan={2}>
-                                {(!companiaId && 'Seleccione compañía en Datos generales…') ||
-                                  (loadingBomberos && 'Cargando…') ||
-                                  'Sin resultados'}
+                                {(!companiaId && "Seleccione compañía en Datos generales…") ||
+                                  (loadingBomberos && "Cargando…") ||
+                                  "Sin resultados"}
                               </td>
                             </tr>
                           )}
@@ -2029,7 +2507,7 @@ const EditarParte = () => {
                                     id={`switch-cuartel-${b.id}`}
                                     checked={present}
                                     onChange={(val) => toggleCuartel(b.id, val)}
-                                    label={present ? 'Presente' : 'Ausente'}
+                                    label={present ? "Presente" : "Ausente"}
                                     disabled={disabledRow}
                                   />
                                 </td>
@@ -2039,9 +2517,9 @@ const EditarParte = () => {
                           {bomberosCuartelFiltrados.length === 0 && (
                             <tr>
                               <td className="px-3 py-3 text-gray-500" colSpan={2}>
-                                {(!companiaId && 'Seleccione compañía en Datos generales…') ||
-                                  (loadingBomberos && 'Cargando…') ||
-                                  'Sin resultados'}
+                                {(!companiaId && "Seleccione compañía en Datos generales…") ||
+                                  (loadingBomberos && "Cargando…") ||
+                                  "Sin resultados"}
                               </td>
                             </tr>
                           )}
@@ -2085,7 +2563,7 @@ const EditarParte = () => {
               className="inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white px-4 py-2.5 text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
               title="Actualizar parte"
             >
-              {submitting ? 'Actualizando…' : 'Actualizar parte'}
+              {submitting ? "Actualizando…" : "Actualizar parte"}
             </button>
           </div>
         </div>

@@ -1,47 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
-import { Bar } from 'react-chartjs-2';
-import { 
-  getCantidadDeEventosPorGranularidad, 
-  getCantidadDeEventosPorTipo, 
-  getPromedioAsistenciaPorTipoEvento, 
+import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
+import { Bar } from "react-chartjs-2";
+import { MdWarning, MdBarChart, MdInfo, MdSearch } from "react-icons/md";
+import {
+  getCantidadDeEventosPorGranularidad,
+  getCantidadDeEventosPorTipo,
+  getPromedioAsistenciaPorTipoEvento,
   getEvolucionEventosYAsistentes,
   getTiposEvento,
-  getPorcentajeParticipacion
-} from '../../../services/dashboard.service';
-import { 
-  getEventosPorGranularidadChartOptions, 
+  getPorcentajeParticipacion,
+} from "../../../services/dashboard.service";
+import {
+  getEventosPorGranularidadChartOptions,
   processEventosPorGranularidadData,
   getEventosPorTipoChartOptions,
   processEventosPorTipoData,
   getPromedioAsistenciaPorTipoChartOptions,
   processPromedioAsistenciaPorTipoData,
   getEvolucionEventosChartOptions,
-  processEvolucionEventosData
-} from '../utils/chartConfig';
-import { dateToTimestamp } from '../utils/dateUtils';
-import GranularidadSelector from './GranularidadSelector';
-import EventosPorGranularidadChart from './EventosPorGranularidadChart';
-import PromedioAsistenciaPorTipoChart from './PromedioAsistenciaPorTipoChart';
-import EvolucionEventosChart from './EvolucionEventosChart';
-import QuickFilters from './QuickFilters';
-import CustomFilters from './CustomFilters';
-import { MultiSelect } from 'primereact/multiselect';
+  processEvolucionEventosData,
+} from "../utils/chartConfig";
+import { dateToTimestamp } from "../utils/dateUtils";
+import GranularidadSelector from "./GranularidadSelector";
+import EventosPorGranularidadChart from "./EventosPorGranularidadChart";
+import PromedioAsistenciaPorTipoChart from "./PromedioAsistenciaPorTipoChart";
+import EvolucionEventosChart from "./EvolucionEventosChart";
+import QuickFilters from "./QuickFilters";
+import CustomFilters from "./CustomFilters";
+import { MultiSelect } from "primereact/multiselect";
 
 const EventosTab = () => {
   // Estado para granularidad (semana, mes, año)
-  const [granularidad, setGranularidad] = useState('mes');
-  
+  const [granularidad, setGranularidad] = useState("mes");
+
   // Estado para filtro rápido
-  const [filtroRapido, setFiltroRapido] = useState('mensual');
-  
+  const [filtroRapido, setFiltroRapido] = useState("mensual");
+
   // Estados para filtros de fecha (como objetos Date)
   const [fechaInicio, setFechaInicio] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 6); // Últimos 6 meses por defecto
     return date;
   });
-  
+
   const [fechaFin, setFechaFin] = useState(new Date());
 
   // Estado para tipos de evento disponibles
@@ -109,15 +110,15 @@ const EventosTab = () => {
   const cargarTiposEvento = async () => {
     try {
       const resp = await getTiposEvento();
-      
-      if (resp && resp.status === 'Success' && resp.data) {
+
+      if (resp && resp.status === "Success" && resp.data) {
         setTiposEvento(resp.data);
       } else {
-        console.warn('No se pudieron cargar tipos de evento:', resp);
+        console.warn("No se pudieron cargar tipos de evento:", resp);
         setTiposEvento([]);
       }
     } catch (err) {
-      console.error('Error al cargar tipos de evento:', err);
+      console.error("Error al cargar tipos de evento:", err);
       setTiposEvento([]);
     }
   };
@@ -132,25 +133,24 @@ const EventosTab = () => {
       const fechaFinTimestamp = dateToTimestamp(fechaFin);
 
       const respGran = await getCantidadDeEventosPorGranularidad(
-        fechaInicioTimestamp, 
-        fechaFinTimestamp, 
+        fechaInicioTimestamp,
+        fechaFinTimestamp,
         granularidad
       );
-
 
       if (respGran && respGran.data) {
         const processedData = processEventosPorGranularidadData(respGran.data, granularidad);
         if (processedData) {
           setChartData(processedData);
         } else {
-          setError('Datos inválidos en granularidad');
+          setError("Datos inválidos en granularidad");
         }
       } else {
-        setError('No se recibieron datos válidos del servidor (granularidad)');
+        setError("No se recibieron datos válidos del servidor (granularidad)");
       }
     } catch (err) {
-      console.error('Error al cargar datos de eventos por granularidad:', err);
-      setError('Error al cargar datos (granularidad)');
+      console.error("Error al cargar datos de eventos por granularidad:", err);
+      setError("Error al cargar datos (granularidad)");
     } finally {
       setLoading(false);
     }
@@ -173,13 +173,12 @@ const EventosTab = () => {
         getPromedioAsistenciaPorTipoEvento(fechaInicioTimestamp, fechaFinTimestamp),
       ]);
 
-
       if (respTipo && respTipo.data) {
         const processedTipo = processEventosPorTipoData(respTipo.data);
-        if (processedTipo) setTipoChartData(processedTipo); 
-        else setTipoError('Datos inválidos en tipos');
+        if (processedTipo) setTipoChartData(processedTipo);
+        else setTipoError("Datos inválidos en tipos");
       } else {
-        setTipoError('No se recibieron datos válidos del servidor (tipos)');
+        setTipoError("No se recibieron datos válidos del servidor (tipos)");
       }
 
       if (respAsistencia && respAsistencia.data) {
@@ -187,15 +186,15 @@ const EventosTab = () => {
         if (processedAsistencia) {
           setAsistenciaChartData(processedAsistencia);
         } else {
-          setAsistenciaError('Datos inválidos en promedio de asistencia');
+          setAsistenciaError("Datos inválidos en promedio de asistencia");
         }
       } else {
-        setAsistenciaError('No se recibieron datos válidos del servidor (asistencia)');
+        setAsistenciaError("No se recibieron datos válidos del servidor (asistencia)");
       }
     } catch (err) {
-      console.error('Error al cargar datos de eventos:', err);
-      setTipoError('Error al cargar datos (tipos)');
-      setAsistenciaError('Error al cargar datos de asistencia');
+      console.error("Error al cargar datos de eventos:", err);
+      setTipoError("Error al cargar datos (tipos)");
+      setAsistenciaError("Error al cargar datos de asistencia");
     } finally {
       setTipoLoading(false);
       setAsistenciaLoading(false);
@@ -219,16 +218,16 @@ const EventosTab = () => {
         idsEventos
       );
 
-      console.log('Response porcentaje participación:', resp);
+      console.log("Response porcentaje participación:", resp);
 
-      if (resp && resp.status === 'Success' && resp.data) {
+      if (resp && resp.status === "Success" && resp.data) {
         setParticipacionData(resp.data);
       } else {
-        setParticipacionError('No se recibieron datos válidos');
+        setParticipacionError("No se recibieron datos válidos");
       }
     } catch (err) {
-      console.error('Error al cargar porcentaje de participación:', err);
-      setParticipacionError('Error al cargar datos');
+      console.error("Error al cargar porcentaje de participación:", err);
+      setParticipacionError("Error al cargar datos");
     } finally {
       setParticipacionLoading(false);
     }
@@ -243,25 +242,24 @@ const EventosTab = () => {
       const fechaFinTimestamp = dateToTimestamp(fechaFin);
 
       const respEvolucion = await getEvolucionEventosYAsistentes(
-        fechaInicioTimestamp, 
-        fechaFinTimestamp, 
+        fechaInicioTimestamp,
+        fechaFinTimestamp,
         tipoEventoSeleccionado
       );
-
 
       if (respEvolucion && respEvolucion.data) {
         const processedEvolucion = processEvolucionEventosData(respEvolucion.data);
         if (processedEvolucion) {
           setEvolucionChartData(processedEvolucion);
         } else {
-          setEvolucionError('Datos inválidos en evolución');
+          setEvolucionError("Datos inválidos en evolución");
         }
       } else {
-        setEvolucionError('No se recibieron datos válidos del servidor (evolución)');
+        setEvolucionError("No se recibieron datos válidos del servidor (evolución)");
       }
     } catch (err) {
-      console.error('Error al cargar evolución de eventos:', err);
-      setEvolucionError('Error al cargar datos de evolución');
+      console.error("Error al cargar evolución de eventos:", err);
+      setEvolucionError("Error al cargar datos de evolución");
     } finally {
       setEvolucionLoading(false);
     }
@@ -276,11 +274,11 @@ const EventosTab = () => {
     const hoy = new Date();
     let nuevaFechaInicio = new Date();
 
-    if (filtro === 'semanal') {
+    if (filtro === "semanal") {
       nuevaFechaInicio.setDate(hoy.getDate() - 7);
-    } else if (filtro === 'mensual') {
+    } else if (filtro === "mensual") {
       nuevaFechaInicio.setMonth(hoy.getMonth() - 1);
-    } else if (filtro === 'anual') {
+    } else if (filtro === "anual") {
       nuevaFechaInicio.setFullYear(hoy.getFullYear() - 1);
     }
 
@@ -300,10 +298,7 @@ const EventosTab = () => {
         <h3 className="text-sm font-semibold text-[#2C3E50] mb-4 uppercase tracking-wide">
           Filtros de Período
         </h3>
-        <QuickFilters 
-          filtroRapido={filtroRapido}
-          onFilterChange={handleFiltroRapidoChange}
-        />
+        <QuickFilters filtroRapido={filtroRapido} onFilterChange={handleFiltroRapidoChange} />
         <CustomFilters
           fechaInicio={fechaInicio}
           fechaFin={fechaFin}
@@ -317,16 +312,9 @@ const EventosTab = () => {
         {/* Gráfico 1: Eventos por granularidad - CON selector propio */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 min-w-0">
           <div className="mb-3">
-            <h3 className="text-sm font-semibold text-gray-800 mb-2">
-              Eventos por Periodo
-            </h3>
-           
-             
-              <GranularidadSelector 
-                granularidad={granularidad}
-                onChange={handleGranularidadChange}
-              />
-            
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">Eventos por Periodo</h3>
+
+            <GranularidadSelector granularidad={granularidad} onChange={handleGranularidadChange} />
           </div>
           <div className="h-[350px]">
             <EventosPorGranularidadChart
@@ -340,9 +328,7 @@ const EventosTab = () => {
 
         {/* Gráfico 2: Eventos por tipo */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">
-            Eventos por Tipo
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-3">Eventos por Tipo</h3>
           <div className="h-[450px]">
             {tipoLoading ? (
               <div className="flex items-center justify-center h-full">
@@ -354,15 +340,17 @@ const EventosTab = () => {
             ) : tipoError ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="text-red-500 text-4xl mb-3">⚠️</div>
-                  <p className="text-red-600 font-semibold mb-2 text-sm">Error al cargar los datos</p>
+                  <MdWarning className="text-red-500 w-10 h-10 mb-3 mx-auto" />
+                  <p className="text-red-600 font-semibold mb-2 text-sm">
+                    Error al cargar los datos
+                  </p>
                   <p className="text-gray-500 text-xs">{tipoError}</p>
                 </div>
               </div>
             ) : !tipoChartData ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="text-gray-400 text-4xl mb-3">📊</div>
+                  <MdBarChart className="text-gray-400 w-10 h-10 mb-3 mx-auto" />
                   <p className="text-gray-500 text-sm">No hay datos disponibles</p>
                 </div>
               </div>
@@ -379,9 +367,7 @@ const EventosTab = () => {
       <div className="grid grid-cols-1 2xl:grid-cols-2 gap-6">
         {/* Gráfico 3: Promedio de asistencia por tipo de evento */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-800 mb-3">
-            Promedio de Asistencia
-          </h3>
+          <h3 className="text-sm font-semibold text-gray-800 mb-3">Promedio de Asistencia</h3>
           <div className="h-[380px]">
             <PromedioAsistenciaPorTipoChart
               chartData={asistenciaChartData}
@@ -397,10 +383,13 @@ const EventosTab = () => {
           <h3 className="text-sm font-semibold text-gray-800 mb-3">
             Porcentaje de Participación en Eventos
           </h3>
-          
+
           {/* Filtro multi-select de tipos de evento */}
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-4 participacion-multiselect">
-            <label htmlFor="tiposEventoParticipacion" className="block text-xs font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="tiposEventoParticipacion"
+              className="block text-xs font-medium text-gray-700 mb-2"
+            >
               Filtrar por Tipo(s) de Evento
             </label>
             <MultiSelect
@@ -430,7 +419,7 @@ const EventosTab = () => {
               </div>
             ) : participacionError ? (
               <div className="text-center">
-                <div className="text-red-500 text-4xl mb-3">⚠️</div>
+                <MdWarning className="text-red-500 w-10 h-10 mb-3 mx-auto" />
                 <p className="text-red-600 font-semibold mb-2 text-sm">Error al cargar</p>
                 <p className="text-gray-500 text-xs">{participacionError}</p>
               </div>
@@ -439,14 +428,7 @@ const EventosTab = () => {
                 <div className="relative inline-block">
                   <svg className="w-40 h-40 sm:w-48 sm:h-48 transform -rotate-90 overflow-visible">
                     {/* Círculo de fondo */}
-                    <circle
-                      cx="96"
-                      cy="96"
-                      r="80"
-                      stroke="#E5E7EB"
-                      strokeWidth="16"
-                      fill="none"
-                    />
+                    <circle cx="96" cy="96" r="80" stroke="#E5E7EB" strokeWidth="16" fill="none" />
                     {/* Círculo de progreso */}
                     <circle
                       cx="96"
@@ -472,17 +454,21 @@ const EventosTab = () => {
                 <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
                   <div className="bg-gray-50 p-3 rounded-lg">
                     <div className="text-gray-600 text-xs">Voluntarios Activos</div>
-                    <div className="text-2xl font-bold text-gray-800">{participacionData.voluntarios_participantes || 0}</div>
+                    <div className="text-2xl font-bold text-gray-800">
+                      {participacionData.voluntarios_participantes || 0}
+                    </div>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-lg">
                     <div className="text-gray-600 text-xs">Total Voluntarios</div>
-                    <div className="text-2xl font-bold text-gray-800">{participacionData.total_voluntarios || 0}</div>
+                    <div className="text-2xl font-bold text-gray-800">
+                      {participacionData.total_voluntarios || 0}
+                    </div>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="text-center">
-                <div className="text-gray-400 text-4xl mb-3">📊</div>
+                <MdBarChart className="text-gray-400 w-10 h-10 mb-3 mx-auto" />
                 <p className="text-gray-500 text-sm">No hay datos disponibles</p>
               </div>
             )}
@@ -503,8 +489,10 @@ const EventosTab = () => {
           </label>
           <select
             id="tipoEvento"
-            value={tipoEventoSeleccionado || ''}
-            onChange={(e) => setTipoEventoSeleccionado(e.target.value ? parseInt(e.target.value) : null)}
+            value={tipoEventoSeleccionado || ""}
+            onChange={(e) =>
+              setTipoEventoSeleccionado(e.target.value ? parseInt(e.target.value) : null)
+            }
             className="w-full md:w-1/3 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">Todos los tipos</option>
@@ -532,14 +520,29 @@ const EventosTab = () => {
       {/* Información adicional */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
         <div className="flex items-start gap-2">
-          <div className="text-blue-500 text-xl">ℹ️</div>
+          <MdInfo className="text-blue-500 w-6 h-6 flex-shrink-0" />
           <div>
             <h4 className="font-semibold text-blue-900 mb-1 text-sm">Estructura de filtros</h4>
             <p className="text-xs text-blue-800">
-                <strong>🔍 Filtros de Período:</strong> El rango de fechas se aplica a TODOS los gráficos y KPIs.
-                <br/><strong>📊 Gráfico 1:</strong> Selector de agrupación (semana/mes/año) independiente.
-                <br/><strong>📊 KPI Participación:</strong> Filtro multi-selección de tipos de evento.
-                <br/><strong>📊 Evolución Temporal:</strong> Filtro de tipo de evento único.
+              <strong className="inline-flex items-center gap-1">
+                <MdSearch className="w-3 h-3" /> Filtros de Período:
+              </strong>{" "}
+              El rango de fechas se aplica a TODOS los gráficos y KPIs.
+              <br />
+              <strong className="inline-flex items-center gap-1">
+                <MdBarChart className="w-3 h-3" /> Gráfico 1:
+              </strong>{" "}
+              Selector de agrupación (semana/mes/año) independiente.
+              <br />
+              <strong className="inline-flex items-center gap-1">
+                <MdBarChart className="w-3 h-3" /> KPI Participación:
+              </strong>{" "}
+              Filtro multi-selección de tipos de evento.
+              <br />
+              <strong className="inline-flex items-center gap-1">
+                <MdBarChart className="w-3 h-3" /> Evolución Temporal:
+              </strong>{" "}
+              Filtro de tipo de evento único.
             </p>
           </div>
         </div>
