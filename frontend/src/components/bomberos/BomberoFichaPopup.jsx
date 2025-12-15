@@ -28,6 +28,7 @@ import ModalPortal from "@components/ModalPortal";
 import { getHistorialVoluntario } from "@services/historial.service.js";
 import { generarFichaBomberoPdf } from "@services/bombero.service.js";
 import { showErrorAlert, showSuccessAlert } from "@helpers/fireAlert";
+import { useAuth } from "@hooks/auth/useAuth";
 
 // PrimeReact
 import { DataTable } from "primereact/datatable";
@@ -356,6 +357,7 @@ const HistorialTable = ({ data }) => {
  */
 const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
   const navigate = useNavigate();
+  const { hasPermiso } = useAuth();
   const [activeTab, setActiveTab] = useState("personal");
 
   // Estado para historial
@@ -501,14 +503,25 @@ const BomberoFichaPopup = ({ bombero, isOpen, onClose, onEdit }) => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <button
-                onClick={handleGenerarPdf}
-                disabled={generandoPdf}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
-              >
-                <MdPictureAsPdf className="w-4 h-4" />
-                <span>{generandoPdf ? "Generando..." : "Generar PDF"}</span>
-              </button>
+              {(hasPermiso("bombero:actualizar") || hasPermiso("bombero:admin")) && (
+                <button
+                  onClick={handleGenerarPdf}
+                  disabled={generandoPdf}
+                  className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {generandoPdf ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Generando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MdPictureAsPdf className="w-5 h-5" />
+                      <span>Generar PDF</span>
+                    </>
+                  )}
+                </button>
+              )}
               {onEdit && (
                 <button
                   onClick={() => onEdit(bombero)}

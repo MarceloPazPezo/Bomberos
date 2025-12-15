@@ -112,19 +112,17 @@ export function authorizePermisos(requiredPermisos) {
         }
       });
 
-      const hasAllRequiredPermisos = requiredPermisos.every((requiredPermiso) =>
+      // Verificar si el usuario tiene AL MENOS UNO de los permisos requeridos
+      const hasAnyRequiredPermiso = requiredPermisos.some((requiredPermiso) =>
         bomberoPermisos.has(requiredPermiso.toLowerCase()),
       );
 
-      if (!hasAllRequiredPermisos) {
-        const missingPermisos = requiredPermisos.filter(
-          (rp) => !bomberoPermisos.has(rp.toLowerCase()),
-        );
+      if (!hasAnyRequiredPermiso) {
         return handleErrorClient(
           res,
           403,
           "Acceso denegado.",
-          `No tienes todos los permisos necesarios para esta acción. Permisos faltantes: ${missingPermisos.join(", ")}`,
+          `No tienes ninguno de los permisos necesarios para esta acción. Se requiere al menos uno de: ${requiredPermisos.join(", ")}`,
         );
       }
 

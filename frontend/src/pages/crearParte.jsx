@@ -9,7 +9,7 @@ import {
   getTiposDano,
   getFasesIncidente,
 } from "../services/subtipoIncidente.service.js";
-import { getCompanias } from "../services/compania.service.js";
+import { getCompanias, getCompaniaById } from "../services/compania.service.js";
 import { getCarrosByCompania } from "../services/carro.service.js";
 import { getBomberosPorCompania, getBomberosConLicencias } from "../services/bombero.service.js";
 import { getServicios } from "../services/servicios.service.js";
@@ -126,6 +126,7 @@ const CrearParte = () => {
   const [companiaId, setCompaniaId] = useState("");
   const [loadingCompanias, setLoadingCompanias] = useState(false);
   const [errorCompanias, setErrorCompanias] = useState("");
+  const [companiaBombero, setCompaniaBombero] = useState(null); // Compañía completa del bombero logueado
 
   // Autoseleccionar compañía desde autenticación o configuración (como en Home.jsx)
   useEffect(() => {
@@ -702,14 +703,39 @@ const CrearParte = () => {
     })();
   }, []);
 
+  // Cargar datos completos de la compañía del bombero logueado
+  useEffect(() => {
+    if (!bombero?.companiaId || companiaBombero) return;
+
+    (async () => {
+      try {
+        const res = await getCompaniaById(bombero.companiaId);
+        const companiaData = res?.data || res;
+        setCompaniaBombero(companiaData);
+      } catch (error) {
+        console.error("[useEffect companiaBombero] Error al cargar compañía:", error);
+      }
+    })();
+  }, [bombero?.companiaId, companiaBombero]);
+
   const resolveUbicacionDesdeCompania = () => {
     let comp = null;
+
+    // 1. Buscar en la lista general de compañías
     if (companiaId && companias.length > 0) {
       comp = companias.find((c) => String(c.id) === String(companiaId));
     }
+
+    // 2. Usar la compañía del bombero logueado si está cargada
+    if (!comp && companiaBombero) {
+      comp = companiaBombero;
+    }
+
+    // 3. Fallback al objeto compania en bombero (probablemente incompleto)
     if (!comp && bombero?.compania) {
       comp = bombero.compania;
     }
+
     console.log("[resolveUbicacion] comp:", comp);
     const candidateRegion = comp?.direccion?.comuna?.region?.id ?? comp?.regionId;
     const candidateComuna =
@@ -728,7 +754,7 @@ const CrearParte = () => {
     console.log("[useEffect] Ejecutando lógica de ubicación...");
     console.log("[useEffect] bombero:", bombero);
     console.log("[useEffect] bombero.compania:", bombero?.compania);
-    console.log("[useEffect] bombero.comuna:", bombero?.comuna);
+    console.log("[useEffect] companiaBombero:", companiaBombero);
     const { region, comuna } = resolveUbicacionDesdeCompania();
     console.log("[useEffect] Resultado:", { region, comuna });
     if (region) {
@@ -739,7 +765,7 @@ const CrearParte = () => {
       console.log("[useEffect] Seteando comunaId:", comuna);
       setComunaId(comuna);
     }
-  }, [usarUbicacionCompania, companias, companiaId, bombero]);
+  }, [usarUbicacionCompania, companias, companiaId, bombero, companiaBombero]);
 
   useEffect(() => {
     (async () => {

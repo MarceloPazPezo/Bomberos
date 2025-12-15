@@ -12,7 +12,7 @@ import {
   updateBombero,
   createBombero,
   changeBomberoStatus,
-  
+
   // Funcionalidades por compañía
   getBomberosByCompania,
   getBomberosMiCompania,
@@ -22,11 +22,11 @@ import {
   getBomberosOtrasCompanias,
   getBomberosConLicencias,
   getBomberosPorCompania,
-  
+
   // Detalles completos
   getBomberoDetalles,
   generarFichaBomberoPdf,
-  
+
   // Funcionalidades unificadas
   createBomberoWithOptionalFicha,
   createBomberoWithImage,
@@ -66,55 +66,55 @@ router.patch("/estado/:id", authorizePermisos(["bombero:cambiar_estado"]), chang
 // ==================== FUNCIONALIDADES POR COMPAÑÍA ====================
 
 // Obtener bomberos por compañía específica
-router.get("/compania/:idCompania", authorizeRoles(['Administrador', 'Supervisor']), getBomberosByCompania);
+router.get("/compania/:idCompania", authorizePermisos(["bombero:obtener", "bombero:admin"]), getBomberosByCompania);
 
 // Obtener bomberos por compañía (alias para compatibilidad)
-router.get("/compania/:idCompania/bomberos", authorizeRoles(['Administrador', 'Supervisor']), getBomberosPorCompania);
+router.get("/compania/:idCompania/bomberos", authorizePermisos(["bombero:obtener", "bombero:admin"]), getBomberosPorCompania);
 
 // Obtener bomberos con licencias de una compañía
 router.get("/licencias/:idCompania", authorizePermisos(["bombero:obtener"]), getBomberosConLicencias);
 
 // Obtener la compañía del usuario autenticado
-router.get("/mi-compania", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getMiCompania);
+router.get("/mi-compania", authorizePermisos(["compania:bombero_pertenece", "compania:obtener"]), getMiCompania);
 
 // Obtener bomberos de la compañía del usuario autenticado
-router.get("/mi-compania/bomberos", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getBomberosMiCompania);
+router.get("/mi-compania/bomberos", authorizePermisos(["bombero:obtener", "bombero:admin"]), getBomberosMiCompania);
 
 // Obtener estadísticas de bomberos de la compañía del usuario autenticado
-router.get("/mi-compania/estadisticas", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getEstadisticasMiCompania);
+router.get("/mi-compania/estadisticas", authorizePermisos(["bombero:obtener", "bombero:admin"]), getEstadisticasMiCompania);
 
 // Obtener estadísticas de bomberos de una compañía específica
-router.get("/compania/:idCompania/estadisticas", authorizeRoles(['Administrador', 'Supervisor']), getEstadisticasBomberosCompania);
+router.get("/compania/:idCompania/estadisticas", authorizePermisos(["bombero:obtener", "bombero:admin"]), getEstadisticasBomberosCompania);
 
 // Obtener bomberos de otras compañías
-router.get("/otras-companias", authorizeRoles(['Administrador', 'Supervisor']), getBomberosOtrasCompanias);
+router.get("/otras-companias", authorizePermisos(["bombero:obtener", "bombero:admin"]), getBomberosOtrasCompanias);
 
 // ==================== DETALLES COMPLETOS ====================
 
 // Obtener detalles completos de un bombero
-router.get("/:id/detalles", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getBomberoDetalles);
+router.get("/:id/detalles", authorizePermisos(["bombero:obtener", "bombero:obtener_perfil"]), getBomberoDetalles);
 
 // Generar PDF de ficha de bombero
-router.post("/:id/ficha/pdf", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), generarFichaBomberoPdf);
+router.post("/:id/ficha/pdf", authorizePermisos(["bombero:obtener", "bombero:admin"]), generarFichaBomberoPdf);
 
 // ==================== FUNCIONALIDADES UNIFICADAS ====================
 
 // Crear bombero con ficha opcional (sin imagen)
-router.post("/with-ficha", authorizeRoles(['Administrador', 'Supervisor']), createBomberoWithOptionalFicha);
+router.post("/with-ficha", authorizePermisos(["bombero:crear", "bombero:admin"]), createBomberoWithOptionalFicha);
 
 // Crear bombero con ficha opcional e imagen de perfil
-router.post("/with-image", authorizeRoles(['Administrador', 'Supervisor']), uploadSingle('profileImage'), createBomberoWithImage);
+router.post("/with-image", authorizePermisos(["bombero:crear", "bombero:admin"]), uploadSingle('profileImage'), createBomberoWithImage);
 
 // Obtener bombero completo con ficha (si existe)
-router.get("/:id/complete", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getBomberoComplete);
+router.get("/:id/complete", authorizePermisos(["bombero:obtener", "bombero:obtener_perfil"]), getBomberoComplete);
 
 // Obtener todos los bomberos con información de ficha
-router.get("/complete", authorizeRoles(['Administrador', 'Supervisor']), getAllBomberosWithFicha);
+router.get("/complete", authorizePermisos(["bombero:obtener", "bombero:admin"]), getAllBomberosWithFicha);
 
 // Agregar ficha a un bombero existente
-router.post("/:id/add-ficha", authorizeRoles(['Administrador', 'Supervisor']), addFichaToBombero);
+router.post("/:id/add-ficha", authorizePermisos(["bombero:crear", "bombero:admin"]), addFichaToBombero);
 
 // Obtener URL firmada de imagen de perfil de un bombero específico
-router.get("/:id/imagen-perfil-url", authorizeRoles(['Administrador', 'Supervisor', 'Bombero']), getBomberoImagenPerfilUrl);
+router.get("/:id/imagen-perfil-url", authorizePermisos(["bombero:obtener", "bombero:obtener_perfil", "bombero:admin"]), getBomberoImagenPerfilUrl);
 
 export default router;

@@ -764,16 +764,8 @@ export default function PartesDeEmergencias() {
       try {
         setLoadingItems(true);
         setErrorItems(null);
-        const userId = Number(bombero?.id);
-        if (!Number.isInteger(userId)) {
-          // Si no hay id disponible aún, no consultamos y mostramos vacío temporalmente
-          if (mounted) {
-            setItems(EMPTY_LIST);
-            setLoadingItems(false);
-          }
-          return;
-        }
-        const data = await getIncidentesResumen({ redactorId: userId });
+        // Ya no pasamos redactorId, el backend filtra automáticamente según permisos
+        const data = await getIncidentesResumen();
         if (!mounted) return;
         const norm = (Array.isArray(data) ? data : []).map((x) => ({
           ...x,

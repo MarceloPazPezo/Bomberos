@@ -15,7 +15,6 @@ export const obtenerParteEmergenciaPorId = async (id, params = {}) => {
     try {
 
         const response = await axios.get(`/parteEmergencia/${id}`, { params });
-        if (import.meta.env?.DEV) console.log("Datos del parte:", response);
         return response.data;
     } catch (error) {
         console.error('Error al obtener parte de emergencia:', error);
@@ -46,7 +45,6 @@ export const obtenerParteEmergenciaDetallado = async (id) => {
 export const obtenerUltimoEstadoIncidente = async (id) => {
     try {
         const response = await axios.get(`/parteEmergencia/${id}/estado`);
-        if (import.meta.env?.DEV) console.log("Último estado recibido del backend:", response);
         return response.data;
     } catch (error) {
         throw error.response?.data || error;
@@ -59,7 +57,6 @@ export const generarReporteParteEmergenciaPdf = async (id, options = {}) => {
         if (options.pageSize) payload.pageSize = options.pageSize;
         if (options.expiresIn) payload.expiresIn = options.expiresIn;
         const response = await axios.post(`/parteEmergencia/${id}/reporte/pdf`, payload);
-        if (import.meta.env?.DEV) console.log("Reporte PDF generado:", response);
         return response.data;
     } catch (error) {
         console.error('Error al generar reporte PDF:', error);

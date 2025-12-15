@@ -3,9 +3,8 @@ import axios from './root.service.js';
 export const getCarrosByCompania = async (companiaId) => {
   try {
     const response = await axios.get(`/carro/compania/${companiaId}`);
-    console.log("Carros recibidos del backend:", response.data);
     return response.data.data;
-    } catch (error) {
+  } catch (error) {
     console.error('Error al obtener carros por compañía:', error);
     throw error.response?.data || error;
   }
@@ -22,10 +21,10 @@ export const carroService = {
       return response.data;
     } catch (error) {
       console.error('Error al obtener carros:', error);
-      
+
       // Mensaje de error más específico según el tipo de error
       let errorMessage = 'Error al conectar con el servidor';
-      
+
       if (error.code === 'ECONNABORTED') {
         errorMessage = 'La conexión ha tardado demasiado tiempo. Intente nuevamente.';
       } else if (error.response) {
@@ -35,7 +34,7 @@ export const carroService = {
         // Error de solicitud sin respuesta
         errorMessage = 'No se recibió respuesta del servidor. Verifique su conexión.';
       }
-      
+
       // Devolver un objeto de error estructurado en lugar de lanzar una excepción
       return {
         status: 'Error',

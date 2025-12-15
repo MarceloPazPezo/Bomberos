@@ -553,7 +553,13 @@ const Form = forwardRef(
               <Select
                 ref={(el) => (fieldRefs.current[field.name] = el)}
                 options={field.options || []}
-                value={watch(field.name) || field.defaultValue || ""}
+                value={(() => {
+                  const val = watch(field.name) || field.defaultValue || "";
+                  // Convertir a string si es necesario (para valores booleanos o números)
+                  return typeof val === "string" || typeof val === "number"
+                    ? val
+                    : String(val || "");
+                })()}
                 onChange={(e) => {
                   setValue(field.name, e.target.value);
                   if (field.onChange) field.onChange(e);
@@ -658,12 +664,6 @@ const Form = forwardRef(
                 defaultValue={field.defaultValue || []}
                 rules={{ required: field.required ? "Este campo es obligatorio" : false }}
                 render={({ field: controllerField }) => {
-                  console.log("🔍 [Form PrimeMultiSelect]", field.name, {
-                    value: controllerField.value,
-                    options: field.options,
-                    optionLabel: field.optionLabel,
-                    optionValue: field.optionValue,
-                  });
                   return (
                     <div className="relative">
                       {fieldIcons[field.name] && (
@@ -676,12 +676,6 @@ const Form = forwardRef(
                         value={controllerField.value || []}
                         options={field.options || []}
                         onChange={(e) => {
-                          console.log(
-                            "🔍 [Form PrimeMultiSelect onChange]",
-                            field.name,
-                            "new value:",
-                            e.value
-                          );
                           const value = e.value || [];
                           controllerField.onChange(value);
                           if (field.onChange) {
@@ -704,9 +698,6 @@ const Form = forwardRef(
                         appendTo="self"
                         display="chip"
                         showClear
-                        onClick={() => console.log("🔍 [PrimeMultiSelect onClick]", field.name)}
-                        onShow={() => console.log("🔍 [PrimeMultiSelect onShow] Panel abierto")}
-                        onHide={() => console.log("🔍 [PrimeMultiSelect onHide] Panel cerrado")}
                       />
                     </div>
                   );

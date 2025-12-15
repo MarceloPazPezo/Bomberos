@@ -1,8 +1,8 @@
 "use strict";
 import { Router } from 'express';
 import { authenticateJwt } from '../middlewares/authentication.middleware.js';
-import { authorizePermisos, authorizeRoles } from "../middlewares/authorization.middleware.js";
-import { obtenerHistorialCompania, obtenerHistorialVoluntario, obtenerKpiAsistenciaVoluntario, obtenerKpiResponsabilidadesVoluntario, obtenerResumenActividadVoluntario, obtenerHeatmapDisponibilidadVoluntario} from '../controllers/historial.controller.js';
+import { authorizePermisos } from "../middlewares/authorization.middleware.js";
+import { obtenerHistorialCompania, obtenerHistorialVoluntario, obtenerKpiAsistenciaVoluntario, obtenerKpiResponsabilidadesVoluntario, obtenerResumenActividadVoluntario, obtenerHeatmapDisponibilidadVoluntario } from '../controllers/historial.controller.js';
 
 const router = Router();
 
@@ -14,16 +14,16 @@ const router = Router();
 router.use(authenticateJwt);
 
 // Rutas específicas
-router.get('/compania/:idCompania',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerHistorialCompania);
+router.get('/compania/:idCompania', authorizePermisos(["historial:obtener", "historial:admin"]), obtenerHistorialCompania);
 
-router.get('/voluntario/:idBombero',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerHistorialVoluntario);
+router.get('/voluntario/:idBombero', authorizePermisos(["historial:obtener", "historial:admin"]), obtenerHistorialVoluntario);
 
-router.get('/voluntario/:idBombero/kpi-asistencia',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerKpiAsistenciaVoluntario);
+router.get('/voluntario/:idBombero/kpi-asistencia', authorizePermisos(["historial:obtener", "historial:admin"]), obtenerKpiAsistenciaVoluntario);
 
-router.get('/voluntario/:idBombero/kpi-responsabilidades',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerKpiResponsabilidadesVoluntario);
+router.get('/voluntario/:idBombero/kpi-responsabilidades', authorizePermisos(["historial:obtener", "historial:admin"]), obtenerKpiResponsabilidadesVoluntario);
 
-router.get('/voluntario/:idBombero/resumen-actividad',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerResumenActividadVoluntario);
+router.get('/voluntario/:idBombero/resumen-actividad', authorizePermisos(["historial:obtener", "historial:admin"]), obtenerResumenActividadVoluntario);
 
-router.get('/voluntario/:idBombero/heatmap-disponibilidad',authorizeRoles(['Administrador', 'Supervisor', 'Bombero']) ,obtenerHeatmapDisponibilidadVoluntario);
+router.get('/voluntario/:idBombero/heatmap-disponibilidad', authorizePermisos(["historial:obtener", "historial:admin"]), obtenerHeatmapDisponibilidadVoluntario);
 
 export default router;

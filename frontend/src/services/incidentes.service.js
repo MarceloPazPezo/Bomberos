@@ -5,7 +5,6 @@ export const getIncidentesResumen = async (params = {}) => {
   try {
     const resp = await axios.get('/incidentes/resumen', { params });
     // backend devuelve { status, message, data }
-    console.log("Datos recibidos del backend22:", resp);
     return resp.data?.data ?? resp.data;
   } catch (error) {
     console.error('Error al obtener incidentes resumen:', error);

@@ -117,7 +117,7 @@ function drawHeader(doc, logos, parte) {
   const textY = logoY + 5;
   doc.font(FONTS.normal.family)
     .fontSize(FONTS.normal.size)
-    .text(parte.compania?.nombre || 'Primera compañía', MARGINS.left + logoSize + 10, textY, {
+    .text(parte.compania?.nombre || 'Compañía', MARGINS.left + logoSize + 10, textY, {
       width: pageWidth - (MARGINS.left + logoSize + 10) - (MARGINS.right + logoSize + 10),
       align: 'center',
     });
@@ -365,6 +365,7 @@ export async function generarParteEmergenciaPdfService(idIncidente, options = {}
 
     const lugarRows = [
       ['Comuna:', parte?.direccion?.comuna?.nombre || ''],
+      ['Región:', parte?.direccion?.region?.nombre || ''],
       ['Dirección:', direccion],
       ['Villa/Poblacion', parte?.direccion?.localidad || ''],
       ['Tipo de vía', parte?.direccion?.tipoVia || ''],
@@ -372,49 +373,83 @@ export async function generarParteEmergenciaPdfService(idIncidente, options = {}
 
     currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, lugarRows, '2.- Datos del lugar') + 20;
 
-    // 3.- Datos del afectado
-    const primerVehiculoData = Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0
-      ? parte.vehiculos[0]
-      : null;
+    // Numeración dinámica a partir de aquí
+    let sectionNumber = 3;
 
-    // Determinar el primer afectado: priorizar conductor (chofer), luego primer pasajero
-    const primerAfectado = primerVehiculoData?.conductor ||
-      (Array.isArray(primerVehiculoData?.pasajeros) && primerVehiculoData.pasajeros.length > 0
-        ? primerVehiculoData.pasajeros[0]?.afectado || primerVehiculoData.pasajeros[0]
-        : null);
+    // Inmuebles afectados (si existen)
+    if (Array.isArray(parte.inmuebles) && parte.inmuebles.length > 0) {
+      const inmuebleHeaders = ['Dirección', 'Dueño', 'RUN', 'Teléfono', 'Habitantes'];
+      const inmuebleRows = parte.inmuebles.map((inm) => [
+        [inm.direccion?.calle, inm.direccion?.numero].filter(Boolean).join(' '),
+        inm.propietario?.nombreCompleto || '-',
+        formatRun(inm.propietario?.run),
+        inm.propietario?.telefono || '-',
+        Array.isArray(inm.habitantes) && inm.habitantes.length > 0
+          ? inm.habitantes.map((h) => h.nombreCompleto || formatRun(h.run) || '').join(', ')
+          : '-',
+      ]);
 
-    // Determinar tipo de ocupante solo si hay afectado
-    let tipoOcupante = '';
-    if (primerAfectado) {
-      const esChofer = primerVehiculoData?.conductor && primerAfectado?.id === primerVehiculoData.conductor.id;
-      tipoOcupante = esChofer ? 'chofer' : 'acompañante';
+      currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, inmuebleHeaders, inmuebleRows, `${sectionNumber}.- Inmuebles afectados`) + 20;
+      sectionNumber += 1;
     }
 
-    const afectadoRows = [
-      ['Rut:', formatRun(primerAfectado?.run)],
-      ['Nombres:', primerAfectado?.nombreCompleto?.split(' ')[0] || ''],
-      ['Apellidos', primerAfectado?.nombreCompleto?.split(' ').slice(1).join(' ') || ''],
-      ['Telefono', primerAfectado?.telefono || ''],
-      ['Estado', primerAfectado?.descripcionGravedad || ''],
-      ['Tipo ocupante', tipoOcupante],
-    ];
+    // Determinar afectado principal según contexto (vehículo o inmueble)
+    const tieneVehiculos = Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0;
+    const primerVehiculo = tieneVehiculos ? parte.vehiculos[0] : null;
+    const primerVehiculoData = primerVehiculo;
 
-    currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, afectadoRows, '3.- Datos del afectado') + 20;
+    let primerAfectado = null;
+    let tipoOcupante = '';
 
-    // 4.- Datos del vehículo
-    const primerVehiculo = Array.isArray(parte.vehiculos) && parte.vehiculos.length > 0
-      ? parte.vehiculos[0]
-      : null;
+    if (tieneVehiculos) {
+      primerAfectado = primerVehiculoData?.conductor ||
+        (Array.isArray(primerVehiculoData?.pasajeros) && primerVehiculoData.pasajeros.length > 0
+          ? primerVehiculoData.pasajeros[0]?.afectado || primerVehiculoData.pasajeros[0]
+          : null);
+      if (primerAfectado) {
+        const esChofer = primerVehiculoData?.conductor && primerAfectado?.id === primerVehiculoData.conductor.id;
+        tipoOcupante = esChofer ? 'chofer' : 'acompañante';
+      }
+    } else if (Array.isArray(parte.inmuebles) && parte.inmuebles.length > 0) {
+      const primerInmueble = parte.inmuebles[0];
+      if (Array.isArray(primerInmueble.habitantes) && primerInmueble.habitantes.length > 0) {
+        primerAfectado = primerInmueble.habitantes[0];
+        tipoOcupante = 'habitante';
+      } else if (primerInmueble.propietario) {
+        primerAfectado = primerInmueble.propietario;
+        tipoOcupante = 'dueño';
+      }
+    }
 
-    const vehiculoRows = [
-      ['Tipo vehículo:', ''],
-      ['Marca vehículo:', primerVehiculo?.marca || ''],
-      ['Modelo vehículo', primerVehiculo?.modelo || ''],
-      ['Patente vehículo', primerVehiculo?.patente || ''],
-      ['Daños', ''],
-    ];
+    if (primerAfectado) {
+      const afectadoRows = [
+        ['Rut:', formatRun(primerAfectado?.run)],
+        ['Nombres:', primerAfectado?.nombreCompleto?.split(' ')[0] || ''],
+        ['Apellidos', primerAfectado?.nombreCompleto?.split(' ').slice(1).join(' ') || ''],
+        ['Telefono', primerAfectado?.telefono || ''],
+        ['Estado', primerAfectado?.descripcionGravedad || ''],
+        ['Tipo ocupante', tipoOcupante],
+      ];
 
-    currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, vehiculoRows, '4.- Datos del vehículo');
+      currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, afectadoRows, `${sectionNumber}.- Datos del afectado`) + 20;
+      sectionNumber += 1;
+    }
+
+    // Datos del vehículo (solo si hay vehículos)
+    if (tieneVehiculos) {
+      const primerVehiculo = parte.vehiculos[0];
+
+      const vehiculoRows = [
+        ['Tipo vehículo:', ''],
+        ['Marca vehículo:', primerVehiculo?.marca || ''],
+        ['Modelo vehículo', primerVehiculo?.modelo || ''],
+        ['Patente vehículo', primerVehiculo?.patente || ''],
+        ['Daños', primerVehiculo?.danos_vehiculo || ''],
+      ];
+
+      currentY = drawWideTable(doc, MARGINS.left, currentY, pageWidth, vehiculoRows, `${sectionNumber}.- Datos del vehículo`);
+      sectionNumber += 1;
+    }
 
     // ==================== PÁGINA 2 ====================
     doc.addPage({ margins: MARGINS });
@@ -434,99 +469,113 @@ export async function generarParteEmergenciaPdfService(idIncidente, options = {}
     });
     currentY += 40;
 
-    // 5.- Ocupantes del vehículo
-    const ocupantesHeaders = ['Nombre', 'Rut', 'Edad', 'Estado'];
-    const ocupantesRows = primerVehiculo && Array.isArray(primerVehiculo.pasajeros)
-      ? primerVehiculo.pasajeros.map(p => [
-        p?.afectado?.nombreCompleto || '',
-        formatRun(p?.afectado?.run),
-        p?.afectado?.edad?.toString() || '',
-        '',
-      ])
-      : [];
+    // Continuar numeración dinámica en página 2
+    let page2Section = sectionNumber;
 
-    if (primerAfectado) {
-      ocupantesRows.unshift([
-        primerAfectado.nombreCompleto || '',
-        formatRun(primerAfectado.run),
-        primerAfectado.edad?.toString() || '',
-        '',
-      ]);
+    if (tieneVehiculos) {
+      const ocupantesHeaders = ['Nombre', 'Rut', 'Edad', 'Estado'];
+      const ocupantesRows = primerVehiculo && Array.isArray(primerVehiculo.pasajeros)
+        ? primerVehiculo.pasajeros.map(p => [
+          p?.afectado?.nombreCompleto || '',
+          formatRun(p?.afectado?.run),
+          p?.afectado?.edad?.toString() || '',
+          '',
+        ])
+        : [];
+
+      if (primerAfectado) {
+        ocupantesRows.unshift([
+          primerAfectado.nombreCompleto || '',
+          formatRun(primerAfectado.run),
+          primerAfectado.edad?.toString() || '',
+          '',
+        ]);
+      }
+
+      currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, ocupantesHeaders, ocupantesRows, `${page2Section}.- Ocupantes del vehículo`) + 20;
+      page2Section += 1;
     }
 
-    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, ocupantesHeaders, ocupantesRows, '5.- Ocupantes del vehículo') + 20;
-
-    // 6.- Otros vehículos afectados
-    const otrosVehiculosHeaders = ['Tipo V.', 'Marca', 'Modelo', 'Patente', 'Rut C.', 'Nombre C.'];
-    const otrosVehiculosRows = Array.isArray(parte.vehiculos) && parte.vehiculos.length > 1
-      ? parte.vehiculos.slice(1).map(v => [
+    // Otros vehículos (solo si hay más de uno)
+    if (Array.isArray(parte.vehiculos) && parte.vehiculos.length > 1) {
+      const otrosVehiculosHeaders = ['Tipo V.', 'Marca', 'Modelo', 'Patente', 'Rut C.', 'Nombre C.'];
+      const otrosVehiculosRows = parte.vehiculos.slice(1).map(v => [
         '',
         v.marca || '',
         v.modelo || '',
         v.patente || '',
         formatRun(v.conductor?.run),
         v.conductor?.nombreCompleto || '',
-      ])
-      : [];
+      ]);
 
-    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, otrosVehiculosHeaders, otrosVehiculosRows, '6.- Otros vehículos afectados') + 20;
+      currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, otrosVehiculosHeaders, otrosVehiculosRows, `${page2Section}.- Otros vehículos afectados`) + 20;
+      page2Section += 1;
+    }
 
-    // 7.- Otros Ocupantes afectados
+    // Otros ocupantes afectados (mantener hook por si se envían en otro arreglo)
     const otrosOcupantesHeaders = ['Nombre', 'Rut', 'Edad', 'Estado'];
     const otrosOcupantesRows = [];
+    if (otrosOcupantesRows.length > 0) {
+      currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, otrosOcupantesHeaders, otrosOcupantesRows, `${page2Section}.- Otros Ocupantes afectados`) + 20;
+      page2Section += 1;
+    }
 
-    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, otrosOcupantesHeaders, otrosOcupantesRows, '7.- Otros Ocupantes afectados') + 20;
-
-    // 8.- Material mayor
+    // Material mayor
     const materialHeaders = ['Unidad', 'Maquinista', 'Obac', 'Nro personal'];
     const materialRows = Array.isArray(parte.materialMayor)
       ? parte.materialMayor.map(m => [
-        m.unidad?.patente || '',
-        m.conductor?.nombreCompleto || '',
-        m.bomberoACargo?.nombreCompleto || '',
-        m.voluntarios?.toString() || '',
+        m.unidad?.patente || `Unidad #${m.unidad?.id || ''}`,
+        m.conductor?.nombreCompleto || (m.conductor?.run ? `RUN: ${formatRun(m.conductor.run)}` : ''),
+        m.bomberoACargo?.nombreCompleto || m.jefeUnidad?.nombreCompleto || '',
+        m.voluntarios?.toString() || '0',
       ])
       : [];
 
-    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, materialHeaders, materialRows, '8.- Material mayor');
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, materialHeaders, materialRows, `${page2Section}.- Material mayor`);
+    page2Section += 1;
 
     // ==================== PÁGINA 3 ====================
     doc.addPage({ margins: MARGINS });
     drawHeader(doc, logos, parte);
     currentY = doc.y + 10;
 
-    // 9.- bomberos accidentados
+    // Continuar numeración en página 3
+    let page3Section = page2Section;
+
+    // Bomberos accidentados
     const accidentadosHeaders = ['Cia', 'Nombre', 'Rut', 'Constancia', 'Comisaria', 'Detalles'];
     const accidentadosRows = Array.isArray(parte.accidentados)
       ? parte.accidentados.map(a => [
-        a.compania?.nombre || '',
-        a.bombero?.nombreCompleto || '',
-        formatRun(a.bombero?.run),
-        '',
-        '',
-        a.descripcion || '',
+        a.compania?.nombre || '-',
+        a.bombero?.nombreCompleto || `RUN: ${formatRun(a.bombero?.run)}` || '-',
+        formatRun(a.bombero?.run) || '-',
+        a.constancia || '-',
+        a.comisaria || '-',
+        a.lesiones || a.acciones || '-',
       ])
       : [];
 
-    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, accidentadosHeaders, accidentadosRows, '9.- Bomberos accidentados') + 20;
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, accidentadosHeaders, accidentadosRows, `${page3Section}.- Bomberos accidentados`) + 20;
+    page3Section += 1;
 
-    // 10.- Otros servicios de emergencia en el lugar
+    // Otros servicios de emergencia en el lugar
     const serviciosHeaders = ['Servicios', 'Unidad', 'A cargo', 'Nro personal', 'Observaciones'];
     const serviciosRows = Array.isArray(parte.otrosServicios)
       ? parte.otrosServicios.map(s => [
-        s.servicio?.nombre || '',
-        '',
-        '',
-        '',
-        s.observaciones || '',
+        s.servicio?.nombre || '-',
+        s.tipoUnidad || '-',
+        s.responsable || '-',
+        s.personal?.toString() || '0',
+        s.observaciones || '-',
       ])
       : [];
 
-    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, serviciosHeaders, serviciosRows, '10.- Otros servicios de emergencia en el lugar') + 20;
+    currentY = drawMultiColumnTable(doc, MARGINS.left, currentY, pageWidth, serviciosHeaders, serviciosRows, `${page3Section}.- Otros servicios de emergencia en el lugar`) + 20;
+    page3Section += 1;
 
-    // 11.- Asistencia (1 columna)
+    // Asistencia (1 columna)
     doc.font(FONTS.subtitle.family).fontSize(FONTS.subtitle.size);
-    doc.text('11.- Asistencia:', MARGINS.left, currentY);
+    doc.text(`${page3Section}.- Asistencia:`, MARGINS.left, currentY);
     currentY += 15;
 
     const asistenciaHeaders = ['Nombre', 'Rut'];
@@ -545,9 +594,9 @@ export async function generarParteEmergenciaPdfService(idIncidente, options = {}
 
     // Footer
     doc.font(FONTS.normal.family).fontSize(FONTS.normal.size);
-    doc.text(`Oficial o voluntario que toma el parte: ${parte.redactor?.nombreCompleto || ''}`, MARGINS.left, currentY);
+    doc.text(`Oficial o voluntario que toma el parte: ${parte.redactor?.nombreCompleto || formatRun(parte.redactor?.run) || ''}`, MARGINS.left, currentY);
     currentY += 15;
-    doc.text(`Oficial o voluntario a cargo: ${parte.bomberoACargo?.nombreCompleto || ''}`, MARGINS.left, currentY);
+    doc.text(`Oficial o voluntario a cargo: ${parte.bomberoACargo?.nombreCompleto || formatRun(parte.bomberoACargo?.run) || ''}`, MARGINS.left, currentY);
 
     // Finalizar
     doc.end();

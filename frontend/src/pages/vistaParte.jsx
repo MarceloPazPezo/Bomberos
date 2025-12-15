@@ -9,6 +9,7 @@ import { cambiarEstadoIncidente } from "@services/incidentes.service.js";
 import { getCompaniaById } from "@services/compania.service.js";
 import { getRegiones, getComunas, regionService } from "@services/region.service.js";
 import { AuthContext } from "../context/AuthContext.jsx";
+import { useAuth } from "@hooks/auth/useAuth";
 import {
   getClasificacionesEmergencia,
   getSubtiposIncidente,
@@ -58,6 +59,7 @@ export default function VistaParte({ showEnviarButton = true }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { bombero } = useContext(AuthContext);
+  const { hasPermiso } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [parte, setParte] = useState(null);
@@ -482,23 +484,26 @@ export default function VistaParte({ showEnviarButton = true }) {
 
             {/* Botones de acción */}
             <div className="space-y-3">
-              <button
-                disabled={generandoPdf}
-                onClick={() => handleGenerarPdf("A4")}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white px-4 py-3 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow font-medium"
-                type="button"
-              >
-                {generandoPdf ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Generando reporte...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="h-4 w-4" /> Generar reporte PDF
-                  </>
-                )}
-              </button>
+              {(hasPermiso("parte_emergencia:revisar") || hasPermiso("parte_emergencia:admin")) && (
+                <button
+                  disabled={generandoPdf}
+                  onClick={() => handleGenerarPdf("A4")}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2.5 transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  type="button"
+                >
+                  {generandoPdf ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Generando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-5 w-5" />
+                      <span>Generar PDF</span>
+                    </>
+                  )}
+                </button>
+              )}
 
               {showEnviarButton && (estadoActual === "BORRADOR" || estadoActual === "CORREGIR") && (
                 <button
@@ -663,19 +668,17 @@ export default function VistaParte({ showEnviarButton = true }) {
               <span>{parte.clasificacion.nombre || `#${parte.clasificacion.id}`}</span>
             </div>
           )}
-          {parte?.subtipo &&
-            (console.log(parte),
-            (
-              <div className="flex items-center gap-3">
-                <i className="pi pi-bolt text-2xl text-gray-700" />
-                <span className="font-semibold">Clave radial:</span>
-                <span>
-                  {parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial
-                    ? `${parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial} `.trim()
-                    : `Subtipo #${parte.subtipo.id}`}
-                </span>
-              </div>
-            ))}
+          {parte?.subtipo && (
+            <div className="flex items-center gap-3">
+              <i className="pi pi-bolt text-2xl text-gray-700" />
+              <span className="font-semibold">Clave radial:</span>
+              <span>
+                {parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial
+                  ? `${parte.subtipo.claveRadial?.nombre || parte.subtipo.codigoRadial} `.trim()
+                  : `Subtipo #${parte.subtipo.id}`}
+              </span>
+            </div>
+          )}
           {parte?.incendio?.tipo && (
             <div className="flex items-center gap-3">
               <span className="font-semibold">Tipo de incendio:</span>

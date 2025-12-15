@@ -1,29 +1,27 @@
-import React, { useMemo } from 'react';
-import PropTypes from 'prop-types';
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
 
-const DetalleActividadBombero = ({ historial, loading }) => {
+const DetalleActividadBombero = ({ historial, loading = false }) => {
   // Filtrar solo asistencias y disponibilidad
   const historialFiltrado = useMemo(() => {
-    return historial.filter(
-      (item) => item.tipo === 'asistencia' || item.tipo === 'Disponibilidad'
-    );
+    return historial.filter((item) => item.tipo === "asistencia" || item.tipo === "Disponibilidad");
   }, [historial]);
 
   // Normalizar historial: separar fecha y hora (hora en formato 24h)
   const historialFiltradoNormalizado = useMemo(() => {
     return historialFiltrado.map((item) => {
-      let fecha = '';
-      let hora = '';
+      let fecha = "";
+      let hora = "";
       if (item.fecha) {
         const d = new Date(item.fecha);
         if (!isNaN(d)) {
-          fecha = d.toLocaleDateString('es-CL');
+          fecha = d.toLocaleDateString("es-CL");
           // Formato 24 horas
-          hora = d.toLocaleTimeString('es-CL', {
-            hour: '2-digit',
-            minute: '2-digit',
+          hora = d.toLocaleTimeString("es-CL", {
+            hour: "2-digit",
+            minute: "2-digit",
             hour12: false,
           });
         }
@@ -55,7 +53,7 @@ const DetalleActividadBombero = ({ historial, loading }) => {
         <Column field="detalle" header="Detalle" sortable />
         <Column field="fecha" header="Fecha" sortable />
         <Column field="hora" header="Hora" sortable />
-        <Column field="descripcion" header="Descripción" sortable style={{ minWidth: '250px' }} />
+        <Column field="descripcion" header="Descripción" sortable style={{ minWidth: "250px" }} />
       </DataTable>
     </div>
   );
@@ -64,10 +62,6 @@ const DetalleActividadBombero = ({ historial, loading }) => {
 DetalleActividadBombero.propTypes = {
   historial: PropTypes.array.isRequired,
   loading: PropTypes.bool,
-};
-
-DetalleActividadBombero.defaultProps = {
-  loading: false,
 };
 
 export default DetalleActividadBombero;

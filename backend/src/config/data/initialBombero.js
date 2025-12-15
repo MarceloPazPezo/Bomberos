@@ -22,14 +22,23 @@ async function crearBomberos() {
     const adminRol = await rolRepository.findOneBy({
       nombre: "Administrador",
     });
-    const supervisorRol = await rolRepository.findOneBy({
-      nombre: "Supervisor",
+    const capitanRol = await rolRepository.findOneBy({
+      nombre: "Capitán",
     });
-    const bomberoRol = await rolRepository.findOneBy({ nombre: "Bombero" });
+    const tenienteRol = await rolRepository.findOneBy({
+      nombre: "Teniente",
+    });
+    const ayudanteRol = await rolRepository.findOneBy({
+      nombre: "Ayudante",
+    });
+    const directivaRol = await rolRepository.findOneBy({
+      nombre: "Directiva",
+    });
+    const voluntarioRol = await rolRepository.findOneBy({ nombre: "Voluntario" });
 
-    if (!adminRol || !supervisorRol || !bomberoRol) {
+    if (!adminRol || !capitanRol || !tenienteRol || !ayudanteRol || !directivaRol || !voluntarioRol) {
       logger.error(
-        "Error: No se encontraron todos los roles necesarios (Administrador, Supervisor, Bombero). Asegúrate de que createRoles se ejecutó correctamente.",
+        "Error: No se encontraron todos los roles necesarios (Administrador, Capitán, Teniente, Ayudante, Directiva, Voluntario). Asegúrate de que createRoles se ejecutó correctamente.",
       );
       return;
     }
@@ -44,7 +53,7 @@ async function crearBomberos() {
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [adminRol.id, bomberoRol.id],
+        rolesIds: [adminRol.id],
         ficha: {
           nombre: "Admin Principal Del Sistema",
           telefono: "+56912345678",
@@ -53,38 +62,37 @@ async function crearBomberos() {
           fechaNacimiento: "1985-03-15",
           fechaIngreso: "2020-01-15",
           idCompania: 1,
-          // fotoPerfilKEY: "admin_profile_test.jpg" // Removido para evitar errores de imagen
         }
       },
       {
-        nombres: ["Juan", "Andrés"],
+        nombres: ["Juan", "Carlos"],
         apellidos: ["Pérez", "Gómez"],
         run: "12345678-5",
-        email: "editor.juan@gmail.com",
+        email: "capitan.juan@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [capitanRol.id],
         ficha: {
-          nombre: "Juan Andrés Pérez Gómez",
+          nombre: "Juan Carlos Pérez Gómez",
           telefono: "+56923456789",
           licenciaClaseF: true,
           donante: false,
           fechaNacimiento: "1988-07-22",
           fechaIngreso: "2021-03-10",
           idCompania: 1,
-          fotoPerfilKEY: "juan_perez_profile.jpg" // Agregar KEY de imagen para testing
+          fotoPerfilKEY: "juan_perez_profile.jpg"
         }
       },
       {
         nombres: ["Ana", "Lucia"],
         apellidos: ["López", "Diaz"],
         run: "18765432-7",
-        email: "ana.lopez@gmail.com",
+        email: "teniente.ana@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
-        activo: false,
-        rolesIds: [bomberoRol.id],
+        activo: true,
+        rolesIds: [tenienteRol.id],
         ficha: {
           nombre: "Ana Lucia López Diaz",
           telefono: "+56934567890",
@@ -99,11 +107,11 @@ async function crearBomberos() {
         nombres: ["Carlos", "Eduardo"],
         apellidos: ["Silva", "Mendoza"],
         run: "11223333-4",
-        email: "carlos.silva@gmail.com",
+        email: "ayudante.carlos@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [ayudanteRol.id],
         ficha: {
           nombre: "Carlos Eduardo Silva Mendoza",
           telefono: "+56945678901",
@@ -118,11 +126,11 @@ async function crearBomberos() {
         nombres: ["Patricia", "Isabel"],
         apellidos: ["Vargas", "Herrera"],
         run: "22334455-0",
-        email: "patricia.vargas@gmail.com",
+        email: "directiva.patricia@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [directivaRol.id],
         ficha: {
           nombre: "Patricia Isabel Vargas Herrera",
           telefono: "+56956789012",
@@ -137,11 +145,11 @@ async function crearBomberos() {
         nombres: ["Roberto", "Antonio"],
         apellidos: ["Castro", "Jiménez"],
         run: "33445566-1",
-        email: "roberto.castro@gmail.com",
+        email: "voluntario.roberto@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Roberto Antonio Castro Jiménez",
           telefono: "+56967890123",
@@ -156,11 +164,11 @@ async function crearBomberos() {
         nombres: ["Sandra", "Beatriz"],
         apellidos: ["Morales", "Rojas"],
         run: "44556677-2",
-        email: "sandra.morales@gmail.com",
+        email: "voluntaria.sandra@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
-        activo: false,
-        rolesIds: [bomberoRol.id],
+        activo: true,
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Sandra Beatriz Morales Rojas",
           telefono: "+56978901234",
@@ -175,11 +183,11 @@ async function crearBomberos() {
         nombres: ["Miguel", "Ángel"],
         apellidos: ["Torres", "García"],
         run: "55667788-3",
-        email: "miguel.torres@gmail.com",
+        email: "voluntario.miguel@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Miguel Ángel Torres García",
           telefono: "+56989012345",
@@ -196,11 +204,11 @@ async function crearBomberos() {
         nombres: ["María", "Fernanda"],
         apellidos: ["González", "Morales"],
         run: "92334455-1",
-        email: "maria.gonzalez@gmail.com",
+        email: "capitan.maria@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [capitanRol.id],
         ficha: {
           nombre: "María Fernanda González Morales",
           telefono: "+56945678902",
@@ -215,11 +223,11 @@ async function crearBomberos() {
         nombres: ["Pedro", "Alejandro"],
         apellidos: ["Martínez", "Vega"],
         run: "93445566-5",
-        email: "pedro.martinez@gmail.com",
+        email: "voluntario.pedro@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Pedro Alejandro Martínez Vega",
           telefono: "+56956789013",
@@ -234,11 +242,11 @@ async function crearBomberos() {
         nombres: ["Fernando", "Luis"],
         apellidos: ["Herrera", "Navarro"],
         run: "66778899-4",
-        email: "fernando.herrera@gmail.com",
+        email: "voluntario.fernando@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Fernando Luis Herrera Navarro",
           telefono: "+56990123456",
@@ -253,11 +261,11 @@ async function crearBomberos() {
         nombres: ["Valentina", "Alejandra"],
         apellidos: ["Espinoza", "Cortés"],
         run: "77889900-0",
-        email: "valentina.espinoza@gmail.com",
+        email: "directiva.valentina@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [directivaRol.id],
         ficha: {
           nombre: "Valentina Alejandra Espinoza Cortés",
           telefono: "+56901234567",
@@ -274,11 +282,11 @@ async function crearBomberos() {
         nombres: ["Diego", "Sebastián"],
         apellidos: ["Ramírez", "Torres"],
         run: "65667788-0",
-        email: "diego.ramirez@gmail.com",
+        email: "teniente.diego@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [tenienteRol.id],
         ficha: {
           nombre: "Diego Sebastián Ramírez Torres",
           telefono: "+56967890124",
@@ -293,11 +301,11 @@ async function crearBomberos() {
         nombres: ["Valentina", "Camila"],
         apellidos: ["Jiménez", "Ruiz"],
         run: "76778899-1",
-        email: "valentina.jimenez@gmail.com",
+        email: "voluntaria.valentina@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Valentina Camila Jiménez Ruiz",
           telefono: "+56978901235",
@@ -312,11 +320,11 @@ async function crearBomberos() {
         nombres: ["Andrés", "Felipe"],
         apellidos: ["Mendoza", "Vega"],
         run: "88990011-3",
-        email: "andres.mendoza@gmail.com",
+        email: "voluntario.andres@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Andrés Felipe Mendoza Vega",
           telefono: "+56912345680",
@@ -331,11 +339,11 @@ async function crearBomberos() {
         nombres: ["Camila", "Andrea"],
         apellidos: ["Pérez", "Soto"],
         run: "99001122-2",
-        email: "camila.perez@gmail.com",
+        email: "ayudante.camila@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [ayudanteRol.id],
         ficha: {
           nombre: "Camila Andrea Pérez Soto",
           telefono: "+56923456790",
@@ -352,11 +360,11 @@ async function crearBomberos() {
         nombres: ["Natalia", "Paola"],
         apellidos: ["Vargas", "Rojas"],
         run: "78990011-6",
-        email: "natalia.vargas@gmail.com",
+        email: "ayudante.natalia@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [ayudanteRol.id],
         ficha: {
           nombre: "Natalia Paola Vargas Rojas",
           telefono: "+56989012346",
@@ -371,11 +379,11 @@ async function crearBomberos() {
         nombres: ["Ricardo", "Manuel"],
         apellidos: ["González", "López"],
         run: "91223344-8",
-        email: "ricardo.gonzalez@gmail.com",
+        email: "voluntario.ricardo@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Ricardo Manuel González López",
           telefono: "+56901234568",
@@ -390,11 +398,11 @@ async function crearBomberos() {
         nombres: ["Isabel", "Cristina"],
         apellidos: ["Morales", "Díaz"],
         run: "82334455-4",
-        email: "isabel.morales@gmail.com",
+        email: "directiva.isabel@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [directivaRol.id],
         ficha: {
           nombre: "Isabel Cristina Morales Díaz",
           telefono: "+56912345679",
@@ -411,11 +419,11 @@ async function crearBomberos() {
         nombres: ["Gabriela", "Alejandra"],
         apellidos: ["Paredes", "Navarro"],
         run: "00112233-9",
-        email: "gabriela.paredes@gmail.com",
+        email: "directiva.gabriela@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [supervisorRol.id, bomberoRol.id],
+        rolesIds: [directivaRol.id],
         ficha: {
           nombre: "Gabriela Alejandra Paredes Navarro",
           telefono: "+56990123457",
@@ -430,11 +438,11 @@ async function crearBomberos() {
         nombres: ["Francisco", "Javier"],
         apellidos: ["Torres", "Mendoza"],
         run: "73445566-0",
-        email: "francisco.torres@gmail.com",
+        email: "voluntario.francisco@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Francisco Javier Torres Mendoza",
           telefono: "+56923456791",
@@ -449,11 +457,11 @@ async function crearBomberos() {
         nombres: ["Alejandra", "María"],
         apellidos: ["Vega", "Castro"],
         run: "64556677-7",
-        email: "alejandra.vega@gmail.com",
+        email: "voluntaria.alejandra@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id],
+        rolesIds: [voluntarioRol.id],
         ficha: {
           nombre: "Alejandra María Vega Castro",
           telefono: "+56934567891",
@@ -470,61 +478,61 @@ async function crearBomberos() {
         nombres: ["Carlos", "Eduardo"],
         apellidos: ["Rodríguez", "Silva"],
         run: "81223344-0",
-        email: "carlos.rodriguez@gmail.com",
+        email: "voluntario.carlos.rodriguez@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id]
+        rolesIds: [voluntarioRol.id]
       },
       {
         nombres: ["Sofia", "Isabella"],
         apellidos: ["Herrera", "Castro"],
         run: "54556676-1",
-        email: "sofia.herrera@gmail.com",
+        email: "voluntaria.sofia@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id]
+        rolesIds: [voluntarioRol.id]
       },
       {
         nombres: ["Andrés", "Felipe"],
         apellidos: ["Mendoza", "Aguilar"],
         run: "87889900-8",
-        email: "andres.mendoza.aguilar@gmail.com",
+        email: "voluntario.andres.aguilar@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: false,
-        rolesIds: [bomberoRol.id]
+        rolesIds: [voluntarioRol.id]
       },
       {
         nombres: ["Roberto", "Miguel"],
         apellidos: ["Espinoza", "Contreras"],
         run: "89001122-5",
-        email: "roberto.espinoza@gmail.com",
+        email: "voluntario.roberto.espinoza@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id]
+        rolesIds: [voluntarioRol.id]
       },
       {
         nombres: ["Francisco", "Javier"],
         apellidos: ["Cortés", "Muñoz"],
         run: "10223344-1",
-        email: "francisco.cortes@gmail.com",
+        email: "voluntario.francisco.cortes@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id]
+        rolesIds: [voluntarioRol.id]
       },
       {
         nombres: ["Daniela", "Constanza"],
         apellidos: ["Moreno", "Guerrero"],
         run: "20334455-4",
-        email: "daniela.moreno@gmail.com",
+        email: "voluntaria.daniela@gmail.com",
         password: await encryptPassword("User1234"),
         creadoPor: null,
         activo: true,
-        rolesIds: [bomberoRol.id]
+        rolesIds: [voluntarioRol.id]
       },
     ];
 

@@ -1,12 +1,12 @@
-import { Home, Plus, Trash2 } from 'lucide-react';
-import AfectadoFields from './AfectadoFields.jsx';
+import { Home, Plus, Trash2 } from "lucide-react";
+import AfectadoFields from "./AfectadoFields.jsx";
 
 // === Helpers básicos
 const genId = () => Math.random().toString(36).slice(2, 10);
 
 function InmuebleCard({ value, onChange, onRemove, index }) {
   const baseInput =
-    'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
+    "w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400";
 
   const setField = (k, v) => onChange({ ...value, [k]: v });
   const setHabitante = (i, v) => {
@@ -14,7 +14,8 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
     copy[i] = v;
     onChange({ ...value, habitantes: copy });
   };
-  const addHabitante = () => onChange({ ...value, habitantes: [...(value.habitantes || []), { id: genId() }] });
+  const addHabitante = () =>
+    onChange({ ...value, habitantes: [...(value.habitantes || []), { id: genId() }] });
   const removeHabitante = (i) => {
     const copy = [...(value.habitantes || [])];
     copy.splice(i, 1);
@@ -43,59 +44,63 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
         <input
           className={baseInput}
           placeholder="Calle"
-          value={value.calle || ''}
-          onChange={(e) => setField('calle', e.target.value)}
+          value={value.calle || ""}
+          onChange={(e) => setField("calle", e.target.value)}
         />
         <input
           className={baseInput}
           placeholder="Número"
           type="number"
           min={0}
-          value={value.numero ?? ''}
-          onChange={(e) => setField('numero', e.target.value === '' ? '' : Number(e.target.value))}
+          value={value.numero ?? ""}
+          onChange={(e) => setField("numero", e.target.value === "" ? "" : Number(e.target.value))}
         />
 
         <input
           className={baseInput}
           placeholder="Tipo de construcción"
-          value={value.tipo_construccion || ''}
-          onChange={(e) => setField('tipo_construccion', e.target.value)}
+          value={value.tipo_construccion || ""}
+          onChange={(e) => setField("tipo_construccion", e.target.value)}
         />
         <input
           className={baseInput}
           placeholder="N° de pisos"
           type="number"
-          min={1}                 // entero > 0 (según validación)
-          value={value.n_pisos ?? ''}
-          onChange={(e) => setField('n_pisos', e.target.value === '' ? '' : Number(e.target.value))}
+          min={1} // entero > 0 (según validación)
+          value={value.n_pisos ?? ""}
+          onChange={(e) => setField("n_pisos", e.target.value === "" ? "" : Number(e.target.value))}
         />
         <input
           className={baseInput}
           placeholder="m² construcción"
           type="number"
-          min={1}                 // > 0 (según validación)
-          value={value.m2_construccion ?? ''}
-          onChange={(e) => setField('m2_construccion', e.target.value === '' ? '' : Number(e.target.value))}
+          min={1} // > 0 (según validación)
+          value={value.m2_construccion ?? ""}
+          onChange={(e) =>
+            setField("m2_construccion", e.target.value === "" ? "" : Number(e.target.value))
+          }
         />
         <input
           className={baseInput}
           placeholder="m² afectado"
           type="number"
-          min={1}                 // > 0 (según validación)
-          value={value.m2_afectado ?? ''}
-          onChange={(e) => setField('m2_afectado', e.target.value === '' ? '' : Number(e.target.value))}
+          min={1} // > 0 (según validación)
+          value={value.m2_afectado ?? ""}
+          onChange={(e) =>
+            setField("m2_afectado", e.target.value === "" ? "" : Number(e.target.value))
+          }
         />
         <input
           className={baseInput}
           placeholder="Daños vivienda (breve)"
-          value={value.danos_vivienda || ''}
-          onChange={(e) => setField('danos_vivienda', e.target.value)}
+          value={value.danos_vivienda || ""}
+          onChange={(e) => setField("danos_vivienda", e.target.value)}
         />
         <input
           className={baseInput}
           placeholder="Daños anexos (breve)"
-          value={value.danos_anexos || ''}
-          onChange={(e) => setField('danos_anexos', e.target.value)}
+          value={value.danos_anexos || ""}
+          onChange={(e) => setField("danos_anexos", e.target.value)}
         />
       </div>
 
@@ -156,7 +161,31 @@ function InmuebleCard({ value, onChange, onRemove, index }) {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-              <AfectadoFields title={`Habitante #${i + 1}`} value={h} onChange={(v) => setHabitante(i, v)} />
+              {value.dueno && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const copiedData = {
+                      ...h,
+                      nombreCompleto: value.dueno.nombreCompleto,
+                      run: value.dueno.run,
+                      telefono: value.dueno.telefono,
+                      edad: value.dueno.edad,
+                      descripcionGravedad: value.dueno.descripcionGravedad,
+                    };
+                    setHabitante(i, copiedData);
+                  }}
+                  className="absolute right-14 top-2 inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded"
+                  title="Copiar datos del dueño"
+                >
+                  <Home className="h-3 w-3" /> Copiar dueño
+                </button>
+              )}
+              <AfectadoFields
+                title={`Habitante #${i + 1}`}
+                value={h}
+                onChange={(v) => setHabitante(i, v)}
+              />
             </div>
           ))}
         </div>

@@ -1,12 +1,12 @@
-import { Car, Plus, Trash2 } from 'lucide-react';
-import AfectadoFields from './AfectadoFields';
+import { Car, Plus, Trash2 } from "lucide-react";
+import AfectadoFields from "./AfectadoFields";
 
 // === Helpers básicos
 const genId = () => Math.random().toString(36).slice(2, 10);
 
 function VehicleCard({ value, onChange, onRemove, index }) {
   const baseInput =
-    'w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400';
+    "w-full border border-gray-300 rounded-md px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:border-gray-400";
 
   const setField = (k, v) => onChange({ ...value, [k]: v });
 
@@ -15,7 +15,8 @@ function VehicleCard({ value, onChange, onRemove, index }) {
     copy[i] = v;
     onChange({ ...value, pasajeros: copy });
   };
-  const addPasajero = () => onChange({ ...value, pasajeros: [...(value.pasajeros || []), { id: genId() }] });
+  const addPasajero = () =>
+    onChange({ ...value, pasajeros: [...(value.pasajeros || []), { id: genId() }] });
   const removePasajero = (i) => {
     const copy = [...(value.pasajeros || [])];
     copy.splice(i, 1);
@@ -43,20 +44,20 @@ function VehicleCard({ value, onChange, onRemove, index }) {
         <input
           className={baseInput}
           placeholder="Patente"
-          value={value.patente || ''}
-          onChange={(e) => setField('patente', e.target.value)}
+          value={value.patente || ""}
+          onChange={(e) => setField("patente", e.target.value)}
         />
         <input
           className={baseInput}
           placeholder="Marca"
-          value={value.marca || ''}
-          onChange={(e) => setField('marca', e.target.value)}
+          value={value.marca || ""}
+          onChange={(e) => setField("marca", e.target.value)}
         />
         <input
           className={baseInput}
           placeholder="Modelo"
-          value={value.modelo || ''}
-          onChange={(e) => setField('modelo', e.target.value)}
+          value={value.modelo || ""}
+          onChange={(e) => setField("modelo", e.target.value)}
         />
         <input
           className={baseInput}
@@ -64,20 +65,20 @@ function VehicleCard({ value, onChange, onRemove, index }) {
           type="number"
           min={1900}
           max={2100}
-          value={value.anio ?? ''}
-          onChange={(e) => setField('anio', e.target.value === '' ? '' : Number(e.target.value))}
+          value={value.anio ?? ""}
+          onChange={(e) => setField("anio", e.target.value === "" ? "" : Number(e.target.value))}
         />
         <input
           className={baseInput}
           placeholder="Color"
-          value={value.color || ''}
-          onChange={(e) => setField('color', e.target.value)}
+          value={value.color || ""}
+          onChange={(e) => setField("color", e.target.value)}
         />
         <input
           className={baseInput}
           placeholder="Daños vehículo (breve)"
-          value={value.danos_vehiculo || ''}
-          onChange={(e) => setField('danos_vehiculo', e.target.value)}
+          value={value.danos_vehiculo || ""}
+          onChange={(e) => setField("danos_vehiculo", e.target.value)}
         />
       </div>
 
@@ -129,6 +130,26 @@ function VehicleCard({ value, onChange, onRemove, index }) {
             >
               <Trash2 className="h-4 w-4" /> Eliminar chofer
             </button>
+            {value.dueno && (
+              <button
+                type="button"
+                onClick={() => {
+                  const copiedData = {
+                    ...value.chofer,
+                    nombreCompleto: value.dueno.nombreCompleto,
+                    run: value.dueno.run,
+                    telefono: value.dueno.telefono,
+                    edad: value.dueno.edad,
+                    descripcionGravedad: value.dueno.descripcionGravedad,
+                  };
+                  onChange({ ...value, chofer: copiedData });
+                }}
+                className="absolute right-32 top-2 inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded"
+                title="Copiar datos del dueño"
+              >
+                <Car className="h-3 w-3" /> Copiar dueño
+              </button>
+            )}
             <AfectadoFields
               title="Chofer"
               value={value.chofer}
@@ -166,7 +187,55 @@ function VehicleCard({ value, onChange, onRemove, index }) {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
-              <AfectadoFields title={`Pasajero #${i + 1}`} value={p} onChange={(v) => setPasajero(i, v)} />
+              {(value.dueno || value.chofer) && (
+                <div className="absolute right-14 top-2 flex gap-1">
+                  {value.dueno && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copiedData = {
+                          ...p,
+                          nombreCompleto: value.dueno.nombreCompleto,
+                          run: value.dueno.run,
+                          telefono: value.dueno.telefono,
+                          edad: value.dueno.edad,
+                          descripcionGravedad: value.dueno.descripcionGravedad,
+                        };
+                        setPasajero(i, copiedData);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded"
+                      title="Copiar datos del dueño"
+                    >
+                      <Car className="h-3 w-3" /> Dueño
+                    </button>
+                  )}
+                  {value.chofer && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const copiedData = {
+                          ...p,
+                          nombreCompleto: value.chofer.nombreCompleto,
+                          run: value.chofer.run,
+                          telefono: value.chofer.telefono,
+                          edad: value.chofer.edad,
+                          descripcionGravedad: value.chofer.descripcionGravedad,
+                        };
+                        setPasajero(i, copiedData);
+                      }}
+                      className="inline-flex items-center gap-1 text-xs text-green-700 hover:text-green-900 bg-green-50 hover:bg-green-100 px-2 py-1 rounded"
+                      title="Copiar datos del chofer"
+                    >
+                      <Plus className="h-3 w-3" /> Chofer
+                    </button>
+                  )}
+                </div>
+              )}
+              <AfectadoFields
+                title={`Pasajero #${i + 1}`}
+                value={p}
+                onChange={(v) => setPasajero(i, v)}
+              />
             </div>
           ))}
         </div>
