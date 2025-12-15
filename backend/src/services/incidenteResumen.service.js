@@ -6,6 +6,7 @@ import { In } from "typeorm";
 // options: {
 //   redactorId?: number,                // si se provee, filtra por idRedactor
 //   allowedEstados?: string[]           // nombres de estado permitidos (case-insensitive)
+//   excludeBorradorExcepto?: number     // excluir BORRADOR excepto los del redactorId especificado
 // }
 export async function obtenerIncidentesResumenService(options = {}) {
   const mgr = AppDataSource.manager;
@@ -140,6 +141,17 @@ export async function obtenerIncidentesResumenService(options = {}) {
   if (options && Array.isArray(options.allowedEstados) && options.allowedEstados.length > 0) {
     const allowed = new Set(options.allowedEstados.map(s => String(s).trim().toUpperCase()).filter(Boolean));
     result = result.filter(r => allowed.has(String(r.estado || '').toUpperCase()));
+  }
+
+  // Filtrar BORRADOR si se especifica excludeBorradorExcepto
+  if (options && Number.isInteger(options.excludeBorradorExcepto)) {
+    result = result.filter(r => {
+      const esBorrador = String(r.estado || '').toUpperCase() === 'BORRADOR';
+      if (!esBorrador) return true; // No es borrador, incluir
+      // Es borrador: incluir solo si es del redactor especificado
+      const incidente = incidentes.find(inc => inc.id === r.id);
+      return Number(incidente?.idRedactor) === Number(options.excludeBorradorExcepto);
+    });
   }
 
   // Ordenar por fecha del último estado (desc), y como fallback por fecha de despacho

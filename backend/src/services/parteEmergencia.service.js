@@ -14,7 +14,16 @@ export async function obtenerPartePorIdService(idIncidente, options = {}) {
   const estadoRepo = manager.getRepository('EstadoEstablecido');
 
   // 1) Carga base del incidente (evitar mega JOIN con muchas relaciones)
-  const incidente = await incidenteRepo.findOne({ where: { id: idIncidente } });
+  const incidente = await incidenteRepo.findOne({
+    where: { id: idIncidente },
+    relations: {
+      direccion: true,
+      compania: true,
+      redactor: true,
+      bomberoACargo: true,
+      subtipo: { clasificacionEmergencia: true, claveRadial: true },
+    },
+  });
   if (!incidente) return null;
 
   // Validación de autoría: sólo el redactor (creador) puede obtenerlo si se pasa redactorId
@@ -222,7 +231,16 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
   const incidenteRepo = manager.getRepository('Incidente');
 
   // Cargar incidente con relaciones eager ya definidas (bomberoACargo, redactor, direccion, subtipo, compania)
-  const incidente = await incidenteRepo.findOne({ where: { id: idIncidente } });
+  const incidente = await incidenteRepo.findOne({
+    where: { id: idIncidente },
+    relations: {
+      direccion: true,
+      compania: true,
+      redactor: true,
+      bomberoACargo: true,
+      subtipo: { clasificacionEmergencia: true, claveRadial: true },
+    },
+  });
   if (!incidente) return null;
 
   // Repositorios auxiliares
@@ -355,6 +373,7 @@ export async function obtenerParteDetalladoPorIdService(idIncidente) {
     unidad: e.carro ? { id: e.carro.id, patente: e.carro.patente } : { id: e.idCarro, patente: null },
     conductor: bomberoToPersona(e.bomberoMaquinista) || (e.idBomberoMaquinista ? { id: e.idBomberoMaquinista, nombreCompleto: null, run: null } : null),
     bomberoACargo: bomberoToPersona(e.bomberoACargo) || (e.idBomberoACargo ? { id: e.idBomberoACargo, nombreCompleto: null, run: null } : null),
+    jefeUnidad: bomberoToPersona(e.bomberoACargo) || (e.idBomberoACargo ? { id: e.idBomberoACargo, nombreCompleto: null, run: null } : null),
     voluntarios: e.nPersonal || 0,
     kmSalida: e.kmSalida || null,
     kmLlegada: e.kmLlegada || null,

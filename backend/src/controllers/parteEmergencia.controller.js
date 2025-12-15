@@ -237,13 +237,35 @@ export async function obtenerParteEmergenciaPorId(req, res) {
     return handleErrorClient(res, 400, "Id inválido");
   }
   try {
-    // Aceptar ambos nombres por compatibilidad: idRedactor (preferido) o redactorId
-    const redactorIdRaw = req.query?.idRedactor ?? req.query?.redactorId;
-    const redactorId = Number.parseInt(redactorIdRaw, 10);
-    if (!Number.isInteger(redactorId)) {
-      return handleErrorClient(res, 400, "Parámetro 'redactorId' es requerido y debe ser numérico");
+    // Verificar si el usuario tiene permisos de revisar o admin
+    const bomberoPermisos = new Set();
+    if (req.bombero?.roles && Array.isArray(req.bombero.roles)) {
+      req.bombero.roles.forEach((rol) => {
+        if (rol?.permisos && Array.isArray(rol.permisos)) {
+          rol.permisos.forEach((permisoObject) => {
+            if (permisoObject?.nombre && typeof permisoObject.nombre === "string") {
+              bomberoPermisos.add(permisoObject.nombre.toLowerCase());
+            }
+          });
+        }
+      });
     }
-    const data = await obtenerPartePorIdService(idIncidente, { redactorId });
+
+    const tienePermisoRevisar = bomberoPermisos.has("parte_emergencia:revisar") || bomberoPermisos.has("parte_emergencia:admin");
+
+    // Si tiene permiso de revisar/admin, no validar autoría. Si no, validar que sea el redactor
+    const options = {};
+    if (!tienePermisoRevisar) {
+      // Aceptar ambos nombres por compatibilidad: idRedactor (preferido) o redactorId
+      const redactorIdRaw = req.query?.idRedactor ?? req.query?.redactorId;
+      const redactorId = Number.parseInt(redactorIdRaw, 10);
+      if (!Number.isInteger(redactorId)) {
+        return handleErrorClient(res, 400, "Parámetro 'redactorId' es requerido y debe ser numérico");
+      }
+      options.redactorId = redactorId;
+    }
+
+    const data = await obtenerPartePorIdService(idIncidente, options);
     if (!data) return handleErrorClient(res, 403, "No autorizado para ver este parte");
     return handleSuccess(res, 200, "Parte obtenido", data);
   } catch (err) {

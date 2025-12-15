@@ -10,7 +10,7 @@ const router = Router();
 router.use(authenticateJwt);
 
 // GET /incidentes/revision?estados=ENVIADO,APROBADO,RECHAZADO
-// Permite ver partes enviados para revisión, aprobar y rechazar
-router.get("/revision", authorizePermisos(["parte_emergencia:revisar", "parte_emergencia:admin"]), listarParaRevision);
+// Permite ver partes: ENVIADO/APROBADO/CORREGIR para todos, BORRADOR solo para redactor
+router.get("/revision", authorizePermisos(["parte_emergencia:obtener", "parte_emergencia:revisar", "parte_emergencia:admin"]), listarParaRevision);
 
 export default router;
