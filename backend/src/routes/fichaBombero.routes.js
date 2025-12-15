@@ -8,7 +8,7 @@ import {
   updateFichaBombero
 } from "../controllers/fichaBombero.controller.js";
 import { authenticateJwt } from "../middlewares/authentication.middleware.js";
-import { authorizeRoles } from "../middlewares/authorization.middleware.js";
+import { authorizePermisos } from "../middlewares/authorization.middleware.js";
 
 const router = Router();
 
@@ -24,6 +24,6 @@ router.get("/bombero/:idBombero", async (req, res, next) => {
   next();
 }, getFichaBombero);
 router.patch("/:id", updateFichaBombero);
-router.delete("/:id", authorizeRoles(['admin', 'supervisor']), deleteFichaBombero);
+router.delete("/:id", authorizePermisos(["bombero:eliminar", "bombero:admin"]), deleteFichaBombero);
 
 export default router;

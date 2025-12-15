@@ -29,7 +29,7 @@ router.get("/coordenadas",
 
 router.get(
   "/detalle/:id",
-  authorizePermisos(["compania:admin"]),
+  authorizePermisos(["compania:obtener", "compania:obtener_especifico", "compania:admin"]),
   getCompania,
 );
 router.get(

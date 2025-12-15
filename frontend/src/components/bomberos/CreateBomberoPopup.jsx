@@ -170,6 +170,7 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
 
   // Manejar cambio de input
   const handleInputChange = (field, value) => {
+    console.log(`🔄 [CreateBombero] handleInputChange - campo: "${field}"`);
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -236,19 +237,30 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
 
   // Manejar submit completo
   const handleSubmit = async () => {
+    console.log("🚀 [CreateBombero] handleSubmit INICIADO");
+    console.log("📋 [CreateBombero] formData:", formData);
+
     setLoading(true);
     setErrors({});
 
     try {
       // Validar datos del bombero
+      console.log("✅ [CreateBombero] Validando datos...");
       const bomberoErrors = validateBomberoData(formData);
       const fichaErrors = validateFichaData(formData);
 
+      console.log("⚠️ [CreateBombero] Errores de validación:");
+      console.log("  - bomberoErrors:", bomberoErrors);
+      console.log("  - fichaErrors:", fichaErrors);
+
       if (Object.keys(bomberoErrors).length > 0 || Object.keys(fichaErrors).length > 0) {
+        console.log("❌ [CreateBombero] Validación FALLÓ - deteniendo submit");
         setErrors({ ...bomberoErrors, ...fichaErrors });
         setLoading(false);
         return;
       }
+
+      console.log("✅ [CreateBombero] Validación EXITOSA - continuando...");
 
       // Formatear RUT para API
       const formatRutForAPI = (rut) => {
@@ -257,23 +269,34 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
       };
 
       // Obtener los valores actuales del formulario (incluyendo roles desde react-hook-form)
+      console.log("🔍 [CreateBombero] Obteniendo roles del formulario...");
+      console.log("  - formRef.current:", formRef.current);
+      console.log("  - formData.roles:", formData.roles);
+
       const currentRoles = formRef.current?.getValues
         ? formRef.current.getValues("roles") || formData.roles
         : formData.roles;
 
+      console.log("  - currentRoles obtenidos:", currentRoles);
+
       // Transformar datos del bombero para el backend
       // currentRoles ahora es un array de IDs directamente
       const selectedRoleIds = Array.isArray(currentRoles) ? currentRoles : [];
+      console.log("  - selectedRoleIds:", selectedRoleIds);
 
       // Buscar el rol "Bombero" y agregarlo solo si no está ya incluido
       const bomberoRole = roles.find((role) => role.nombre === "Bombero");
       const bomberoRoleId = bomberoRole ? bomberoRole.id : null;
+      console.log("  - bomberoRole encontrado:", bomberoRole);
+      console.log("  - bomberoRoleId:", bomberoRoleId);
 
       // Agregar el rol "Bombero" solo si no está ya en la selección
       const finalRoles =
         bomberoRoleId && !selectedRoleIds.includes(bomberoRoleId)
           ? [bomberoRoleId, ...selectedRoleIds]
           : selectedRoleIds;
+
+      console.log("  - finalRoles:", finalRoles);
 
       const bomberoTransformedData = {
         run: formatRutForAPI(formData.run),
@@ -312,12 +335,19 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
         };
       }
 
+      // DEBUG: Loguear qué se está enviando
+      console.log("📤 [CreateBombero] bomberoTransformedData:", bomberoTransformedData);
+      console.log("📤 [CreateBombero] fichaData:", fichaData);
+      console.log("📤 [CreateBombero] profileImage:", profileImage);
+
       // Crear bombero con ficha e imagen de forma inteligente
       const result = await createBomberoIntelligent(
         bomberoTransformedData,
         fichaData,
         profileImage
       );
+
+      console.log("📥 [CreateBombero] result:", result);
 
       if (!result.success) {
         // Manejar errores estructurados del backend (Array de errores Joi)
@@ -558,6 +588,10 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
                       isLoading: rolesLoading,
                       filter: true,
                       filterPlaceholder: "Buscar roles...",
+                      onChange: (e) => {
+                        console.log("🎯 [CreateBombero] Roles cambiados:", e.value);
+                        handleInputChange("roles", e.value || []);
+                      },
                     },
                     {
                       label: "Estado",
@@ -739,7 +773,10 @@ export default function CreateBomberoPopup({ show, setShow, onBomberoCreated }) 
               </button>
               <button
                 type="button"
-                onClick={handleSubmit}
+                onClick={() => {
+                  console.log("🖱️ [CreateBombero] BOTÓN CLICKEADO - llamando handleSubmit");
+                  handleSubmit();
+                }}
                 className={`flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-[#4EB9FA] to-[#3A9BD9] text-white rounded-lg hover:from-[#3A9BD9] hover:to-[#2E8BC7] transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 ${
                   loading ? "opacity-50 cursor-not-allowed" : ""
                 }`}

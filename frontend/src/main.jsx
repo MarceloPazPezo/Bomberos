@@ -207,9 +207,7 @@ const router = createBrowserRouter([
       {
         path: "/vista-parte/:id/pdf",
         element: (
-          <ProtectedRoute
-            requiredPermisos={["parte_emergencia:generar_pdf", "parte_emergencia:admin"]}
-          >
+          <ProtectedRoute requiredPermisos={["parte_emergencia:revisar", "parte_emergencia:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaPartePdf />
             </Suspense>
@@ -219,7 +217,7 @@ const router = createBrowserRouter([
       {
         path: "/ficha-bombero/:id/pdf",
         element: (
-          <ProtectedRoute requiredPermisos={["bombero:obtener", "bombero:admin"]}>
+          <ProtectedRoute requiredPermisos={["bombero:actualizar", "bombero:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <VistaFichaBomberoPdf />
             </Suspense>
@@ -249,7 +247,7 @@ const router = createBrowserRouter([
       {
         path: "/calendario-admin",
         element: (
-          <ProtectedRoute>
+          <ProtectedRoute requiredPermisos={["evento:crear", "evento:admin"]}>
             <Suspense fallback={<LoadingSpinner />}>
               <CalendarioOperativo />
             </Suspense>

@@ -224,14 +224,6 @@ const Home = () => {
         const bomberosStats = bomberosRes?.data?.estadisticas || null;
         const eppStats = eppRes?.data || null;
 
-        console.log("[Home] Respuesta completa bomberos:", bomberosRes);
-        console.log("[Home] Estadísticas recibidas:", {
-          bomberosStats,
-          eppStats,
-          disponibilidades: disponibilidades?.length,
-          bomberosResData: bomberosRes?.data,
-        });
-
         // Calcular estadísticas de disponibilidad
         let disponibilidadStats = null;
         if (Array.isArray(disponibilidades)) {
@@ -310,19 +302,6 @@ const Home = () => {
     : "";
   const companyDescripcion = companiaInfo?.descripcion || "";
   const companySitioWeb = companiaInfo?.sitioWeb || "";
-
-  // Debug log para ver qué datos están llegando
-  console.log("🔍 [Home] companiaInfo completa:", companiaInfo);
-  console.log("🔍 [Home] Datos extraídos:", {
-    companyName,
-    companyCity,
-    companyRegion,
-    companyPhone,
-    companyEmail,
-    companyAddress,
-    companyDescripcion,
-    companySitioWeb,
-  });
 
   // Helper render function
   const renderEventCard = (evt, idx, isHito = false) => {

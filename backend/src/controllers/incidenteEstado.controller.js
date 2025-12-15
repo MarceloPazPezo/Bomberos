@@ -22,6 +22,33 @@ export async function cambiarEstadoIncidente(req, res) {
   if (!Number.isInteger(idBombero) || idBombero <= 0) {
     return handleErrorClient(res, 400, "idBombero requerido");
   }
+
+  // Validación adicional de permisos según estado destino
+  // Los usuarios con parte_emergencia:actualizar solo pueden cambiar a ENVIADO
+  // Los usuarios con parte_emergencia:revisar pueden aprobar/rechazar (APROBADO/CORREGIR)
+  const bomberoPermisos = new Set();
+  if (req.bombero?.roles && Array.isArray(req.bombero.roles)) {
+    req.bombero.roles.forEach((rol) => {
+      if (rol?.permisos && Array.isArray(rol.permisos)) {
+        rol.permisos.forEach((permisoObject) => {
+          if (permisoObject?.nombre && typeof permisoObject.nombre === "string") {
+            bomberoPermisos.add(permisoObject.nombre.toLowerCase());
+          }
+        });
+      }
+    });
+  }
+
+  const tienePermisoRevisar = bomberoPermisos.has("parte_emergencia:revisar") || bomberoPermisos.has("parte_emergencia:admin");
+  const tienePermisoActualizar = bomberoPermisos.has("parte_emergencia:actualizar") || bomberoPermisos.has("parte_emergencia:admin");
+
+  if ((estado === "APROBADO" || estado === "CORREGIR") && !tienePermisoRevisar) {
+    return handleErrorClient(res, 403, "No tienes permiso para aprobar o rechazar partes. Se requiere 'parte_emergencia:revisar'");
+  }
+  if (estado === "ENVIADO" && !tienePermisoActualizar && !tienePermisoRevisar) {
+    return handleErrorClient(res, 403, "No tienes permiso para enviar partes a revisión");
+  }
+
   try {
     const last = await obtenerUltimoEstadoPorIncidenteService(idIncidente);
     const lastEstado = (last?.estado || "").toUpperCase();

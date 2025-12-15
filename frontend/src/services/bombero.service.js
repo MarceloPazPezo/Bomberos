@@ -151,7 +151,6 @@ export const generarFichaBomberoPdf = async (id, options = {}) => {
     const payload = {};
     if (options.expiresIn) payload.expiresIn = options.expiresIn;
     const response = await axios.post(`/bombero/${id}/ficha/pdf`, payload);
-    if (import.meta.env?.DEV) console.log("PDF de ficha generado:", response);
     return response.data;
   } catch (error) {
     console.error('Error al generar PDF de ficha:', error);
@@ -166,10 +165,17 @@ export const generarFichaBomberoPdf = async (id, options = {}) => {
  */
 export async function createBomberoWithOptionalFicha(bomberoData, fichaData = null) {
   try {
+    console.log("📤 [bombero.service] POST /bombero/with-ficha");
+    console.log("  - bomberoData:", bomberoData);
+    console.log("  - fichaData:", fichaData);
+
     const response = await axios.post('/bombero/with-ficha', {
       bomberoData,
       fichaData
     });
+
+    console.log("📥 [bombero.service] Response:", response.data);
+
     // Normalizar respuesta del backend a formato esperado por el frontend
     const backendData = response.data;
     return {
@@ -180,6 +186,7 @@ export async function createBomberoWithOptionalFicha(bomberoData, fichaData = nu
     };
   } catch (error) {
     console.error('Error creating bombero with optional ficha:', error);
+    console.error('  - Response data:', error.response?.data);
     const errorData = error.response?.data;
     if (errorData) {
       return {

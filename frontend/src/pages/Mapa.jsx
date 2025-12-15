@@ -44,7 +44,7 @@ import { GoogleMap, useJsApiLoader, Marker, InfoWindow, Polygon } from "@react-g
 const libraries = ["drawing", "geometry"];
 
 const Mapa = () => {
-  const { bombero: user } = useAuth();
+  const { bombero: user, hasPermiso } = useAuth();
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
@@ -57,6 +57,20 @@ const Mapa = () => {
 
   const modoAgregarRef = useRef(false);
   const [modoAgregar, setModoAgregar] = useState(false);
+
+  // Verificar permisos
+  const puedeCrearPuntos =
+    hasPermiso("puntoGeografico:crear") || hasPermiso("puntoGeografico:admin");
+  const puedeActualizarPuntos =
+    hasPermiso("puntoGeografico:actualizar") || hasPermiso("puntoGeografico:admin");
+  const puedeEliminarPuntos =
+    hasPermiso("puntoGeografico:eliminar") || hasPermiso("puntoGeografico:admin");
+  const puedeCrearJurisdicciones =
+    hasPermiso("jurisdiccion:crear") || hasPermiso("jurisdiccion:admin");
+  const puedeActualizarJurisdicciones =
+    hasPermiso("jurisdiccion:actualizar") || hasPermiso("jurisdiccion:admin");
+  const puedeEliminarJurisdicciones =
+    hasPermiso("jurisdiccion:eliminar") || hasPermiso("jurisdiccion:admin");
 
   // Estados
   const [puntos, setPuntos] = useState([]);
@@ -74,7 +88,6 @@ const Mapa = () => {
   const [filtrosCategorias, setFiltrosCategorias] = useState({
     PUNTO_INTERES: true,
     UBICACION_BOMBERO: true,
-    INCIDENTE: true,
     COMPANIA: false, // Deshabilitado visualmente
   });
 
@@ -579,7 +592,7 @@ const Mapa = () => {
               </div>
               <Tooltip
                 id="mapa-help"
-                content="Gestiona puntos de interés, ubicaciones de bomberos, incidentes y jurisdicciones en el mapa. Puedes agregar nuevos puntos, dibujar polígonos de jurisdicción, filtrar por categorías y visualizar información geográfica relevante."
+                content="Gestiona puntos de interés, ubicaciones de bomberos y jurisdicciones en el mapa. Puedes agregar nuevos puntos, dibujar polígonos de jurisdicción, filtrar por categorías y visualizar información geográfica relevante."
                 place="right"
                 variant="dark"
               >
@@ -615,17 +628,6 @@ const Mapa = () => {
                 />
                 <span className="text-sm text-gray-700">Ubicaciones Bomberos</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={filtrosCategorias.INCIDENTE}
-                  onChange={(e) =>
-                    setFiltrosCategorias((prev) => ({ ...prev, INCIDENTE: e.target.checked }))
-                  }
-                  className="w-4 h-4 text-red-600 rounded focus:ring-2 focus:ring-red-500"
-                />
-                <span className="text-sm text-gray-700">Incidentes</span>
-              </label>
               {/* Compañías - Comentado visualmente pero funcionalidad mantenida */}
               {/* <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -643,21 +645,25 @@ const Mapa = () => {
             {/* Botones de acción */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setDibujarJuris((v) => !v)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white disabled:bg-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
-                  title="Dibujar polígono de jurisdicción"
-                >
-                  {dibujarJuris ? "Finalizar Dibujo" : "Dibujar Jurisdicción"}
-                </button>
-                <button
-                  onClick={() => setModoAgregar(!modoAgregar)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  {modoAgregar ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
-                  {modoAgregar ? "Cancelar" : "Nuevo Punto"}
-                </button>
+                {puedeCrearJurisdicciones && (
+                  <button
+                    type="button"
+                    onClick={() => setDibujarJuris((v) => !v)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white disabled:bg-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                    title="Dibujar polígono de jurisdicción"
+                  >
+                    {dibujarJuris ? "Finalizar Dibujo" : "Dibujar Jurisdicción"}
+                  </button>
+                )}
+                {puedeCrearPuntos && (
+                  <button
+                    onClick={() => setModoAgregar(!modoAgregar)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    {modoAgregar ? <MdClose className="w-5 h-5" /> : <MdAdd className="w-5 h-5" />}
+                    {modoAgregar ? "Cancelar" : "Nuevo Punto"}
+                  </button>
+                )}
               </div>
 
               <button
@@ -1022,20 +1028,26 @@ const Mapa = () => {
                         </div>
                       </div>
 
-                      <div className="flex gap-3 pt-3 border-t border-gray-200">
-                        <button
-                          onClick={() => handleEditPunto(selectedMarker.id)}
-                          className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
-                        >
-                          <MdEdit className="w-4 h-4" /> Editar
-                        </button>
-                        <button
-                          onClick={() => handleEliminarPunto(selectedMarker.id)}
-                          className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
-                        >
-                          <MdDelete className="w-4 h-4" /> Eliminar
-                        </button>
-                      </div>
+                      {(puedeActualizarPuntos || puedeEliminarPuntos) && (
+                        <div className="flex gap-3 pt-3 border-t border-gray-200">
+                          {puedeActualizarPuntos && (
+                            <button
+                              onClick={() => handleEditPunto(selectedMarker.id)}
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
+                            >
+                              <MdEdit className="w-4 h-4" /> Editar
+                            </button>
+                          )}
+                          {puedeEliminarPuntos && (
+                            <button
+                              onClick={() => handleEliminarPunto(selectedMarker.id)}
+                              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
+                            >
+                              <MdDelete className="w-4 h-4" /> Eliminar
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -1088,14 +1100,16 @@ const Mapa = () => {
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-3 border-t border-gray-200">
-                    <button
-                      onClick={() => handleEditJurisdiccion(selectedJurisdiccion.id)}
-                      className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
-                    >
-                      <MdEdit className="w-4 h-4" /> Editar Jurisdicción
-                    </button>
-                  </div>
+                  {puedeActualizarJurisdicciones && (
+                    <div className="flex gap-3 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => handleEditJurisdiccion(selectedJurisdiccion.id)}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:scale-105"
+                      >
+                        <MdEdit className="w-4 h-4" /> Editar Jurisdicción
+                      </button>
+                    </div>
+                  )}
                 </div>
               </InfoWindow>
             )}

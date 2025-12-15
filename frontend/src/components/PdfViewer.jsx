@@ -84,10 +84,17 @@ export default function PdfViewer({
             <button
               type="button"
               onClick={onRegenerate}
-              className="inline-flex items-center gap-2 rounded-lg bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 text-sm font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white px-4 py-2.5 text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               disabled={regenerating}
             >
-              {regenerating ? "Regenerando..." : "Regenerar PDF"}
+              {regenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Regenerando...</span>
+                </>
+              ) : (
+                <span>Regenerar PDF</span>
+              )}
             </button>
           )}
           {pdfUrl && downloadFileName && (

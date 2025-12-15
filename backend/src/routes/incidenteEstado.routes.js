@@ -9,9 +9,9 @@ const router = Router();
 // Middleware de autenticación para todas las rutas
 router.use(authenticateJwt);
 
-// POST /incidentes/:id/cambiar-estado  body: { estado: 'APROBADO'|'CORREGIR', idBombero }
-// Permite aprobar y rechazar partes (incluido en parte_emergencia:revisar)
-router.post("/:id/cambiar-estado", authorizePermisos(["parte_emergencia:revisar", "parte_emergencia:admin"]), cambiarEstadoIncidente);
+// POST /incidentes/:id/cambiar-estado  body: { estado: 'APROBADO'|'CORREGIR'|'ENVIADO', idBombero }
+// Permite enviar a revisión (ENVIADO) con actualizar, o aprobar/rechazar (APROBADO/CORREGIR) con revisar
+router.post("/:id/cambiar-estado", authorizePermisos(["parte_emergencia:actualizar", "parte_emergencia:revisar", "parte_emergencia:admin"]), cambiarEstadoIncidente);
 
 // GET /incidentes/:id/historial-estados
 // Obtiene el historial completo de estados de un incidente

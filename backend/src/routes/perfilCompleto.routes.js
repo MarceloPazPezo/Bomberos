@@ -73,7 +73,7 @@ router.delete(
 
 router.get(
   "/imagen-perfil-url",
-  authorizePermisos(["bombero:actualizar_perfil"]),
+  authorizePermisos(["bombero:obtener_perfil", "bombero:actualizar_perfil"]),
   getImagenPerfilUrl
 );
 

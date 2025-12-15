@@ -21,6 +21,7 @@ import { updateBombero, getBomberoComplete } from "@services/bombero.service.js"
 import fichaBomberoService from "@services/fichaBombero.service.js";
 import { showErrorAlert } from "@helpers/fireAlert.js";
 import { bomberoUpdatedToast } from "@helpers/toastHelper.jsx";
+import { formatRutForDisplay } from "@helpers/rutFormatter.js";
 
 export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdated }) {
   const bomberoData = data || {};
@@ -144,7 +145,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
               apellidos: Array.isArray(bombero.apellidos)
                 ? bombero.apellidos.join(" ")
                 : bombero.apellidos || "",
-              run: bombero.run || "",
+              run: formatRutForDisplay(bombero.run || ""),
               email: bombero.email || "",
               activo: bombero.activo !== undefined ? bombero.activo : true,
               roles: bombero.roles ? bombero.roles.map((role) => role.id || role) : [],
@@ -160,7 +161,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
               apellidos: Array.isArray(bomberoData.apellidos)
                 ? bomberoData.apellidos.join(" ")
                 : bomberoData.apellidos || "",
-              run: bomberoData.run || "",
+              run: formatRutForDisplay(bomberoData.run || ""),
               email: bomberoData.email || "",
               activo: bomberoData.activo !== undefined ? bomberoData.activo : true,
               roles: bomberoData.roles ? bomberoData.roles.map((role) => role.id || role) : [],
@@ -177,7 +178,7 @@ export default function UpdateBomberoPopup({ show, setShow, data, onBomberoUpdat
             apellidos: Array.isArray(bomberoData.apellidos)
               ? bomberoData.apellidos.join(" ")
               : bomberoData.apellidos || "",
-            run: bomberoData.run || "",
+            run: formatRutForDisplay(bomberoData.run || ""),
             email: bomberoData.email || "",
             activo: bomberoData.activo !== undefined ? bomberoData.activo : true,
             roles: bomberoData.roles ? bomberoData.roles.map((role) => role.id || role) : [],

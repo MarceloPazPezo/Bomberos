@@ -1,34 +1,36 @@
-import React, { useMemo } from 'react';
-import PropTypes from 'prop-types';
+import React, { useMemo } from "react";
+import PropTypes from "prop-types";
 
-const HeatmapDisponibilidadVoluntario = ({ data, loading }) => {
-  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const HeatmapDisponibilidadVoluntario = ({ data = [], loading = false }) => {
+  const diasSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
   const horas = Array.from({ length: 24 }, (_, i) => i);
 
   // Crear matriz de datos
   const matrizDatos = useMemo(() => {
-    const matriz = Array(7).fill(null).map(() => Array(24).fill(0));
-    
+    const matriz = Array(7)
+      .fill(null)
+      .map(() => Array(24).fill(0));
+
     if (data && data.length > 0) {
-      data.forEach(item => {
+      data.forEach((item) => {
         const dia = parseInt(item.dia_semana);
         const hora = parseInt(item.hora);
         const cantidad = parseInt(item.cantidad);
-        
+
         if (dia >= 0 && dia < 7 && hora >= 0 && hora < 24) {
           matriz[dia][hora] = cantidad;
         }
       });
     }
-    
+
     return matriz;
   }, [data]);
 
   // Encontrar el valor máximo para normalizar colores
   const maxValor = useMemo(() => {
     let max = 0;
-    matrizDatos.forEach(dia => {
-      dia.forEach(cantidad => {
+    matrizDatos.forEach((dia) => {
+      dia.forEach((cantidad) => {
         if (cantidad > max) max = cantidad;
       });
     });
@@ -37,15 +39,15 @@ const HeatmapDisponibilidadVoluntario = ({ data, loading }) => {
 
   // Función para obtener el color basado en la intensidad
   const obtenerColor = (valor) => {
-    if (valor === 0) return 'bg-gray-100';
-    
+    if (valor === 0) return "bg-gray-100";
+
     const intensidad = valor / maxValor;
-    
-    if (intensidad >= 0.8) return 'bg-green-600';
-    if (intensidad >= 0.6) return 'bg-green-500';
-    if (intensidad >= 0.4) return 'bg-green-400';
-    if (intensidad >= 0.2) return 'bg-green-300';
-    return 'bg-green-200';
+
+    if (intensidad >= 0.8) return "bg-green-600";
+    if (intensidad >= 0.6) return "bg-green-500";
+    if (intensidad >= 0.4) return "bg-green-400";
+    if (intensidad >= 0.2) return "bg-green-300";
+    return "bg-green-200";
   };
 
   if (loading) {
@@ -73,9 +75,12 @@ const HeatmapDisponibilidadVoluntario = ({ data, loading }) => {
           <div className="grid grid-cols-[120px_repeat(24,1fr)] gap-1">
             {/* Encabezado de horas */}
             <div className=""></div>
-            {horas.map(hora => (
-              <div key={`hora-${hora}`} className="text-center text-xs font-medium text-gray-600 pb-1">
-                {hora.toString().padStart(2, '0')}h
+            {horas.map((hora) => (
+              <div
+                key={`hora-${hora}`}
+                className="text-center text-xs font-medium text-gray-600 pb-1"
+              >
+                {hora.toString().padStart(2, "0")}h
               </div>
             ))}
 
@@ -88,12 +93,12 @@ const HeatmapDisponibilidadVoluntario = ({ data, loading }) => {
                 </div>
 
                 {/* Celdas de horas */}
-                {horas.map(hora => {
+                {horas.map((hora) => {
                   const valor = matrizDatos[diaIdx][hora];
                   const colorClass = obtenerColor(valor);
-                  const horaFormateada = `${hora.toString().padStart(2, '0')}h`;
-                  const registrosTexto = valor === 1 ? 'registro' : 'registros';
-                  
+                  const horaFormateada = `${hora.toString().padStart(2, "0")}h`;
+                  const registrosTexto = valor === 1 ? "registro" : "registros";
+
                   return (
                     <div
                       key={`celda-${diaIdx}-${hora}`}
@@ -101,15 +106,17 @@ const HeatmapDisponibilidadVoluntario = ({ data, loading }) => {
                       title={`${dia} ${horaFormateada}: ${valor} ${registrosTexto}`}
                     >
                       {valor > 0 && (
-                        <span className="text-xs font-semibold text-white">
-                          {valor}
-                        </span>
+                        <span className="text-xs font-semibold text-white">{valor}</span>
                       )}
-                      
+
                       {/* Tooltip hover */}
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                        <div className="font-semibold">{dia} {horaFormateada}</div>
-                        <div className="text-gray-300">{valor} {registrosTexto}</div>
+                        <div className="font-semibold">
+                          {dia} {horaFormateada}
+                        </div>
+                        <div className="text-gray-300">
+                          {valor} {registrosTexto}
+                        </div>
                         {/* Flecha del tooltip */}
                         <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
                           <div className="border-4 border-transparent border-t-gray-900"></div>
@@ -150,12 +157,7 @@ const HeatmapDisponibilidadVoluntario = ({ data, loading }) => {
 
 HeatmapDisponibilidadVoluntario.propTypes = {
   data: PropTypes.array,
-  loading: PropTypes.bool
-};
-
-HeatmapDisponibilidadVoluntario.defaultProps = {
-  data: [],
-  loading: false
+  loading: PropTypes.bool,
 };
 
 export default HeatmapDisponibilidadVoluntario;
